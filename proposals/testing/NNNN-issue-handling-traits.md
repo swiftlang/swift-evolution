@@ -126,7 +126,7 @@ Here's one contrived example showing how this could be used to add a comment to
 each issue recorded by a test:
 
 ```swift
-@Test(.transformIssues { issue in
+@Test(.compactMapIssues { issue in
   var issue = issue
   issue.comments.append("Checking whether two literals are equal")
   return issue
@@ -173,10 +173,10 @@ are executed in trailing-to-leading, innermost-to-outermost order. For example,
 given the following code:
 
 ```swift
-@Suite(.transformIssues { ... /* A */ })
+@Suite(.compactMapIssues { ... /* A */ })
 struct ExampleSuite {
   @Test(.filterIssues { ... /* B */ },
-        .transformIssues { ... /* C */ })
+        .compactMapIssues { ... /* C */ })
   func example() {
     ...
   }
@@ -208,7 +208,7 @@ actor Session {
 }
 
 // In test code:
-@Test(.transformIssues { issue in
+@Test(.compactMapIssues { issue in
   var issue = issue
   if let session = Session.current {
     issue.comments.append("Current session ID: \(session.id)")
@@ -237,7 +237,7 @@ For example:
 
 ```swift
 @Test(
-  .transformIssues { issue in
+  .compactMapIssues { issue in
     // This closure will be called for any issue recorded by the test function
     // or by the `.filterIssues` trait below.
     ...
@@ -305,7 +305,7 @@ This proposal includes the following:
     traits.
 * Static functions on `Trait` for creating instances of this type with the
   following capabilities:
-  * A function `transformIssues(_:)` which returns a trait that can transform
+  * A function `compactMapIssues(_:)` which returns a trait that can transform
     recorded issues. The function takes a closure which is passed an issue and
     returns either a modified issue or `nil` to suppress it.
   * A function `filterIssues(_:)` which returns a trait that can filter recorded
@@ -322,14 +322,14 @@ Below are the proposed interfaces:
 /// modifying one or more of its properties, and returning the copy. You can
 /// observe recorded issues by returning them unmodified. Or you can suppress an
 /// issue by either filtering it using ``Trait/filterIssues(_:)`` or returning
-/// `nil` from the closure passed to ``Trait/transformIssues(_:)``.
+/// `nil` from the closure passed to ``Trait/compactMapIssues(_:)``.
 ///
 /// When an instance of this trait is applied to a suite, it is recursively
 /// inherited by all child suites and tests.
 ///
 /// To add this trait to a test, use one of the following functions:
 ///
-/// - ``Trait/transformIssues(_:)``
+/// - ``Trait/compactMapIssues(_:)``
 /// - ``Trait/filterIssues(_:)``
 public struct IssueHandlingTrait: TestTrait, SuiteTrait {
   /// Handle a specified issue.
@@ -346,30 +346,34 @@ extension Trait where Self == IssueHandlingTrait {
   /// Constructs an trait that transforms issues recorded by a test.
   ///
   /// - Parameters:
-  ///   - transformer: The closure called for each issue recorded by the test
+  ///   - transform: A closure called for each issue recorded by the test
   ///     this trait is applied to. It is passed a recorded issue, and returns
   ///     an optional issue to replace the passed-in one.
   ///
   /// - Returns: An instance of ``IssueHandlingTrait`` that transforms issues.
   ///
-  /// The `transformer` closure is called synchronously each time an issue is
+  /// The `transform` closure is called synchronously each time an issue is
   /// recorded by the test this trait is applied to. The closure is passed the
   /// recorded issue, and if it returns a non-`nil` value, that will be recorded
   /// instead of the original. Otherwise, if the closure returns `nil`, the
   /// issue is suppressed and will not be included in the results.
   ///
-  /// The `transformer` closure may be called more than once if the test records
+  /// The `transform` closure may be called more than once if the test records
   /// multiple issues. If more than one instance of this trait is applied to a
-  /// test (including via inheritance from a containing suite), the `transformer`
+  /// test (including via inheritance from a containing suite), the `transform`
   /// closure for each instance will be called in right-to-left, innermost-to-
   /// outermost order, unless `nil` is returned, which will skip invoking the
   /// remaining traits' closures.
   ///
-  /// Within `transformer`, you may access the current test or test case (if any)
+  /// Within `transform`, you may access the current test or test case (if any)
   /// using ``Test/current`` ``Test/Case/current``, respectively. You may also
   /// record new issues, although they will only be handled by issue handling
   /// traits which precede this trait or were inherited from a containing suite.
-  public static func transformIssues(_ transformer: @escaping @Sendable (Issue) -> Issue?) -> Self
+  ///
+  /// - Note: `transform` will never be passed an issue for which the value of
+  ///   ``Issue/kind`` is ``Issue/Kind/system``, and may not return such an
+  ///   issue.
+  public static func compactMapIssues(_ transform: @escaping @Sendable (Issue) -> Issue?) -> Self
 
   /// Constructs a trait that filters issues recorded by a test.
   ///
@@ -398,6 +402,9 @@ extension Trait where Self == IssueHandlingTrait {
   /// using ``Test/current`` ``Test/Case/current``, respectively. You may also
   /// record new issues, although they will only be handled by issue handling
   /// traits which precede this trait or were inherited from a containing suite.
+  ///
+  /// - Note: `isIncluded` will never be passed an issue for which the value of
+  ///   ``Issue/kind`` is ``Issue/Kind/system``.
   public static func filterIssues(_ isIncluded: @escaping @Sendable (Issue) -> Bool) -> Self
 }
 ```
@@ -472,14 +479,12 @@ the handler encounters an error.
 
 ### Alternate names for the static trait functions
 
-We could choose different names for the static `transformIssues(_:)` or
+We could choose different names for the static `compactMapIssues(_:)` or
 `filterIssues(_:)` functions. Some alternate names considered were:
 
-- `compactMapIssues` instead of `transformIssues`. This arguably aligns better
-  with the word "filter" of `filterIssues`, but it felt strange since often,
-  "map" is used to return a value of a _different_ type, whereas here it must
-  return a value of the same type, it's just that it can be mutated.
-- `handleIssues` instead of `transformIssues`. The word "handle" is in the name
+- `transformIssues` instead of `compactMapIssues`. "Compact map" seemed to align
+  better with "filter" of `filterIssues`, however.
+- `handleIssues` instead of `compactMapIssues`. The word "handle" is in the name
   of the trait type already; it's a more general word for what all of these
   usage patterns enable, so it felt too broad.
 - Using singular "issue" rather than plural "issues" in both APIs. This may not
