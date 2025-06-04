@@ -493,6 +493,20 @@ allowing errors to be thrown forces the author of the issue handler to make an
 explicit decision about whether they want an additional issue to be recorded if
 the handler encounters an error.
 
+### Make the closure's issue parameter `inout`
+
+The closure parameter of `compactMapIssues(_:)` currently has one parameter of
+type `Issue` and returns an optional `Issue?` to support returning `nil` in
+order to suppress an issue. This closure could instead have a `Void` return type
+and its parameter could be `inout`, and this would mean that use cases that
+involve modifying an issue would not need to first copy the issue to a variable
+(`var`) before modifying it.
+
+However, in order to _suppress_ an issue, the parameter would also need to
+become optional (`inout Issue?`) and this would mean that all usages would first
+need to be unwrapped. This feels non-ergonomic, and would differ from the
+standard library's typical pattern for `compactMap` functions.
+
 ### Alternate names for the static trait functions
 
 We could choose different names for the static `compactMapIssues(_:)` or
