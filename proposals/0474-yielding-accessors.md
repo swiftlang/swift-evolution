@@ -3,7 +3,7 @@
 * Proposal: [SE-0474](0474-yielding-accessors.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Nate Chandler](https://github.com/nate-chandler), [Joe Groff](https://github.com/jckarter/)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active Review (Apr 8...22)**
+* Status: **Active Review (April 8 ... April 22, 2025)**
 * Vision: [A Prospective Vision for Accessors in Swift](https://github.com/rjmccall/swift-evolution/blob/accessors-vision/visions/accessors.md)
 * Implementation: Partially available on main behind the frontend flag `-enable-experimental-feature CoroutineAccessors`
 * Review: ([pitch 1](https://forums.swift.org/t/modify-accessors/31872)), ([pitch 2](https://forums.swift.org/t/pitch-modify-and-read-accessors/75627)), ([pitch 3](https://forums.swift.org/t/pitch-3-yielding-coroutine-accessors/77956)), ([review](https://forums.swift.org/t/se-0474-yielding-accessors/79170))
@@ -559,7 +559,7 @@ Since it would typically be ambiguous whether the `yielding borrow` or `get` sho
 A `yielding` accessor lends the value it yields to its caller.
 The caller only has access to that value until it resumes the coroutine.
 After the coroutine is resumed, it has the opportunity to clean up.
-This enables a `yielding borrow` or `mutate` to do interesting work such as constructing aggregates from its base object's fields:
+This enables a `yielding borrow` or `mutate` to do interesting work, such as constructing a temporary aggregate from its base object's fields:
 
 ```swift
 struct Pair<Left : ~Copyable, Right : ~Copyable> : ~Copyable {
@@ -567,16 +567,16 @@ struct Pair<Left : ~Copyable, Right : ~Copyable> : ~Copyable {
   var right: Right
 
   var reversed: Pair<Right, Left> {
-    yielding borrow {
+    yielding mutate {
       let result = Pair<Right, Left>(left: right, right: left)
-      yield result
+      yield &result
       self = .init(left: result.right, right: result.left)
     }
   }
 }
 ```
 
-That the borrow ends when the coroutine is resumed means that the lifetime of the lent value is strictly shorter than that of the base value.
+That the access ends when the coroutine is resumed means that the lifetime of the lent value is strictly shorter than that of the base value.
 In the example above, the lifetime of `reversed` is shorter than that of the `Pair` it is called on.
 
 As discussed in the [accessors vision](https://github.com/rjmccall/swift-evolution/blob/accessors-vision/visions/accessors.md), when a value is merely being projected from the base object and does not need any cleanup after being accessed, this is undesirably limiting:

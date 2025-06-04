@@ -3,7 +3,7 @@
 * Proposal: [SE-0475](0475-observed.md)
 * Authors: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Active Review (Apr 10...24)**
+* Status: **Active Review (April 10 ... May 13, 2025)**
 * Implementation: https://github.com/swiftlang/swift/pull/79817
 * Review: ([pitch](https://forums.swift.org/t/pitch-transactional-observation-of-values/78315)) ([review](https://forums.swift.org/t/se-0475-transactional-observation-of-values/79224))
 
@@ -51,7 +51,7 @@ that do not use UI as seamlessly as those that do.
 
 ## Proposed solution
 
-This proposal adds a straightforward new tool: a closure-initialized `Observed` 
+This proposal adds a straightforward new tool: a closure-initialized `Observations` 
 type that acts as a sequence of closure-returned values, emitting new values 
 when something within that closure changes.
 
@@ -76,12 +76,12 @@ final class Person {
 }
 ```
 
-Creating an `Observed` asynchronous sequence is straightforward. This example 
+Creating an `Observations` asynchronous sequence is straightforward. This example 
 creates an asynchronous sequence that yields a value every time the composed 
 `name` property is updated:
 
 ```swift
-let names = Observed { person.name }
+let names = Observations { person.name }
 ```
 
 However if the example was more complex and the `Person` type in the previous 
@@ -89,7 +89,7 @@ example had a `var pet: Pet?` property which was also `@Observable` then the
 closure can be written with a more complex expression.
 
 ```swift
-let greetings = Observed {
+let greetings = Observations {
   if let pet = person.pet {
     return "Hello \(person.name) and \(pet.name)"
   } else {
@@ -158,7 +158,7 @@ is expected to emit the same values in both tasks.
 
 ```swift
 
-let names = Observed { person.firstName + " " + person.lastName }
+let names = Observations { person.firstName + " " + person.lastName }
 
 Task.detached {
   for await name in names {
@@ -185,7 +185,7 @@ properties as a `String`. This has no sense of termination locally within the
 construction. Making the return value of that closure be a lifted `Optional` suffers 
 the potential conflation of a terminal value and a value that just happens to be nil.
 This means that there is a need for a second construction mechanism that offers a
-way of expressing that the `Observed` sequence iteration will run until finished.
+way of expressing that the `Observations` sequence iteration will run until finished.
 
 For the example if `Person` then has a new optional field of `homePage` which 
 is an optional URL it then means that the construction can disambiguate
@@ -206,7 +206,7 @@ final class Person {
   }
 }
 
-let hosts = Observed.untilFinished { [weak person] in
+let hosts = Observations.untilFinished { [weak person] in
   if let person {
     .next(person.homePage?.host)
   } else {
@@ -218,7 +218,7 @@ let hosts = Observed.untilFinished { [weak person] in
 Putting this together grants a signature as such:
 
 ```swift
-public struct Observed<Element: Sendable, Failure: Error>: AsyncSequence, Sendable {
+public struct Observations<Element: Sendable, Failure: Error>: AsyncSequence, Sendable {
   public init(
     @_inheritActorContext _ emit: @escaping @isolated(any) @Sendable () throws(Failure) -> Element
   )
@@ -230,12 +230,12 @@ public struct Observed<Element: Sendable, Failure: Error>: AsyncSequence, Sendab
 
   public static func untilFinished(
     @_inheritActorContext _ emit: @escaping @isolated(any) @Sendable () throws(Failure) -> Iteration
-  ) -> Observed<Element, Failure>
+  ) -> Observations<Element, Failure>
 }
 ```
 
 Picking the initializer apart first captures the current isolation of the 
-creation of the `Observed` instance. Then it captures a `Sendable` closure that 
+creation of the `Observations` instance. Then it captures a `Sendable` closure that 
 inherits that current isolation. This means that the closure may only execute on
 the captured isolation. That closure is run to determine which properties are 
 accessed by using Observation's `withObservationTracking`. So any access to a 
@@ -253,19 +253,19 @@ The closure has two other features that are important for common usage; firstly
 the closure is typed-throws such that any access to that emission closure will
 potentially throw an error if the developer specifies. This allows for complex 
 composition of potentially failable systems. Any thrown error will mean that the
-`Observed` sequence is complete and loops that are currently iterating will 
+`Observations` sequence is complete and loops that are currently iterating will 
 terminate with that given failure. Subsequent calls then to `next` on those 
 iterators will return `nil` - indicating that the iteration is complete. 
 
 ## Behavioral Notes
 
-There are a number of scenarios of iteration that can occur. These can range from production rate to iteration rate differentials to isolation differentials to concurrent iterations. Enumerating all possible combinations is of course not possible but the following explanations should illustrate some key usages. `Observed` does not make unsafe code somehow safe - the concepts of isolation protection or exclusive access are expected to be brought to the table by the types involved. It does however require the enforcements via Swift Concurrency particularly around the marking of the types and closures being required to be `Sendable`. The following examples will only illustrate well behaved types and avoid fully unsafe behavior that would lead to crashes because the types being used are circumventing that language safety.
+There are a number of scenarios of iteration that can occur. These can range from production rate to iteration rate differentials to isolation differentials to concurrent iterations. Enumerating all possible combinations is of course not possible but the following explanations should illustrate some key usages. `Observations` does not make unsafe code somehow safe - the concepts of isolation protection or exclusive access are expected to be brought to the table by the types involved. It does however require the enforcements via Swift Concurrency particularly around the marking of the types and closures being required to be `Sendable`. The following examples will only illustrate well behaved types and avoid fully unsafe behavior that would lead to crashes because the types being used are circumventing that language safety.
 
 The most trivial case is where a single produce and single consumer are active. In this case they both are isolated to the same isolation domain. For ease of reading; this example is limited to the `@MainActor` but could just as accurately be represented in some other actor isolation.
 
 ```swift
 @MainActor
-func iterate(_ names: Observed<String, Never>) async {
+func iterate(_ names: Observations<String, Never>) async {
   for await name in names {
     print(name)
   }
@@ -276,7 +276,7 @@ func example() async throws {
   let person = Person(firstName: "", lastName: "")
 
   // note #2
-  let names = Observed {
+  let names = Observations {
     person.name
   }
 
@@ -311,7 +311,7 @@ Next is the case where the mutation of the properties out-paces the iteration. A
 
 ```swift
 @MainActor
-func iterate(_ names: Observed<String, Never>) async {
+func iterate(_ names: Observations<String, Never>) async {
   for await name in names {
     print(name)
     try? await Task.sleep(for: .seconds(0.095))
@@ -323,7 +323,7 @@ func example() async throws {
   let person = Person(firstName: "", lastName: "")
 
   // @MainActor is captured here as the isolation
-  let names = Observed {
+  let names = Observations {
     person.name
   }
 
@@ -353,7 +353,7 @@ The result of the observation may print the following output, but the primary pr
 
 This case dropped the last value of the iteration because the accumulated differential exceeded the production; however the potentially confusing part here is that the sleep in the iterate competes with the scheduling in the emitter. This becomes clearer of a relationship when the boundaries of isolation are crossed.
 
-Observed can be used across boundaries of concurrency. This is where the iteration is done on a different isolation than the mutations. The types however are accessed always in the isolation that the creation of the Observed closure is executed. This means that if the `Observed` instance is created on the main actor then the subsequent calls to the closure will be done on the main actor.
+Observations can be used across boundaries of concurrency. This is where the iteration is done on a different isolation than the mutations. The types however are accessed always in the isolation that the creation of the Observations closure is executed. This means that if the `Observations` instance is created on the main actor then the subsequent calls to the closure will be done on the main actor.
 
 ```swift
 @globalActor
@@ -362,7 +362,7 @@ actor ExcplicitlyAnotherActor: GlobalActor {
 }
 
 @ExcplicitlyAnotherActor
-func iterate(_ names: Observed<String, Never>) async {
+func iterate(_ names: Observations<String, Never>) async {
   for await name in names {
     print(name)
   }
@@ -373,7 +373,7 @@ func example() async throws {
   let person = Person(firstName: "", lastName: "")
 
   // @MainActor is captured here as the isolation
-  let names = Observed {
+  let names = Observations {
     person.name
   }
 
@@ -402,12 +402,12 @@ The values still will be conjoined as expected for their changes, however just l
 
 If the `iterate` function was altered to have a similar `sleep` call that exceeded the production then it would result in similar behavior of the previous producer/consumer rate case.
 
-The next behavioral illustration is the value distribution behaviors; this is where two or more copies of an `Observed` are iterated concurrently.
+The next behavioral illustration is the value distribution behaviors; this is where two or more copies of an `Observations` are iterated concurrently.
 
 ```swift
 
 @MainActor
-func iterate1(_ names: Observed<String, Never>) async {
+func iterate1(_ names: Observations<String, Never>) async {
   for await name in names {
     print("A", name)
   }
@@ -415,7 +415,7 @@ func iterate1(_ names: Observed<String, Never>) async {
 
 
 @MainActor
-func iterate2(_ names: Observed<String, Never>) async {
+func iterate2(_ names: Observations<String, Never>) async {
   for await name in names {
     print("B", name)
   }
@@ -426,7 +426,7 @@ func example() async throws {
   let person = Person(firstName: "", lastName: "")
 
   // @MainActor is captured here as the isolation
-  let names = Observed {
+  let names = Observations {
     person.name
   }
 
@@ -452,17 +452,63 @@ This situation commonly comes up when the asynchronous sequence is stored as a p
 
 ```
 A 0 0
+B 0 0
 B 1 1
 A 1 1
-B 2 2
 A 2 2
+B 2 2
 A 3 3
 B 3 3
-A 4 4
 B 4 4
+A 4 4
 ```
 
 The same rate commentary applies here as before but an additional wrinkle is that the delivery between the A and B sides is non-determinstic (in some cases it can deliver as A then B and other cases B then A).
+
+There is one additional clarification of expected behaviors - the iterators should have an initial state to determine if that specific iterator is active yet or not. This means that upon the first call to next the value will be obtained by calling into the isolation of the constructing closure to "prime the pump" for observation and obtain a first value. This can be encapsulated into an exaggerated test example as the following:
+
+```swift
+
+@MainActor
+func example() async {
+  let person = Person(firstName: "0", lastName: "0")
+  
+  // @MainActor is captured here as the isolation
+  let names = Observations {
+    person.name
+  }
+  Task {
+    try await Task.sleep(for: .seconds(2))
+    person.firstName = "1"
+    person.lastName = "1"
+    
+  }
+  Task {
+    for await name in names {
+      print("A = \(name)")
+    }
+  }
+  Task {
+    for await name in names {
+      print("B = \(name)")
+    }
+  }
+  try? await Task.sleep(for: .seconds(10))
+}
+
+await example()
+```
+
+Which results in the following output:
+
+```
+A = 0 0
+B = 0 0
+B = 1 1
+A = 1 1
+```
+
+This ensures the first value is produced such that every sequence will always be primed with a value and will eventually come to a mutual consistency to the values no matter the isolation.
 
 ## Effect on ABI stability & API resilience
 
@@ -478,19 +524,19 @@ need to be disambiguated.
 This proposal does not change the fact that the spectrum of APIs may range from 
 favoring `AsyncSequence` properties to purely `@Observable` models. They both
 have their place. However the calculus of determining the best exposition may
-be slightly more refined now with `Observed`. 
+be slightly more refined now with `Observations`. 
 
 If a type is representative of a model and is either transactional in that 
 some properties may be linked in their meaning and would be a mistake to read
 in a disjoint manner (the tearing example from previous sections), or if the 
 model interacts with UI systems it now more so than ever makes sense to use
-`@Observable` especially with `Observed` now as an option. Some cases may have 
+`@Observable` especially with `Observations` now as an option. Some cases may have 
 previously favored exposing those `AsyncSequence` properties and would now 
-instead favor allowing the users of those APIs compose things by using `Observed`.
+instead favor allowing the users of those APIs compose things by using `Observations`.
 The other side of the spectrum will still exist but now is more strongly 
 relegated to types that have independent value streams that are more accurately
 described as `AsyncSequence` types being exposed. The suggestion for API authors
-is that now with `Observed` favoring `@Observable` perhaps should take more
+is that now with `Observations` favoring `@Observable` perhaps should take more
 of a consideration than it previously did.
 
 ## Alternatives Considered
@@ -527,3 +573,14 @@ parameter of an isolation that was non-nullable this could be achieved for that 
 however up-coming changes to Swift's Concurrency will make this approach less appealing.
 If this route would be taken it would restrict the potential advanced uses cases where
 the construction would be in an explicitly non-isolated context.
+
+A name of `Observed` was considered, however that type name led to some objections that
+rightfully claimed it was a bit odd as a name since it is bending the "nouning" of names
+pretty strongly. This lead to the alternate name `Observations` which strongly leans
+into the plurality of the name indicating that it is more than one observation - lending
+to the sequence nature.
+
+It was seriously considered during the feedback to remove the initializer methods and only 
+have construction by two global functions named `observe` and `observeUntilFinished` 
+that would act as the current initializer methods. Since the types must still be returned 
+to allow for storing that return into a property it does not offer a distinct advantage.

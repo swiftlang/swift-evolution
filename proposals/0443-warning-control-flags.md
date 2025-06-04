@@ -32,7 +32,7 @@ The `<group>` parameter is a string identifier of the diagnostic group.
 
 A diagnostic group is a stable identifier for an error or warning. It is an abstraction layer over the diagnostic identifiers used within the compiler. This is necessary because diagnostics within the compiler may change, but we need to provide stable user-facing identifiers for them.
 
-A diagnostic group may include errors, warnings, or other diagnostic groups. For example, the `availability_deprecated` diagnostic group includes warnings related to the use of an API marked with the `@available(..., deprecated: ...)` attribute. The `deprecated` diagnostic group includes the `availability_deprecated` group and other groups related to deprecation.
+A diagnostic group may include errors, warnings, or other diagnostic groups. For example, the `DeprecatedDeclaration` diagnostic group includes warnings related to the use of an API marked with the `@available(..., deprecated: ...)` attribute. The `Deprecated` diagnostic group includes the `DeprecatedDeclaration` group and other groups related to deprecation.
 
 Diagnostic groups may expand over time, but they can never become narrower. When a new diagnostic is added to the compiler, it is either included in an existing group or a new group is created for it, which in turn can also be included in one of the broader groups, if appropriate.
 
@@ -40,11 +40,11 @@ The order in which these flags are specified when invoking the compiler is impor
 
 We also retain the existing compiler options but modify their handling algorithm so that they are considered in the general list with the new options and follow the "last one wins" rule as well.
 
-Thus, for example, you can use the combination `-warnings-as-errors -Wwarning deprecated`, which will upgrade all warnings to errors except for those in the `deprecated` group. However, if these flags are specified in the reverse order(`-Wwarning deprecated -warnings-as-errors`) it will be interpreted as upgrading all warnings to errors, as the `-warnings-as-errors` flag is the last one.
+Thus, for example, you can use the combination `-warnings-as-errors -Wwarning Deprecated`, which will upgrade all warnings to errors except for those in the `Deprecated` group. However, if these flags are specified in the reverse order(`-Wwarning Deprecated -warnings-as-errors`) it will be interpreted as upgrading all warnings to errors, as the `-warnings-as-errors` flag is the last one.
 
 We are also introducing a new compiler flag, `-print-diagnostic-groups`, to display the names of diagnostic groups along with the textual representation of the warnings. When used, the warning message will be followed by the name of the narrowest group that includes that warning, enclosed in square brackets. For example:
 ```
-main.swift:33:1: warning: 'f()' is deprecated [availability_deprecated]
+main.swift:33:1: warning: 'f()' is deprecated [#DeprecatedDeclaration]
 ```
 
 ## Detailed design
@@ -57,22 +57,22 @@ Diagnostic groups form an acyclic graph with the following properties:
   - When using the `-print-diagnostic-groups` flag, it would be inconvenient if a warning corresponded to multiple groups.
   - Documentation lookup will also be easier for the user if a diagnostic has only one identifier.
 
-- A diagnostic group may include any number of other diagnostic groups. This will allow organizing groups into sets with similar meanings but different specific diagnostics. For example, the warnings `availability_deprecated` and `unsafe_global_actor_deprecated` are part of the supergroup `deprecated`.
+- A diagnostic group may include any number of other diagnostic groups. This will allow organizing groups into sets with similar meanings but different specific diagnostics. For example, the warnings `DeprecatedDeclaration` and `UnsafeGlobalActorDeprecated` are part of the supergroup `Deprecated`.
 
-- A diagnostic group can be included in any number of diagnostic groups. This allows expressing the membership of a group in multiple supergroups, where appropriate. For example, the group `unsafe_global_actor_deprecated` is part of both the `deprecated` and `concurrency` groups.
+- A diagnostic group can be included in any number of diagnostic groups. This allows expressing the membership of a group in multiple supergroups, where appropriate. For example, the group `UnsafeGlobalActorDeprecated` is part of both the `Deprecated` and `Concurrency` groups.
 
 The internal structure of the graph may change to some extent. However, the set of diagnostics included in a diagnostic group (directly or transitively) should not shrink. There are two typical situations where the graph structure may change:
-- When adding a new diagnostic to the compiler, consider creating a new group corresponding to that diagnostic. If the new group is created it can also be included in one or more existing groups if it belongs to them. For example, it is expected that the `deprecated` group will continuously include new subgroups.
+- When adding a new diagnostic to the compiler, consider creating a new group corresponding to that diagnostic. If the new group is created it can also be included in one or more existing groups if it belongs to them. For example, it is expected that the `Deprecated` group will continuously include new subgroups.
 - If an existing diagnostic is split into more specific versions, and we want to allow users to use the more specific version in compiler options, a separate group is created for it, which **must** be included in the group of the original diagnostic.
 
-  For example, suppose we split the `availability_deprecated` warning into a general version and a specialized version `availability_deprecated_same_module`, which the compiler emits if the deprecated symbol is declared in the same module. In this case, the `availability_deprecated_same_module` group must be added to the `availability_deprecated` group to ensure that the overall composition of the `availability_deprecated` group does not change. The final structure should look like this:
+  For example, suppose we split the `DeprecatedDeclaration` warning into a general version and a specialized version `DeprecatedDeclarationSameModule`, which the compiler emits if the deprecated symbol is declared in the same module. In this case, the `DeprecatedDeclarationSameModule` group must be added to the `DeprecatedDeclaration` group to ensure that the overall composition of the `DeprecatedDeclaration` group does not change. The final structure should look like this:
   ```
-  availability_deprecated (group)
-  ├─ availability_deprecated (internal diag id)
-  └─ availability_deprecated_same_module (group)
-     └─ availability_deprecated_same_module (internal diag id)
+  DeprecatedDeclaration (group)
+  ├─ DeprecatedDeclaration (internal diag id)
+  └─ DeprecatedDeclarationSameModule (group)
+     └─ DeprecatedDeclarationSameModule (internal diag id)
   ```
-  Thus, invoking the compiler with the `-Werror availability_deprecated` parameter will cover both versions of the warning, and the behavior will remain unchanged. At the same time, the user can control the behavior of the narrower `availability_deprecated_same_module` group if they want to.
+  Thus, invoking the compiler with the `-Werror DeprecatedDeclaration` parameter will cover both versions of the warning, and the behavior will remain unchanged. At the same time, the user can control the behavior of the narrower `DeprecatedDeclarationSameModule` group if they want to.
 
 ### Compiler options evaluation
 
@@ -87,20 +87,21 @@ Compiler options for controlling the behavior of groups are now processed as a s
 When these options are passed to the compiler, we sequentially apply the specified behavior to all warnings within the specified group from left to right. For `-warnings-as-errors` and `-no-warnings-as-errors`, we apply the behavior to all warnings.
 
 Examples of option combinations:
-- `-warnings-as-errors -Wwarning deprecated`
+- `-warnings-as-errors -Wwarning Deprecated`
   
-  Warnings from the `deprecated` group will be kept as warnings, but all the rest will be upgraded to errors.
+  Warnings from the `Deprecated` group will be kept as warnings, but all the rest will be upgraded to errors.
 
-- `-Werror deprecated -Wwarning availability_deprecated` 
+- `-Werror Deprecated -Wwarning DeprecatedDeclaration` 
   
-  Warnings from the `availability_deprecated` group will remain as warnings. Other warnings from the `deprecated` group will be upgraded to errors. All others will be kept as warnings.
+  Warnings from the `DeprecatedDeclaration` group will remain as warnings. Other warnings from the `Deprecated` group will be upgraded to errors. All others will be kept as warnings.
 
 It’s crucial to understand that the order in which these flags are applied can significantly affect the behavior of diagnostics. The rule is "the last one wins", meaning that if multiple flags apply to the same diagnostic group, the last one specified on the command line will determine the final behavior.
 
 It is also important to note that the order matters even if the specified groups are not explicitly related but have a common subgroup.
-For example, as mentioned above, the `unsafe_global_actor_deprecated` group is part of both the `deprecated` and `concurrency` groups. So the order in which options for the `deprecated` and `concurrency` groups are applied will change the final behavior of the `unsafe_global_actor_deprecated` group. Specifically:
-- `-Wwarning deprecated -Werror concurrency` will make it an error,
-- `-Werror concurrency -Wwarning deprecated` will keep it as a warning.
+For example, as mentioned above, the `UnsafeGlobalActorDeprecated` group is part of both the `Deprecated` and `Concurrency` groups. So the order in which options for the `Deprecated` and `Concurrency` groups are applied will change the final behavior of the `UnsafeGlobalActorDeprecated` group. Specifically:
+
+- `-Wwarning Deprecated -Werror Concurrency` will make it an error,
+- `-Werror Concurrency -Wwarning Deprecated` will keep it as a warning.
 
 #### Interaction with `-suppress-warnings`
 
@@ -123,15 +124,15 @@ oldFunction()
 ```
 When compiled with the `-debug-diagnostic-names` option, the following message will be displayed:
 ```
-'oldFunction()' is deprecated: renamed to 'newFunction' [availability_deprecated_rename]
+'oldFunction()' is deprecated: renamed to 'newFunction' [#RenamedDeprecatedDeclaration]
 ```
-The string `availability_deprecated_rename` is the internal identifier of this warning, not the group. Accordingly, it is not supported by the new compiler options.
+The string `RenamedDeprecatedDeclaration` is the internal identifier of this warning, not the group. Accordingly, it is not supported by the new compiler options.
 
 When compiling the same code with the `-print-diagnostic-groups` option, the following message will be displayed:
 ```
-'oldFunction()' is deprecated: renamed to 'newFunction' [availability_deprecated]
+'oldFunction()' is deprecated: renamed to 'newFunction' [#DeprecatedDeclaration]
 ```
-Here, the string `availability_deprecated` is the diagnostic group.
+Here, the string `DeprecatedDeclaration` is the diagnostic group.
 
 Often, group names and internal diagnostic identifiers coincide, but this is not always the case.
 
@@ -169,7 +170,7 @@ The lack of control over the behavior of specific diagnostics forces users to ab
 Warnings and errors in Swift can change as the compiler evolves.
 For example, one error might be renamed or split into two that are applied in different situations to improve the clarity of the text message depending on the context. Such a change would result in a new ID for the new error variant.
 
-The example of `availability_deprecated_same_module` illustrates this well. If we used the warning ID, the behavior of the compiler with the `-Wwarning availability_deprecated` option would change when a new version of the warning is introduced, as this warning would no longer be triggered for the specific case of the same module.
+The example of `DeprecatedDeclarationSameModule` illustrates this well. If we used the warning ID, the behavior of the compiler with the `-Wwarning DeprecatedDeclaration` option would change when a new version of the warning is introduced, as this warning would no longer be triggered for the specific case of the same module.
 
 Therefore, we need a solution that allows us to modify errors and warnings within the compiler while providing a reliable mechanism for identifying diagnostics that can be used by the user.
 
@@ -177,23 +178,23 @@ Therefore, we need a solution that allows us to modify errors and warnings withi
 
 To solve this problem, we could use an additional alias-ID for diagnostics that does not change when the main identifier changes.
 
-Suppose we split the `availability_deprecated` diagnostic into a generic variant and `availability_deprecated_same_module`. To retain the existing name for the new variant, we could describe these two groups as
+Suppose we split the `DeprecatedDeclaration` diagnostic into a generic variant and `DeprecatedDeclarationSameModule`. To retain the existing name for the new variant, we could describe these two groups as
 ```
-availability_deprecated (alias: availability_deprecated)
-availability_deprecated_same_module (alias: availability_deprecated)
+DeprecatedDeclaration (alias: DeprecatedDeclaration)
+DeprecatedDeclarationSameModule (alias: DeprecatedDeclaration)
 ```
-However, this solution would not allow specifying the narrower `availability_deprecated_same_module` or the broader group `deprecated`.
+However, this solution would not allow specifying the narrower `DeprecatedDeclarationSameModule` or the broader group `Deprecated`.
 
 #### Using multiple alias IDs for diagnostics
 To express a diagnostic's membership in multiple groups, we could allow multiple alias-IDs to be listed.
 ```
-availability_deprecated aliases:
-  availability_deprecated
-  deprecated
-availability_deprecated_same_module aliases:
-  availability_deprecated_same_module
-  availability_deprecated
-  deprecated
+DeprecatedDeclaration aliases:
+  DeprecatedDeclaration
+  Deprecated
+DeprecatedDeclarationSameModule aliases:
+  DeprecatedDeclarationSameModule
+  DeprecatedDeclaration
+  Deprecated
 ```
 However, such a declaration lacks structure and makes it difficult to understand which alias-ID is the most specific.
 
@@ -222,7 +223,7 @@ Since `-debug-diagnostic-names` has been available in the compiler for a long ti
 
 To avoid overlap, we would need to use a different format, for example:
 ```
-'foo()' is deprecated [availability_deprecated] [group:availability_deprecated]
+'foo()' is deprecated [#DeprecatedDeclaration] [group:#DeprecatedDeclaration]
 ```
 
 However, even this does not eliminate the possibility of breaking code that parses the compiler's output.
