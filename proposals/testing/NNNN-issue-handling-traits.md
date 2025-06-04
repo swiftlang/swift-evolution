@@ -297,6 +297,20 @@ The closure of an issue handling trait must be:
   - Record a separate issue using the standard issue recording mechanisms (as
     [discussed](#recording-issues-from-handlers) above).
 
+### Handling of non-user issues
+
+Issue handling traits are applied to a test by a user, and are only intended for
+handling issues recorded by tests written by the user. If an issue is recorded
+by the testing library itself or the underlying system, not due to a failure
+within the tests being run, such an issue will not be passed to an issue
+handling trait.
+
+Concretely, this policy means that issues for which the value of the `kind`
+property is `.system` will not be passed to the closure of an issue handling
+trait. Similarly, it is not supported for a closure passed to
+`compactMapIssues(_:)` to return an issue for which the value of `kind` is
+`.system`.
+
 ## Detailed design
 
 This proposal includes the following:
