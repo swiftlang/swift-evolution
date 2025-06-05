@@ -63,14 +63,14 @@ The general declarations for these functions is as follows:
 ///
 /// Traps if any position within the range is invalid.
 @_lifetime(copy self)
-public func extracting(_ byteOffsets: Range<Int>) -> Self
+public func extracting(_ bounds: Range<Index>) -> Self
 
 /// Returns an extracted slice over the items within
 /// the supplied range of positions.
 ///
 /// Traps if any position within the range is invalid.
 @_lifetime(copy self)
-public func extracting(_ byteOffsets: some RangeExpression<Int>) -> Self
+public func extracting(_ bounds: some RangeExpression<Index>) -> Self
 
 /// Returns an extracted slice over all items of this container.
 @_lifetime(copy self)
