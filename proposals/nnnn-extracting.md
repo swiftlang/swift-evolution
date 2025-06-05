@@ -1,4 +1,4 @@
-# Expand the `extracting()` slicing pattern to more types
+# Apply the extracting() slicing pattern more widely
 
 * Proposal: TBD
 * Author: [Guillaume Lessard](https://github.com/glessard)
