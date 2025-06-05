@@ -109,6 +109,18 @@ public func extracting(droppingFirst k: Int) -> Self
 ```
 For non-escapable types, the `@_lifetime` attribute is ignored as being non-applicable.
 
+#### Usage hints
+
+The `extracting()` pattern, while not completely new, is still a departure over the slice pattern established by the `Collection` protocol. For `Span`, `RawSpan`, `MutableSpan` and `MutableRawSpan`, we can add unavailable subscripts and function with hints towards the corresponding `extracting()` function:
+
+```swift
+@available(*, unavailable, renamed: "extracting(_ bounds:)")
+public subscript(bounds: Range<Index>) -> Self { extracting(bounds) }
+
+@available(*, unavailable, renamed: "extracting(first:)")
+public func droppingFirst(_ k: Int) -> Self { extracting(first: k) }
+```
+
 ## Source compatibility
 This proposal is additive and source-copmatible with existing code.
 
