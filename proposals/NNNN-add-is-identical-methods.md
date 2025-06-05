@@ -9,11 +9,11 @@
 
 ## Introduction
 
-We propose new `isIdentical` instance methods to several concrete types for determining in constant-time if instances must be equal by-value.
+We propose new `isIdentical` instance methods to several concrete types for determining in constant-time if two instances must be equal by-value.
 
 ## Motivation
 
-Suppose we have some code that listens to `String` values from an `AsyncSequence`. Every value received from the `AsyncSequence` is then used to perform some work that scales linearly with the size of the `String`:
+Suppose we have some code that listens to strings from an `AsyncSequence`. Every string received from the `AsyncSequence` is then used to perform some work that scales linearly with the size of the string:
 
 ```swift
 func doLinearOperation(with string: String) {
@@ -29,9 +29,9 @@ where S: AsyncSequence, S.Element == String {
 }
 ```
 
-Suppose we know that `doLinearOperation` only performs important work when `string` is not equal to the last value (here we define “equal” to be “value equality”). The *first* call to `doLinearOperation` is important, and the *next* calls to `doLinearOperation` are only important if `string` is not equal by-value to the last `string` that was used to perform `doLinearOperation`.
+Suppose we know that `doLinearOperation` only performs important work when `string` is not equal to the last value (here we define “equal” to imply “value equality”). The *first* call to `doLinearOperation` is important, and the *next* calls to `doLinearOperation` are only important if `string` is not equal by-value to the last `string` that was used to perform `doLinearOperation`.
 
-We do know that `String` conforms to `Equatable`. We can choose to “memoize” our values *before* we perform `doLinearOperation`:
+Since we know that `String` conforms to `Equatable`, we can choose to “memoize” our values *before* we perform `doLinearOperation`:
 
 ```swift
 func f2<S>(sequence: S) async throws
@@ -45,7 +45,7 @@ where S: AsyncSequence, S.Element == String {
 }
 ```
 
-When our `sequence` produces many strings that are equal by-value, “eagerly” passing that element to `doLinearOperation` performs more work than necessary. Performing a check for value-equality *before* we pass that element to `doLinearOperation` saves us the work from performing `doLinearOperation` more than necessary, but we have now traded performance in a different direction. Because we know that the work performed in `doLinearOperation` scales linearly with the size of the `string`, and we know that the `==` operator *also* scales linearly with the size of the `string`, we now perform *two* linear operations whenever our `sequence` delivers a new `string` that is not equal by-value to the previous input to `doLinearOperation`.
+When our `sequence` produces many strings that are equal by-value, “eagerly” passing that string to `doLinearOperation` performs more work than necessary. Performing a check for value-equality *before* we pass that string to `doLinearOperation` saves us the work from performing `doLinearOperation` more than necessary, but we have now traded performance in a different direction. Because we know that the work performed in `doLinearOperation` scales linearly with the size of the `string`, and we know that the `==` operator *also* scales linearly with the size of the `string`, we now perform *two* linear operations whenever our `sequence` delivers a new `string` that is not equal by-value to the previous input to `doLinearOperation`.
 
 At this point our product engineer has to make a tradeoff: do we “eagerly” perform the call to `doLinearOperation` *without* a preflight check for value equality on the expectation that `sequence` will produce many non-equal values, or do we perform the call to `doLinearOperation` *with* a preflight check for value equality on the expectation that `sequence` will produce many equal values?
 
@@ -87,7 +87,7 @@ Many types in Standard Library and Foundation are “copy-on-write” data struc
 
 This means that many types in Standard Library and Foundation already have some private reference that can be checked in constant-time to determine if two values are identical. Because these types copy before writing, two values that are identical by their shared storage *must* be equal by value.
 
-Suppose our `_isIdentical` method from `String` was a `public` API. We could now refactor our operation on `AsyncSequence` to:
+Suppose our `_isIdentical` method from `String` was no longer underscored. We could now refactor our operation on `AsyncSequence` to:
 
 ```swift
 func f3<S>(sequence: S) async throws
@@ -110,7 +110,6 @@ Here is a new method defined on `String`:
 ```swift
 @available(SwiftStdlib 6.3, *)
 extension String {
-  @available(SwiftStdlib 6.3, *)
   /// Returns a boolean value indicating whether this string is identical to
   /// `other`.
   ///
@@ -124,6 +123,7 @@ extension String {
   /// identical.
   ///
   /// - Complexity: O(1)
+  @available(SwiftStdlib 6.3, *)
   public func isIdentical(to other: Self) -> Bool { ... }
 }
 ```
@@ -147,7 +147,6 @@ The methods follow the same pattern from `String`. Every `isIdentical` method is
 ```swift
 @available(SwiftStdlib 6.3, *)
 extension Array {
-  @available(SwiftStdlib 6.3, *)
   /// Returns a boolean value indicating whether this array is identical to
   /// `other`.
   ///
@@ -161,6 +160,7 @@ extension Array {
   /// identical.
   ///
   /// - Complexity: O(1)
+  @available(SwiftStdlib 6.3, *)
   public func isIdentical(to other: Self) -> Bool { ... }
 }
 ```
@@ -175,7 +175,7 @@ This proposal is additive and ABI-compatible with existing code.
 
 ## Future Directions
 
-Any additional Standard Library and Foundation types that are copy-on-write values that also conform to `Equatable` would be good candidates to add `isIdentical` functions.
+Any Standard Library and Foundation types that are copy-on-write values that also conform to `Equatable` would be good candidates to add `isIdentical` functions.
 
 The following types from Foundation have an easy ability to check for `isIdentical`:
 * TimeZone
@@ -191,7 +191,7 @@ Could we “overload” the `===` operator from `AnyObject`? This proposal consi
 
 ### Overload for Optionals
 
-When working with `Optional<String>` values we can add the following overload:
+When working with `Optional` values we can add the following overload:
 
 ```swift
 @available(SwiftStdlib 6.3, *)
