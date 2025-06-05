@@ -476,6 +476,16 @@ observing test events of all kinds. This would a much larger effort, but was
 as a goal in the
 [Swift Testing vision document](https://github.com/swiftlang/swift-evolution/blob/main/visions/swift-testing.md).
 
+### Standalone function
+
+It could be useful to offer the functionality of an issue handling trait as a
+standalone function (similar to `withKnownIssue { }`) so that it could be
+applied to a narrower section of code than an entire test or suite. This idea
+came up during the pitch phase, and we believe that sort of pattern may be
+useful more broadly for other kinds of traits. Accordingly, it may make more
+sense to address this in a separate proposal and design it in a way that
+encompasses any trait.
+
 ## Alternatives considered
 
 ### Allow issue handler closures to throw errors
