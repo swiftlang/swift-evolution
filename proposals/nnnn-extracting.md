@@ -1,6 +1,6 @@
 # Apply the extracting() slicing pattern more widely
 
-* Proposal: TBD
+* Proposal: [TBD](https://github.com/swiftlang/swift-evolution/pull/2877)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: TBD
 * Status: **Pitch**
