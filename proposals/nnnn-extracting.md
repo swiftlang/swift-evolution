@@ -17,7 +17,7 @@
 
 Slicing containers is an important operation, and non-copyable values have introduced a significant change in the spelling of that operation. When we [introduced][SE-0437] non-copyable primitives to the standard library, we allowed slicing `UnsafeBufferPointer` and related types via a family of `extracting()` methods. We expanded upon these when introducing [`MutableSpan`][SE-0467].
 
-Now that we have a [stable spelling][Forum-LifetimeAnnotations] for lifetime dependencies, we propose adding the `extracting()` methods to `Span` and `RawSpan`, as well as members of the `UnsafeBufferPointer` family that were missed in [SE-0437][SE-0437].
+Now that we have a [supported spelling][Forum-LifetimeAnnotations] for lifetime dependencies, we propose adding the `extracting()` methods to `Span` and `RawSpan`, as well as members of the `UnsafeBufferPointer` family that were missed in [SE-0437][SE-0437].
 
 
 ## Proposed solution
