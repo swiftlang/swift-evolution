@@ -1,8 +1,8 @@
 # Expand the `extracting()` slicing pattern to more types
 
-* Proposal: [SE-0485](0485-outputspan.md)
+* Proposal: TBD
 * Author: [Guillaume Lessard](https://github.com/glessard)
-* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Review Manager: TBD
 * Status: **Pitch**
 * Implementation: underscored `_extracting()` members of `Span` and `RawSpan`, pending elsewhere.
 * Review: Pending
