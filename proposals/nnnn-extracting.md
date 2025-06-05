@@ -139,7 +139,7 @@ This is an extension of an existing pattern. We are not considering a different 
 
 ## Future directions
 #### Disambiguation over ownership type
-The `extracting()` functions proposed here are semantically consuming. `MutableSpan` has versions defined as mutations, but it could benefit from consuming ones as well. In order to do this, we could establish a pattern for disambiguation by name, or we could invent new syntax to disambiguate by ownership type. This is a complex topic left to future proposals.
+The `extracting()` functions proposed here are borrowing. `MutableSpan` has versions defined as mutating, but it could benefit from consuming ones as well. In general there could be a need for all three ownership variants of a given operation (`borrowing`, `consuming`, or `mutating`.) In order to handle these variants, we could establish a pattern for disambiguation by name, or we could invent new syntax to disambiguate by ownership type. This is a complex topic left to future proposals.
 
 ## Acknowledgements
 Thanks to Karoy Lorentey and Tony Parker.
