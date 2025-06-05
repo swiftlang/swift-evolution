@@ -159,11 +159,11 @@ extension CowBox {
 
 ## Source Compatibility
 
-Adding a new requirement to an existing protocol is source breaking *if* that new requirement uses `Self` *and* that new requirement is the *first* use of `Self`. Because our existing `==` operator on `Equatable` used `Self`, this proposal is safe for source compatibility.
+Adding a new requirement to an existing protocol is source breaking if that new requirement uses `Self` *and* that new requirement is the *first* use of `Self`. Because our existing `==` operator on `Equatable` used `Self`, this proposal is safe for source compatibility.
 
 ## Impact on ABI
 
-Adding a new requirement to an existing protocol is ABI breaking *if* we do not include an unconstrained default implementation. Because we include a default implementation of `isKnownIdentical`, this proposal is safe for ABI compatibility.
+Adding a new requirement to an existing protocol is ABI breaking if we do not include an unconstrained default implementation. Because we include a default implementation of `isKnownIdentical`, this proposal is safe for ABI compatibility.
 
 ## Alternatives Considered
 
@@ -177,7 +177,7 @@ protocol Distinguishable {
 }
 ```
 
-Algorithms from generic contexts that operated on `Distinguishable` could then use `isIdentical` to optimize performance:
+Algorithms from generic contexts that operated on `Distinguishable` could then use `isKnownIdentical` to optimize performance:
 
 ```swift
 func f4<S>(sequence: S) async throws
