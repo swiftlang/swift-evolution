@@ -22,7 +22,9 @@ Now that we have a [stable spelling][Forum-LifetimeAnnotations] for lifetime dep
 
 ## Proposed solution
 
-The family of `extracting()` methods is as follows:
+As previously discussed in [SE-0437][SE-0437], the slicing pattern established by the `Collection` protocol cannot be generalized for either non-copyable elements or non-escapable containers. The solution is a family of functions named `extracting()`, with appropriate argument labels.
+
+The family of `extracting()` methods established by the [`MutableSpan` proposal][SE-0467] is as follows:
 ```swift
 public func extracting(_ bounds: Range<Index>) -> Self
 public func extracting(_ bounds: some RangeExpression<Index>) -> Self
