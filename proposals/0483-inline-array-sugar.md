@@ -5,7 +5,7 @@
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (June 6- June 20, 2025)**
 * Implementation: On `main` under the `InlineArrayTypeSugar` experimental feature flag.
-* Review: ([pitch](https://forums.swift.org/t/pitch-inlinearray-type-sugar/79142)) ([first review](https://forums.swift.org/t/se-0483-inlinearray-literal-syntax/79643))
+* Review: ([pitch](https://forums.swift.org/t/pitch-inlinearray-type-sugar/79142)) ([first review](https://forums.swift.org/t/se-0483-inlinearray-literal-syntax/79643)) ([second review](https://forums.swift.org/t/second-review-se-0483-inlinearray-type-sugar/80337))
 
 ## Introduction
 
