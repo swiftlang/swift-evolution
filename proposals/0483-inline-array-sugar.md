@@ -55,7 +55,7 @@ This will be added to the grammar alongside the current type sugar:
 > **Grammar of a sized array type**
 > _sized-array-type → [ expression `of` type ]_
 
-Note that while the grammar allows for any expression, this is currently limited to only integer literals, as required by the current implementation of `InlineArray`. If that restriction changes, so would the value allowed in the expression in the sugar.
+Note that while the grammar allows for any expression, this is currently limited to only integer literals or integer type parameters, as required by the current implementation of `InlineArray`. If that restriction changes, so would the value allowed in the expression in the sugar.
 
 The new sugar is equivalent to declaring a type of `InlineArray`, so all rules that can be applied to the generic placeholders for the unsugared version also apply to the sugared version:
 
@@ -128,7 +128,7 @@ For multi-dimensional arrays, `[5 of [5 of Int]]` could be flattened to `[5 of 5
 
 The naming of `InlineArray` incorporates important information about the nature of the type – that it includes its values inline rather than indirectly via a pointer. This name was chosen over other alternatives such as `FixedSizeArray` because the "inline-ness" was considered the more fundamental property, and so a better driver for the name.
 
-This has led to suggestions that this inline nature is important to include in the sugar was well. However, this desire to include a visual "warning" ignores the current state, where the privileged position of `Array` as the only array type that is sugared implies it is the right choice in all circumstances, with inline arrays being a rare micro-optimization. This is not the case.
+This has led to suggestions that this inline nature is important to include in the sugar was well. However, the current state privileges the position of `Array` as the only array type that is sugared. This implies that `Array` is the right choice in all circumstances, with inline arrays being a rare micro-optimization. This is not the case.
 
 For example, consider a translation of this code from the popular [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html#thevec3class) tutorial:
 
