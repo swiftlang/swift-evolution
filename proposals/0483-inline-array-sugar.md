@@ -31,7 +31,7 @@ This becomes more pronounced when dealing with multiple dimensions:
 let fiveByFive: InlineArray<5, InlineArray<5, Int>> = .init(repeating: .init(repeating: 99))
 ```
 
-Almost every other language in a similar category to Swift – C, C++, Objective-C, Pascal, Go, Rust, Zig, Java, C# – has a simple syntax for their fixed-size array type. The introduction of a fixed-size array type into Swift should also introduce a shorthand syntax, in keeping with Swift's general approach of low ceremony and concise syntax. Swift's further deviates from its peer languages by giving its _dynamic_ array type, `Array` (known in many other languages as `vector`) a sugared form. This can lead fo an assumption that `Array` should be used under almost all circumstances, despite it having signficant downsides in many uses (see further discussion in alternatives considered).
+Almost every other language in a similar category to Swift – C, C++, Objective-C, Pascal, Go, Rust, Zig, Java, C# – has a simple syntax for their fixed-size array type. The introduction of a fixed-size array type into Swift should also introduce a shorthand syntax, in keeping with Swift's general approach of low ceremony and concise syntax. Swift further deviates from its peer languages by giving its _dynamic_ array type, `Array` (known in many other languages as `vector`) a sugared form. This can lead to an assumption that `Array` should be used under almost all circumstances, despite it having significant downsides in many uses (see further discussion in alternatives considered).
 
 ## Proposed solution
 
@@ -53,9 +53,9 @@ This will be added to the grammar alongside the current type sugar:
 > _type → sized-array-type_
 >
 > **Grammar of a sized array type**
-> _sized-array-type → [ expression `x` type ]_
+> _sized-array-type → [ expression `of` type ]_
 
-Note that while the grammar allows for any expression, this is currently limited to only integer literals, as required by the current implementation of `InlineArray`. If that restriction changes, so would the valuye allowed in the expression in the sugar.
+Note that while the grammar allows for any expression, this is currently limited to only integer literals, as required by the current implementation of `InlineArray`. If that restriction changes, so would the value allowed in the expression in the sugar.
 
 The new sugar is equivalent to declaring a type of `InlineArray`, so all rules that can be applied to the generic placeholders for the unsugared version also apply to the sugared version:
 
@@ -144,11 +144,11 @@ class vec3 {
 }
 ```
 
-The way in which Swift privileges `[Double]` with sugar strongly implies you should us that in this translation. This would be the wrong choice. Every access to those coordinate accessors would need to check the bounds (because while the author might ensure that the value of `e` will only ever have length 3, the compiler cannot easily know this) and, in the case of mutation, a check for uniqueness of the pointer. It would also make `vec3` a nontrivial type, which has significant performance implications wherever it is used. `InlineArray<3, Double>` has none of these problems.
+The way in which Swift privileges `[Double]` with sugar strongly implies you should use that in this translation. This would be the wrong choice. Every access to those coordinate accessors would need to check the bounds (because while the author might ensure that the value of `e` will only ever have length 3, the compiler cannot easily know this) and, in the case of mutation, a check for uniqueness of the pointer. It would also make `vec3` a nontrivial type, which has significant performance implications wherever it is used. `InlineArray<3, Double>` has none of these problems.
 
 Other examples include using nested `Array` types i.e. using `[[Double]]` to represent a matrix – which would also have significant negative consequences depending on the use case, compared to using an `InlineArray` to model the same values. In other cases, the "copy on write" nature of `Array` can mislead users into thinking that copies are risk-free, when actually copying an array can lead to "defeating" copy on write in subtle ways that can cause difficult-to-hunt-down performance issues. In all these cases, you need to pick the right one of two options for the performance goals you are trying to achieve.
 
-It is likely that Swift's choice (deviating from many of its peers) to emphasize its dynamic array through sugar, has led to a negative impact on the culture of writing performant Swift code, with the nicely sugared dynamic arrays (and array value literals) being over-favored. This is not intended to make the case that Swift should _not_ have this sugar. Dynamic arrays are widely useful and Swift's readability goals are improved by Swift having a consise syntax for creating them. But writing performant Swift code inevitably involves having an understanding of the underlying performance characteristics of _all_ the types you are using, and syntax or type naming alone cannot solve this.
+It is likely that Swift's choice (deviating from many of its peers) to emphasize its dynamic array through sugar, has led to a negative impact on the culture of writing performant Swift code, with the nicely sugared dynamic arrays (and array value literals) being over-favored. This is not intended to make the case that Swift should _not_ have this sugar. Dynamic arrays are widely useful and Swift's readability goals are improved by Swift having a concise syntax for creating them. But writing performant Swift code inevitably involves having an understanding of the underlying performance characteristics of _all_ the types you are using, and syntax or type naming alone cannot solve this.
 
 Of course, all this only matters when you are trying to write code that maximizes performance. But that is a really important use case for Swift. The goal for Swift is a language that is as safe and enjoyable to write as many high-level non-performant languages, but also can achieve peak performance when that is your goal. And the idea is that when you are targeting that level of performance, you don't have to go into "ugly, no longer nice swift" mode to do it, with nice sugared `[Double]` replaced with less pleasant full type name of `InlineArray` – something a user coming from Go or C++ or Rust might find a downgrade. Similarly, attempting to incorporate the word "inline" into the sugar e.g. `[5 inline Int]` creates a worst of both worlds solution that many would find offputting to use, without solving the fundamental issue.
 
@@ -162,9 +162,9 @@ The most obvious alternative here is the choice of separator. Other options incl
 - `[5 x Int]`, using the ascii letter `x`, as an approximation for multiplication, reflecting common uses such as "a 4x4 vehicle". This was the choice of a previous revision of this proposal.
 - `[5 * Int]`, using the standard ASCII symbol for multiplication.
 - `[5 ⨉ Int]`, the Unicode n-ary times operator. This looks nice but is impractical as not keyboard-accessible.
-- `[5; Int]` is what Rust uses, but appears to have little association with "times" or "many". Similarly other arbitrary pu2nctuation e.g. `,` or `/`. `:` is of course ruled out as it is used for dictionary literals.
-- `#` does have an association with counts in some areas such as set theory, but is used a prefix operator rather than infix i.e. `[#5 Int]`. This is less expected than the infix form, and could also be read as "the fifth `Int`". It is also unclear how this would work with expressions like an array of size `5*5`.
-- No delimeter at all i.e. `[5 Int]`. While this might be made to parse, the lack of any separator is found unsettling by some users and is less visually clear, especially once expressions are allowed instead of the `5`.
+- `[5; Int]` is what Rust uses, but appears to have little association with "times" or "many". Similarly other arbitrary punctuation e.g. `,` or `/`. `:` is of course ruled out as it is used for dictionary literals.
+- `#` does have an association with counts in some areas such as set theory, but is used as a prefix operator rather than infix i.e. `[#5 Int]`. This is less expected than the infix form, and could also be read as "the fifth `Int`". It is also unclear how this would work with expressions like an array of size `5*5`.
+- No delimiter at all i.e. `[5 Int]`. While this might be made to parse, the lack of any separator is found unsettling by some users and is less visually clear, especially once expressions are allowed instead of the `5`.
 
 Note that `*` is an existing operator, and may lead to ambiguity in future when expressions can be used to determine the size: `[5 * N * Int]`. `of` is clearer in this case: `[5 * N of Int]`. It also avoids parsing ambiguity, as the grammar does not allow two identifiers in succession. This becomes more important if the future direction of a value equivalent is pursued. `[2 * 2 * 2]` could be interpreted as `[2, 2, 2, 2]`, `[4, 4,]`, or `[8]`.
 
@@ -183,7 +183,7 @@ Another thing to consider is how that separator looks in the fully inferred vers
 [_; _]
 ```
 
-Of all these, the `of` choice is less susceptable to the ascii art problem.
+Of all these, the `of` choice is less susceptible to the ascii art problem.
 
 ### Order of size and type
 
@@ -195,6 +195,6 @@ In theory, when using integer literals or `_` the whitespace could be omitted (`
 
 ### Choice of brackets
 
-`InlineArray` has a lot in common with tuples – especially in sharing "copy on copy" behavior, unlike regular `Array`. So `(5 x Int)` may be an appropriate alternative to the square brackets, echoing this similarity. However, tuples and `InlineArray`s remain very different types, and it could be misleading to imply that `InlineArray` is "just" a tuple.
+`InlineArray` has a lot in common with tuples – especially in sharing "copy on copy" behavior, unlike regular `Array`. So `(5 of Int)` may be an appropriate alternative to the square brackets, echoing this similarity. However, tuples and `InlineArray`s remain very different types, and it could be misleading to imply that `InlineArray` is "just" a tuple.
 
 Beyond varying the separator, there may be other dramatically different syntax that moves further from the "like Array sugar, but with a size argument". For example, dropping the brackets altogether (i.e. `let a: 5 of Int`). However, these are probably too much of a departure from the current Swift idioms, so likely to cause further confusion without any real upside.
