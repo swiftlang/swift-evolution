@@ -128,6 +128,59 @@ This proposal does not change the adoption implications of adding `@MainActor` t
 
 ## Alternatives considered
 
+### Using Swift package manifest-style APIs for specifying default attributes
+
+Instead of supporting attributes and modifiers directly, we could instead use Swift package manifest-style APIs for specifying default attributes. For example:
+
+```swift
+using defaultIsolation(MainActor.self)
+```
+
+We did not choose this direction for two reasons:
+1. The attribute or modifier written after `using` makes it immediately clear what kind of default we're specifying. `@MainActor` and `nonisolated` are understood to be kinds of isolation, so having to write "isolation" in the syntax is not clarifying.
+2. Having to write "default" in the syntax is equally not clarifying, and it will be repetitive if `using` is extended to other attributes.
+
+To elaborate on these points, consider the future direction to extend `using` to `@available` attributes:
+
+```swift
+using @available(SwiftStdlib 5.1, *)
+
+// Has default Swift 5.1 availability
+public protocol Actor { ... }
+
+// All concurrency-related APIs
+```
+
+It is immediately clear that what's being specified is availability, so having to include an additional "availability" in the syntax is repetitive:
+
+```swift
+using defaultAvailability("@available(SwiftStdlib 5.1, *)")
+```
+
+Not all attributes have a value representation in Swift code, so we'd likely end up having to write attributes and modifiers in string literals, which is not as nice as writing a plain attribute or modifier.
+
+How the attribute or modifier is applied as a default depends on how inference for that attribute or modifier works throughout the language. For availability, if you write an extension of a less-available type in the same file, the extension will still have the more constrained availability:
+
+```swift
+using @available(SwiftStdlib 5.1, *)
+
+// Has default Swift 5.1 availability
+public protocol Actor { ... }
+
+// Has default Swift 5.1 availability
+@globalActor
+public actor MainActor { ... }
+
+// Has explicit Swift 6.0 availability
+@available(SwiftStdlib 6.0, *)
+public protocol TaskExecutor { ... }
+
+// Has implicit Swift 6.0 availability
+extension TaskExecutor { ... }
+```
+
+The fact that attributes and modifiers are only used as defaults will apply to every attribute or modifier that `using` is extended to. Programmers will learn this once when encountering `using` for the first time, and having to repeat the word `default` in the syntax with every use will not help reinforce how the default is applied.
+
 ### A typealias to specify default isolation per file
 
 A previous iteration of this proposal used a typealias to specify default actor isolation instead of a new syntax:
@@ -178,7 +231,9 @@ However, default actor isolation has a significant difference from the other com
 
 ## Future directions
 
-While there is no immediate future use case, `using` declarations in this proposal are designed so that they can be extended later if we need to. `using` is a general name that can work with any attribute or modifier. It can also be extended to work with SwiftPM manifest-style APIs, e.g.
+`using` declarations in this proposal are designed so that they can be extended later if we need to. `using` is a general name that can work with any attribute or modifier. One compelling use case is to support `@available` attributes, which already effectively have a module-wide default based on deployment target.
+
+`using` can also be extended to work with other SwiftPM manifest-style APIs, e.g.
 
 ```swift
 using strictMemorySafety()
