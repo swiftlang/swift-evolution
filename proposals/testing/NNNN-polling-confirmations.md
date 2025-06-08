@@ -393,6 +393,14 @@ well under a millisecond. Because of this, we decided to add on the polling
 interval argument: a minimum duration to wait between polling, to make it much
 easier for test authors to predict a good-enough guess for when to stop polling.
 
+### Allow `pollingInterval` to be `.zero`
+
+We could allow test authors to set `pollingInterval` as `Duration.zero`, making
+polling behave as if only polling iterations is counted.
+We chose not to allow this for the same reason we chose to add a wait between
+polling: this makes it much easier for test authors to predict when to stop
+polling.
+
 ### Use macros instead of functions
 
 Instead of adding new bare functions, polling could be written as additional
