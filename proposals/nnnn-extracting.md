@@ -7,9 +7,9 @@
 * Implementation: underscored `_extracting()` members of `Span` and `RawSpan`, pending elsewhere.
 * Review: Pending
 
-[SE-0437]: proposals/0437-noncopyable-stdlib-primitives.md
-[SE-0447]: proposals/0447-span-access-shared-contiguous-storage.md
-[SE-0467]: proposals/0467-MutableSpan.md
+[SE-0437]: 0437-noncopyable-stdlib-primitives.md
+[SE-0447]: 0447-span-access-shared-contiguous-storage.md
+[SE-0467]: 0467-MutableSpan.md
 [Forum-LifetimeAnnotations]: https://forums.swift.org/t/78638
 
 
