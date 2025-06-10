@@ -735,6 +735,23 @@ The additions described in this proposal require a new version of the Swift stan
 
 `OutputSpan` changes the number of initialized elements in a container (or collection), and this requires some operation to update the container after the `OutputSpan` is consumed. Let's call that update operation a "cleanup" operation. The cleanup operation needs to be scheduled in some way. We could associate the cleanup with the `deinit` of `OutputSpan`, or the `deinit` of a wrapper of `OutputSpan`. Neither of these seem appealing; the mechanisms would involve an arbitrary closure executed at `deinit` time, or having to write a full wrapper for each type that vends an `OutputSpan`. We could potentially schedule the cleanup operation as part of a coroutine accessor, but these are not productized yet. The pattern established by closure-taking API is well established, and that pattern fits the needs of `OutputSpan` well.
 
+#### Container construction pattern
+
+A constrained version of possible `OutputSpan` use consists of in-place container initialization. This proposal introduces a few initializers in this vein, such as `Array.init(capacity:initializingWith:)`, which rely on closure to establish a scope. A different approach would be to use intermediate types to perform such operations:
+
+```swift
+struct ArrayConstructor<Element>: ~Copyable {
+  @_lifetime(&self) mutating var outputSpan: OutputSpan<Element>
+  private let _ArrayBuffer<Element>
+  
+  init(capacity: Int)
+}
+
+extension Array<Element> {
+  init(_: consuming ArrayConstructor<Element>)
+}
+```
+
 ## <a name="directions"></a>Future directions
 
 #### Helpers to initialize memory in an arbitrary order
@@ -834,7 +851,6 @@ let array = Array(capacity: buffer.count*2) {
   o.append(contentsOf: consume buffer)
 }
 ```
-
 
 ## Acknowledgements
 
