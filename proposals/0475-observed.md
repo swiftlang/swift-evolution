@@ -3,9 +3,9 @@
 * Proposal: [SE-0475](0475-observed.md)
 * Authors: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Active Review (April 10 ... May 13, 2025)**
+* Status: **Accepted**
 * Implementation: https://github.com/swiftlang/swift/pull/79817
-* Review: ([pitch](https://forums.swift.org/t/pitch-transactional-observation-of-values/78315)) ([review](https://forums.swift.org/t/se-0475-transactional-observation-of-values/79224))
+* Review: ([pitch](https://forums.swift.org/t/pitch-transactional-observation-of-values/78315)) ([review](https://forums.swift.org/t/se-0475-transactional-observation-of-values/79224)) ([acceptance](https://forums.swift.org/t/accepted-se-0475-transactional-observation-of-values/80389))
 
 ## Introduction
 
