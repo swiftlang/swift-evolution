@@ -716,6 +716,10 @@ extension Data {
 }
 ```
 
+#### Changes to `MutableSpan` and `MutableRawSpan`
+
+This proposal considers the naming of `OutputSpan`'s bulk-initialization methods, and elects to defer their implementation until we have more experience with the various kinds of container we need to support. We also introduced bulk updating functions to `MutableSpan` and `MutableRawSpan` in [SE-0467][SE-0467]. It is clear that they have the same kinds of parameters as `OutputSpan`'s bulk-initialization methods, but the discussion has taken a [different direction](#contentsOf) in the latter case. We would like both of these sets of operations to match. Accordingly, we will remove the bulk `update()` functions proposedin [SE-0467][SE-0467], to be replaced with a better naming scheme later. Prototype bulk-update functionality will also be added via a package in the meantime.
+
 ## Source compatibility
 
 This proposal is additive and source-compatible with existing code.
