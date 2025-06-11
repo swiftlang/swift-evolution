@@ -1,4 +1,4 @@
-# Add `isIdentical` Methods for Quick Comparisons to Concrete Types from Standard Library and Foundation
+# Add `isIdentical` Methods for Quick Comparisons to Concrete Types
 
 * Proposal: [SE-NNNN](NNNN-add-is-identical-methods.md)
 * Authors: [Rick van Voorden](https://github.com/vanvoorden), [Karoy Lorentey](https://github.com/lorentey)
@@ -9,7 +9,7 @@
 
 ## Introduction
 
-We propose new `isIdentical` instance methods to several concrete types for determining in constant-time if two instances must be equal by-value.
+We propose new `isIdentical` instance methods to concrete types for determining in constant-time if two instances must be equal by-value.
 
 ## Motivation
 
@@ -49,7 +49,7 @@ When our `sequence` produces many strings that are equal by-value, “eagerly”
 
 At this point our product engineer has to make a tradeoff: do we “eagerly” perform the call to `doLinearOperation` *without* a preflight check for value equality on the expectation that `sequence` will produce many non-equal values, or do we perform the call to `doLinearOperation` *with* a preflight check for value equality on the expectation that `sequence` will produce many equal values?
 
-There is a third path forward… a “quick” check against `String` values that returns in constant-time and *guarantees* these instances *must* be equal by value. We can add a similar check to several concrete types from Standard Library and Foundation.
+There is a third path forward… a “quick” check against `String` values that returns in constant-time and *guarantees* these instances *must* be equal by value. We can add a similar check to additional concrete types from Standard Library.
 
 ## Prior Art
 
@@ -83,9 +83,9 @@ Many more examples of `isIdentical` functions are currently shipping in `Swift-C
 
 ## Proposed Solution
 
-Many types in Standard Library and Foundation are “copy-on-write” data structures. These types present as value types, but can leverage a reference to some shared state to optimize for performance. When we copy this value we copy a reference to shared storage. If we perform a mutation on a copy we can preserve value semantics by copying the storage reference to a unique value before we write our mutation: we “copy” on “write”.
+Many types in Standard Library are “copy-on-write” data structures. These types present as value types, but can leverage a reference to some shared state to optimize for performance. When we copy this value we copy a reference to shared storage. If we perform a mutation on a copy we can preserve value semantics by copying the storage reference to a unique value before we write our mutation: we “copy” on “write”.
 
-This means that many types in Standard Library and Foundation already have some private reference that can be checked in constant-time to determine if two values are identical. Because these types copy before writing, two values that are identical by their shared storage *must* be equal by value.
+This means that many types in Standard Library already have some private reference that can be checked in constant-time to determine if two values are identical. Because these types copy before writing, two values that are identical by their shared storage *must* be equal by value.
 
 Suppose our `_isIdentical` method from `String` was no longer underscored. We could now refactor our operation on `AsyncSequence` to:
 
@@ -128,7 +128,7 @@ extension String {
 }
 ```
 
-We propose adding `isIdentical` methods to the following types from Standard Library:
+We propose adding `isIdentical` methods to the following concrete types from Standard Library:
 * String
 * Substring
 * Array
@@ -136,11 +136,6 @@ We propose adding `isIdentical` methods to the following types from Standard Lib
 * ContiguousArray
 * Dictionary
 * Set
-
-And the following types from Foundation:
-* AttributedString
-* AttributedSubstring
-* Data
 
 The methods follow the same pattern from `String`. Every `isIdentical` method is an instance method that takes one parameter of the same type and returns a `Bool` value in constant-time indicating two instances must be equal by value. Here is an example on `Array`:
 
@@ -175,13 +170,7 @@ This proposal is additive and ABI-compatible with existing code.
 
 ## Future Directions
 
-Any Standard Library and Foundation types that are copy-on-write values that also conform to `Equatable` would be good candidates to add `isIdentical` functions.
-
-The following types from Foundation have an easy ability to check for `isIdentical`:
-* TimeZone
-* URL
-
-Our initial proposal includes concrete types we expect to be most often used to perform quick comparisons. It’s not completely clear if `TimeZone` and `URL` would be used enough in these situations to justify the engineering time to write the implementations, write the tests, write the documentation, and also maintain all of those over time. We could return to `TimeZone` and `URL` in the future if we need to.
+Any Standard Library types that are copy-on-write values that also conform to `Equatable` would be good candidates to add `isIdentical` functions.
 
 ## Alternatives Considered
 
@@ -191,7 +180,7 @@ Could we “overload” the `===` operator from `AnyObject`? This proposal consi
 
 ### Overload for Optionals
 
-When working with `Optional` values we can add the following overload:
+When working with `Optional` string values we can add the following overload:
 
 ```swift
 @available(SwiftStdlib 6.3, *)
