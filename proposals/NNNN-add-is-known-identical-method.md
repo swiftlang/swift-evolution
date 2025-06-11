@@ -83,9 +83,9 @@ Many more examples of `isIdentical` functions are currently shipping in `Swift-C
 
 ## Proposed Solution
 
-Many types in Swift and Foundation are “copy-on-write” data structures. These types present as value types, but can leverage a reference to some shared state to optimize for performance. When we copy this value we copy a reference to shared storage. If we perform a mutation on a copy we can preserve value semantics by copying the storage reference to a unique value before we write our mutation: we “copy” on “write”.
+Many types in Standard Library are “copy-on-write” data structures. These types present as value types, but can leverage a reference to some shared state to optimize for performance. When we copy this value we copy a reference to shared storage. If we perform a mutation on a copy we can preserve value semantics by copying the storage reference to a unique value before we write our mutation: we “copy” on “write”.
 
-This means that many types in Standard Library and Foundation already have some private reference that can be checked in constant-time to determine if two values are identical. Because these types copy before writing, two values that are identical by their shared storage *must* be equal by value.
+This means that many types in Standard Library already have some private reference that can be checked in constant-time to determine if two values are identical. Because these types copy before writing, two values that are identical by their shared storage *must* be equal by value.
 
 Suppose our `Equatable` protocol adopts a method that can return in constant time if two instances are identical and must be equal by-value. We can now refactor our operation on `AsyncSequence` to:
 
