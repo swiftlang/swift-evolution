@@ -220,7 +220,7 @@ To fulfill such a requirement, the conformance must provide a getter, meaning it
 In practical terms, this means that the requirement cannot be witnessed by a stored property or a `yielding borrow` accessor when the result is of noncopyable type,[^2] since the storage of a stored property is owned by the containing aggregate and the result of a `yielding borrow` is owned by the suspended coroutine, and it would be necessary to copy to provide ownership to the caller.
 However, if the type of the `get` requirement is copyable, the compiler can synthesize the getter from the other accessor kinds by introducing copies as necessary.
 
-[^2]: While the compiler does currently accept such code currently, it does so by interpreting that `get` as a `yielding borrow`, which is a bug.
+[^2]: While the compiler does currently accept such code, it does so by interpreting that `get` as a `yielding borrow`, which is a bug.
 
 ### `yielding mutate`<a name="design-modify"/>
 
