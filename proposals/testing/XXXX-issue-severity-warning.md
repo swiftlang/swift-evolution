@@ -38,7 +38,7 @@ Test authors will be able to inspect if the issue is a failing issue and will be
 
 ## Detailed design
 
-*Severity Enum*
+###Severity Enum
 
 We introduce a Severity enum to categorize issues detected during testing. This enum is crucial for distinguishing between different levels of test issues and is defined as follows:
 
@@ -64,14 +64,14 @@ extension Issue {
 }
 ```
 
-*Recording Non-Failing Issues*
+###Recording Non-Failing Issues
 To enable test authors to log non-failing issues without affecting test results, we provide a method for recording such issues:
 
 ```swift
 Issue.record("My comment", severity: .warning)
 ```
 
-*Issue Type Enhancements*
+###Issue Type Enhancements
 
 The Issue type is enhanced with two new properties to better handle and report issues:
 - `severity`: This property allows access to the specific severity level of an issue, enabling more precise handling of test results.
