@@ -123,6 +123,7 @@ This revision aims to clarify the functionality and usage of the `Severity` enum
 - Naming of `isFailure` vs. `isFailing`: We evaluated whether to name the property `isFailing` instead of `isFailure`. The decision to use `isFailure` was made to adhere to naming conventions and ensure clarity and consistency within the API.
 
 - Severity-Only Checking: We deliberated not exposing `isFailure` and relying solely on `severity` checks. However, this was rejected because it would require test authors to overhaul their code should we introduce additional severity levels in the future. By providing `isFailure`, we offer a straightforward way to determine test outcome impact, complementing the severity feature.
+- Naming `Severity.error` `Severity.failure` instead because this will always be a failing issue and test authors often think of test failures.  Error and warning match build naming conventions so that is why we continued with this.
 
 ## Future directions
 
