@@ -47,7 +47,8 @@ The `Severity` enum:
 ```swift
 extension Issue {
   // ...
-  public enum Severity: Codable, Comparable, CustomStringConvertible, Sendable {    /// The severity level for an issue which should be noted but is not
+  public enum Severity: Codable, Comparable, CustomStringConvertible, Sendable {    
+    /// The severity level for an issue which should be noted but is not
     /// necessarily an error.
     ///
     /// An issue with warning severity does not cause the test it's associated
