@@ -116,8 +116,6 @@ This revision aims to clarify the functionality and usage of the `Severity` enum
 
 ## Alternatives considered
 
-- Doing Nothing: Although there have been recurring requests over the years to support non-failing issues, we did not have a comprehensive solution until now. This year, we finally had the necessary components to implement this feature effectively.
-
 - Separate Issue Creation and Recording: We considered providing a mechanism to create issues independently before recording them, rather than passing the issue details directly to the `record` method. This approach was ultimately set aside in favor of simplicity and directness in usage.
 
 - Naming of `isFailure` vs. `isFailing`: We evaluated whether to name the property `isFailing` instead of `isFailure`. The decision to use `isFailure` was made to adhere to naming conventions and ensure clarity and consistency within the API.
