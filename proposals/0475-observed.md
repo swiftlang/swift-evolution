@@ -103,7 +103,7 @@ that pet's name.
 
 ## Detailed design
 
-There a few behaviors that are prerequisites to understanding the requirements
+There are a few behaviors that are prerequisites to understanding the requirements
 of the actual design. These two key behaviors are how the model handles tearing
 and how the model handles sharing.
 
