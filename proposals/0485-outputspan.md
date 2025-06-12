@@ -3,10 +3,10 @@
 * Proposal: [SE-0485](0485-outputspan.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active Review (May 20...June 3, 2025)**
+* Status: **Accepted**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Implementation: [swiftlang/swift#81637](https://github.com/swiftlang/swift/pull/81637)
-* Review: [Pitch](https://forums.swift.org/t/pitch-outputspan/79473), [Review](https://forums.swift.org/t/se-0485-outputspan-delegate-initialization-of-contiguous-memory/80032)
+* Review: [Pitch](https://forums.swift.org/t/pitch-outputspan/79473), [Review](https://forums.swift.org/t/se-0485-outputspan-delegate-initialization-of-contiguous-memory/80032), [Acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0485-outputspan-delegate-initialization-of-contiguous-memory/80435)
 
 [SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
@@ -822,7 +822,7 @@ In the meantime, many applications will work efficiently with repeated calls to 
 
 #### <a name="contentsOf-syntax"></a>Language syntax to distinguish between ownership modes for function arguments
 
-In the the previous "Future Direction" subsection about [bulk initialization methods](#contentsOf), we suggest a currently unachievable naming scheme:
+In the previous "Future Direction" subsection about [bulk initialization methods](#contentsOf), we suggest a currently unachievable naming scheme:
 ```swift
 extension OutputSpan {
   mutating func append(contentsOf: consuming some Sequence<Element>)
