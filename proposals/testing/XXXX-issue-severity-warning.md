@@ -72,6 +72,30 @@ To enable test authors to log non-failing issues without affecting test results,
 Issue.record("My comment", severity: .warning)
 ```
 
+Here is the `Issue.record` method definition with severity as a parameter.
+```swift
+  /// Record an issue when a running test fails unexpectedly.
+  ///
+  /// - Parameters:
+  ///   - comment: A comment describing the expectation.
+  ///   - severity: The severity of the issue.
+  ///   - sourceLocation: The source location to which the issue should be
+  ///     attributed.
+  ///
+  /// - Returns: The issue that was recorded.
+  ///
+  /// Use this function if, while running a test, an issue occurs that cannot be
+  /// represented as an expectation (using the ``expect(_:_:sourceLocation:)``
+  /// or ``require(_:_:sourceLocation:)-5l63q`` macros.)
+  @discardableResult public static func record(
+    _ comment: Comment? = nil,
+    severity: Severity = .error,
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) -> Self
+  
+  // ...
+```
+
 ###Issue Type Enhancements
 
 The Issue type is enhanced with two new properties to better handle and report issues:
@@ -80,13 +104,18 @@ The Issue type is enhanced with two new properties to better handle and report i
 ```swift
 // ...
 
+extension Issue {
+
 /// The severity of the issue.
-public var severity: Severity
+public var severity: Severity { get set }
+
+}
 
 ```
 - `isFailure`: A boolean property to determine if an issue results in a test failure, thereby helping in result aggregation and reporting.
 ```swift
-// ...
+extension Issue {
+  // ...
 
   /// Whether or not this issue should cause the test it's associated with to be
   /// considered a failure.
@@ -98,7 +127,8 @@ public var severity: Severity
   ///
   /// Use this property to determine if an issue should be considered a failure, instead of
   /// directly comparing the value of the ``severity`` property.
-public var isFailure: Bool
+  public var isFailure: Bool { get }
+}
 ```
 
 Example usage of `severity` and `isFailure:
