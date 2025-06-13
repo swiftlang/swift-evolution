@@ -3,7 +3,7 @@
 * Proposal: [SE-0465](0465-nonescapable-stdlib-primitives.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey)
 * Review Manager: [Doug Gregor](https://github.com/douggregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.2)**
 * Roadmap: [Improving Swift performance predictability: ARC improvements and ownership control][Roadmap]
 * Implementation: https://github.com/swiftlang/swift/pull/73258
 * Review: ([Acceptance](https://forums.swift.org/t/accepted-se-0465-standard-library-primitives-for-nonescapable-type/78637)) ([Review](https://forums.swift.org/t/se-0465-standard-library-primitives-for-nonescapable-types/78310)) ([Pitch](https://forums.swift.org/t/pitch-nonescapable-standard-library-primitives/77253))
