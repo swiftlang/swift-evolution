@@ -3,9 +3,9 @@
 * Proposal: [SE-0467](0467-MutableSpan.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.2)**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
-* Implementation: "Future" target of [swift-collections](https://github.com/apple/swift-collections/tree/future)
+* Implementation: [PR #79650](https://github.com/swiftlang/swift/pull/79650), [PR #80517](https://github.com/swiftlang/swift/pull/80517)
 * Review: ([Pitch](https://forums.swift.org/t/pitch-mutablespan/77790)) ([Review](https://forums.swift.org/t/se-0467-mutablespan/78454)) ([Acceptance](https://forums.swift.org/t/accepted-se-0467-mutablespan/78875))
 
 [SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
