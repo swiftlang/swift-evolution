@@ -278,15 +278,6 @@ protocol Foo {
 }
 ```
 
-```swift
-protocol Foo {
-  func f<T1, T2>(a: T1, b: T2) where
-      T1: P1,
-      T2: P2, ❌ Expected type
-  ...
-}
-```
-
 Although some comma-separated lists without symmetric delimiters may have a clear terminator in some cases, this proposal restricts trailing comma support to symmetrically delimited ones where it's clear that the presence of a trailing comma will not cause parsing ambiguity.
 
 ### Eliding commas
