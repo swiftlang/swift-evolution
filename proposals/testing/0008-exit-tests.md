@@ -177,7 +177,7 @@ the testing library:
   observing observedValues: [any PartialKeyPath<ExitTest.Result> & Sendable] = [],
   _ comment: @autoclosure () -> Comment? = nil,
   sourceLocation: SourceLocation = #_sourceLocation,
-  performing expression: @convention(thin) () async throws -> Void
+  performing expression: @escaping @Sendable () async throws -> Void
 ) -> ExitTest.Result? = #externalMacro(module: "TestingMacros", type: "ExitTestExpectMacro")
 
 /// Check that an expression causes the process to terminate in a given fashion
@@ -193,7 +193,7 @@ the testing library:
   observing observedValues: [any PartialKeyPath<ExitTest.Result> & Sendable] = [],
   _ comment: @autoclosure () -> Comment? = nil,
   sourceLocation: SourceLocation = #_sourceLocation,
-  performing expression: @convention(thin) () async throws -> Void
+  performing expression: @escaping @Sendable () async throws -> Void
 ) -> ExitTest.Result = #externalMacro(module: "TestingMacros", type: "ExitTestRequireMacro")
 ```
 
@@ -464,8 +464,8 @@ in:
 There are some constraints on valid exit tests:
 
 1. Because exit tests are run in child processes, they cannot capture any state
-   from the calling context (hence their body closures are `@convention(thin)`
-   or `@convention(c)`.) See the **Future directions** for further discussion.
+   from the calling context. See the **Future directions** for further
+   discussion.
 1. Exit tests cannot recursively invoke other exit tests; this is a constraint
    that could potentially be lifted in the future, but it would be technically
    complex to do so.
@@ -840,7 +840,7 @@ protocol also requires some care to ensure that signal constants such as
     observing observedValues: (repeat (KeyPath<ExitTest.Result, each T>)) = (),
     _ comment: @autoclosure () -> Comment? = nil,
     sourceLocation: SourceLocation = #_sourceLocation,
-    performing expression: @escaping @Sendable @convention(thin) () async throws -> Void
+    performing expression: @escaping @Sendable () async throws -> Void
   ) -> (repeat each T)
   ```
 
