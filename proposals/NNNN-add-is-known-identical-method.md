@@ -1,6 +1,6 @@
 # Add `isKnownIdentical` Method for Quick Comparisons to `Equatable`
 
-* Proposal: [SE-NNNN](NNNN-t.md)
+* Proposal: [SE-NNNN](NNNN-add-is-known-identical-method.md)
 * Authors: [Rick van Voorden](https://github.com/vanvoorden), [Karoy Lorentey](https://github.com/lorentey)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
