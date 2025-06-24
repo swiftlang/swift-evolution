@@ -3,11 +3,11 @@
 * Proposal: [ST-0011](0011-issue-handling-traits.md)
 * Authors: [Stuart Montgomery](https://github.com/stmontgomery)
 * Review Manager: [Paul LeMarquand](https://github.com/plemarquand)
-* Status: **Active Review (Jun 25 - July 8, 2025)**
+* Status: **Active Review (Jun 24 - July 8, 2025)**
 * Implementation: [swiftlang/swift-testing#1080](https://github.com/swiftlang/swift-testing/pull/1080),
   [swiftlang/swift-testing#1121](https://github.com/swiftlang/swift-testing/pull/1121),
   [swiftlang/swift-testing#1136](https://github.com/swiftlang/swift-testing/pull/1136)
-* Review: ([pitch](https://forums.swift.org/t/pitch-issue-handling-traits/80019))
+* Review: ([pitch](https://forums.swift.org/t/pitch-issue-handling-traits/80019)) ([review](https://forums.swift.org/t/st-0011-issue-handling-traits/80644))
 
 ## Introduction
 
