@@ -2,7 +2,7 @@
 
 * Proposal: [ST-NNNN](NNNN-issue-handling-trait.md)
 * Authors: [Stuart Montgomery](https://github.com/stmontgomery)
-* Review Manager: TBD
+* Review Manager: [Paul LeMarquand](https://github.com/plemarquand)
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift-testing#1080](https://github.com/swiftlang/swift-testing/pull/1080),
   [swiftlang/swift-testing#1121](https://github.com/swiftlang/swift-testing/pull/1121),
