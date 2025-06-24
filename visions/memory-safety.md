@@ -15,7 +15,7 @@ While there are a number of potential definitions for memory safety, the one pro
 * **Lifetime safety** : all accesses to a value are guaranteed to occur during its lifetime. Violations of this property, such as accessing a value after its lifetime has ended, are often called use-after-free errors.
 * **Bounds safety**: all accesses to memory are within the intended bounds of the memory allocation, such as accessing elements in an array. Violations of this property are called out-of-bounds accesses.
 * **Type safety** : all accesses to a value use the type to which it was initialized, or a type that is compatible with that type. For example, one cannot access a `String` value as if it were an `Array`. Violations of this property are called type confusions.
-* **Initialization safety** : all values are initialized property to being used, so they cannot contain unexpected data. Violations of this property often lead to information disclosures (where data that should be invisible becomes available) or even other memory-safety issues like use-after-frees or type confusions.
+* **Initialization safety** : all values are initialized prior to being used, so they cannot contain unexpected data. Violations of this property often lead to information disclosures (where data that should be invisible becomes available) or even other memory-safety issues like use-after-frees or type confusions.
 * **Thread safety:** all values are accessed concurrently in a manner that is synchronized sufficiently to maintain their invariants. Violations of this property are typically called data races, and can lead to any of the other memory safety problems.
 
 Since its inception, Swift has provided memory safety for the first four dimensions. Lifetime safety is provided for reference types by automatic reference counting and for value types via [memory exclusivity](https://www.swift.org/blog/swift-5-exclusivity/); bounds safety is provided by bounds-checking on `Array` and other collections; type safety is provided by safe features for casting (`as?` , `is` ) and `enum` s; and initialization safety is provided by “definite initialization”, which doesn’t allow a variable to be accessed until it has been defined. Swift 6’s strict concurrency checking extends Swift’s memory safety guarantees to the last dimension.
@@ -134,10 +134,10 @@ One of the primary places where this doesn’t hold is with low-level access to 
 [Non-escapable types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md) provide the ability to create types whose instances cannot escape out of the context in which they were created with no runtime overhead. Non-escapable types allow the creation of a [memory-safe counterpart to the unsafe buffer types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md), `Span` . With `Span` , it becomes possible to access contiguous memory in an array in a manner that maintains memory safety. For example:
 
 ```swift
-let span = myInts.storage
+let span = myInts.span
 
 globalSpan = span // error: span value cannot escape the scope of myInts
-print(span[myArray.count]) // runtime error: out-of-bounds access
+print(span[myInts.count]) // runtime error: out-of-bounds access
 print(span.first ?? 0)
 ```
 
