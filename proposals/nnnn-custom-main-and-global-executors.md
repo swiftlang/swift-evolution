@@ -296,7 +296,7 @@ public protocol RunLoopExecutor: Executor {
 We will also add a protocol for the main actor's executor:
 
 ```swift
-protocol MainExecutor: RunLoopExecutor & SerialExecutor {
+protocol MainExecutor: RunLoopExecutor, SerialExecutor {
 }
 ```
 
@@ -343,7 +343,7 @@ current platform.
 
 Additionally, `Task` will expose a new `currentExecutor` property, as
 well as properties for the `preferredExecutor` and the
-`currentSchedulableExecutor`:
+`currentSchedulingExecutor`:
 
 ```swift
 extension Task {
@@ -362,12 +362,12 @@ extension Task {
   /// Get the preferred executor for the current `Task`, if any.
   public static var preferredExecutor: (any TaskExecutor)? { get }
 
-  /// Get the current *schedulable* executor, if any.
+  /// Get the current *scheduling* executor, if any.
   ///
   /// This follows the same logic as `currentExecutor`, except that it ignores
-  /// any executor that isn't a `SchedulableExecutor`, and as such it may
+  /// any executor that isn't a `SchedulingExecutor`, and as such it may
   /// eventually return `nil`.
-  public static var currentSchedulableExecutor: (any SchedulableExecutor)? { get }
+  public static var currentSchedulingExecutor: (any SchedulingExecutor)? { get }
 }
 ```
 
@@ -384,7 +384,9 @@ struct ExecutorJob {
   ...
 
   /// Execute a closure, passing it the bounds of the executor private data
-  /// for the job.
+  /// for the job.  The executor is responsible for ensuring that any resources
+  /// referenced from the private data area are cleared up prior to running the
+  /// job.
   ///
   /// Parameters:
   ///
@@ -393,7 +395,7 @@ struct ExecutorJob {
   /// Returns the result of executing the closure.
   public func withUnsafeExecutorPrivateData<R, E>(body: (UnsafeMutableRawBufferPointer) throws(E) -> R) throws(E) -> R
 
-  /// Kinds of schedulable jobs.
+  /// Kinds of scheduling jobs.
   @frozen
   public struct Kind: Sendable, RawRepresentable {
     public typealias RawValue = UInt8
@@ -416,7 +418,7 @@ struct ExecutorJob {
 
 Finally, jobs of type `ExecutorJob.Kind.task` have the ability to
 allocate task memory, using a stack disciplined allocator; this memory
-is automatically released when the task itself is released.
+must be released _in reverse order_ before the job is executed.
 
 Rather than require users to test the job kind to discover this, which
 would mean that they would not be able to use allocation on new job
@@ -437,13 +439,11 @@ extension ExecutorJob {
   /// A job-local stack-disciplined allocator.
   ///
   /// This can be used to allocate additional data required by an
-  /// executor implementation; memory allocated in this manner will
-  /// be released automatically when the job is disposed of by the
-  /// runtime.
+  /// executor implementation; memory allocated in this manner must
+  /// be released by the executor before the job is executed.
   ///
   /// N.B. Because this allocator is stack disciplined, explicitly
-  /// deallocating memory will also deallocate all memory allocated
-  /// after the block being deallocated.
+  /// deallocating memory out-of-order will cause your program to abort.
   struct LocalAllocator {
 
     /// Allocate a specified number of bytes of uninitialized memory.
@@ -457,19 +457,16 @@ extension ExecutorJob {
     public func allocate<T>(capacity: Int, as: T.Type)
       -> UnsafeMutableBufferPointer<T>?
 
-    /// Deallocate previously allocated memory.  Note that the task
-    /// allocator is stack disciplined, so if you deallocate a block of
-    /// memory, all memory allocated after that block is also deallocated.
+    /// Deallocate previously allocated memory.  You must do this in
+    /// reverse order of allocations, prior to running the job.
     public func deallocate(_ buffer: UnsafeMutableRawBufferPointer?)
 
-    /// Deallocate previously allocated memory.  Note that the task
-    /// allocator is stack disciplined, so if you deallocate a block of
-    /// memory, all memory allocated after that block is also deallocated.
+    /// Deallocate previously allocated memory.  You must do this in
+    /// reverse order of allocations, prior to running the job.
     public func deallocate<T>(_ pointer: UnsafeMutablePointer<T>?)
 
-    /// Deallocate previously allocated memory.  Note that the task
-    /// allocator is stack disciplined, so if you deallocate a block of
-    /// memory, all memory allocated after that block is also deallocated.
+    /// Deallocate previously allocated memory.  You must do this in
+    /// reverse order of allocations, prior to running the job.
     public func deallocate<T>(_ buffer: UnsafeMutableBufferPointer<T>?)
 
   }
@@ -494,23 +491,28 @@ if let chunk = job.allocator?.allocate(capacity: 1024) {
 }
 ```
 
-We will also add a `SchedulableExecutor` protocol as well as a way to
+This feature is useful for executors that need to store additional
+data alongside jobs that they currently have queued up.  It is worth
+re-emphasising that the data needs to be released, in reverse order
+of allocation, prior to execution of the job to which it is attached.
+
+We will also add a `SchedulingExecutor` protocol as well as a way to
 get it efficiently from an `Executor`:
 
 ```swift
 protocol Executor {
   ...
-  /// Return this executable as a SchedulableExecutor, or nil if that is
+  /// Return this executable as a SchedulingExecutor, or nil if that is
   /// unsupported.
   ///
   /// Executors can implement this method explicitly to avoid the use of
   /// a potentially expensive runtime cast.
   @available(SwiftStdlib 6.2, *)
-  var asSchedulable: AsSchedulable? { get }
+  var asSchedulingExecutor: (any SchedulingExecutor)? { get }
   ...
 }
 
-protocol SchedulableExecutor: Executor {
+protocol SchedulingExecutor: Executor {
   ...
   /// Enqueue a job to run after a specified delay.
   ///
@@ -565,93 +567,50 @@ protocol as follows:
 ```swift
 protocol Clock {
   ...
-  /// The traits associated with this clock instance.
-  var traits: ClockTraits { get }
-
-  /// Convert a Clock-specific Duration to a Swift Duration
-  ///
-  /// Some clocks may define `C.Duration` to be something other than a
-  /// `Swift.Duration`, but that makes it tricky to convert timestamps
-  /// between clocks, which is something we want to be able to support.
-  /// This method will convert whatever `C.Duration` is to a `Swift.Duration`.
+  /// Run the given job on an unspecified executor at some point
+  /// after the given instant.
   ///
   /// Parameters:
   ///
-  /// - from duration: The `Duration` to convert
+  /// - job:         The job we wish to run
+  /// - at instant:  The time at which we would like it to run.
+  /// - tolerance:   The ideal maximum delay we are willing to tolerate.
   ///
-  /// Returns: A `Swift.Duration` representing the equivalent duration, or
-  ///          `nil` if this function is not supported.
-  func convert(from duration: Duration) -> Swift.Duration?
+  func run(_ job: consuming ExecutorJob,
+           at instant: Instant, tolerance: Duration?)
 
-  /// Convert a Swift Duration to a Clock-specific Duration
+  /// Enqueue the given job on the specified executor at some point after the
+  /// given instant.
+  ///
+  /// The default implementation uses the `run` method to trigger a job that
+  /// does `executor.enqueue(job)`.  If a particular `Clock` knows that the
+  /// executor it has been asked to use is the same one that it will run jobs
+  /// on, it can short-circuit this behaviour and directly use `run` with
+  /// the original job.
   ///
   /// Parameters:
   ///
-  /// - from duration: The `Swift.Duration` to convert.
+  /// - job:         The job we wish to run
+  /// - on executor: The executor on which we would like it to run.
+  /// - at instant:  The time at which we would like it to run.
+  /// - tolerance:   The ideal maximum delay we are willing to tolerate.
   ///
-  /// Returns: A `Duration` representing the equivalent duration, or
-  ///          `nil` if this function is not supported.
-  func convert(from duration: Swift.Duration) -> Duration?
-
-  /// Convert an `Instant` from some other clock's `Instant`
-  ///
-  /// Parameters:
-  ///
-  /// - instant:    The instant to convert.
-  //  - from clock: The clock to convert from.
-  ///
-  /// Returns: An `Instant` representing the equivalent instant, or
-  ///          `nil` if this function is not supported.
-  func convert<OtherClock: Clock>(instant: OtherClock.Instant,
-                                  from clock: OtherClock) -> Instant?
+  func enqueue(_ job: consuming ExecutorJob,
+               on executor: some Executor,
+               at instant: Instant, tolerance: Duration?)
   ...
 }
 ```
 
-If your `Clock` uses `Swift.Duration` as its `Duration` type, the
-`convert(from duration:)` methods will be implemented for you.  There
-is also a default implementation of the `Instant` conversion method
-that makes use of the `Duration` conversion methods.
+There is a default implementation of the `enqueue` method on `Clock`,
+which calls the `run` method; if you attempt to use a `Clock` with an
+executor that does not understand it, and that `Clock` does not
+implement the `run` method, you will get a fatal error at runtime.
 
-The `traits` property is of type `ClockTraits`, which is an
-`OptionSet` as follows:
-
-```swift
-/// Represents traits of a particular Clock implementation.
-///
-/// Clocks may be of a number of different varieties; executors will likely
-/// have specific clocks that they can use to schedule jobs, and will
-/// therefore need to be able to convert timestamps to an appropriate clock
-/// when asked to enqueue a job with a delay or deadline.
-///
-/// Choosing a clock in general requires the ability to tell which of their
-/// clocks best matches the clock that the user is trying to specify a
-/// time or delay in.  Executors are expected to do this on a best effort
-/// basis.
-@available(SwiftStdlib 6.2, *)
-public struct ClockTraits: OptionSet {
-  public let rawValue: UInt32
-
-  public init(rawValue: UInt32)
-
-  /// Clocks with this trait continue running while the machine is asleep.
-  public static let continuous = ...
-
-  /// Indicates that a clock's time will only ever increase.
-  public static let monotonic = ...
-
-  /// Clocks with this trait are tied to "wall time".
-  public static let wallTime = ...
-}
-```
-
-Clock traits can be used by executor implementations to select the
-most appropriate clock that they know how to wait on; they can then
-use the `convert()` method above to convert the `Instant` or
-`Duration` to that clock in order to actually enqueue a job.
-
-`ContinuousClock` and `SuspendingClock` will be updated to support
-these new features.
+Executors that do not specifically recognise a particular clock may
+choose instead to have their `enqueue(..., clock:)` methods call the
+clock's `enqueue()` method; this will allow the clock to make an
+appropriate decision as to how to proceed.
 
 We will also add a way to test if an executor is the main executor:
 
@@ -660,6 +619,64 @@ protocol Executor {
   ...
   /// `true` if this is the main executor.
   var isMainExecutor: Bool { get }
+  ...
+}
+```
+
+Finally, we will expose the following built-in executor
+implementations:
+
+```swift
+/// A Dispatch-based main executor (not on Embedded or WASI)
+@available(StdlibDeploymentTarget 6.2, *)
+public class DispatchMainExecutor: MainExecutor,
+                                   SchedulingExecutor,
+                                   @unchecked Sendable {
+  ...
+}
+
+/// A Dispatch-based `TaskExecutor` (not on Embedded or WASI)
+@available(StdlibDeploymentTarget 6.2, *)
+public class DispatchGlobalTaskExecutor: TaskExecutor,
+                                         SchedulingExecutor,
+                                         @unchecked Sendable {
+  ...
+}
+
+/// A CFRunLoop-based main executor (Apple platforms only)
+@available(StdlibDeploymentTarget 6.2, *)
+public final class CFMainExecutor: DispatchMainExecutor,
+                                   @unchecked Sendable {
+  ...
+}
+
+/// A `TaskExecutor` to match `CFMainExecutor` (Apple platforms only)
+@available(StdlibDeploymentTarget 6.2, *)
+public final class CFTaskExecutor: DispatchGlobalTaskExecutor,
+                                   @unchecked Sendable {
+  ...
+}
+
+/// A co-operative executor that can be used as the main executor or as a
+/// task executor.  Tasks scheduled on this executor will run on the thread
+/// that called `run()`.
+///
+/// Note that this executor will not be thread-safe on Embedded Swift.
+@available(StdlibDeploymentTarget 6.2, *)
+class CooperativeExecutor: MainExecutor,
+                           TaskExecutor,
+                           SchedulingExecutor,
+                           @unchecked Sendable {
+  ...
+}
+
+/// A main executor that calls fatalError().
+class UnimplementedMainExecutor: MainExecutor, @unchecked Sendable {
+  ...
+}
+
+/// A task executor that calls fatalError().
+class UnimplementedTaskExecutor: TaskExecutor, @unchecked Sendable {
   ...
 }
 ```
@@ -702,9 +719,7 @@ We will also add an `executorFactory` option in SwiftPM's
 `swiftSettings` to let people specify the executor factory in their
 package manifests.
 
-## Detailed design
-
-### `async` main code generation
+## `async` main code generation
 
 The compiler's code generation for `async` main functions will change
 to something like
@@ -859,12 +874,25 @@ knowledge of those libraries.
 While a good idea, it was decided that this would be better dealt with
 as a separate proposal.
 
-### Putting the new Clock-based enqueue functions into a protocol
+### Putting the new `Clock`-based enqueue functions into a protocol
 
 It would be cleaner to have the new Clock-based enqueue functions in a
 separate `SchedulingExecutor` protocol.  However, if we did that, we
 would need to add `as? SchedulingExecutor` runtime casts in various
 places in the code, and dynamic casts can be expensive.
+
+### Adding special support for canonicalizing `Clock`s
+
+There are situations where you might create a derived `Clock`, that is
+implemented under the covers by reference to some other clock.  One
+way to support that might be to add a `canonicalClock` property that
+you can fetch to obtain the underlying clock, then provide conversion
+functions to convert `Instant` and `Duration` values as appropriate.
+
+After implementing this, it became apparent that it wasn't really
+necessary and complicated the API without providing any significant
+additional capability.  A derived `Clock` can simply implement the
+`run` and/or `enqueue` methods instead.
 
 ## Acknowledgments
 
