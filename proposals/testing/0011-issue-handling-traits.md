@@ -1,6 +1,6 @@
 # Issue Handling Traits
 
-* Proposal: [ST-0011](0011-issue-handling-trait.md)
+* Proposal: [ST-0011](0011-issue-handling-traits.md)
 * Authors: [Stuart Montgomery](https://github.com/stmontgomery)
 * Review Manager: [Paul LeMarquand](https://github.com/plemarquand)
 * Status: **Active Review (Jun 25 - July 8, 2025)**
