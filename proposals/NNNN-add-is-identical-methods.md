@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-add-is-identical-methods.md)
 * Authors: [Rick van Voorden](https://github.com/vanvoorden), [Karoy Lorentey](https://github.com/lorentey)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: **Awaiting review**
 * Implementation: ([String, Substring](https://github.com/swiftlang/swift/pull/82055)), ([Array, ArraySlice, ContiguousArray](https://github.com/swiftlang/swift/pull/82438)), ([Dictionary, Set](https://github.com/swiftlang/swift/pull/82439))
 * Review: ([Pre-Pitch](https://forums.swift.org/t/how-to-check-two-array-instances-for-identity-equality-in-constant-time/78792)), ([Pitch #1](https://forums.swift.org/t/pitch-distinguishable-protocol-for-quick-comparisons/79145)), ([Pitch #2](https://forums.swift.org/t/pitch-2-add-isidentical-methods-for-quick-comparisons-to-concrete-types/80496))
 
