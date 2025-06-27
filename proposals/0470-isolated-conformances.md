@@ -312,6 +312,10 @@ Additionally, a dynamic cast that involves a `Sendable` or `SendableMetatype` co
   }
 ```
 
+> [!Important]
+> On older runtimes, dynamic casts will succeed even if the isolation does not match the isolation of the conformance. See [ABI compatibility](#ABI-compatibility) for more details.
+
+
 ### Rule 1: Isolated conformance can only be used within its isolation domain
 
 Rule (1) is straightforward: the conformance can only be used within a context that is also isolated to the same global actor. This applies to any use of a conformance anywhere in the language. For example:
