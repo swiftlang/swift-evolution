@@ -549,18 +549,21 @@ class MyModelType: /*inferred @MainActor*/ P {
 }
 ```
 
-If this inference is not desired, for example because the code will use `nonisolated` members to satisfy the requirements of the protocol, it can use `nonisolated` on the conformance:
+If this inference is not desired, one can use `nonisolated` on the conformances:
 
 ```swift
 @MainActor
-class MyModelType: nonisolated P { 
-  nonisolated func f() { } // implements P.f, is non-isolated
+class MyModelType: nonisolated Q {
+  nonisolated static func g() { } // implements Q.g, is non-isolated
 }
 ```
 
-This mirrors the rules for global actor inference elsewhere in the language, providing a more consistent answer.
+There are two additional inference rules that imply `nonisolated` on a conformance of a global-actor-isolated type:
 
-This proposed change is source-breaking, so it should be staged in via an upcoming feature (`InferIsolatedConformances`) that can be folded into a future language mode. Fortunately, it is mechanically migratable: existing code migrating to `InferIsolatedConformances` could introduce `nonisolated` for each conformance of a global-actor-isolated type.
+* If the protocol inherits from `SendableMetatype` (including indirectly, e.g., from `Sendable`), then the isolated conformance could never be used, so it is inferred to be `nonisolated`.
+* If all of the declarations used to satisfy protocol requirements are `nonisolated`, the conformance will be assumed to be `nonisolated`. The conformance of `MyModelType` to `Q` would be inferred to be `nonisolated` because the static method `g` used to satisfy `Q.g` is `nonisolated.`
+
+This proposed change is source-breaking in the cases where a conformance is currently `nonisolated`, the rules above would not infer `nonisolated`, and the conformance crosses isolation domains. There, conformance isolation inference is  staged in via an upcoming feature (`InferIsolatedConformances`) that can be folded into a future language mode. Fortunately, it is mechanically migratable: existing code migrating to `InferIsolatedConformances` could introduce `nonisolated` for each conformance of a global-actor-isolated type.
 
 ### Infer `@MainActor` conformances
 
