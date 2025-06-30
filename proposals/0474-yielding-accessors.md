@@ -3,10 +3,10 @@
 * Proposal: [SE-0474](0474-yielding-accessors.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Nate Chandler](https://github.com/nate-chandler), [Joe Groff](https://github.com/jckarter/)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active Review (April 8 ... April 22, 2025)**
+* Status: **Accepted**
 * Vision: [A Prospective Vision for Accessors in Swift](https://github.com/rjmccall/swift-evolution/blob/accessors-vision/visions/accessors.md)
 * Implementation: Partially available on main behind the frontend flag `-enable-experimental-feature CoroutineAccessors`
-* Review: ([pitch 1](https://forums.swift.org/t/modify-accessors/31872)), ([pitch 2](https://forums.swift.org/t/pitch-modify-and-read-accessors/75627)), ([pitch 3](https://forums.swift.org/t/pitch-3-yielding-coroutine-accessors/77956)), ([review](https://forums.swift.org/t/se-0474-yielding-accessors/79170))
+* Review: ([pitch 1](https://forums.swift.org/t/modify-accessors/31872)), ([pitch 2](https://forums.swift.org/t/pitch-modify-and-read-accessors/75627)), ([pitch 3](https://forums.swift.org/t/pitch-3-yielding-coroutine-accessors/77956)), ([review](https://forums.swift.org/t/se-0474-yielding-accessors/79170)), [Acceptance](https://forums.swift.org/t/accepted-se-0474-yielding-accessors/80273)
 
 ## Introduction
 
