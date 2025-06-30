@@ -165,6 +165,31 @@ Example of an `issueRecorded` event in the json output:
 {"kind":"event","payload":{"instant":{"absolute":302928.100968,"since1970":1751305230.364087},"issue":{"_backtrace":[{"address":4437724864},{"address":4427566652},{"address":4437724280},{"address":4438635916},{"address":4438635660},{"address":4440823880},{"address":4437933556},{"address":4438865080},{"address":4438884348},{"address":11151272236},{"address":4438862360},{"address":4438940324},{"address":4437817340},{"address":4438134208},{"address":4438132164},{"address":4438635048},{"address":4440836660},{"address":4440835536},{"address":4440834989},{"address":4438937653},{"address":4438963225},{"address":4438895773},{"address":4438896161},{"address":4438891517},{"address":4438937117},{"address":4438962637},{"address":4439236617},{"address":4438936181},{"address":4438962165},{"address":4438639149},{"address":4438935045},{"address":4438935513},{"address":11151270653},{"address":11151269797},{"address":4438738225},{"address":4438872065},{"address":4438933417},{"address":4438930265},{"address":4438930849},{"address":4438909741},{"address":4438965489},{"address":11151508333}],"_severity":"error","isKnown":false,"sourceLocation":{"_filePath":"\/Users\/swift-testing\/Tests\/TestingTests\/EntryPointTests.swift","column":23,"fileID":"TestingTests\/EntryPointTests.swift","line":46}},"kind":"issueRecorded","messages":[{"symbol":"fail","text":"Issue recorded"},{"symbol":"details","text":"Unexpected issue Issue recorded (warning) was recorded."}],"testID":"TestingTests.EntryPointTests\/warningIssues()\/EntryPointTests.swift:33:4"},"version":0}
 ```
 
+### Console output
+
+When there is an issue recorded with severity warning the output looks like this:
+
+```swift
+    Issue.record("My comment", severity: .warning)
+```
+
+```
+􀟈  Test "All elements of two ranges are equal" started.
+􀄣  Test "All elements of two ranges are equal" recorded a warning at ZipTests.swift:32:17: Issue recorded
+􀄵  My comment
+􁁛  Test "All elements of two ranges are equal" passed after 0.001 seconds with 1 warning.
+```
+
+### Trying this out
+
+To use severity today, checkout the branch here: https://github.com/swiftlang/swift-testing/pull/1189
+
+```
+.package(url: "https://github.com/swiftlang/swift-testing.git", branch: "suzannaratcliff:suzannaratcliff/enable-severity"),
+```
+
+For more details on how to checkout a branch for a package refer to this: https://developer.apple.com/documentation/packagedescription/package/dependency/package(url:branch:)
+
 ## Alternatives considered
 
 - Separate Issue Creation and Recording: We considered providing a mechanism to create issues independently before recording them, rather than passing the issue details directly to the `record` method. This approach was ultimately set aside in favor of simplicity and directness in usage.
