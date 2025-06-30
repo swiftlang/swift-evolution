@@ -65,6 +65,7 @@ When the default actor isolation is specified as `MainActor`, declarations are i
 * Declarations with inferred actor isolation from a superclass, overridden method, protocol conformance, or member propagation
 * All declarations inside an `actor` type, including static variables, methods, initializers, and deinitializers
 * Declarations that cannot have global actor isolation, including typealiases, import statements, enum cases, and individual accessors
+* Declarations whose primary definition directly conforms to a protocol that inherits `SendableMetatype`
 
 The following code example shows the inferred actor isolation in comments given the code is built with `-default-isolation MainActor`:
 
@@ -107,6 +108,18 @@ struct S: P {
   // @MyActor
   func f() { ... }
 }
+
+nonisolated protocol Q: Sendable { }
+
+// nonisolated
+struct S2: Q { }
+
+nonisolated protocol Q: Sendable { }
+
+// @MainActor
+struct S3 { }
+
+extension S3: Q { }
 ```
 
 This proposal does not change the default isolation inference rules for closures. Non-Sendable closures and closures passed to `Task.init` already have the same isolation as the enclosing context by default. When specifying `MainActor` isolation by default in a module, non-`@Sendable` closures and `Task.init` closures will have inferred `@MainActor` isolation when the default `@MainActor` inference rules apply to the enclosing context:
