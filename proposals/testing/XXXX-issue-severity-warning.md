@@ -145,6 +145,26 @@ For more details on `Issue`, refer to the [Issue Documentation](https://develope
 
 This revision aims to clarify the functionality and usage of the `Severity` enum and `Issue` properties while maintaining consistency with the existing Swift API standards.
 
+### Integration with supporting tools
+
+Issue severity will be in the event stream output when a `issueRecorded` event occurs.  This will be a breaking change because some tools may assume that all `issueRecorded` events are failing. Due to this we will be bumping the event stream version and v1 will maintain it's behavior and not output any events for non failing issues.
+
+The JSON event stream ABI will be amended correspondingly:
+
+```
+<issue> ::= {
+  "isKnown": <bool>, ; is this a known issue or not?
++ "severity": <string>, ; the severity of the issue
+  ["sourceLocation": <source-location>,] ; where the issue occurred, if known
+}
+```
+
+Example of an `issueRecorded` event in the json output:
+
+```
+{"kind":"event","payload":{"instant":{"absolute":302928.100968,"since1970":1751305230.364087},"issue":{"_backtrace":[{"address":4437724864},{"address":4427566652},{"address":4437724280},{"address":4438635916},{"address":4438635660},{"address":4440823880},{"address":4437933556},{"address":4438865080},{"address":4438884348},{"address":11151272236},{"address":4438862360},{"address":4438940324},{"address":4437817340},{"address":4438134208},{"address":4438132164},{"address":4438635048},{"address":4440836660},{"address":4440835536},{"address":4440834989},{"address":4438937653},{"address":4438963225},{"address":4438895773},{"address":4438896161},{"address":4438891517},{"address":4438937117},{"address":4438962637},{"address":4439236617},{"address":4438936181},{"address":4438962165},{"address":4438639149},{"address":4438935045},{"address":4438935513},{"address":11151270653},{"address":11151269797},{"address":4438738225},{"address":4438872065},{"address":4438933417},{"address":4438930265},{"address":4438930849},{"address":4438909741},{"address":4438965489},{"address":11151508333}],"_severity":"error","isKnown":false,"sourceLocation":{"_filePath":"\/Users\/swift-testing\/Tests\/TestingTests\/EntryPointTests.swift","column":23,"fileID":"TestingTests\/EntryPointTests.swift","line":46}},"kind":"issueRecorded","messages":[{"symbol":"fail","text":"Issue recorded"},{"symbol":"details","text":"Unexpected issue Issue recorded (warning) was recorded."}],"testID":"TestingTests.EntryPointTests\/warningIssues()\/EntryPointTests.swift:33:4"},"version":0}
+```
+
 ## Alternatives considered
 
 - Separate Issue Creation and Recording: We considered providing a mechanism to create issues independently before recording them, rather than passing the issue details directly to the `record` method. This approach was ultimately set aside in favor of simplicity and directness in usage.
@@ -152,7 +172,7 @@ This revision aims to clarify the functionality and usage of the `Severity` enum
 - Naming of `isFailure` vs. `isFailing`: We evaluated whether to name the property `isFailing` instead of `isFailure`. The decision to use `isFailure` was made to adhere to naming conventions and ensure clarity and consistency within the API.
 
 - Severity-Only Checking: We deliberated not exposing `isFailure` and relying solely on `severity` checks. However, this was rejected because it would require test authors to overhaul their code should we introduce additional severity levels in the future. By providing `isFailure`, we offer a straightforward way to determine test outcome impact, complementing the severity feature.
-- Naming `Severity.error` `Severity.failure` instead because this will always be a failing issue and test authors often think of test failures.  Error and warning match build naming conventions so that is why we continued with this.
+- Naming `Severity.error` `Severity.failure` instead because this will always be a failing issue and test authors often think of test failures.  Error and warning match build naming conventions and XCTest severity naming convention.
 
 ## Future directions
 
