@@ -114,8 +114,6 @@ nonisolated protocol Q: Sendable { }
 // nonisolated
 struct S2: Q { }
 
-nonisolated protocol Q: Sendable { }
-
 // @MainActor
 struct S3 { }
 
@@ -179,23 +177,37 @@ Similarly, a future language mode could enable main actor isolation by default, 
 
 See the approachable data-race safety vision document for an [analysis on the risks of introducing a language dialect](https://github.com/hborla/swift-evolution/blob/approachable-concurrency-vision/visions/approachable-concurrency.md#risks-of-a-language-dialect) for default actor isolation.
 
-### Don't apply default actor isolation to explicitly `Sendable` types
+### Alternative to `SendableMetatype` for suppressing main-actor inference
 
-This proposal includes few exceptions where the specified default actor isolation does not apply. An additional case that should be considered is types with a conformance to `Sendable`:
+The protocols to which a type conforms can affect the isolation of the type. Conforming to a global-actor-isolated protocol can infer global-actor isolatation for the type. When the default actor isolation is `MainActor`, it is valuable for protocols to be able to push inference toward keeping conforming types `nonisolated`, for example because conforming types are meant to be usable from any isolation domain.
+
+In this proposal, inheritance from `SendableMetatype` (introduced in [SE-0470](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0470-isolated-conformances.md)) is used as an indication that types conforming to the protocol should be `nonisolated`. The `SendableMetatype` marker protocol indicates when a type (but not necessarily its instances) can cross isolation domains, which implies that the type generally needs to be usable from any isolation domain. Additionally, protocols that inherit from `SendableMetatype` can only be meaningfully be used with nonisolated conformances, as discussed in SE-0470. Experience using default main actor isolation uncovered a number of existing protocols that reinforce the notion of `SendableMetatype` inheritance is a reasonable heuristic to indicate that a conforming type should be nonisolated: the standard library's [`CodingKey`](https://developer.apple.com/documentation/swift/codingkey) protocol inherits `Sendable` (which in turn inherits `SendableMetatype`) so a typical conformance will fail to compile with default main actor isolation:
 
 ```swift
-struct SimpleValue: Sendable {
-  var value: Int
+struct S: Codable {
+  var a: Int
+
+  // error if CodingKeys is inferred to `@MainActor`. The conformance cannot be main-actor-isolated, and
+  // the requirements of the (nonisolated) CodingKey cannot be satisfied by main-actor-isolated members of
+  // CodingKeys.
+  enum CodingKeys: CodingKey {
+    case a
+  }
 }
 ```
 
-This is an attractive carve out upon first glance, but there are a number of downsides:
+Other places that have similar issues with default main actor isolation include the [`Transferable`](https://developer.apple.com/documentation/coretransferable/transferable) protocol and the uses of key paths in the [`@Model` macro](https://developer.apple.com/documentation/swiftdata/model()).
 
-* The carve out may be confusing if a conformance to `Sendable` is implied, e.g. through a conformance to another protocol.
-* Global actor isolation implies a conformance to `Sendable`, so it's not clear that a `Sendable` type should not be global actor isolated.
-* Methods on a `Sendable` type may still use other types and methods that have default actor isolation applied, which would lead to failures if the `Sendable` type was exempt from default isolation inference.
+Instead of using `SendableMetatype` inheritance, this proposal could introduce new syntax for a protocol to explicitly indicate 
 
-A middle ground might be to not apply default actor isolation to types with an explicit conformance to `Sendable` within the same source file as the type. This approach would still have some of the downsides listed above, but it would be more straightforward to spot types that have this exemption.
+```swift
+@nonisolatedConformingTypes
+public protocol CodingKey { 
+  // ...
+}
+```
+
+This would make the behavior pushing conforming types toward `nonisolated` opt-in. However, it means that existing protocols (such as the ones mentioned above) would all need to adopt this spelling before code using default main actor isolation will work well. Given the strong semantic link between `SendableMetatype` and `nonisolated` conformances and types, the proposed rule based on `SendableMetatype` inheritance is likely to make more code work well with default main actor isolation. An explicit opt-in attribute like the above could be added at a later time if needed.
 
 ### Use an enum for the package manifest API
 
