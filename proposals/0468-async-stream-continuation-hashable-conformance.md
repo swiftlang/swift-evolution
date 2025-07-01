@@ -3,7 +3,7 @@
 * Proposal: [SE-0468](0468-async-stream-continuation-hashable-conformance.md)
 * Authors: [Mykola Pokhylets](https://github.com/nickolas-pohilets)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.2)**
 * Implementation: [swiftlang/swift#79457](https://github.com/swiftlang/swift/pull/79457)
 * Review: ([pitch](https://forums.swift.org/t/pitch-add-hashable-conformance-to-asyncstream-continuation/77897)) ([review](https://forums.swift.org/t/se-0468-hashable-conformance-for-async-throwing-stream-continuation/78487)) ([acceptance](https://forums.swift.org/t/accepted-se-0468-hashable-conformance-for-async-throwing-stream-continuation/79116))
 

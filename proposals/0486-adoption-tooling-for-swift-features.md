@@ -3,7 +3,7 @@
 * Proposal: [SE-0486](0486-adoption-tooling-for-swift-features.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Franz Busch](https://github.com/FranzBusch)
-* Status: **Active Review (May 26...June 8, 2025)**
+* Status: **Implemented (Swift 6.2)**
 * Implementation: https://github.com/swiftlang/swift-package-manager/pull/8613
 * Review: [Pitch](https://forums.swift.org/t/pitch-adoption-tooling-for-upcoming-features/77936), [Review](https://forums.swift.org/t/se-0486-migration-tooling-for-swift-features/80121)
 
@@ -172,7 +172,7 @@ The command would accept one or more features that have migration mode enabled a
 USAGE: swift package migrate [<options>] --to-feature <to-feature> ...
 
 OPTIONS:
-  --targets <targets>     The targets to migrate to specified set of features or a new language mode.
+  --target <targets>     The targets to migrate to specified set of features or a new language mode.
   --to-feature <to-feature>
                           The Swift language upcoming/experimental feature to migrate to.
   -h, --help              Show help information.
@@ -181,7 +181,7 @@ OPTIONS:
 #### Use case
 
 ```
-swift package migrate --targets MyTarget,MyTest --to-feature ExistentialAny
+swift package migrate --target MyTarget,MyTest --to-feature ExistentialAny
 ```
 
 This command would attempt to build `MyTarget` and `MyTest` targets with `ExistentialAny:migrate` feature flag, apply any fix-its associated with

@@ -3,10 +3,10 @@
 * Proposal: [SE-0485](0485-outputspan.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active Review (May 20...June 3, 2025)**
+* Status: **Accepted**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
-* Implementation: "Future" target of [swift-collections](https://github.com/apple/swift-collections/tree/future)
-* Review: [Pitch](https://forums.swift.org/), [Review](https://forums.swift.org/t/se-0485-outputspan-delegate-initialization-of-contiguous-memory/80032)
+* Implementation: [swiftlang/swift#81637](https://github.com/swiftlang/swift/pull/81637)
+* Review: [Pitch](https://forums.swift.org/t/pitch-outputspan/79473), [Review](https://forums.swift.org/t/se-0485-outputspan-delegate-initialization-of-contiguous-memory/80032), [Acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0485-outputspan-delegate-initialization-of-contiguous-memory/80435)
 
 [SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
@@ -79,9 +79,9 @@ extension Array {
 
 We will also extend `String`, `UnicodeScalarView` and `InlineArray` with similar initializers, and add append-in-place operations where appropriate.
 
-#### `@lifetime` attribute
+#### `@_lifetime` attribute
 
-Some of the API presented here must establish a lifetime relationship between a non-escapable returned value and a callee binding. This relationship will be illustrated using the `@lifetime` attribute recently [pitched][PR-LifetimeAnnotations] and [formalized][Forum-LifetimeAnnotations]. For the purposes of this proposal, the lifetime attribute ties the lifetime of a function's return value to one of its input parameters.
+Some of the API presented here must establish a lifetime relationship between a non-escapable returned value and a callee binding. This relationship will be illustrated using the `@_lifetime` attribute recently [pitched][PR-LifetimeAnnotations] and [formalized][Forum-LifetimeAnnotations]. For the purposes of this proposal, the lifetime attribute ties the lifetime of a function's return value to one of its input parameters.
 
 Note: The eventual lifetime annotations proposal may adopt a syntax different than the syntax used here. We expect that the Standard Library will be modified to adopt an updated lifetime dependency syntax as soon as it is finalized.
 
@@ -124,11 +124,13 @@ The basic operation supported by `OutputSpan` is appending an element. When an e
 ```swift
 extension OutputSpan where Element: ~Copyable {
   /// Append a single element to this `OutputSpan`.
-  @lifetime(self: copy self)
+  @_lifetime(self: copy self)
   public mutating func append(_ value: consuming Element)
+}
 
+extension OutputSpan {
   /// Repeatedly append an element to this `OutputSpan`.
-  @lifetime(self: copy self)
+  @_lifetime(self: copy self)
   public mutating func append(repeating repeatedValue: Element, count: Int)
 }
 ```
@@ -139,103 +141,12 @@ extension OutputSpan where Element: ~Copyable {
   ///
   /// Returns the last element. The `OutputSpan` must not be empty.
   @discardableResult
-  @lifetime(self: copy self)
+  @_lifetime(self: copy self)
   public mutating func removeLast() -> Element
 }
 ```
 
-
-##### Bulk initialization of an `OutputSpan`'s memory:
-
-We include functions to perform bulk initialization of the memory represented by an `OutputSpan`. Initializing an `OutputSpan` from a `Sequence` must use every element of the source. Initializing an `OutputSpan` from `IteratorProtocol` will copy as many items as possible, either until the input is empty or the `OutputSpan`'s available storage is zero.
-
-See [below](#contentsOf) for a discussion of the argument labels used with the `append()` functions.
-
-```swift
-extension OutputSpan {
-  /// Initialize this span's suffix with every element of the source.
-  ///
-  /// It is a precondition that the `OutputSpan`'s uninitialized suffix
-  /// can contain every element of the source.
-  @lifetime(self: copy self)
-  public mutating func append(
-    contentsOf source: consuming some Sequence<Element>
-  )
-
-  /// Initialize this span's suffix with every element of the source.
-  ///
-  /// It is a precondition that the `OutputSpan`'s uninitialized suffix
-  /// can contain every element of the source.
-  @lifetime(self: copy self)
-  public mutating func append(
-    copying source: Span<Element>
-  )
-
-  /// Initialize this span's suffix with every element of the source.
-  ///
-  /// It is a precondition that the `OutputSpan`'s uninitialized suffix
-  /// can contain every element of the source.
-  @lifetime(self: copy self)
-  public mutating func append(
-    contentsOf source: UnsafeBufferPointer<Element>
-  )
-}
-
-extension OutputSpan where Element: ~Copyable {
-  /// Initialize this span's suffix by moving every element from the source.
-  ///
-  /// It is a precondition that the `OutputSpan`'s uninitialized suffix
-  /// can contain every element of the source.
-  @lifetime(self: copy self)
-  public mutating func append(
-    moving source: inout OutputSpan<Element>
-  )
-
-  /// Initialize this span's suffix by moving every element from the source.
-  ///
-  /// It is a precondition that the `OutputSpan`'s uninitialized suffix
-  /// can contain every element of the source.
-  @lifetime(self: copy self)
-  public mutating func append<let N: Int>(
-    consuming source: consuming InlineArray<N, Element>
-  )
-
-  /// Initialize this span's suffix by moving every element from the source.
-  ///
-  /// It is a precondition that the `OutputSpan`'s uninitialized suffix
-  /// can contain every element of the source.
-  @lifetime(self: copy self)
-  public mutating func append(
-    consuming source: UnsafeMutableBufferPointer<Element>
-  )
-}
-
-extension OutputSpan {
-  /// Initialize this span's suffix by moving every element from the source.
-  ///
-  /// It is a precondition that the `OutputSpan`'s uninitialized suffix
-  /// can contain every element of the source.
-  @lifetime(self: copy self)
-  public mutating func append(
-    consuming source: Slice<UnsafeMutableBufferPointer<Element>>
-  )
-
-  /// Initialize this span's suffix with the elements from the source.
-  ///
-  /// Use this function if it isn't possible to fulfill the precondition
-  /// of the other `append()` functions, and to contain every element
-  /// of the source.
-  ///
-  /// Returns true if the iterator has filled all the free capacity in the span.
-  /// When the free capacity has been filled, there may be some elements
-  /// remaining in the iterator.
-  @discardableResult
-  @lifetime(self: copy self)
-  public mutating func append(
-    from source: inout some IteratorProtocol<Element>
-  ) -> Bool
-}
-```
+##### Bulk removals from an `OutputSpan`'s memory:
 
 Bulk operations to deinitialize some or all of an `OutputSpan`'s memory are also available:
 ```swift
@@ -244,11 +155,11 @@ extension OutputSpan where Element: ~Copyable {
   /// to the uninitialized state.
   ///
   /// `n` must not be greater than `count`
-  @lifetime(self: copy self)
+  @_lifetime(self: copy self)
   public mutating func removeLast(_ n: Int)
 
   /// Remove all this span's elements and return its memory to the uninitialized state.
-  @lifetime(self: copy self)
+  @_lifetime(self: copy self)
   public mutating func removeAll()
 }
 ```
@@ -261,12 +172,12 @@ The initialized elements are accessible for read-only or mutating access via the
 extension OutputSpan where Element: ~Copyable {
   /// Borrow the underlying initialized memory for read-only access.
   public var span: Span<Element> {
-    @lifetime(borrow self) borrowing get
+    @_lifetime(borrow self) borrowing get
   }
 
   /// Exclusively borrow the underlying initialized memory for mutation.
   public mutating var mutableSpan: MutableSpan<Element> {
-    @lifetime(&self) mutating get
+    @_lifetime(&self) mutating get
   }
 }
 ```
@@ -288,7 +199,6 @@ extension OutputSpan where Element: ~Copyable {
   mutating func swapAt(_ i: Index, _ j: Index)
 }
 ```
-
 
 ##### Interoperability with unsafe code
 
@@ -317,7 +227,7 @@ extension OutputSpan where Element: ~Copyable {
   /// This function cannot verify these two invariants, and therefore
   /// this is an unsafe operation. Violating the invariants of `OutputSpan`
   /// may result in undefined behavior.
-  @lifetime(self: copy self)
+  @_lifetime(self: copy self)
   public mutating func withUnsafeMutableBufferPointer<E: Error, R: ~Copyable>(
     _ body: (
       UnsafeMutableBufferPointer<Element>,
@@ -326,7 +236,6 @@ extension OutputSpan where Element: ~Copyable {
   ) throws(E) -> R
 }
 ```
-
 
 ##### Creating an `OutputSpan` instance:
 
@@ -346,15 +255,11 @@ extension OutputSpan where Element: ~Copyable {
   ///   - initializedCount: the number of initialized elements
   ///                       at the beginning of `buffer`.
   @unsafe
-  @lifetime(borrow buffer)
+  @_lifetime(borrow buffer)
   public init(
     buffer: UnsafeMutableBufferPointer<Element>,
     initializedCount: Int
   )
-
-  /// Create an OutputSpan with zero capacity
-  @lifetime(immortal)
-  public init()
 }
 
 extension OutputSpan {
@@ -370,7 +275,7 @@ extension OutputSpan {
   ///   - initializedCount: the number of initialized elements
   ///                       at the beginning of `buffer`.
   @unsafe
-  @lifetime(borrow buffer)
+  @_lifetime(borrow buffer)
   public init(
     buffer: borrowing Slice<UnsafeMutableBufferPointer<Element>>,
     initializedCount: Int
@@ -378,6 +283,17 @@ extension OutputSpan {
 }
 ```
 
+We also provide a default (no-parameter) initializer to create an empty, zero-capacity `OutputSpan`. Such an initializer is useful in order to be able to materialize an empty span for the `nil` case of an Optional, for example, or to exchange with another span in a mutable struct.
+
+```swift
+extension OutputSpan where Element: ~Copyable {
+  /// Create an OutputSpan with zero capacity
+  @_lifetime(immortal)
+  public init()
+}
+```
+
+Such an empty `OutputSpan` does not depend on a memory allocation, and therefore has the longest lifetime possible :`immortal`. This capability is important enough that we also propose to immediately define similar empty initializers for `Span<T>`, `RawSpan`, `MutableSpan<T>` and `MutableRawSpan`.
 
 ##### Retrieving initialized memory from an `OutputSpan`
 
@@ -437,8 +353,8 @@ extension OutputRawSpan {
   /// A Boolean value indicating whither the span is full.
   public var isFull: Bool { get }
 
-  /// The nmuber of uninitialized bytes remaining in this `OutputRawSpan`
-  public var available: Int { get } // capacity - byteCount
+  /// The number of uninitialized bytes remaining in this `OutputRawSpan`
+  public var freeCapacity: Int { get } // capacity - byteCount
 }
 ```
 
@@ -449,64 +365,20 @@ The basic operation is to append the bytes of some value to an `OutputRawSpan`. 
 ```swift
 extension OutputRawSpan {
   /// Append a single byte to this span
-  @lifetime(self: copy self)
+  @_lifetime(self: copy self)
   public mutating func append(_ value: UInt8)
 
   /// Appends the given value's bytes to this span's initialized bytes
-  @lifetime(self: copy self)
+  @_lifetime(self: copy self)
   public mutating func append<T: BitwiseCopyable>(
-    of value: T, as type: T.Type
+    _ value: T, as type: T.Type
   )
 
   /// Appends the given value's bytes repeatedly to this span's initialized bytes
-  @lifetime(self: copy self)
+  @_lifetime(self: copy self)
   public mutating func append<T: BitwiseCopyable>(
     repeating repeatedValue: T, count: Int, as type: T.Type
   )
-}
-```
-
-Initializing an `OutputRawSpan` from a `Sequence` or other container type must use every element of the source. Initializing an `OutputRawSpan` from an `IteratorProtocol` instance will copy as many items as possible, either until the input is empty or the `OutputRawSpan` cannot contain another element.
-
-```swift
-extension OutputRawSpan {
-  /// Initialize the span's bytes with every byte of the source.
-  @lifetime(self: copy self)
-  public mutating func append<T: BitwiseCopyable(
-    contentsOf source: consuming some Sequence<T>, as type: T.Type
-  )
-
-  /// Initialize the span's bytes with every byte of the source.
-  @lifetime(self: copy self)
-  public mutating func append<T: BitwiseCopyable(
-    contentsOf source: Span<T>, as type: T.Type
-  )
-
-  /// Initialize the span's bytes with every byte of the source.
-  @lifetime(self: copy self)
-  public mutating func append(
-    contentsOf source: RawSpan
-  )
-
-  /// Initialize the span's bytes with every byte of the source.
-  @lifetime(self: copy self)
-  public mutating func append(
-    contentsOf source: UnsafeRawBufferPointer
-  )
-
-  /// Initialize the span's bytes with the bytes of the elements of the source.
-  ///
-  /// Use this function if it isn't possible to fulfill the precondition
-  /// of the other `append()` functions, and to contain every element
-  /// of the source.
-  ///
-  /// Returns true if the iterator has filled all the free capacity in the span.
-  /// When the free capacity has been filled, there may be some elements
-  /// remaining in the iterator.
-  @lifetime(self: copy self)
-  public mutating func append<T: BitwiseCopyable(
-    from source: inout some IteratorProtocol<T>, as type: T.Type
-  ) -> Bool
 }
 ```
 
@@ -516,39 +388,38 @@ An `OutputRawSpan`'s initialized memory is accessible for read-only or mutating 
 extension OutputRawSpan {
   /// Borrow the underlying initialized memory for read-only access.
   public var bytes: RawSpan {
-    @lifetime(borrow self) borrowing get
+    @_lifetime(borrow self) borrowing get
   }
 
   /// Exclusively borrow the underlying initialized memory for mutation.
   public var mutableBytes: MutableRawSpan {
-    @lifetime(&self) mutating get
+    @_lifetime(&self) mutating get
   }
 }
 ```
 
-Methods to deinitialize memory from an `OutputRawSpan`:
+Deinitializing memory from an `OutputRawSpan`:
 
 ```swift
 extension OutputRawSpan {
 
   /// Remove the last byte from this span
-  @lifetime(self: copy self)
+  @_lifetime(self: copy self)
   public mutating func removeLast() -> UInt8 {
 
   /// Remove the last N elements, returning the memory they occupy
   /// to the uninitialized state.
   ///
   /// `n` must not be greater than `count`
-  @lifetime(self: copy self)
+  @_lifetime(self: copy self)
   public mutating func removeLast(_ n: Int)
 
   /// Remove all this span's elements and return its memory
   /// to the uninitialized state.
-  @lifetime(self: copy self)
+  @_lifetime(self: copy self)
   public mutating func removeAll()
 }
 ```
-
 
 ##### Interoperability with unsafe code
 
@@ -577,7 +448,7 @@ extension OutputRawSpan {
   /// This function cannot verify these two invariants, and therefore
   /// this is an unsafe operation. Violating the invariants of `OutputRawSpan`
   /// may result in undefined behavior.
-  @lifetime(self: copy self)
+  @_lifetime(self: copy self)
   public mutating func withUnsafeMutableBytes<E: Error, R: ~Copyable>(
     _ body: (
       UnsafeMutableRawBufferPointer,
@@ -586,7 +457,6 @@ extension OutputRawSpan {
   ) throws(E) -> R
 }
 ```
-
 
 ##### Creating `OutputRawSpan` instances
 
@@ -607,14 +477,14 @@ extension OutputRawSpan {
   ///   - initializedCount: the number of initialized elements
   ///                       at the beginning of `buffer`.
   @unsafe
-  @lifetime(borrow buffer)
+  @_lifetime(borrow buffer)
   public init(
     buffer: UnsafeMutableRawBufferPointer,
     initializedCount: Int
   )
 
   /// Create an OutputRawSpan with zero capacity
-  @lifetime(immortal)
+  @_lifetime(immortal)
   public init()
 
   /// Unsafely create an OutputRawSpan over partly-initialized memory.
@@ -629,7 +499,7 @@ extension OutputRawSpan {
   ///   - initializedCount: the number of initialized elements
   ///                       at the beginning of `buffer`.
   @unsafe
-  @lifetime(borrow buffer)
+  @_lifetime(borrow buffer)
   public init(
     buffer: Slice<UnsafeMutableRawBufferPointer>,
     initializedCount: Int
@@ -848,70 +718,7 @@ extension Data {
 
 #### Changes to `MutableSpan` and `MutableRawSpan`
 
-This proposal considers the naming of `OutputSpan`'s bulk-copying methods more carefully than [SE-0467][SE-0467] about `MutableSpan`. Accordingly, we would like to replace the `update()` functions proposed there in accordance with the scheme proposed in this proposal:
-
-```swift
-extension MutableSpan where Element: Copyable {
-  public mutating func update(
-    fromContentsOf source: some Sequence<Element>
-  ) -> Index
-
-  public mutating func update(
-    copying source: borrowing Span<Element>
-  ) -> Index
-
-  public mutating func update(
-    copying source: UnsafeBufferPointer<Element>
-  ) -> Index
-}
-
-extension MutableSpan where Element: ~Copyable {
-  public mutating func update(
-    moving source: inout OutputSpan<Element>
-  ) -> Index
-
-  public mutating func update(
-    consuming source: UnsafeMutableBufferPointer<Element>
-  ) -> Index
-}
-
-extension MutableSpan {
-  public mutating func append(
-    consuming source: Slice<UnsafeMutableBufferPointer<Element>>
-  )
-
-  public mutating func update(
-    from source: inout some IteratorProtocol<Element>
-  ) -> Index
-}
-```
-
-Similarly, `MutableRawSpan`'s bulk-copying methods would be replaced by the following:
-
-```swift
-extension MutableRawSpan {
-  public mutating func update<T: BitwiseCopyable>(
-    fromContentsOf source: some Sequence<T>, as type: T.Type
-  ) -> Index
-
-  public mutating func update<T: BitwiseCopyable>(
-    fromContentsOf source: borrowing Span<T>, as type: T.Type
-  ) -> Index
-
-  public mutating func update(
-    fromContentsOf source: borrowing RawSpan
-  ) -> Index
-
-  public mutating func append(
-    fromContentsOf source: UnsafeRawBufferPointer
-  ) -> Index
-
-  public mutating func update<T: BitwiseCopyable>(
-    from source: inout some IteratorProtocol<T>, as type: T.Type
-  ) -> Index
-}
-```
-
+This proposal considers the naming of `OutputSpan`'s bulk-initialization methods, and elects to defer their implementation until we have more experience with the various kinds of container we need to support. We also introduced bulk updating functions to `MutableSpan` and `MutableRawSpan` in [SE-0467][SE-0467]. It is clear that they have the same kinds of parameters as `OutputSpan`'s bulk-initialization methods, but the discussion has taken a [different direction](#contentsOf) in the latter case. We would like both of these sets of operations to match. Accordingly, we will remove the bulk `update()` functions proposedin [SE-0467][SE-0467], to be replaced with a better naming scheme later. Prototype bulk-update functionality will also be added via a package in the meantime.
 
 ## Source compatibility
 
@@ -932,15 +739,53 @@ The additions described in this proposal require a new version of the Swift stan
 
 `OutputSpan` changes the number of initialized elements in a container (or collection), and this requires some operation to update the container after the `OutputSpan` is consumed. Let's call that update operation a "cleanup" operation. The cleanup operation needs to be scheduled in some way. We could associate the cleanup with the `deinit` of `OutputSpan`, or the `deinit` of a wrapper of `OutputSpan`. Neither of these seem appealing; the mechanisms would involve an arbitrary closure executed at `deinit` time, or having to write a full wrapper for each type that vends an `OutputSpan`. We could potentially schedule the cleanup operation as part of a coroutine accessor, but these are not productized yet. The pattern established by closure-taking API is well established, and that pattern fits the needs of `OutputSpan` well.
 
-#### <a name="contentsOf"></a>Alternative names for `append()` methods
+#### Container construction pattern
 
-`OutputSpan` lays the groundwork for new, generalized `Container` protocols that will expand upon and succeed the `Collection` hierarchy while allowing non-copyability and non-escapability to be applied to both containers and elements. We hope to find method and property names that will be generally applicable. The origin of the `append(contentsOf:)` method we are expanding upon is the `RangeReplaceableCollection` protocol, which always represents copyable and escapable collections with copyable and escapable elements. The definition is as follows: `mutating func append<S: Sequence>(contentsOf newElements: __owned S)`. This supports copying elements from the source, while also destroying the source if we happen to hold its only copy. This is obviously not sufficient if the elements are non-copyable, or if we only have access to a borrow of the source.
+A constrained version of possible `OutputSpan` use consists of in-place container initialization. This proposal introduces a few initializers in this vein, such as `Array.init(capacity:initializingWith:)`, which rely on closure to establish a scope. A different approach would be to use intermediate types to perform such operations:
+
+```swift
+struct ArrayConstructor<Element>: ~Copyable {
+  @_lifetime(&self) mutating var outputSpan: OutputSpan<Element>
+  private let _ArrayBuffer<Element>
+  
+  init(capacity: Int)
+}
+
+extension Array<Element> {
+  init(_: consuming ArrayConstructor<Element>)
+}
+```
+
+## <a name="directions"></a>Future directions
+
+#### Helpers to initialize memory in an arbitrary order
+
+Some applications may benefit from the ability to initialize a range of memory in a different order than implemented by `OutputSpan`. This may be from back-to-front or even arbitrary order. There are many possible forms such an initialization helper can take, depending on how much memory safety the application is willing to give up in the process of initializing the memory. At the unsafe end, this can be delegating to an `UnsafeMutableBufferPointer` along with a set of requirements; this option is proposed here. At the safe end, this could be delegating to a data structure which keeps track of initialized memory using a bitmap. It is unclear how much need there is for this more heavy-handed approach, so we leave it as a future enhancement if it is deemed useful.
+
+#### Insertions
+
+A use case similar to appending is insertions. Appending is simply inserting at the end. Inserting at positions other than the end is an important capability. We expect to add insertions soon in a followup proposal if `OutputSpan` is accepted. Until then, a workaround is to append, then rotate the elements to the desired position using the `mutableSpan` view.
+
+#### Generalized removals
+
+Similarly to generalized insertions (i.e. not from the end), we can think about removals of one or more elements starting at a given position. We expect to add generalized removals along with insertions in a followup proposal after `OutputSpan` is accepted.
+
+#### Variations on `Array.append(addingCapacity:initializingWith:)`
+
+The function proposed here only exposes uninitialized capacity in the `OutputSpan` parameter to its closure. A different function (perhaps named `edit()`) could also pass the initialized portion of the container, allowing an algorithm to remove or to add elements. This could be considered in addition to `append()`.
+
+#### <a name="contentsOf"></a>Methods to initialize or update in bulk
+
+The `RangeReplaceableCollection` protocol has a foundational method `append(contentsOf:)` for which this document does not propose a corresponding method. We expect to first add such bulk-copying functions as part of of a package.
+
+`OutputSpan` lays the groundwork for new, generalized `Container` protocols that will expand upon and succeed the `Collection` hierarchy while allowing non-copyability and non-escapability to be applied to both containers and elements. We hope to find method and property names that will be generally applicable. The `append(contentsOf:)` method we refer to above always represents copyable and escapable collections with copyable and escapable elements. The definition is as follows: `mutating func append<S: Sequence>(contentsOf newElements: __owned S)`. This supports copying elements from the source, while also destroying the source if we happen to hold its only copy. This is obviously not sufficient if the elements are non-copyable, or if we only have access to a borrowed source.
 
 When the elements are non-copyable, we must append elements that are removed from the source. Afterwards, there are two possible dispositions of the source: destruction (`consuming`), where the source can no longer be used, or mutation (`inout`), where the source has been emptied but is still usable.
 
-When the elements are copyable, we can simply copy the elements from the source. Afterwards, there are two possible dispositions of the source: releasing a borrowed source, or `consuming`. The latter is approximately the same behaviour as `RangeReplaceableCollection`'s `append()` function shown above.
+When the elements are copyable, we can simply copy the elements from the source. Afterwards, there are two possible dispositions of the source: releasing a borrowed source, or `consuming`. The latter is approximately the same behaviour as `RangeReplaceableCollection`'s `append(contentsOf:)` function shown above.
 
-In a more ideal world, we would like to use the same name for all of these variants:
+In an ideal world, we would like to use the same name for all of these variants:
+
 ```swift
 extension OutputSpan {
   mutating func append(contentsOf: consuming some Sequence<Element>)
@@ -954,9 +799,9 @@ extension OutputSpan where Element: ~Copyable {
 
 However, this would break down in particular for `UnsafeMutableBufferPointer`, since it would make it impossible to differentiate between just copying the elements out of it, or moving its elements out (and deinitializing its memory). Once the `Container` protocols exist, we can expect that the same issue would exist for any type that conforms to more than one of the protocols involved in the list above. For example if a type conforms to `Container` as well as `Sequence`, then there would be an ambiguity.
 
-We could fix this by extending the syntax of the language. It is already possible to overload two functions where they differ only by whether a parameter is `inout`, for example. This is a future direction.
+We could fix this by extending the syntax of the language. It is already possible to overload two functions where they differ only by whether a parameter is `inout`, for example. This is a more advanced [future direction](#contentsOf-syntax).
 
-Instead of the "ideal" solution above, this proposal includes `append()` functions in the following form:
+Instead of the "ideal" solution, we could propose `append()` functions in the following form:
 
 ```swift
 extension OutputSpan {
@@ -969,31 +814,15 @@ extension OutputSpan where Element: ~Copyable {
 }
 ```
 
-The `update()` methods of `MutableSpan` are updated in a similar manner, for the same reasons.
+In this form, we continue to use the `contentsOf` label for `Sequence` parameters, but use different labels for the other types of containers. The `update()` methods of `MutableSpan` could be updated in a similar manner, for the same reasons.
 
-We note that the four variants of `append()` are required for generalized containers. We can therefore expect that the names we choose will later appear on many types of collections that interact with the future `Container` protocols. This proposal's `append()` nomenclature could become ubiquitous when interacting with `Collection` instances, once it is applied to the `Container` protocol family.
+We note that the four variants of `append()` are required for generalized containers. We can therefore expect that the names we choose will appear later on many types of collections that interact with the future `Container` protocols. Since this nomenclature could become ubiquitous when interacting with `Collection` and `Container` instances, we defer a formal proposal until we have more experience and feedback.
 
-## <a name="directions"></a>Future directions
-
-#### Helpers to initialize memory in an arbitrary order
-
-Some applications may benefit from the ability to initialize a range of memory in a different order than implemented by `OutputSpan`. This may be from back-to-front or even arbitrary order. There are many possible forms such an initialization helper can take, depending on how much memory safety the application is willing to give up in the process of initializing the memory. At the unsafe end, this can be delegating to an `UnsafeMutableBufferPointer` along with a set of requirements; this option is proposed here. At the safe end, this could be delegating to a data structure which keeps track of initialized memory using a bitmap. It is unclear how much need there is for this more heavy-handed approach, so we leave it as a future enhancement if it is deemed useful.
-
-#### Insertions
-
-A use case similar to appending is insertions. Appending is simply inserting at the end. Inserting at positions other than the end is an important capability. We expect to add insertions soon if `OutputSpan` is accepted. Until then, a workaround is to append, then rotate the elements to the desired position using the `mutableSpan` view. The current proposal does not add a concept of indexing to `OutputSpan`, though that is required in order to support insertions at an arbitrary position. We defer this discussion in order to focus on the basic functionality of the type.
-
-#### Generalized removals
-
-Similarly to generalized insertions (i.e. not from the end), we can think about removals of one or more elements starting at a given position. This also requires adding indexing. We expect to add generalized removals along with insertions if `OutputSpan` is accepted.
-
-#### Variations on `Array.append(addingCapacity:initializingWith:)`
-
-The function proposed here only exposes uninitialized capacity in the `OutputSpan` parameter to its closure. A different function (perhaps named `edit()`) could also pass the initialized portion of the container, allowing an algorithm to remove or to add elements. This could be considered in addition to `append()`.
+In the meantime, many applications will work efficiently with repeated calls to `append()` in a loop. The bulk initialization functions are implementable by using `withUnsafeBufferPointer` as a workaround as well, if performance is an issue before a package-based solution is released.
 
 #### <a name="contentsOf-syntax"></a>Language syntax to distinguish between ownership modes for function arguments
 
-In the "Alternatives Considered" subsection about [naming the `append()` methods](#contentsOf), we suggest a currently unachievable naming scheme:
+In the previous "Future Direction" subsection about [bulk initialization methods](#contentsOf), we suggest a currently unachievable naming scheme:
 ```swift
 extension OutputSpan {
   mutating func append(contentsOf: consuming some Sequence<Element>)
@@ -1026,7 +855,6 @@ let array = Array(capacity: buffer.count*2) {
   o.append(contentsOf: consume buffer)
 }
 ```
-
 
 ## Acknowledgements
 

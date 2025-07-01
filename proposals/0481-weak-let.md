@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Accepted**
 * Implementation: [swiftlang/swift#80440](https://github.com/swiftlang/swift/pull/80440)
-* Review: ([discussion](https://forums.swift.org/t/weak-captures-in-sendable-sending-closures/78498)) ([pitch](https://forums.swift.org/t/pitch-weak-let/79271)) ([acceptance](https://forums.swift.org/t/accepted-se-0481-weak-let/79895))
+* Review: ([discussion](https://forums.swift.org/t/weak-captures-in-sendable-sending-closures/78498)) ([pitch](https://forums.swift.org/t/pitch-weak-let/79271)) ([review](https://forums.swift.org/t/se-0481-weak-let/79603)) ([acceptance](https://forums.swift.org/t/accepted-se-0481-weak-let/79895))
 
 [SE-0302]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md
 

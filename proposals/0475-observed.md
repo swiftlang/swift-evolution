@@ -3,9 +3,9 @@
 * Proposal: [SE-0475](0475-observed.md)
 * Authors: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Active Review (April 10 ... May 13, 2025)**
+* Status: **Accepted**
 * Implementation: https://github.com/swiftlang/swift/pull/79817
-* Review: ([pitch](https://forums.swift.org/t/pitch-transactional-observation-of-values/78315)) ([review](https://forums.swift.org/t/se-0475-transactional-observation-of-values/79224))
+* Review: ([pitch](https://forums.swift.org/t/pitch-transactional-observation-of-values/78315)) ([review](https://forums.swift.org/t/se-0475-transactional-observation-of-values/79224)) ([acceptance](https://forums.swift.org/t/accepted-se-0475-transactional-observation-of-values/80389))
 
 ## Introduction
 
@@ -103,7 +103,7 @@ that pet's name.
 
 ## Detailed design
 
-There a few behaviors that are prerequisites to understanding the requirements
+There are a few behaviors that are prerequisites to understanding the requirements
 of the actual design. These two key behaviors are how the model handles tearing
 and how the model handles sharing.
 
@@ -173,7 +173,7 @@ Task.detached {
 }
 ```
 
-In this case both tasks will get the same values upon the same events. This can 
+In this case both tasks will get consistently safe accessed values. This can 
 be achieved without needing an extra buffer since the suspension of each side of 
 the iteration are continuations resuming all together upon the accessor's 
 execution on the specified isolation. This facilitates subject-like behavior 
@@ -256,6 +256,12 @@ composition of potentially failable systems. Any thrown error will mean that the
 `Observations` sequence is complete and loops that are currently iterating will 
 terminate with that given failure. Subsequent calls then to `next` on those 
 iterators will return `nil` - indicating that the iteration is complete. 
+
+The type `Observations` will conform to `AsyncSequence`. This means that it
+adheres to the cancellation behavior of other `AsyncSequence` types; if the task
+is cancelled then the iterator will return nil, and any time it becomes 
+terminal for any reason that sequence will remain terminal and continue returning nil. 
+Termination by cancellation however is independent for each instance. 
 
 ## Behavioral Notes
 
@@ -351,7 +357,7 @@ The result of the observation may print the following output, but the primary pr
 3 3
 ```
 
-This case dropped the last value of the iteration because the accumulated differential exceeded the production; however the potentially confusing part here is that the sleep in the iterate competes with the scheduling in the emitter. This becomes clearer of a relationship when the boundaries of isolation are crossed.
+The last value is never observed because the program ends before it would be. If the program did not terminate then another value would be observed.
 
 Observations can be used across boundaries of concurrency. This is where the iteration is done on a different isolation than the mutations. The types however are accessed always in the isolation that the creation of the Observations closure is executed. This means that if the `Observations` instance is created on the main actor then the subsequent calls to the closure will be done on the main actor.
 

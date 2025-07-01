@@ -3,7 +3,7 @@
 * Proposal: [SE-0487](0487-extensible-enums.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin), [Franz Busch](https://github.com/FranzBusch), [Cory Benfield](https://github.com/lukasa)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (May 25 - June 5, 2025)**
+* Status: **In active review (July 1 — July 10, 2025)**
 * Bug: [apple/swift#55110](https://github.com/swiftlang/swift/issues/55110)
 * Implementation: [apple/swift#80503](https://github.com/swiftlang/swift/pull/80503)
 * Upcoming Feature Flag: `ExtensibleAttribute`
@@ -15,6 +15,7 @@ Previously pitched in:
 - https://forums.swift.org/t/pitch-non-frozen-enumerations/68373
 
 Revisions:
+- Renamed the attribute to `@nonexhaustive` and `@nonexhaustive(warn)` respectively
 - Re-focused this proposal on introducing a new `@extensible` attribute and
   moved the language feature to a future direction
 - Introduced a second annotation `@nonExtensible` to allow a migration path into
@@ -157,7 +158,7 @@ non-resilient Swift.
 
 ## Proposed solution
 
-We propose to introduce a new `@extensible` attribute that can be applied to
+We propose to introduce a new `@nonexhaustive` attribute that can be applied to
 enumerations to mark them as extensible. Such enums will behave the same way as
 non-frozen enums from resilient Swift libraries.
 
@@ -165,7 +166,7 @@ An example of using the new attribute is below:
 
 ```swift
 /// Module A
-@extensible
+@nonexhaustive
 public enum PizzaFlavor {
     case hawaiian
     case pepperoni
@@ -188,28 +189,27 @@ case .cheese:
 
 Code inside the same module or package can be thought of as one co-developed
 unit of code. Inside the same module or package, switching exhaustively over an
-`@extensible` enum inside will not require an`@unknown default`, and using
+`@nonexhaustive` enum inside will not require an`@unknown default`, and using
 one will generate a warning.
 
-### `@extensible` and `@frozen`
+### `@nonexhaustive` and `@frozen`
 
-An enum cannot be `@frozen` and `@extensible` at the same time. Thus, marking an
-enum both `@extensible` and `@frozen` is not allowed and will result in a
+An enum cannot be `@frozen` and `@nonexhaustive` at the same time. Thus, marking an
+enum both `@nonexhaustive` and `@frozen` is not allowed and will result in a
 compiler error.
 
 ### API breaking checker
 
 The behavior of `swift package diagnose-api-breaking-changes` is also updated
-to understand the new `@extensible` attribute.
+to understand the new `@nonexhaustive` attribute.
 
-### Staging in using `@preEnumExtensibility`
+### Staging in using `@nonexhaustive(warn)`
 
-We also propose adding a new `@preEnumExtensibility` attribute that can be used
-to mark enumerations as pre-existing to the `@extensible` attribute. This allows
-developers to mark existing public enumerations as `@preEnumExtensibility` in
-addition to `@extensible`. This is useful for developers that want to stage in
-changing an existing non-extensible enum to be extensible over multiple
-releases. Below is an example of how this can be used:
+We also propose adding a new `@nonexhaustive(warn)` attribute that can be used
+to mark enumerations as pre-existing to when they became extensible.This is
+useful for developers that want to stage in changing an existing non-extensible
+enum to be extensible over multiple releases. Below is an example of how this
+can be used:
 
 ```swift
 // Package A
@@ -223,7 +223,7 @@ case .foo: break
 }
 
 // Package A wants to make the existing enum extensible
-@preEnumExtensibility @extensible
+@nonexhaustive(warn)
 public enum Foo {
   case foo
 }
@@ -234,7 +234,7 @@ case .foo: break
 }
 
 // Later Package A decides to extend the enum and releases a new major version
-@preEnumExtensibility  @extensible
+@nonexhaustive(warn)
 public enum Foo {
   case foo
   case bar
@@ -246,7 +246,7 @@ case .foo: break
 }
 ```
 
-While the `@preEnumExtensibility` attribute doesn't solve the need of requiring
+While the `@nonexhaustive(warn)` attribute doesn't solve the need of requiring
 a new major when a new case is added it allows developers to stage in changing
 an existing non-extensible enum to become extensible in a future release by
 surfacing a warning about this upcoming break early.
@@ -255,16 +255,16 @@ surfacing a warning about this upcoming break early.
 
 ### Resilient modules
 
-- Adding or removing the `@extensible` attribute has no-effect since it is the default in this language dialect.
-- Adding the `@preEnumExtensibility` attribute has no-effect since it only downgrades the error to a warning.
-- Removing the `@preEnumExtensibility` attribute is an API breaking since it upgrades the warning to an error again.
+- Adding or removing the `@nonexhaustive` attribute has no-effect since it is the default in this language dialect.
+- Adding the `@nonexhaustive(warn)` attribute has no-effect since it only downgrades the error to a warning.
+- Removing the `@nonexhaustive(warn)` attribute is an API breaking since it upgrades the warning to an error again.
 
 ### Non-resilient modules
 
-- Adding the `@extensible` attribute is an API breaking change.
-- Removing the `@extensible` attribute is an API stable change.
-- Adding the `@preEnumExtensibility` attribute has no-effect since it only downgrades the error to a warning.
-- Removing the `@preEnumExtensibility` attribute is an API breaking since it upgrades the warning to an error again.
+- Adding the `@nonexhaustive` attribute is an API breaking change.
+- Removing the `@nonexhaustive` attribute is an API stable change.
+- Adding the `@nonexhaustive(warn)` attribute has no-effect since it only downgrades the error to a warning.
+- Removing the `@nonexhaustive(warn)` attribute is an API breaking since it upgrades the warning to an error again.
 
 ## ABI compatibility
 
@@ -314,6 +314,6 @@ enumerations to achieve the same effect.
 
 ### Different names for the attribute
 
-We considered different names for the attribute such as `@nonFrozen`; however,
-we felt that `@extensible` communicates the idea of an extensible enum more
-clearly.
+We considered different names for the attribute such as `@nonFrozen` or
+`@extensible`; however, we felt that `@nonexhaustive` communicates the idea of
+an extensible enum more clearly.
