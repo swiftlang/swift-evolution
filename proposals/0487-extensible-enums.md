@@ -3,7 +3,7 @@
 * Proposal: [SE-0487](0487-extensible-enums.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin), [Franz Busch](https://github.com/FranzBusch), [Cory Benfield](https://github.com/lukasa)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **In active review (July 1—Jul 10, 2025)**
+* Status: **In active review (July 1 — July 10, 2025)**
 * Bug: [apple/swift#55110](https://github.com/swiftlang/swift/issues/55110)
 * Implementation: [apple/swift#80503](https://github.com/swiftlang/swift/pull/80503)
 * Upcoming Feature Flag: `ExtensibleAttribute`
