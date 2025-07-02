@@ -549,18 +549,21 @@ class MyModelType: /*inferred @MainActor*/ P {
 }
 ```
 
-If this inference is not desired, for example because the code will use `nonisolated` members to satisfy the requirements of the protocol, it can use `nonisolated` on the conformance:
+If this inference is not desired, one can use `nonisolated` on the conformances:
 
 ```swift
 @MainActor
-class MyModelType: nonisolated P { 
-  nonisolated func f() { } // implements P.f, is non-isolated
+class MyModelType: nonisolated Q {
+  nonisolated static func g() { } // implements Q.g, is non-isolated
 }
 ```
 
-This mirrors the rules for global actor inference elsewhere in the language, providing a more consistent answer.
+There are two additional inference rules that imply `nonisolated` on a conformance of a global-actor-isolated type:
 
-This proposed change is source-breaking, so it should be staged in via an upcoming feature (`InferIsolatedConformances`) that can be folded into a future language mode. Fortunately, it is mechanically migratable: existing code migrating to `InferIsolatedConformances` could introduce `nonisolated` for each conformance of a global-actor-isolated type.
+* If the protocol inherits from `SendableMetatype` (including indirectly, e.g., from `Sendable`), then the isolated conformance could never be used, so it is inferred to be `nonisolated`.
+* If all of the declarations used to satisfy protocol requirements are `nonisolated`, the conformance will be assumed to be `nonisolated`. The conformance of `MyModelType` to `Q` would be inferred to be `nonisolated` because the static method `g` used to satisfy `Q.g` is `nonisolated.`
+
+This proposed change is source-breaking in the cases where a conformance is currently `nonisolated`, the rules above would not infer `nonisolated`, and the conformance crosses isolation domains. There, conformance isolation inference is  staged in via an upcoming feature (`InferIsolatedConformances`) that can be folded into a future language mode. Fortunately, it is mechanically migratable: existing code migrating to `InferIsolatedConformances` could introduce `nonisolated` for each conformance of a global-actor-isolated type.
 
 ### Infer `@MainActor` conformances
 
@@ -661,6 +664,24 @@ This is a generalization of the proposed rules that makes more explicit when con
 * If not `T: SendableMetatype`, `T: P` is interepreted as `T: isolated P`.
 
 The main down side of this alternative is the additional complexity it introduces into generic requirements. It should be possible to introduce this approach later if it proves to be necessary, by treating it as a generalization of the existing rules in this proposal.
+
+### Require `nonisolated` rather than inferring it
+
+Under the upcoming feature `InferIsolatedConformances`, this proposal infers `nonisolated` for conformances when all of the declarations that satisfy requirements of a protocol are themselves `nonisolated`. For example:
+
+```swift
+nonisolated protocol Q {
+  static func create() -> Self
+}
+
+@MainActor struct MyType: /*infers nonisolated*/ Q {
+  nonisolated static func create() -> MyType { ... }
+}
+```
+
+This inference is important for providing source compatibility with and without `InferIsolatedConformances`, and is especially useful useful when combined with default main-actor isolation ([SE-0466](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0466-control-default-actor-isolation.md)), where many more types will become main-actor isolated. Experience with using these features together also identified a some macros (such as [`@Observable`](https://developer.apple.com/documentation/observation/observable())) that produced `nonisolated` members for a protocol conformances, but had not yet been updated to mark the conformance as `nonisolated`. Macro-generated code is much harder for users to update when a source-compatibility issue arises, which makes `nonisolated` conformance inference particularly important for source compatibility.
+
+However, this inference rule has downsides. It means one needs to example a protocol and how a type conforms to that protocol to determine whether the conformance might be `nonisolated`, which can be a lot of work for the developer reading the code as well as the compiler.  One alternative would be to introduce this inference rule for source compatibility, but treat it as a temporary measure to be disabled again in some future language mode. Introducing the inference rule in this proposal does not foreclose on that possibility: if we find that the `nonisolated` conformance inference rule here is harmful to readability, a separate proposal can deprecate it in a future language mode, providing a suitable migration timeframe.
 
 ## Revision history
 
