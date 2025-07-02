@@ -631,56 +631,26 @@ Finally, we will expose the following built-in executor
 implementations:
 
 ```swift
-/// A Dispatch-based main executor (not on Embedded or WASI)
-@available(StdlibDeploymentTarget 6.2, *)
-public class DispatchMainExecutor: MainExecutor,
-                                   SchedulingExecutor,
-                                   @unchecked Sendable {
-  ...
-}
-
-/// A Dispatch-based `TaskExecutor` (not on Embedded or WASI)
-@available(StdlibDeploymentTarget 6.2, *)
-public class DispatchGlobalTaskExecutor: TaskExecutor,
-                                         SchedulingExecutor,
-                                         @unchecked Sendable {
-  ...
-}
-
-/// A CFRunLoop-based main executor (Apple platforms only)
-@available(StdlibDeploymentTarget 6.2, *)
-public final class CFMainExecutor: DispatchMainExecutor,
-                                   @unchecked Sendable {
-  ...
-}
-
-/// A `TaskExecutor` to match `CFMainExecutor` (Apple platforms only)
-@available(StdlibDeploymentTarget 6.2, *)
-public final class CFTaskExecutor: DispatchGlobalTaskExecutor,
-                                   @unchecked Sendable {
-  ...
-}
-
 /// A co-operative executor that can be used as the main executor or as a
 /// task executor.  Tasks scheduled on this executor will run on the thread
 /// that called `run()`.
 ///
 /// Note that this executor will not be thread-safe on Embedded Swift.
 @available(StdlibDeploymentTarget 6.2, *)
-class CooperativeExecutor: MainExecutor,
-                           TaskExecutor,
-                           SchedulingExecutor,
-                           @unchecked Sendable {
+final class CooperativeExecutor: MainExecutor,
+                                 TaskExecutor,
+                                 SchedulingExecutor,
+                                 @unchecked Sendable {
   ...
 }
 
 /// A main executor that calls fatalError().
-class UnimplementedMainExecutor: MainExecutor, @unchecked Sendable {
+final class UnimplementedMainExecutor: MainExecutor, @unchecked Sendable {
   ...
 }
 
 /// A task executor that calls fatalError().
-class UnimplementedTaskExecutor: TaskExecutor, @unchecked Sendable {
+final class UnimplementedTaskExecutor: TaskExecutor, @unchecked Sendable {
   ...
 }
 ```
@@ -710,18 +680,24 @@ struct MyExecutorFactory: ExecutorFactory {
 }
 ```
 
-then build your program with the `--executor-factory
-MyModule.MyExecutorFactory` option.  If you do not specify the module
-for your executor factory, the compiler will look for it in the main
-module.
+then declare a `typealias` as follows:
 
-One might imagine a future where NIO provides executors of its own
-where you can build with `--executor-factory SwiftNIO.ExecutorFactory`
-to take advantage of those executors.
+```swift
+typealias DefaultExecutorFactory = MyExecutorFactory
+```
 
-We will also add an `executorFactory` option in SwiftPM's
-`swiftSettings` to let people specify the executor factory in their
-package manifests.
+The compiler will look in the following locations for the default
+executor factory, in the order specified below:
+
+1. The `@main` type, if any.  (This includes types defined by
+   protocols implemented by the `@main` `struct`.)
+
+2. The top level of the main module.
+
+3. The Concurrency runtime itself.
+
+The first `DefaultExecutorFactory` type that it finds will be the one
+that gets used.
 
 ## `async` main code generation
 
@@ -789,15 +765,11 @@ think we want `run()` and `stop()` on `RunLoopExecutor`.
 
 ## Alternatives considered
 
-### `typealias` in entry point struct
+### Using a command line argument to select the default executors.
 
-The idea here would be to have the `@main` `struct` declare the
-executor type that it wants.
-
-This is straightforward for users, _but_ doesn't work for top-level
-code, and also doesn't allow the user to change executor based on
-configuration (e.g. "use the `epoll()` based executor, not the
-`io_uring` based executor"), as it's fixed at compile time.
+This was rejected in favour of a "magic `typealias`"; the latter is
+better because it means that the program itself specifies which
+executor it should be using.
 
 ### Adding a `createExecutor()` method to the entry point struct
 
@@ -877,13 +849,6 @@ knowledge of those libraries.
 
 While a good idea, it was decided that this would be better dealt with
 as a separate proposal.
-
-### Putting the new `Clock`-based enqueue functions into a protocol
-
-It would be cleaner to have the new Clock-based enqueue functions in a
-separate `SchedulingExecutor` protocol.  However, if we did that, we
-would need to add `as? SchedulingExecutor` runtime casts in various
-places in the code, and dynamic casts can be expensive.
 
 ### Adding special support for canonicalizing `Clock`s
 
