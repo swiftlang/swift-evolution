@@ -1,11 +1,11 @@
 # Apply the extracting() slicing pattern more widely
 
-* Proposal: [TBD](https://github.com/swiftlang/swift-evolution/pull/2877)
+* Proposal: [SE-0488](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0488-extracting.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
-* Review Manager: TBD
-* Status: **Pitch**
+* Review Manager: [Tony Allevato](https://github.com/allevato)
+* Status: **Active Review (July 2–July 16, 2025)**
 * Implementation: underscored `_extracting()` members of `Span` and `RawSpan`, pending elsewhere.
-* Review: Pending
+* Review: ([pitch](https://forums.swift.org/t/pitch-apply-the-extracting-slicing-pattern-to-span-and-rawspan/80322))
 
 [SE-0437]: 0437-noncopyable-stdlib-primitives.md
 [SE-0447]: 0447-span-access-shared-contiguous-storage.md
