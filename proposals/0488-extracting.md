@@ -5,7 +5,7 @@
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Active Review (July 2–July 16, 2025)**
 * Implementation: underscored `_extracting()` members of `Span` and `RawSpan`, pending elsewhere.
-* Review: ([pitch](https://forums.swift.org/t/pitch-apply-the-extracting-slicing-pattern-to-span-and-rawspan/80322))
+* Review: ([pitch](https://forums.swift.org/t/pitch-apply-the-extracting-slicing-pattern-to-span-and-rawspan/80322)) ([review](https://forums.swift.org/t/se-0488-apply-the-extracting-slicing-pattern-more-widely/80854))
 
 [SE-0437]: 0437-noncopyable-stdlib-primitives.md
 [SE-0447]: 0447-span-access-shared-contiguous-storage.md
