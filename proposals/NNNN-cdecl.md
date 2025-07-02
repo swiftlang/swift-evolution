@@ -1,86 +1,125 @@
-# Formalize `@cdecl`
+# C compatible functions and enums
 
 * Proposal: [SE-NNNN](NNNN-cdecl.md)
 * Author: [Alexis Laferrière](https://github.com/xymus)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-* Implementation: [swiftlang/swift#80744](https://github.com/swiftlang/swift/pull/80744)
-* Experimental Feature Flags: `CDecl` for `@cdecl`, and `CImplementation` for `@cdecl @implementation`
-* Review: ([pitch](https://forums.swift.org/...))
+* Implementation: On `main` with the experimental feature flags `CDecl` for `@cdecl`, and `CImplementation` for `@cdecl @implementation`. With the exception of the `@objc` support for global functions which is available under the name `@_cdecl`.
+* Review: ([pitch](https://forums.swift.org/t/pitch-formalize-cdecl/79557))
 
 ## Introduction
 
-Implementing a C function in Swift eases integration of Swift and C code. This proposal introduces `@cdecl` to mark functions as callable from C, and enums as representable in C. It provides the same behavior under the `@objc` attribute for Objective-C compatible global functions. To complete the story this proposal adds to the compatibility header a new section for C clients and extends `@implementation` support to global functions.
+Implementing a C function in Swift eases integration of Swift and C code. This proposal introduces `@cdecl` to mark Swift functions as callable from C, and enums as representable in C. It provides the same behavior under the `@objc` attribute for Objective-C compatible global functions.
 
-> Note: This proposal aims to formalize, clean up and extend the long experimental `@_cdecl`. While experimental this attribute has been widely in use so we will refer to it as needed for clarity in this document.
+To expose the function to C clients, this proposal adds a new C block to the compatibility header where `@cdecl` functions are printed. As an alternative, this proposal extends `@implementation` support to global functions, allowing users to declare the function in a hand-written C header.
+
+> Note: This proposal aims to formalize and extend the long experimental `@_cdecl`. While experimental this attribute has been widely in use so we will refer to it as needed for clarity in this document.
 
 ## Motivation
 
-Swift already offers some integration with C, notably it can import declarations from C headers and call C functions. Swift also already offers a wide integration with Objective-C: import headers, call methods, print the compatibility header, and implementing Objective-C classes in Swift with `@implementation`.
-
-These language features have proven to be useful for integration with Objective-C. Offering a similar language support for C will ease integrating Swift and C, and encourage incremental adoption of Swift in existing C code bases.
+Swift already offers some integration with C, notably it can import declarations from C headers and call C functions. Swift also already offers a wide integration with Objective-C: import headers, call methods, print the compatibility header, and implement Objective-C classes in Swift with `@implementation`. These language features have proven to be useful for integration with Objective-C. Offering a similar language support for C will further ease integrating Swift and C, and encourage incremental adoption of Swift in existing C code bases.
 
 Offering a C compatibility type-checking ensures `@cdecl` functions only reference types representable in C. This type-checking helps cross-platform development as one can define a `@cdecl` while working from an Objective-C compatible environment and still see the restrictions from a C only environment.
 
-Printing the C representation of `@cdecl` functions in a C header will enable a mixed-source software to easily call the functions from C code. The current generated header is limited to Objective-C and C++ content. Adding a section for C compatible clients with extend its usefulness to this language.
+Printing the C representation of `@cdecl` functions in a C header will enable a mixed-source software to easily call the functions from C code. The current generated header is limited to Objective-C and C++ content. Adding a section for C compatible clients will extend its usefulness to this language.
 
 Extending `@implementation` to support global C functions will provide support to developers through type-checking by ensuring the C declaration matches the corresponding definition in Swift.
 
 ## Proposed solution
 
-Introduce the `@cdecl` attribute to mark a global function as a C functions implemented in Swift. That function uses the C calling convention and its signature can only reference types representable in C. Its body is implemented in Swift as usual. The signature of that function is printed in the compatibility header using C corresponding types for C clients to import and call it.
+We propose to introduce the new `@cdecl` attribute for global functions and enums, extend `@objc` for global functions, and support `@cdecl @implementation`.
 
+### `@cdecl` global functions
+
+Introduce the `@cdecl` attribute to mark a global function as a C function implemented in Swift. That function uses the C calling convention and its signature can only reference types representable in C. Its body is implemented in Swift as usual. The signature of that function is printed in the compatibility header using C corresponding types, allowing C source code to import the compatibility header and call the function.
+
+A `@cdecl` function is declared with an optional C function name, by default the Swift base name is used as C name:
 ```swift
-@cdecl(nameFromC)
-func mirror(value: Int) -> Int { return value }
+@cdecl func foo() {}
+
+@cdecl(mirrorCName)
+func mirror(value: CInt) -> CInt { return value }
 ```
 
-Allow using the existing `@objc` attribute on a global function to offer the same behavior as `@cdecl` except for allowing for the signature to also reference types representable in Objective-C. The signature of a function marked with `@objc` are printed in the compatibility header using Objective-C corresponding types.
+### `@objc` global functions
+
+Extends the `@objc` attribute to be accepted on a global function. It offers the same behavior as `@cdecl` while allowing the signature to reference types representable in Objective-C. The signature of a `@objc` function is printed in the compatibility header using corresponding Objective-C types.
+
+A `@objc` function is declared with an optional C compatible name without parameter labels:
 
 ```swift
-@objc(nameFromObjC)
+@objc func bar() {}
+
+@objc(mirrorObjCName)
 func objectMirror(value: NSObject) -> NSObject { return value }
 ```
 
-> Note: The attribute `@objc` on a global function would be the official version of the current behavior of `@_cdecl`.
+> Note: The attribute `@objc` can be used on a global function to replace `@_cdecl` as it preserves the behavior of the unofficial attribute.
 
-Accept the newly introduced `@cdecl` on enums to identify C compatible enums. A `@cdecl` enum must declare an integer raw type compatible with C. An enum marked with `@cdecl` can be referenced from `@cdecl` or `@objc` functions. It is printed in the compatibility header as a C enum.
+### `@cdecl` enums
 
-> Note: The attribute `@objc` is already accepted on enums that will be usable from `@objc` global function signatures but not from `@cdecl` functions.
+Accept `@cdecl` on enums to mark them as C compatible. These enums can be referenced from `@cdecl` or `@objc` functions. They are printed in the compatibility header as a C enum or a similar type.
 
-Extend support for the `@implementation` attribute, introduced in [SE-0436](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0436-objc-implementation.md), to global functions marked with either `@cdecl` or `@objc`. Type-checking ensures the C declaration matches the definition in Swift. Functions marks as `@implementation` are not be printed in the compatibility header.
+A `@cdecl` enum may declare a custom C name, and must declare an integer raw type compatible with C:
+
+```swift
+@cdecl
+enum CEnum: CInt {
+    case a
+    case b
+}
+```
+
+The attribute `@objc` is already accepted on enums. These enums qualify as an Objective-C representable type and are usable from `@objc` global function signatures but not from `@cdecl` functions.
+
+### `@cdecl @implementation` global functions
+
+Extend support for the `@implementation` attribute, introduced in [SE-0436](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0436-objc-implementation.md), to global functions marked with either `@cdecl` or `@objc`. These functions are declared in an imported C or Objective-C header, while the Swift function provides their implementation. Type-checking ensures the declaration matches the implementation signature in Swift. Functions marked `@implementation` are not printed in the compatibility header.
+
+The declaration and implementation are distinct across languages and must have matching names and types:
+
+```c
+// C header
+int cdeclImplMirror(int value);
+```
+
+```swift
+// Swift sources
+@cdecl @implementation
+func cdeclImplMirror(_ value: CInt) -> CInt { return value }
+```
 
 ## Detailed design
 
-This proposal affects the language syntax, type-checking and the compatibility header.
+This proposal extends the language syntax, type-checking for both global functions and enums, supporting logic for `@implementation`, and the content printed to the compatibility header.
 
 ### Syntax
 
-Required syntax changes are limited to one new attribute and the reuse of two existing attributes.
+Required syntax changes involve one new attribute and the reuse of two existing attributes.
 
-Introduce the attribute `@cdecl` expecting a single parameter for the corresponding C name of the function or enum. The compiler should ensure the C name respects the rules of an identifier in C.
+* Introduce the attribute `@cdecl` accepted on global functions and enums. It accepts one optional parameter specifying the corresponding C name of the declaration. The C name defaults to the Swift base identifier of the declaration, it doesn't consider parameter names.
 
-Extend `@objc` to be accepted on global functions, using its parameter to define the C function name instead of the Objective-C symbol.
+* Extend `@objc` to be accepted on global functions, using the optional parameter to define the C function name instead of the Objective-C symbol. Again here, the C function name defaults to the base identifier of the Swift function.
 
-Extend `@implementation` to be accepted on global functions.
+* Extend `@implementation` to be accepted on global functions marked with either `@cdecl` or `@objc`. 
 
 ### Type-checking of global functions signatures
 
 Global functions marked with `@cdecl` or `@objc` need type-checking to ensure types used in their signature are representable in the target language.
 
-Type-checking should notably accept these types in the signature of `@cdecl` global functions:
+The following types are accepted in the signature of `@cdecl` global functions:
 
-- Primitive types defined in the standard library: Int, UInt, Float, Double, UInt8, etc.
-- Opaque pointers defined in the standard library.: OpaquePointer, UnsafeRawPointer, and UnsafeMutableRawPointer.
-- C primitive types defined in the standard library: CChar, CUnsignedInt, CLong, CLongLong, etc.
+- Primitive types defined in the standard library: Int, UInt, UInt8, Float, Double, etc.
+- Opaque pointers defined in the standard library: OpaquePointer and the variants of Unsafe{Mutable}{Raw}Pointer.
+- C primitive types defined in the standard library: CChar, CInt, CUnsignedInt, CLong, CLongLong, etc.
 - Function references using the C calling convention.
 - Enums marked with `@cdecl`.
-- Types imported from C headers.
+- Imported C types.
 
-Type-checking should accept more types in the signature of `@objc` global functions and reject them from `@cdecl` functions:
+In addition to the types above, the following types should be accepted in the signature of `@objc` global functions:
 
 - `@objc` classes, enums and protocols.
-- Types imported from Objective-C modules.
+- Imported Objective-C types.
 
 For both `@cdecl` and `@objc` global functions, type-checking should reject:
 
@@ -92,27 +131,34 @@ For both `@cdecl` and `@objc` global functions, type-checking should reject:
 
 ### Type-checking of `@cdecl` enums
 
-Ensure the raw type is defined to an integer value representable in C. This should be the same check as currently applied to `@objc` enums.
+For `@cdecl` enums to be representable in C, type-checking should ensure the raw type is defined to an integer value that is itself representable in C. This is the same check as already applied to `@objc` enums.
 
 ### `@cdecl @implementation` and `@objc @implementation`
 
-Ensure that a global function marked with `@cdecl @implementation` or `@objc @implementation` is matched to its corresponding declaration in imported headers.
+A global function marked with `@cdecl @implementation` or `@objc @implementation` needs to be associated with the corresponding declaration from imported headers. The compiler should report uses without a corresponding C declaration or inconsistencies in the match.
 
 ### Compatibility header printing
 
-Print only one compatibility header for all languages as it's currently done for Objective-C and C++, adding a section specific to C. Printing that header can be requested using the existing compiler flags: `-emit-objc-header`, `-emit-objc-header-path` or `-emit-clang-header-path`.
+The compiler should print a single compatibility header for all languages, adding a block specific to C as is currently done for Objective-C and C++. Printing the header is requested using the preexisting compiler flags: `-emit-objc-header`, `-emit-objc-header-path` or `-emit-clang-header-path`.
 
-Print the C block in a way it's parseable by compilers targeting C, Objective-C and C++. To do so ensure that only C types are printed, there's no reliance on non-standard C features, and the syntax is C compatible.
+This C block declares the `@cdecl` global functions and enums using C types, while `@objc` functions are printed in the Objective-C block with Objective-C types.
+
+The C block should be printed in a way it's parseable by compilers targeting C, Objective-C and C++. To do so, ensure that only C types are printed, there is no unprotected use of non-standard C features, and the syntax is C compatible.
+
 
 ## Source compatibility
 
-This proposal preserves all source compatibility.
+This proposal preserves all source compatibility as the new features are opt-in.
 
-Existing adopters of `@_cdecl` can replace it with `@objc` to preserve the same behavior. Alternatively it can be updated to `@cdecl` for the more restrictive C compatibility check, but this will change exactly how the corresponding C function is printed in the compatibility header.
+Existing adopters of `@_cdecl` can replace the attribute with `@objc` to preserve the same behavior. Alternatively, they can update it to `@cdecl` to get the more restrictive C compatibility check. Using `@cdecl` will however change how the corresponding C function is printed in the compatibility header so it may be necessary to update sources calling into the function.
 
 ## ABI compatibility
 
-Marking a global function with `@cdecl` or `@objc` makes it use the C calling convention. Adding or removing these attributes on a function is ABI breaking. Updating existing `@_cdecl` to `@objc` or `@cdecl` is ABI stable.
+Marking a global function with `@cdecl` or `@objc` makes it use the C calling convention. Adding or removing these attributes on a function is an ABI breaking change. Updating existing `@_cdecl` to `@objc` or `@cdecl` is ABI stable.
+
+Adding or removing the `@cdecl` attribute on an enum is ABI stable, but changing its raw type is not.
+
+Moving the implementation of an existing C function to Swift using `@cdecl` or `@objc @implementation` within the same binary is ABI stable.
 
 ## Implications on adoption
 
@@ -120,28 +166,52 @@ The changes proposed here are backwards compatible with older runtimes.
 
 ## Future directions
 
-A valuable addition would be some kind of support for Swift structs. We could consider exposing them to C as opaque pointers or produce some structs with a C layout.
+This work opens the door to closer interoperability with the C language.
+
+### `@cdecl` struct support
+
+A valuable addition would be supporting C compatible structs declared in Swift. We could consider exposing them to C as opaque data, or produce structs with a memory layout representable in C. Both have different use cases and advantages:
+
+* Using an opaque data representation would hide Swift details from C. Hiding these details allows the Swift struct to reference any Swift types and language features, without the concern of finding an equivalent C representation. This approach should be enough for the standard references to user data in C APIs.
+
+* Producing a Swift struct with a C memory layout would give the C code direct access to the data. This struct could be printed in the compatibility header as a normal C struct. This approach would need to be more restrictive on the Swift types and features used in the struct, starting with accepting only C representable types.
+
+### Custom calling conventions
+
+Defining a custom calling convention on a function may be a requirement by some API for callback functions and such.
+
+With this proposal, it should be possible to declare a custom calling convention by using `@cdecl @implementation`. This allows to apply any existing C attribute on the definition in the C header.
+
+We could allow specifying the C calling conventions from Swift code with further work. Either by extending `@convention` to be accepted on `@cdecl` and `@objc` global functions, and have it accept a wider set of conventions. Or by adding an optional named parameter to the `@cdecl` attribute in the style of `@cdecl(customCName, convention: stdcall)`.
 
 ## Alternatives considered
 
-### `@cdecl` attribute
+### `@cdecl` attribute name
 
-In this proposal we use the `@cdecl` attribute on functions to identify them as C functions implemented in Swift and on enums to identify them as C compatible. This feature is fundamental enough that introducing a new attribute, a familiar one at that, seems appropriate.
+This proposal uses the `@cdecl` attribute on functions to identify them as C functions implemented in Swift and on enums to identify them as C compatible. Having an attribute specific to this feature aligns with `@objc` already used on some functions, enums, and for `@objc @implementation`.
 
 We considered some alternatives:
 
-- A shorter `@c` would be enough to reference the C language and look appropriate alongside `@objc`. However a one letter attribute would make it had for searches and general discoverability.
+- A shorter `@c` would be enough to reference the C language and would look appropriate alongside `@objc`. However, a one-letter attribute would make it hard for searching and general discoverability.
 
-- An official `@expose(c)`, from the experimental `@_expose(Cxx)`, would integrate well with the C++ interop work. It would likely need to be extended to accept an explicit C name. This sounds like a viable path forward however it's not yet official and may associate two independent features too much if the attribute provides a different behavior for C vs C++.
+- An official `@expose(c)`, formalizing the experimental `@_expose(Cxx)`, would align the global function use case with what has been suggested for the C++ interop. However, sharing an attribute for the features described here may add complexity to both compiler implementation and user understanding of the language.
+
+  While `@_expose(Cxx)` supports enums, it doesn't have the same requirement as `@objc` and `@cdecl` for the raw type. The generated representation in the compatibility header for the enums differs too. The attribute `@_expose(Cxx)` also supports structs, while we consider supporting `@cdecl` structs in the future, we have yet to pick the best approach so it would likely differ from the C++ one.
+
+  Although sharing an attribute avoids adding a new one to the language, it also implies a similar behavior between the language interops. However, these behaviors already diverge and we may want to have each feature evolve differently in the future.
 
 ### `@objc` attribute on global functions
 
 We use the `@objc` attribute on global functions to identify them as C functions implemented in Swift that are callable from Objective-C. This was more of a natural choice as `@objc` is already widely used for interoperability with Objective-C.
 
-We considered using instead `@cdecl @objc` to make it more explicit that the behavior is similar to `@cdecl` and extending it to Objective-C is additive. We went against this option as it doesn't add much useful information besides being closer to the compiler implementation.
+We considered using instead `@cdecl @objc` to make it more explicit that the behavior is similar to `@cdecl`, and extending it to Objective-C is additive. We went against this option as it doesn't add much useful information besides being closer to the compiler implementation.
 
 ### Compatibility header
 
-We decided to extend the existing compatibility header instead of introducing a new one just for C compatibility. This allows content printed from Objective-C to reference C types printed earlier in the same header. Plus this follows the current behavior of the C++ interop which prints its own block in the same compatibility header.
+We decided to extend the existing compatibility header instead of introducing a new one specific to C compatibility. This allows content printed for Objective-C to reference C types printed earlier in the same header. Plus this follows the current behavior of the C++ interop which prints its own block in the same compatibility header.
 
-Since we use the same compatibility header, we also use the same compiler flags to request it being emitted. We considered adding a C specific flag as the main one `-emit-objc-header` is Objective-C specific. In practice however build systems tend to use the `-path` variant, in that case we have `-emit-clang-header-path` that applies well to the C language. We could add a `-emit-clang-header` flag but the practical use of such a flag would be limited.
+Since we use the same compatibility header, we also use the same compiler flags to request it being emitted. We considered adding a C specific flag as the main one, `-emit-objc-header`, is Objective-C specific. In practice build systems tend to use the `-path` variant, in that case we already have `-emit-clang-header-path` that applies well to the C language. We could add a `-emit-clang-header` flag but the practical use of such a flag would be limited.
+
+## Acknowledgements
+
+A special thank you goes to Becca Royal-Gordon, Joe Groff and many others for the past work on `@_cdecl` on which this proposal is built.
