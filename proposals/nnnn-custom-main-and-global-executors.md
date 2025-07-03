@@ -631,19 +631,6 @@ Finally, we will expose the following built-in executor
 implementations:
 
 ```swift
-/// A co-operative executor that can be used as the main executor or as a
-/// task executor.  Tasks scheduled on this executor will run on the thread
-/// that called `run()`.
-///
-/// Note that this executor will not be thread-safe on Embedded Swift.
-@available(StdlibDeploymentTarget 6.2, *)
-final class CooperativeExecutor: MainExecutor,
-                                 TaskExecutor,
-                                 SchedulingExecutor,
-                                 @unchecked Sendable {
-  ...
-}
-
 /// A main executor that calls fatalError().
 final class UnimplementedMainExecutor: MainExecutor, @unchecked Sendable {
   ...
