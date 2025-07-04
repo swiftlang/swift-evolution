@@ -204,6 +204,18 @@ them.
   C23, in which case we should be able to use it and avoid the need for explicit
   types in the capture list. ([rdar://153389205](rdar://153389205))
 
+- Explicitly marking the body closure as requiring explicit captures
+
+  Currently, if the body closure implicitly captures a value, the diagnostic the
+  compiler provides is a bit opaque:
+
+  > 🛑 A C function pointer cannot be formed from a closure that captures context
+
+  In the future, it may be possible to annotate the body closure with an
+  attribute, keyword, or other decoration that tells the compiler we need an
+  explicit capture list, which would allow it to provide a clearer diagnostic if
+  a value is implicitly captured.
+
 - Supporting capturing values that do not conform to `Codable`
 
   Alternatives to `Codable` exist or have been proposed, such as
