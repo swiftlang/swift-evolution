@@ -1,9 +1,9 @@
 # Capturing values in exit tests
 
-* Proposal: [ST-NNNN](NNNN-filename.md)
+* Proposal: [ST-0012](0012-exit-test-value-capturing.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Paul LeMarquand](https://github.com/plemarquand)
+* Status: **Active Review (Jul 4 - July 18, 2025)**
 * Bug: [swiftlang/swift-testing#1157](https://github.com/swiftlang/swift-testing/issues/1157)
 * Implementation: [swiftlang/swift-testing#1040](https://github.com/swiftlang/swift-testing/pull/1040) _et al._
 * Review: ([pitch](https://forums.swift.org/t/pitch-capturing-values-in-exit-tests/80494))
