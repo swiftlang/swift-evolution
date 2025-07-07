@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-lifetime-dependency.md)
 * Authors: [Andrew Trick](https://github.com/atrick), [Meghana Gupta](https://github.com/meg-gupta), [Tim Kientzle](https://github.com/tbkka), [Joe Groff](https://github.com/jckarter/)
 * Review Manager: TBD
-* Status: **Implemented** in `main` branch, with the `LifetimeDependence` experimental feature flag
+* Status: **Implemented** in `main` branch, with the `Lifetimes` experimental feature flag
 * Review: ([pitch 1](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency/69865))
 
 ## Introduction
@@ -14,7 +14,7 @@ This is deeply related to `~Escapable` types, as introduced in [SE-0446](0446-no
 
 **Edited** (March 20, 2025):
 
-- Replaced `dependsOn` return type modifier with a declaration-level `@lifetime` attribute.
+- Replaced `dependsOn` return type modifier with a declaration-level `@_lifetime` attribute.
     Removed dependency inference rules.
 - Integrated links to proposals SE-0446 (`Escapable`), SE-0447 (`Span`), SE-0456 (`Span`-producing properties), and SE-0467 (`MutableSpan`) that have undergone review.
 - Added SE-0458 `@unsafe` annotations to the `_overrideLifetime` standard library functions, and added `@unsafe` as a requirement for APIs using `Escapable & BitwiseCopyable` lifetime dependencies under strict memory safety.
@@ -49,7 +49,7 @@ This is deeply related to `~Escapable` types, as introduced in [SE-0446](0446-no
 
 **Edited** (July 31, 2024)
 
-- New alternative considered: @lifetime annotation
+- New alternative considered: @_lifetime annotation
 - New alternative considered: where clause
 - Simplified implicit lifetime dependencies and added same-type rule
 
@@ -139,7 +139,7 @@ Our proposal will allow you to declare an `array.span` property as follows:
 ```swift
 extension ContiguousArray {
   var span: Span<Element> {
-    @lifetime(borrow self)
+    @_lifetime(borrow self)
     borrowing get {
         ... construct a Span ...
     }
@@ -147,11 +147,11 @@ extension ContiguousArray {
 }
 ```
 
-The annotation `@lifetime(borrow self)` here indicates that the returned value must not outlive the array that produced it.
+The annotation `@_lifetime(borrow self)` here indicates that the returned value must not outlive the array that produced it.
 Futhermore, the originating array value behaves as if it is borrowed for the duration of the `span`'s lifetime, meaning not only that the array cannot be destroyed, but also cannot be modified while the `span` is alive.
 Conceptually, the `span` acts as a continuation of the function's borrowing access:
 the array is borrowed by the function while the function executes and then continues to be borrowed by the result of `span` for as long as the return value exists.
-Specifically, the `@lifetime(borrow self)` annotation in this example informs the compiler that:
+Specifically, the `@_lifetime(borrow self)` annotation in this example informs the compiler that:
 
 * The array must not be destroyed until after the `Span<Element>` is destroyed.
   This ensures that use-after-free cannot occur.
@@ -166,14 +166,14 @@ Let's now consider the `MutableSpan<T>` type from [SE-0467](0467-MutableSpan.md)
 Here's one way such a value might be produced from an owning array:
 
 ```swift
-@lifetime(&to)
+@_lifetime(&to)
 func mutatingSpan<Element>(to: inout ContiguousArray<Element>, count: Int) -> MutatingSpan<Element> {
   ... construct a MutatingSpan ...
 }
 ```
 
 We’ve written this example as a free function rather than as a method to show how this annotation syntax can be used to express constraints that apply to a particular parameter other than `self`.
-The `@lifetime(&to)` annotation indicates that the returned value depends on the argument named `to`.
+The `@_lifetime(&to)` annotation indicates that the returned value depends on the argument named `to`.
 Because `count` is not mentioned in the lifetime dependency, that argument does not participate.
 Instead of `borrow`, this annotation uses the `&` sigil to indicate that the returned span depends on **mutating** exclusive access to the `to` parameter rather than borrowed access.
 
@@ -197,7 +197,7 @@ This method can be declared as follows:
 
 ```swift
 struct Span<T>: ~Escapable {
-    @lifetime(copy self)
+    @_lifetime(copy self)
     func extracting(_ range: Range<Int>) -> Span<T> {
         ...make derived span...
     }
@@ -254,7 +254,7 @@ Since there can only be one mutating reference to a mutable value at any time, `
 
 ```
 extension MutableSpan {
-  @lifetime(&self)
+  @_lifetime(&self)
   mutating func extracting(_ range: Range<Int>) -> MutableSpan<Element> {
     ...
   }
@@ -274,7 +274,7 @@ The syntax is somewhat different for functions and methods, though the basic rul
 **Functions:** A simple function with an explicit lifetime dependency annotation generally takes this form:
 
 ```swift
-@lifetime(<dependency-kind> arg)
+@_lifetime(<dependency-kind> arg)
 func f(arg: ArgType) -> ResultType
 ```
 
@@ -304,7 +304,7 @@ In this case, in addition to `borrow` or `&`, a `copy` dependency-kind is allowe
 Given a method of this form:
 
 ```swift
-@lifetime(<dependency-kind> self)
+@_lifetime(<dependency-kind> self)
 <mutation-modifier> func method(... args ...) -> ResultType
 ```
 
@@ -317,26 +317,26 @@ In this case, we use the same rules as for “Functions” above
 by using the convention that initializers can be viewed as functions that return `Self`:
 
 ```swift
-@lifetime(<dependency-kind> arg)
+@_lifetime(<dependency-kind> arg)
 init(arg: ArgType)
 ```
 
 #### Dependent Parameters
 
-Normally, lifetime dependence is required when a non-`Escapable` function result depends on an argument to that function. However, `inout` parameters of non-`Escapable` type also express an operation that results in a new non-`Escapable` value as a result of mutation by calling the function, so that function parameter may also depend on another argument to a function call. The target of a dependency can be expressed before a colon in a `@lifetime` attribute:
+Normally, lifetime dependence is required when a non-`Escapable` function result depends on an argument to that function. However, `inout` parameters of non-`Escapable` type also express an operation that results in a new non-`Escapable` value as a result of mutation by calling the function, so that function parameter may also depend on another argument to a function call. The target of a dependency can be expressed before a colon in a `@_lifetime` attribute:
 
 ```swift
-@lifetime(span: borrow a)
+@_lifetime(span: borrow a)
 func mayReassign(span: inout Span<Int>, to a: ContiguousArray<Int>) {
   span = a.span
 }
 ```
 
-`@lifetime(self:)` can also be used to indicate that a `mutating` method's implicit `self` depends on another parameter after being mutated.
+`@_lifetime(self:)` can also be used to indicate that a `mutating` method's implicit `self` depends on another parameter after being mutated.
 
 ```swift
 extension Span {
-  @lifetime(self: copy other)
+  @_lifetime(self: copy other)
   mutating func reassign(other: Span<T>) {
     self = other
   }
@@ -353,10 +353,10 @@ We've discussed how a non-`Escapable` result must be destroyed before the source
   // 'span' now depends on both 'a1' and 'a2'.
 ```
 
-The general form of a `@lifetime` attribute is:
+The general form of a `@_lifetime` attribute is:
 
 ```swift
-@lifetime(target: <dependency-kind> source)
+@_lifetime(target: <dependency-kind> source)
 ```
 
 where `target` can be elided to refer to the return value of the declaration.
@@ -368,14 +368,14 @@ Structural composition is an important use case for non-`Escapable` types. Getti
 ```swift
 struct Container<Element>: ~Escapable {
   var element: Element {
-    @lifetime(copy self)
+    @_lifetime(copy self)
     get { ... }
 
-    @lifetime(self: copy newValue)
+    @_lifetime(self: copy newValue)
     set { ... }
   }
 
-  @lifetime(copy element)
+  @_lifetime(copy element)
   init(element: Element) { ... }
 }
 ```
@@ -388,10 +388,10 @@ Conditionally non-`Escapable` types can also contain potentially non-`Escapable`
 struct Container<Element: ~Escapable>: ~Escapable {
   var element: Element
 
-  @lifetime(copy element)
+  @_lifetime(copy element)
   init(element: Element) { self.element = element }
 
-  @lifetime(copy self)
+  @_lifetime(copy self)
   func getElement() -> Element { element }
 }
 
@@ -401,7 +401,7 @@ extension Container: Escapable where Element: Escapable { }
 
 Here, `Container` is non-`Escapable` only when its element type is non-`Escapable`. Whenever `Container` is potentially non-`Escapable`, it inherits the lifetime of the single `element` argument to the initializer and propagates that lifetime to all uses of its `element` property or the `getElement()` function.
 
-In some contexts, however, the `Element` is known to conform to `Escapable`, which in turn makes `Container<Element>` for that `Element` type `Escapable`. When generic substitution produces an `Escapable` type, any `@lifetime` dependencies applied to that type are ignored.
+In some contexts, however, the `Element` is known to conform to `Escapable`, which in turn makes `Container<Element>` for that `Element` type `Escapable`. When generic substitution produces an `Escapable` type, any `@_lifetime` dependencies applied to that type are ignored.
 
 ```
 let s = "strings are immortal"
@@ -431,11 +431,11 @@ enum Result<Success: ~Escapable, Failure: Error>: ~Escapable {
 extension Result: Escapable where Success: Escapable {}
 ```
 
-When constructing an `Optional<NotEscapable>.none` or `Result<NotEscapable>.failure(error)` case, there's no lifetime to assign to the constructed value in isolation, and it wouldn't necessarily need one for safety purposes, because the given instance of the value doesn't store any state with a lifetime dependency. Instead, the initializer for cases like this can be annotated with `@lifetime(immortal)`:
+When constructing an `Optional<NotEscapable>.none` or `Result<NotEscapable>.failure(error)` case, there's no lifetime to assign to the constructed value in isolation, and it wouldn't necessarily need one for safety purposes, because the given instance of the value doesn't store any state with a lifetime dependency. Instead, the initializer for cases like this can be annotated with `@_lifetime(immortal)`:
 
 ```swift
 extension Optional where Wrapped: ~Escapable {
-  @lifetime(immortal)
+  @_lifetime(immortal)
   init(nilLiteral: ()) {
     self = .none
   }
@@ -444,16 +444,16 @@ extension Optional where Wrapped: ~Escapable {
 
 The constructed instance is returned to the caller without any lifetime dependence. The caller can pass that instance
 along as an argument to other functions, but those functions cannot escape it. The instance can only be returned further
-up the call stack by chaining multiple `@lifetime(immortal)` functions.
+up the call stack by chaining multiple `@_lifetime(immortal)` functions.
 
 #### Depending on immutable global variables
 
-Another place where immortal lifetimes might come up is with dependencies on global variables. When a value has a scoped dependency on a global let constant, that constant lives for the duration of the process and is effectively perpetually borrowed, so one could say that values dependent on such a constant have an effectively infinite lifetime as well. This will allow returning a value that depends on a global by declaring the function's return type with `@lifetime(immortal)`:
+Another place where immortal lifetimes might come up is with dependencies on global variables. When a value has a scoped dependency on a global let constant, that constant lives for the duration of the process and is effectively perpetually borrowed, so one could say that values dependent on such a constant have an effectively infinite lifetime as well. This will allow returning a value that depends on a global by declaring the function's return type with `@_lifetime(immortal)`:
 
 ```swift
 let staticBuffer = ...
 
-@lifetime(immortal)
+@_lifetime(immortal)
 func getStaticallyAllocated() -> BufferReference {
   staticBuffer.bufferReference()
 }
@@ -461,10 +461,10 @@ func getStaticallyAllocated() -> BufferReference {
 
 #### Immortal requirements
 
-`@lifetime(immortal)` requires the programmer to compose the dependent value from something that, in fact, has an immortal lifetime:
+`@_lifetime(immortal)` requires the programmer to compose the dependent value from something that, in fact, has an immortal lifetime:
 
 ```swift
-@lifetime(immortal)
+@_lifetime(immortal)
 init() {
   self.value = <global constant>
 }
@@ -472,12 +472,12 @@ init() {
 
 `<global constant>` must be valid over the entire program.
 
-`@lifetime(immortal)` is not a way to suppress dependence in cases where the source value has unknown
+`@_lifetime(immortal)` is not a way to suppress dependence in cases where the source value has unknown
 lifetime.
 Composing the result from a transient value, such as an UnsafePointer, is incorrect:
 
 ```swift
-@lifetime(immortal)
+@_lifetime(immortal)
 init(pointer: UnsafePointer<T>) {
   self.value = pointer // 🛑 Incorrect
 }
@@ -493,7 +493,7 @@ struct Span<T>: ~Escapable {
   ...
   // The caller must ensure that `unsafeBaseAddress` is valid over all uses of the result.
   @unsafe
-  @lifetime(borrow unsafeBaseAddress)
+  @_lifetime(borrow unsafeBaseAddress)
   init(unsafeBaseAddress: UnsafePointer<T>, count: Int) { ... }
   ...
 }
@@ -546,7 +546,7 @@ The following helper functions will be added for implementing low-level data typ
 /// Replace the current lifetime dependency of `dependent` with a new copied lifetime dependency on `source`.
 ///
 /// Precondition: `dependent` has an independent copy of the dependent state captured by `source`.
-@unsafe @lifetime(copy source)
+@unsafe @_lifetime(copy source)
 func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
   _ dependent: consuming T, copying source: borrowing U)
   -> T { ... }
@@ -556,7 +556,7 @@ func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
 /// Precondition: `dependent` depends on state that remains valid until either:
 /// (a) `source` is either destroyed if it is immutable,
 /// or (b) exclusive to `source` access ends if it is a mutable variable.
-@unsafe @lifetime(borrow source)
+@unsafe @_lifetime(borrow source)
 func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
   _ dependent: consuming T, borrowing source: borrowing U)
   -> T {...}
@@ -566,7 +566,7 @@ func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
 /// Precondition: `dependent` depends on state that remains valid until either:
 /// (a) `source` is either destroyed if it is immutable,
 /// or (b) exclusive to `source` access ends if it is a mutable variable.
-@unsafe @lifetime(&source)
+@unsafe @_lifetime(&source)
 func _overrideLifetime<T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable>(
   _ dependent: consuming T, mutating source: inout U)
   -> T {...}
@@ -589,7 +589,7 @@ Since `self.base` is an `Escapable` value, it does not propagate the lifetime de
 `_overrideLifetime` can also be used to construct an immortal value where the compiler cannot prove immortality by passing a `Void` value as the source of the dependence:
 
 ```swift
-@lifetime(immortal)
+@_lifetime(immortal)
 init() {
   self.value = getGlobalConstant() // OK: unchecked dependence.
   self = unsafe _overrideLifetime(self, copying: ())
@@ -602,7 +602,7 @@ init() {
 
 The lifetime dependencies described in this document can be applied only to potentially non-`Escapable` return values.
 Further, any return value that is potentially non-`Escapable` must declare a lifetime dependency.
-In particular, this implies that the initializer for a non-`Escapable` type must have at least one argument or else specify `@lifetime(immortal)`.
+In particular, this implies that the initializer for a non-`Escapable` type must have at least one argument or else specify `@_lifetime(immortal)`.
 
 ```swift
 struct S: ~Escapable {
@@ -620,7 +620,7 @@ Declarations with return types that are potentially non-`Escapable` require life
 //
 // In a generic function like `optionalize` below, `T?` is potentially
 // non-`Escapable`, so we must declare its lifetime dependency.
-@lifetime(copy value)
+@_lifetime(copy value)
 func optionalize<T: ~Escapable>(_ value: T) -> T? {
     return value
 }
@@ -662,7 +662,7 @@ The compiler must issue a diagnostic if any of the above cannot be satisfied.
 
 ### Grammar
 
-This proposal adds a `@lifetime` attribute that can be applied to function, initializer, and property accessor declarations:
+This proposal adds a `@_lifetime` attribute that can be applied to function, initializer, and property accessor declarations:
 
 > *lifetime-attribute* → **`@`** **`lifetime`** **`(`** *lifetime-dependence-list* **`)`**
 >
@@ -695,7 +695,7 @@ This section illustrates the semantics of lifetime dependence one example at a t
 ```swift
 extension ContiguousArray {
   var span: Span<Element> {
-    @lifetime(borrow self)
+    @_lifetime(borrow self)
     get {
       ...
     }
@@ -703,7 +703,7 @@ extension ContiguousArray {
 }
 
 // The returned span copies dependencies from 'arg'.
-@lifetime(copy arg)
+@_lifetime(copy arg)
 func copySpan<T>(_ arg: Span<T>) -> Span<T> { arg }
 
 func parse(_ span: Span<Int>) { ... }
@@ -727,7 +727,7 @@ The get of `span` creates a scoped dependence on `a2`. A scoped dependence is de
 
 Let's contrast scoped dependence shown above with copied dependence on a variable. In this case, the value may outlive the variable it is copied from, as long as it is destroyed before the root of its inherited dependence goes out of scope. A chain of copied dependencies is always rooted in a scoped dependence.
 
-An assignment that copies or moves a potentially non-`Escapable` value from one variable into another **copies** any lifetime dependence from the source value to the destination value. Thus, assigning `rhs` to a variable has the same lifetime copy semantics as passing an argument using a `@lifetime(copy rhs)` annotation. So, the statement `let temp = span` has identical semantics to `let temp = copySpan(span)`.
+An assignment that copies or moves a potentially non-`Escapable` value from one variable into another **copies** any lifetime dependence from the source value to the destination value. Thus, assigning `rhs` to a variable has the same lifetime copy semantics as passing an argument using a `@_lifetime(copy rhs)` annotation. So, the statement `let temp = span` has identical semantics to `let temp = copySpan(span)`.
 
 ```swift
 let a: ContiguousArray<Int> = arg
@@ -749,7 +749,7 @@ First, let's add a mutable method to `Span`:
 
 ```swift
 extension Span {
-  @lifetime(copy self)
+  @_lifetime(copy self)
   mutating func removePrefix(length: Int) -> Span<T> {
     let prefix = extracting(0..<length)
     self = extracting(length..<count)
@@ -803,7 +803,7 @@ func reassign(_ span: inout Span<Int>) {
 If a function takes a non-`Escapable` `inout` parameter, it may only reassign that parameter if it is marked dependent on another function parameter that provides the source of the dependence.
 
 ```swift
-@lifetime(span: borrow arg)
+@_lifetime(span: borrow arg)
 func reassignWithArgDependence(_ span: inout Span<Int>, _ arg: ContiguousArray<Int>) {
   span = arg.span //  ✅ OK: 'span' already depends on 'arg' in the caller's scope.
 }
@@ -811,20 +811,20 @@ func reassignWithArgDependence(_ span: inout Span<Int>, _ arg: ContiguousArray<I
 
 This means that an `inout` parameter of potentially non-`Escapable` type can interact with lifetimes in three ways:
 
-- as the source of a scoped dependency, as in `@lifetime([<target>:] &x)`
-- as the source of a copied dependency, as in `@lifetime([<target>:] copy x)`
-- as the target of a dependency, as in `@lifetime(x: <dependency>)`
+- as the source of a scoped dependency, as in `@_lifetime([<target>:] &x)`
+- as the source of a copied dependency, as in `@_lifetime([<target>:] copy x)`
+- as the target of a dependency, as in `@_lifetime(x: <dependency>)`
 
 so it is worth restating the behavior here to emphasize the distinctions.
-A scoped dependency `@lifetime(&x)` indicates that the target's lifetime is constrained by exclusive access to `x`.
-A copied dependency `@lifetime(copy x)` indicates that the target copies its lifetime constraint from value of `x` when the callee *begins* execution.
-As the target of a dependency, `@lifetime(x: <dependency>)` indicates the lifetime constraint added to the value of `x` after the callee *ends* execution.
+A scoped dependency `@_lifetime(&x)` indicates that the target's lifetime is constrained by exclusive access to `x`.
+A copied dependency `@_lifetime(copy x)` indicates that the target copies its lifetime constraint from value of `x` when the callee *begins* execution.
+As the target of a dependency, `@_lifetime(x: <dependency>)` indicates the lifetime constraint added to the value of `x` after the callee *ends* execution.
 
 By composition, an `inout` parameter could appear as both the source and target of a dependency, though the behavior is not useful in either case:
 
-- `@lifetime(x: &x)` states that the value of `x` on return from the callee is dependent on exclusive access to the variable `x`.
+- `@_lifetime(x: &x)` states that the value of `x` on return from the callee is dependent on exclusive access to the variable `x`.
     This would have the net effect of making the argument to `x` inaccessible for the rest of its lifetime, since it is exclusively accessed by the value inside of itself.
-- `@lifetime(x: copy x)` states that the value of `x` on return from the callee copies its dependency from the value of `x` when the function began execution, in effect stating that the lifetime dependency does not change.
+- `@_lifetime(x: copy x)` states that the value of `x` on return from the callee copies its dependency from the value of `x` when the function began execution, in effect stating that the lifetime dependency does not change.
 
 Therefore, we propose to disallow this.
 
@@ -853,7 +853,7 @@ struct Pair<T: ~Escapable, U: ~Escapable>: ~Escapable {
     var second: U
 
     // A Pair cannot outlive the lifetime of either of its fields.
-    @lifetime(copy first, copy second)
+    @_lifetime(copy first, copy second)
     init(first: T, second: U) {
         self.first = first
         self.second = second
@@ -906,19 +906,19 @@ Removing a lifetime dependency constraint only affects existing source code in t
 
 Previous revisions of this proposal introduced a `dependsOn` modifier that would be placed syntactically closer to the return type or argument declarations subject to a dependency.
 The authors believe that a more integrated syntax like that is the ultimate right choice for this feature, especially as we develop future directions involving types with multiple lifetime dependencies.
-However, as an attribute, `@lifetime` provides room for experimentation without invasive changes to the language grammar, allowing us to incrementally develop and iterate on the underlying model and implementation.
+However, as an attribute, `@_lifetime` provides room for experimentation without invasive changes to the language grammar, allowing us to incrementally develop and iterate on the underlying model and implementation.
 Therefore, we think this attribute is the best approach for the current experimental status of lifetime dependencies as a feature.
-Whatever model we ultimately stabilize on ought to support a superset of the functionality proposed here, and it should be possible to mechanically migrate code using `@lifetime` to use the final syntax when it is ready.
+Whatever model we ultimately stabilize on ought to support a superset of the functionality proposed here, and it should be possible to mechanically migrate code using `@_lifetime` to use the final syntax when it is ready.
 
-### `@lifetime(unchecked)` to disable lifetime dependence checking
+### `@_lifetime(unchecked)` to disable lifetime dependence checking
 
-A `@lifetime(unchecked)` annotation could allow programmers to disable lifetime dependence checking for a function result or argument. For example, the programmer may want to compose a non-`Escapable` result from an immortal value that isn't visible to the compiler:
+A `@_lifetime(unchecked)` annotation could allow programmers to disable lifetime dependence checking for a function result or argument. For example, the programmer may want to compose a non-`Escapable` result from an immortal value that isn't visible to the compiler:
 
 ```swift
 // Existing global function that is not lifetime-annotated
 func getGlobalConstant() -> SomeType
 
-@lifetime(immortal)
+@_lifetime(immortal)
 init() {
   self.value = getGlobalConstant() // 🛑 ERROR: immortal dependence on a temporary value
 }
@@ -927,7 +927,7 @@ init() {
 To avoid the error, the programmer could disable dependence checking on the function result altogether:
 
 ```swift
-@unsafe @lifetime(unchecked)
+@unsafe @_lifetime(unchecked)
 init() {
   self.value = getGlobalConstant() // OK: unchecked dependence.
 }
@@ -943,7 +943,7 @@ This poses a few problems:
 
 
 ```swift
-@lifetime(immortal)
+@_lifetime(immortal)
 init() dependsOn(immortal) {
   self.value = getGlobalConstant() // OK: unchecked dependence.
   unsafe self = _overrideLifetime(self, copying: ())
@@ -956,7 +956,7 @@ Internally, the implementation records dependencies canonically based on paramet
 This could be exposed as an alternate spelling if there were sufficient demand.
 
 ```swift
-@lifetime(borrow 0) // same as `@lifetime(borrow arg1)`
+@_lifetime(borrow 0) // same as `@_lifetime(borrow arg1)`
 func f(arg1: Type1, arg2: Type2, arg3: Type3) -> ReturnType
 ```
 
@@ -974,7 +974,7 @@ struct Container<Element>: ~Escapable {
   var a: Element
   var b: Element
 
-  @lifetime(copy a, copy b)
+  @_lifetime(copy a, copy b)
   init(a: Element, b: Element) -> Self {...}
 }
 ```
@@ -998,7 +998,7 @@ struct Container<Element>: ~Escapable {
   var a: Element
   var b: Element
 
-  @lifetime(.a: copy arg1, .b: copy arg2)
+  @_lifetime(.a: copy arg1, .b: copy arg2)
   init(arg1: Element, arg2: Element) {
     ...
   }
@@ -1021,7 +1021,7 @@ Extraction operations could also declare that they copy the lifetime of one or m
 
 ```swift
 extension Container {
-  @lifetime(copy self.a)
+  @_lifetime(copy self.a)
   func getA() -> Element {
     return self.a
   }
@@ -1036,9 +1036,9 @@ var a = ...
 use(a) // 🛑 OK: `getA()` copies its lifetime from `c.a`, which in turn copied it from the original `a`
 ```
 
-The general form of the `@lifetime` syntax in this hypothetical could be thought of as:
+The general form of the `@_lifetime` syntax in this hypothetical could be thought of as:
 
-> **`@lifetime`** **`(`** (*target*)? (**`.`** *component*)\* **`:`** *source* (**`.`** *component*) **`)`**
+> **`@_lifetime`** **`(`** (*target*)? (**`.`** *component*)\* **`:`** *source* (**`.`** *component*) **`)`**
 
 ### Abstract lifetime components
 
@@ -1069,21 +1069,21 @@ The interesting lifetimes in the case of a `Span` with non-`Escapable` elements 
 We could declare these as abstract lifetime members of `Span`, and allow those members to be referenced in lifetime dependency declarations:
 
 ```swift
-@lifetimes(element: Element, memory)
+@_lifetimes(element: Element, memory)
 struct Span<Element: ~Escapable>: ~Escapable {
   // Accessing an element forwards the lifetime(s) of the elements themselves
   subscript(i: Int) -> Element {
-    @lifetime(copy self.element)
+    @_lifetime(copy self.element)
     borrow { ... }
   }
 }
 
-@lifetimes(element: Element)
+@_lifetimes(element: Element)
 extension ContiguousArray<Element: ~Escapable>: ~Escapable {
   // Accessing a span over the array forwards the lifetime(s) of its elements,
   // while its memory is dependent on accessing this array.
   var span: Span<Element> {
-    @lifetime(.memory: borrow self, .element: copy self.element)
+    @_lifetime(.memory: borrow self, .element: copy self.element)
     get { ... }
   }
 }
@@ -1100,7 +1100,7 @@ struct A {}
 struct B: ~Escapable {}
 struct C: ~Escapable {}
 
-@lifetime(.0: borrow a, .1: copy b)
+@_lifetime(.0: borrow a, .1: copy b)
 func f(a: A, b: B) -> (C, B)
 ```
 
@@ -1113,11 +1113,11 @@ Since the `Escapable` protocol and lifetime dependencies introduce lifetime-cons
 
 ### Function type syntax
 
-This proposal introduces `@lifetime` as a declaration attribute, but does not yet allow the attribute on function types.
+This proposal introduces `@_lifetime` as a declaration attribute, but does not yet allow the attribute on function types.
 Therefore, a function that returns a non-`Escapable` type cannot currently be passed as a closure because its dependence information would be lost.
 
 ```swift
-@lifetime(borrow arg)
+@_lifetime(borrow arg)
 func f(arg: ArgType) -> NEType
 
 func g1(closure: (ArgType) -> NEType)
@@ -1127,11 +1127,11 @@ do {
 }
 ```
 
-To address this shortcoming, the `@lifetime(...)` attribute could be extended to function types as well as declarations.
+To address this shortcoming, the `@_lifetime(...)` attribute could be extended to function types as well as declarations.
 Since parameter names are not canonical, function types have no canonical parameter names, so the parameter position would need to be canonically identified by an integer literal:
 
 ```swift
-func g2(closure: @lifetime(borrow 0) (ArgType) -> NEType) { ... }
+func g2(closure: @_lifetime(borrow 0) (ArgType) -> NEType) { ... }
 
 do {
   g2(closure: f) // ✅ OK
@@ -1141,15 +1141,15 @@ do {
 Internal argument names could potentially be allowed as type sugar:
 
 ```
-func g2(closure: @lifetime(borrow arg) (_ arg: ArgType) -> NEType) { ... }
+func g2(closure: @_lifetime(borrow arg) (_ arg: ArgType) -> NEType) { ... }
 
 do {
   // OK, different argument name is not part of the canonical type
-  let f1: @lifetime(borrow a) (_ a: ArgType) -> NEType = f
+  let f1: @_lifetime(borrow a) (_ a: ArgType) -> NEType = f
   g2(closure: f1)
 
   // Also OK
-  let f2: @lifetime(borrow 0) (ArgType) -> NEType = f
+  let f2: @_lifetime(borrow 0) (ArgType) -> NEType = f
   g2(closure: f2)
 }
 ```
@@ -1162,7 +1162,7 @@ A dependence on context dependence will not affect the spelling of the function 
 
 ### More complex lifetime dependencies for functions
 
-Introducing `@lifetime` annotations onto function types is the bare minimum to allow for the use of nonescapable types in function values; however, there are also far more intricate lifetime relationships that function parameters may want to express among their parameters, returns, and those of the outer function.
+Introducing `@_lifetime` annotations onto function types is the bare minimum to allow for the use of nonescapable types in function values; however, there are also far more intricate lifetime relationships that function parameters may want to express among their parameters, returns, and those of the outer function.
 The dependencies of their closure context may be nontrivial as well. 
 For example, it would be natural to model a `TaskGroup` as a non-`Escapable` type, to statically enforce the currently dynamically-enforced variant that the task group not be used outside of a `withTaskGroup` block.
 It would furthermore be natural to treat the argument to `addTask` as a nonescaping closure; however, the scope which the closure cannot escape is not the immediate `addTask` call, but the `withTaskGroup` block as a whole.
@@ -1171,7 +1171,7 @@ In order to express this, function types would likely require a predefined schem
 
 ```
 struct TaskGroup: ~Escapable {
-  @lifetime(body.context: self)
+  @_lifetime(body.context: self)
   func addTask(_ body: () -> ())
 
 }
@@ -1184,10 +1184,10 @@ A scoped dependence normally cannot escape the lexical scope of its source varia
 ```swift
 struct OwnedSpan<T>: ~Copyable {
   let owner: any ~Copyable
-  @lifetime(borrow owner)
+  @_lifetime(borrow owner)
   let span: Span<T>
 
-  @lifetime(span: borrow owner)
+  @_lifetime(span: borrow owner)
   init(owner: consuming any ~Copyable, span: Span<T>) {
     self.owner = owner
     self.span = span
