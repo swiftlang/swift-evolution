@@ -3,7 +3,7 @@
 * Proposal: [SE-0464](0464-utf8span-safe-utf8-processing.md)
 * Authors: [Michael Ilseman](https://github.com/milseman), [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Accepted**
+* Status: **Implemented (6.2)**
 * Bug: rdar://48132971, rdar://96837923
 * Implementation: [swiftlang/swift#78531](https://github.com/swiftlang/swift/pull/78531)
 * Review: ([first pitch](https://forums.swift.org/t/pitch-utf-8-processing-over-unsafe-contiguous-bytes/69715)) ([second pitch](https://forums.swift.org/t/pitch-safe-utf-8-processing-over-contiguous-bytes/72742)) ([third pitch](https://forums.swift.org/t/pitch-utf8span-safe-utf-8-processing-over-contiguous-bytes/77483)) ([review](https://forums.swift.org/t/se-0464-utf8span-safe-utf-8-processing-over-contiguous-bytes/78307)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0464-safe-utf-8-processing-over-contiguous-bytes/79218))
