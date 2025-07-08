@@ -1,11 +1,11 @@
 # Test Issue Severity
 
-* Proposal: [ST-XXXX](XXXX-issue-severity-warning.md)
-* Authors: [Suzy Ratcliff](https://github.com/suzannaratcliff)
-* Review Manager: TBD
-* Status: **Pitched**
-* Implementation: [swiftlang/swift-testing#1075](https://github.com/swiftlang/swift-testing/pull/1075)
-* Review: ([pitch](https://forums.swift.org/t/pitch-test-issue-warnings/79285))
+- Proposal: [ST-0013](0013-issue-severity-warning.md)
+- Authors: [Suzy Ratcliff](https://github.com/suzannaratcliff)
+- Review Manager: [Maarten Engels](https://github.com/maartene)
+- Status: **Awaiting Review**
+- Implementation: [swiftlang/swift-testing#1075](https://github.com/swiftlang/swift-testing/pull/1075)
+- Review: ([pitch](https://forums.swift.org/t/pitch-test-issue-warnings/79285))
 
 ## Introduction
 
@@ -17,20 +17,21 @@ Currently, when an issue arises during a test, the only possible outcome is to m
 
 ### Use Cases
 
--  Warning about a Percentage Discrepancy in Image Comparison:
-    - Scenario: When comparing two images to assess their similarity, a warning can be triggered if there's a 95% pixel match, while a test failure is set at a 90% similarity threshold.
-    - Reason: In practices like snapshot testing, minor changes (such as a timestamp) might cause a discrepancy. Setting a 90% match as a pass ensures test integrity. However, a warning at 95% alerts testers that, although the images aren't identical, the test has passed, which may warrant further investigation.
+- Warning about a Percentage Discrepancy in Image Comparison:
+  - Scenario: When comparing two images to assess their similarity, a warning can be triggered if there's a 95% pixel match, while a test failure is set at a 90% similarity threshold.
+  - Reason: In practices like snapshot testing, minor changes (such as a timestamp) might cause a discrepancy. Setting a 90% match as a pass ensures test integrity. However, a warning at 95% alerts testers that, although the images aren't identical, the test has passed, which may warrant further investigation.
 - Warning for Duplicate Argument Inputs in Tests:
-    - Scenario: In a test library, issue a warning if a user inputs the same argument twice, rather than flagging an error.
-    - Reason: Although passing the same argument twice might not be typical, some users may have valid reasons for doing so. Thus, a warning suffices, allowing flexibility without compromising the test's execution.
+  - Scenario: In a test library, issue a warning if a user inputs the same argument twice, rather than flagging an error.
+  - Reason: Although passing the same argument twice might not be typical, some users may have valid reasons for doing so. Thus, a warning suffices, allowing flexibility without compromising the test's execution.
 - Warning for Recoverable Unexpected Events:
-    - Scenario: During an integration test where data is retrieved from a server, a warning can be issued if the primary server is down, prompting a switch to an alternative server.  Usually mocking is the solution for this but may not test everything needed for an integration test.
-    - Reason: Since server downtime might happen and can be beyond the tester's control, issuing a warning rather than a failure helps in debugging and understanding potential issues without impacting the test's overall success.
+  - Scenario: During an integration test where data is retrieved from a server, a warning can be issued if the primary server is down, prompting a switch to an alternative server. Usually mocking is the solution for this but may not test everything needed for an integration test.
+  - Reason: Since server downtime might happen and can be beyond the tester's control, issuing a warning rather than a failure helps in debugging and understanding potential issues without impacting the test's overall success.
 - Warning for a retry during setup for a test:
-    - Scenario: During test setup part of your code may be configured to retry, it would be nice to notify in the results that a retry happened
-    - Reason: This makes sense to be a warning and not a failure because if the retry succeeds the test may still verify the code correctly
+  - Scenario: During test setup part of your code may be configured to retry, it would be nice to notify in the results that a retry happened
+  - Reason: This makes sense to be a warning and not a failure because if the retry succeeds the test may still verify the code correctly
 
 ## Proposed solution
+
 We propose introducing a new property on `Issue` in Swift Testing called `severity`, that represents if an issue is a `warning` or an `error`.
 The default Issue severity will still be `error` and users can set the severity when they record an issue.
 
@@ -47,7 +48,7 @@ The `Severity` enum:
 ```swift
 extension Issue {
   // ...
-  public enum Severity: Codable, Comparable, CustomStringConvertible, Sendable {    
+  public enum Severity: Codable, Comparable, CustomStringConvertible, Sendable {
     /// The severity level for an issue which should be noted but is not
     /// necessarily an error.
     ///
@@ -66,6 +67,7 @@ extension Issue {
 ```
 
 ### Recording Non-Failing Issues
+
 To enable test authors to log non-failing issues without affecting test results, we provide a method for recording such issues:
 
 ```swift
@@ -73,6 +75,7 @@ Issue.record("My comment", severity: .warning)
 ```
 
 Here is the `Issue.record` method definition with severity as a parameter.
+
 ```swift
   /// Record an issue when a running test fails unexpectedly.
   ///
@@ -92,13 +95,14 @@ Here is the `Issue.record` method definition with severity as a parameter.
     severity: Severity = .error,
     sourceLocation: SourceLocation = #_sourceLocation
   ) -> Self
-  
+
   // ...
 ```
 
 ### Issue Type Enhancements
 
 The Issue type is enhanced with two new properties to better handle and report issues:
+
 - `severity`: This property allows access to the specific severity level of an issue, enabling more precise handling of test results.
 
 ```swift
@@ -112,7 +116,9 @@ public var severity: Severity { get set }
 }
 
 ```
+
 - `isFailure`: A boolean property to determine if an issue results in a test failure, thereby helping in result aggregation and reporting.
+
 ```swift
 extension Issue {
   // ...
@@ -132,6 +138,7 @@ extension Issue {
 ```
 
 Example usage of `severity` and `isFailure`:
+
 ```swift
 // ...
 withKnownIssue {
@@ -147,7 +154,7 @@ This revision aims to clarify the functionality and usage of the `Severity` enum
 
 ### Integration with supporting tools
 
-Issue severity will be in the event stream output when a `issueRecorded` event occurs.  This will be a breaking change because some tools may assume that all `issueRecorded` events are failing. Due to this we will be bumping the event stream version and v1 will maintain it's behavior and not output any events for non failing issues.  We will also be adding `isFailure` to the issue so that clients will know if the issue should be treated as a failure. 
+Issue severity will be in the event stream output when a `issueRecorded` event occurs. This will be a breaking change because some tools may assume that all `issueRecorded` events are failing. Due to this we will be bumping the event stream version and v1 will maintain it's behavior and not output any events for non failing issues. We will also be adding `isFailure` to the issue so that clients will know if the issue should be treated as a failure.
 
 The JSON event stream ABI will be amended correspondingly:
 
@@ -198,7 +205,7 @@ For more details on how to checkout a branch for a package refer to this: https:
 - Naming of `isFailure` vs. `isFailing`: We evaluated whether to name the property `isFailing` instead of `isFailure`. The decision to use `isFailure` was made to adhere to naming conventions and ensure clarity and consistency within the API.
 
 - Severity-Only Checking: We deliberated not exposing `isFailure` and relying solely on `severity` checks. However, this was rejected because it would require test authors to overhaul their code should we introduce additional severity levels in the future. By providing `isFailure`, we offer a straightforward way to determine test outcome impact, complementing the severity feature.
-- Naming `Severity.error` `Severity.failure` instead because this will always be a failing issue and test authors often think of test failures.  Error and warning match build naming conventions and XCTest severity naming convention.
+- Naming `Severity.error` `Severity.failure` instead because this will always be a failing issue and test authors often think of test failures. Error and warning match build naming conventions and XCTest severity naming convention.
 
 ## Future directions
 
