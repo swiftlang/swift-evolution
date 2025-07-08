@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Pitched**
 * Implementation: [swiftlang/swift-testing#1075](https://github.com/swiftlang/swift-testing/pull/1075)
-* Review: ([pitch](https://forums.swift.org/t/pitch-test-issue-warnings/79285)
+* Review: ([pitch](https://forums.swift.org/t/pitch-test-issue-warnings/79285))
 
 ## Introduction
 
@@ -38,7 +38,7 @@ Test authors will be able to inspect if the issue is a failing issue and will be
 
 ## Detailed design
 
-###Severity Enum
+### Severity Enum
 
 We introduce a Severity enum to categorize issues detected during testing. This enum is crucial for distinguishing between different levels of test issues and is defined as follows:
 
@@ -65,7 +65,7 @@ extension Issue {
 }
 ```
 
-###Recording Non-Failing Issues
+### Recording Non-Failing Issues
 To enable test authors to log non-failing issues without affecting test results, we provide a method for recording such issues:
 
 ```swift
@@ -96,7 +96,7 @@ Here is the `Issue.record` method definition with severity as a parameter.
   // ...
 ```
 
-###Issue Type Enhancements
+### Issue Type Enhancements
 
 The Issue type is enhanced with two new properties to better handle and report issues:
 - `severity`: This property allows access to the specific severity level of an issue, enabling more precise handling of test results.
@@ -131,7 +131,7 @@ extension Issue {
 }
 ```
 
-Example usage of `severity` and `isFailure:
+Example usage of `severity` and `isFailure`:
 ```swift
 // ...
 withKnownIssue {
@@ -185,7 +185,7 @@ When there is an issue recorded with severity warning the output looks like this
 To use severity today, checkout the branch here: https://github.com/swiftlang/swift-testing/pull/1189
 
 ```
-.package(url: "https://github.com/swiftlang/swift-testing.git", branch: "suzannaratcliff:suzannaratcliff/enable-severity"),
+.package(url: "https://github.com/suzannaratcliff/swift-testing.git", branch: "suzannaratcliff:suzannaratcliff/enable-severity"),
 ```
 
 For more details on how to checkout a branch for a package refer to this: https://developer.apple.com/documentation/packagedescription/package/dependency/package(url:branch:)
