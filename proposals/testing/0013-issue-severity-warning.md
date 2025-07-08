@@ -3,7 +3,7 @@
 - Proposal: [ST-0013](0013-issue-severity-warning.md)
 - Authors: [Suzy Ratcliff](https://github.com/suzannaratcliff)
 - Review Manager: [Maarten Engels](https://github.com/maartene)
-- Status: **Awaiting Review**
+- Status: **Active Review (July 9...July 23, 2025)**
 - Implementation: [swiftlang/swift-testing#1075](https://github.com/swiftlang/swift-testing/pull/1075)
 - Review: ([pitch](https://forums.swift.org/t/pitch-test-issue-warnings/79285))
 
