@@ -5,7 +5,7 @@
 - Review Manager: [Maarten Engels](https://github.com/maartene)
 - Status: **Active Review (July 9...July 23, 2025)**
 - Implementation: [swiftlang/swift-testing#1075](https://github.com/swiftlang/swift-testing/pull/1075)
-- Review: ([pitch](https://forums.swift.org/t/pitch-test-issue-warnings/79285))
+- Review: ([pitch](https://forums.swift.org/t/pitch-test-issue-warnings/79285)) ([review](https://forums.swift.org/t/st-0013-test-issue-warnings/80991))
 
 ## Introduction
 
