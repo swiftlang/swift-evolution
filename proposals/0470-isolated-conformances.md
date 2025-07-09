@@ -3,11 +3,11 @@
 * Proposal: [SE-0470](0470-isolated-conformances.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Implemented (Swift 6.2)**
+* Status: **Active review (July 8...15, 2025)**
 * Vision: [Improving the approachability of data-race safety](https://github.com/swiftlang/swift-evolution/blob/main/visions/approachable-concurrency.md)
 * Implementation: On `main` with the experimental features `IsolatedConformances` and `StrictSendableMetatypes`.
 * Upcoming Feature Flag: `InferIsolatedConformances`
-* Review: ([pitch](https://forums.swift.org/t/pre-pitch-isolated-conformances/77726)) ([review](https://forums.swift.org/t/se-0470-global-actor-isolated-conformances/78704)) ([acceptance](https://forums.swift.org/t/accepted-se-0470-global-actor-isolated-conformances/79189))
+* Review: ([pitch](https://forums.swift.org/t/pre-pitch-isolated-conformances/77726)) ([review](https://forums.swift.org/t/se-0470-global-actor-isolated-conformances/78704)) ([acceptance](https://forums.swift.org/t/accepted-se-0470-global-actor-isolated-conformances/79189)) ([amendment pitch](https://forums.swift.org/t/pitch-amend-se-0466-se-0470-to-improve-isolation-inference/79854))
 
 ## Introduction
 
@@ -687,5 +687,8 @@ One alternative would be to introduce this inference rule for source compatibili
 
 ## Revision history
 
+* Changes in amendment review:
+  * If the protocol inherits from `SendableMetatype` (including indirectly, e.g., from `Sendable`), then the isolated conformance could never be used, so it is inferred to be `nonisolated`.
+  * If all of the declarations used to satisfy protocol requirements are `nonisolated`, the conformance will be assumed to be `nonisolated`.
 * Changes in review:
   * Within a generic function, use sendability of metatypes of generic parameters as the basis for checking, rather than treating specific conformances as potentially isolated. This model is easier to reason about and fits better with `SendableMetatype`, and was used in earlier drafts of this proposal.
