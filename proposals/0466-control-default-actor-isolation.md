@@ -3,7 +3,7 @@
 * Proposal: [SE-0466](0466-control-default-actor-isolation.md)
 * Authors: [Holly Borla](https://github.com/hborla), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Implemented (Swift 6.2)**, **Amendmendment review July 8 - 15, 2025**
+* Status: **Active review (July 8...15, 2025)**
 * Vision: [Improving the approachability of data-race safety](/visions/approachable-concurrency.md)
 * Review: ([pitch](https://forums.swift.org/t/pitch-control-default-actor-isolation-inference/77482))([review](https://forums.swift.org/t/se-0466-control-default-actor-isolation-inference/78321))([acceptance](https://forums.swift.org/t/accepted-se-0466-control-default-actor-isolation-inference/78926))([amendment pitch](https://forums.swift.org/t/pitch-amend-se-0466-se-0470-to-improve-isolation-inference/79854))([amendment review](https://forums.swift.org/t/amendment-se-0466-control-default-actor-isolation-inference/80994))
 
@@ -237,6 +237,11 @@ swiftSettings: [
 The enum approach introduces a different way of writing main actor isolation that does not involve the `MainActor` global actor type. The proposed design matches exactly the values used for `#isolation`, i.e. `MainActor.self` for main actor isolation and `nil` for `nonisolated`, which programmers are already familiar with.
 
 The primary argument for using an enum is that it can be extended in the future to support custom global actor types. This proposal deliberately puts supporting custom global actors in the alternatives considered and not future directions, because defaulting a module to a different global actor does not help improve progressive disclosure for concurrency.
+
+## Revision history
+
+* Changes in amendment review:
+  * Disable `@MainActor` inference when type conforms to a `SendableMetatype` protocol
 
 ## Acknowledgments
 
