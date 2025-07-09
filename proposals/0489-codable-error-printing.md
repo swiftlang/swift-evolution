@@ -5,7 +5,7 @@
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Active review (July 9...22, 2025)**
 * Implementation: https://github.com/swiftlang/swift/pull/80941
-* Review: ([pitch](https://forums.swift.org/t/pitch-improve-encodingerror-and-decodingerror-s-printed-descriptions/79872)) ([review]())
+* Review: ([pitch](https://forums.swift.org/t/pitch-improve-encodingerror-and-decodingerror-s-printed-descriptions/79872)) ([review](https://forums.swift.org/t/se-0489-improve-encodingerror-and-decodingerrors-printed-descriptions/81021))
 
 ## Introduction
 
