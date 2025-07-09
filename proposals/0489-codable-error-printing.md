@@ -1,11 +1,11 @@
 # Improve `EncodingError` and `DecodingError`'s printed descriptions
 
-* Proposal: [SE-NNNN](NNNN-codable-error-printing.md)
+* Proposal: [SE-0489](0489-codable-error-printing.md)
 * Authors: [Zev Eisenberg](https://github.com/ZevEisenberg)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Active review (July 9...22, 2025)**
 * Implementation: https://github.com/swiftlang/swift/pull/80941
-* Review: TBD
+* Review: ([pitch](https://forums.swift.org/t/pitch-improve-encodingerror-and-decodingerror-s-printed-descriptions/79872)) ([review]())
 
 ## Introduction
 
