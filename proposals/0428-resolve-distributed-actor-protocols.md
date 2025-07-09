@@ -90,7 +90,7 @@ The macro must be attached to the a `protocol` declaration that is a `Distribute
 import Distributed 
 
 @Resolvable
-protocol Greeter where ActorSystem: DistributedActorSystem<any Codable> {
+protocol Greeter: DistributedActor where ActorSystem: DistributedActorSystem<any Codable> {
   distributed func greet(name: String) -> String
 }
 ```
