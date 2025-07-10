@@ -6,7 +6,8 @@
 * Status: **Active Review (Jun 24 - July 8, 2025)**
 * Implementation: [swiftlang/swift-testing#1080](https://github.com/swiftlang/swift-testing/pull/1080),
   [swiftlang/swift-testing#1121](https://github.com/swiftlang/swift-testing/pull/1121),
-  [swiftlang/swift-testing#1136](https://github.com/swiftlang/swift-testing/pull/1136)
+  [swiftlang/swift-testing#1136](https://github.com/swiftlang/swift-testing/pull/1136),
+  [swiftlang/swift-testing#1198](https://github.com/swiftlang/swift-testing/pull/1198)
 * Review: ([pitch](https://forums.swift.org/t/pitch-issue-handling-traits/80019)) ([review](https://forums.swift.org/t/st-0011-issue-handling-traits/80644))
 
 ## Introduction
