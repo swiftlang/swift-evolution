@@ -90,6 +90,7 @@ We will extend the `ArtifactsArchiveMetadata` schema to include a new `dynamicLi
 public enum ArtifactType: String, RawRepresentable, Decodable {
     case executable
 +   case dynamicLibrary
+    case staticLibrary
     case swiftSDK
 }
 ```
@@ -126,7 +127,7 @@ Below is an example of the layout of an Artifact Bundle containing a single libr
     📝 info.json
 ```
 
-A macOS Artifact Bundle would contain a `.dylib` instead of a `.so`. ECSLs will be supported on macOS, although we expect this will be an exceedingly rare use case.
+A macOS Artifact Bundle would contain a `.dylib` instead of a `.so`. ECSLs will be supported on macOS, although we expect this will be an exceedingly rare use case, as this need is already well-served by the XCFramework.
 
 
 ## Security
