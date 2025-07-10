@@ -304,13 +304,15 @@ Issue handling traits are applied to a test by a user, and are only intended for
 handling issues recorded by tests written by the user. If an issue is recorded
 by the testing library itself or the underlying system, not due to a failure
 within the tests being run, such an issue will not be passed to an issue
-handling trait.
+handling trait. Similarly, an issue handling trait should not return an issue
+which represents a problem they could not have caused in their test.
 
 Concretely, this policy means that issues for which the value of the `kind`
 property is `.system` will not be passed to the closure of an issue handling
-trait. Similarly, it is not supported for a closure passed to
+trait. Also, it is not supported for a closure passed to
 `compactMapIssues(_:)` to return an issue for which the value of `kind` is
-`.system`.
+either `.system` or `.apiMisused` (unless the passed-in issue had that kind,
+which should only be possible for `.apiMisused`).
 
 ## Detailed design
 
