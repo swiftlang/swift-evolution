@@ -13,9 +13,9 @@ SwiftPM currently has no support for non-system binary library dependencies on L
 
 Swift-evolution thread: [Discussion thread](https://forums.swift.org/t/pitch-replaceable-library-plugins/77605)
 
-Example Producer: [swift-ECSL-example](https://github.com/tayloraswift/swift-ECSL-example)
+Example Producer: [swift-dynamic-library-example](https://github.com/tayloraswift/swift-dynamic-library-example)
 
-Example Consumer: [swift-ECSL-example-client](https://github.com/tayloraswift/swift-ECSL-example-client)
+Example Consumer: [swift-dynamic-library-example-client](https://github.com/tayloraswift/swift-dynamic-library-example-client)
 
 ## Motivation
 
