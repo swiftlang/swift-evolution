@@ -57,7 +57,7 @@ To compile an ECSL, you just need to build an ordinary SwiftPM library product w
 You would package an ECSL as an `.artifactbundle` just as you would an executable, with the following differences:
 
 -   The `info.json` must have `schemaVersion` set to `1.2` or higher.
--   The artifact type must be `library`, a new enum case introduced in this proposal.
+-   The artifact type must be `dynamicLibrary`, a new enum case introduced in this proposal.
 -   The artifact must have exactly one variant in the `variants` list, and the `supportedTriples` field is forbidden.
 -   The artifact payload must include the `.swiftinterface` file corresponding to the actual library object.
 
@@ -84,12 +84,12 @@ Some organizations might choose to forgo the `@rpath` mechanism entirely and sim
 
 ### Schema extensions
 
-We will extend the `ArtifactsArchiveMetadata` schema to include a new `library` case in the `ArtifactType` enum.
+We will extend the `ArtifactsArchiveMetadata` schema to include a new `dynamicLibrary` case in the `ArtifactType` enum.
 
 ```diff
 public enum ArtifactType: String, RawRepresentable, Decodable {
     case executable
-+   case library
++   case dynamicLibrary
     case swiftSDK
 }
 ```
@@ -106,7 +106,7 @@ Below is an example of an `info.json` file for an Artifact Bundle containing a s
     "schemaVersion": "1.2",
     "artifacts": {
         "MyLibrary": {
-            "type": "library",
+            "type": "dynamicLibrary",
             "version": "1.0.0",
             "variants": [{ "path": "MyLibrary" }]
         }
@@ -155,6 +155,6 @@ We also don’t see much value in this feature, as you would probably package an
 
 One benefit of merging bundles would be that it reduces the number of checksums you need to keep track of, but we expect that most organizations will have a very small number of supported environments, with new environments continously phasing out old environments.
 
-### Using a different `ArtifactType` name besides `library`
+### Using a different `ArtifactType` name besides `dynamicLibrary`
 
 We intentionally preserved the structure of the `variants` list in the `info.json` file, despite imposing the current restriction of one variant per library, in order to allow this format to be extended in the future to support fully general Dynamic Libraries.
