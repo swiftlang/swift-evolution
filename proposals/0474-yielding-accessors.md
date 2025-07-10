@@ -3,10 +3,10 @@
 * Proposal: [SE-0474](0474-yielding-accessors.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Nate Chandler](https://github.com/nate-chandler), [Joe Groff](https://github.com/jckarter/)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active Review (April 8 ... April 22, 2025)**
+* Status: **Accepted**
 * Vision: [A Prospective Vision for Accessors in Swift](https://github.com/rjmccall/swift-evolution/blob/accessors-vision/visions/accessors.md)
 * Implementation: Partially available on main behind the frontend flag `-enable-experimental-feature CoroutineAccessors`
-* Review: ([pitch 1](https://forums.swift.org/t/modify-accessors/31872)), ([pitch 2](https://forums.swift.org/t/pitch-modify-and-read-accessors/75627)), ([pitch 3](https://forums.swift.org/t/pitch-3-yielding-coroutine-accessors/77956)), ([review](https://forums.swift.org/t/se-0474-yielding-accessors/79170))
+* Review: ([pitch 1](https://forums.swift.org/t/modify-accessors/31872)), ([pitch 2](https://forums.swift.org/t/pitch-modify-and-read-accessors/75627)), ([pitch 3](https://forums.swift.org/t/pitch-3-yielding-coroutine-accessors/77956)), ([review](https://forums.swift.org/t/se-0474-yielding-accessors/79170)), [Acceptance](https://forums.swift.org/t/accepted-se-0474-yielding-accessors/80273)
 
 ## Introduction
 
@@ -220,7 +220,7 @@ To fulfill such a requirement, the conformance must provide a getter, meaning it
 In practical terms, this means that the requirement cannot be witnessed by a stored property or a `yielding borrow` accessor when the result is of noncopyable type,[^2] since the storage of a stored property is owned by the containing aggregate and the result of a `yielding borrow` is owned by the suspended coroutine, and it would be necessary to copy to provide ownership to the caller.
 However, if the type of the `get` requirement is copyable, the compiler can synthesize the getter from the other accessor kinds by introducing copies as necessary.
 
-[^2]: While the compiler does currently accept such code currently, it does so by interpreting that `get` as a `yielding borrow`, which is a bug.
+[^2]: While the compiler does currently accept such code, it does so by interpreting that `get` as a `yielding borrow`, which is a bug.
 
 ### `yielding mutate`<a name="design-modify"/>
 

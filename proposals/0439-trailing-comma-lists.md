@@ -43,7 +43,7 @@ let subsequences = numbers.split(
 
 ### The Language Evolved
 
-Back in 2016, a similar [proposal](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0084-trailing-commas.md) with a narrower scope was reviewed and rejected for Swift 3. Since that time, the language has evolved substantially that challenges the basis for rejection. The code style that "puts the terminating right parenthesis on a line following the arguments to that call" has been widely adopted by community, Swift standard library codebase, swift-format, docc documentation and Xcode. Therefore, not encouraging or endorsing this code style doesn't hold true anymore.
+Back in 2016, a similar [proposal](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0084-trailing-commas.md) with a narrower scope was reviewed and rejected for Swift 3. Since that time, the language has evolved substantially that challenges the basis for rejection. The code style that "puts the terminating right parenthesis on a line following the arguments to that call" has been widely adopted by community, Swift standard library codebase, swift-format, DocC documentation and Xcode. Therefore, not encouraging or endorsing this code style doesn't hold true anymore.
 
 The language has also seen the introduction of [parameter packs](https://github.com/apple/swift-evolution/blob/main/proposals/0393-parameter-packs.md), which enables APIs that are generic over variable numbers of type parameters, and code generation tools like plugins and macros that, with trailing comma support, wouldn't have to worry about a special condition for the last element when generating comma-separated lists.
 
@@ -267,16 +267,7 @@ if
 
 This particular case can be handled but, given how complex conditions can be, it's hard to conclude that there's absolutely no corner case where ambiguity can arise in currently valid code.
 
-Inheritance lists and generic `where` clauses can appear in protocol definitons where there's no clear delimiter, making it harder to disambiguate where the list ends.
-
-```swift
-protocol Foo {
-  associatedtype T:
-      P1,
-      P2, ❌ Expected type
-  ...
-}
-```
+Inheritance lists and generic `where` clauses can appear in protocol definitions where there's no clear delimiter, making it harder to disambiguate where the list ends.
 
 ```swift
 protocol Foo {

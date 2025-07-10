@@ -3,9 +3,9 @@
 * Proposal: [SE-0456](0456-stdlib-span-properties.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.2)**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
-* Implementation: [PR #78561](https://github.com/swiftlang/swift/pull/78561)
+* Implementation: [swift PR #78561](https://github.com/swiftlang/swift/pull/78561), [swift PR #80116](https://github.com/swiftlang/swift/pull/80116), [swift-foundation PR#1276](https://github.com/swiftlang/swift-foundation/pull/1276)
 * Review: ([pitch](https://forums.swift.org/t/76138)) ([review](https://forums.swift.org/t/se-0456-add-span-providing-properties-to-standard-library-types/77233)) ([acceptance](https://forums.swift.org/t/77684))
 
 [SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
