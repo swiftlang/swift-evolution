@@ -508,15 +508,29 @@ the handler encounters an error.
 
 The closure parameter of `compactMapIssues(_:)` currently has one parameter of
 type `Issue` and returns an optional `Issue?` to support returning `nil` in
-order to suppress an issue. This closure could instead have a `Void` return type
-and its parameter could be `inout`, and this would mean that use cases that
-involve modifying an issue would not need to first copy the issue to a variable
-(`var`) before modifying it.
+order to suppress an issue. If an issue handler wants to modify an issue, it
+first needs to copy it to a mutable variable (`var`), mutate it, then return the
+modified copy. These copy and return steps require extra lines of code within
+the closure, and they could be eliminated if the parameter was declared `inout`.
 
-However, in order to _suppress_ an issue, the parameter would also need to
-become optional (`inout Issue?`) and this would mean that all usages would first
-need to be unwrapped. This feels non-ergonomic, and would differ from the
-standard library's typical pattern for `compactMap` functions.
+The most straightforward way to achieve this would be for the closure to instead
+have a `Void` return type and for its parameter to become `inout`. However, in
+order to _suppress_ an issue, the parameter would also need to become optional
+(`inout Issue?`) and this would mean that all usages would first need to be
+unwrapped. This feels non-ergonomic, and would differ from the standard
+library's typical pattern for `compactMap` functions.
+
+Another way to achieve this ([suggested](https://forums.swift.org/t/st-0011-issue-handling-traits/80644/3)
+by [@Val](https://forums.swift.org/u/Val) during proposal review) could be to
+declare the return type of the closure `Void?` and the parameter type
+`inout Issue` (non-optional). This alternative would not require unwrapping the
+issue first and would still permit suppressing issues by returning `nil`. It
+could also make one of the alternative names (such as `transformIssues`
+discussed below) more fitting. However, this is a novel API pattern which isn't
+widely used in Swift, and may be confusing to users. There were also concerns
+raised by other reviewers that the language's implicit return for `Void` may not
+be intentionally applied to `Optional<Void>` and that this mechanism could break
+in the future.
 
 ### Alternate names for the static trait functions
 
