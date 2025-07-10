@@ -6,7 +6,8 @@
 * Status: **Active Review (Jun 24 - July 8, 2025)**
 * Implementation: [swiftlang/swift-testing#1080](https://github.com/swiftlang/swift-testing/pull/1080),
   [swiftlang/swift-testing#1121](https://github.com/swiftlang/swift-testing/pull/1121),
-  [swiftlang/swift-testing#1136](https://github.com/swiftlang/swift-testing/pull/1136)
+  [swiftlang/swift-testing#1136](https://github.com/swiftlang/swift-testing/pull/1136),
+  [swiftlang/swift-testing#1198](https://github.com/swiftlang/swift-testing/pull/1198)
 * Review: ([pitch](https://forums.swift.org/t/pitch-issue-handling-traits/80019)) ([review](https://forums.swift.org/t/st-0011-issue-handling-traits/80644))
 
 ## Introduction
@@ -303,13 +304,15 @@ Issue handling traits are applied to a test by a user, and are only intended for
 handling issues recorded by tests written by the user. If an issue is recorded
 by the testing library itself or the underlying system, not due to a failure
 within the tests being run, such an issue will not be passed to an issue
-handling trait.
+handling trait. Similarly, an issue handling trait should not return an issue
+which represents a problem they could not have caused in their test.
 
 Concretely, this policy means that issues for which the value of the `kind`
 property is `.system` will not be passed to the closure of an issue handling
-trait. Similarly, it is not supported for a closure passed to
+trait. Also, it is not supported for a closure passed to
 `compactMapIssues(_:)` to return an issue for which the value of `kind` is
-`.system`.
+either `.system` or `.apiMisused` (unless the passed-in issue had that kind,
+which should only be possible for `.apiMisused`).
 
 ## Detailed design
 
@@ -507,15 +510,29 @@ the handler encounters an error.
 
 The closure parameter of `compactMapIssues(_:)` currently has one parameter of
 type `Issue` and returns an optional `Issue?` to support returning `nil` in
-order to suppress an issue. This closure could instead have a `Void` return type
-and its parameter could be `inout`, and this would mean that use cases that
-involve modifying an issue would not need to first copy the issue to a variable
-(`var`) before modifying it.
+order to suppress an issue. If an issue handler wants to modify an issue, it
+first needs to copy it to a mutable variable (`var`), mutate it, then return the
+modified copy. These copy and return steps require extra lines of code within
+the closure, and they could be eliminated if the parameter was declared `inout`.
 
-However, in order to _suppress_ an issue, the parameter would also need to
-become optional (`inout Issue?`) and this would mean that all usages would first
-need to be unwrapped. This feels non-ergonomic, and would differ from the
-standard library's typical pattern for `compactMap` functions.
+The most straightforward way to achieve this would be for the closure to instead
+have a `Void` return type and for its parameter to become `inout`. However, in
+order to _suppress_ an issue, the parameter would also need to become optional
+(`inout Issue?`) and this would mean that all usages would first need to be
+unwrapped. This feels non-ergonomic, and would differ from the standard
+library's typical pattern for `compactMap` functions.
+
+Another way to achieve this ([suggested](https://forums.swift.org/t/st-0011-issue-handling-traits/80644/3)
+by [@Val](https://forums.swift.org/u/Val) during proposal review) could be to
+declare the return type of the closure `Void?` and the parameter type
+`inout Issue` (non-optional). This alternative would not require unwrapping the
+issue first and would still permit suppressing issues by returning `nil`. It
+could also make one of the alternative names (such as `transformIssues`
+discussed below) more fitting. However, this is a novel API pattern which isn't
+widely used in Swift, and may be confusing to users. There were also concerns
+raised by other reviewers that the language's implicit return for `Void` may not
+be intentionally applied to `Optional<Void>` and that this mechanism could break
+in the future.
 
 ### Alternate names for the static trait functions
 
