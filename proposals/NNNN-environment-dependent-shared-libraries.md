@@ -1,21 +1,21 @@
-# Environment Dependent Shared Libraries
+# Environment Constrained Shared Libraries
 
-* Proposal: [SE-NNNN](NNNN-environment-dependent-shared-libraries.md)
+* Proposal: [SE-NNNN](NNNN-environment-constrained-shared-libraries.md)
 * Authors: [tayloraswift](https://github.com/tayloraswift)
 * Review Manager: TBD
 * Implementation: [swiftlang/swift-package-manager#8249](https://github.com/swiftlang/swift-package-manager/pull/8249)
-* Documentation: [How to use Environment-Dependent Shared Libraries](https://github.com/swiftlang/swift-package-manager/blob/b586467575580f2365e8f5a29c949379724db795/Documentation/EDSLs.md)
+* Documentation: [How to use Environment-Constrained Shared Libraries](https://github.com/swiftlang/swift-package-manager/blob/b586467575580f2365e8f5a29c949379724db795/Documentation/ECSLs.md)
 * Bugs: [SR-5714](https://github.com/swiftlang/swift-package-manager/issues/5714)
 
 ## Introduction
 
-SwiftPM currently has no support for non-system binary library dependencies on Linux. This proposal adds support for **Environment Dependent Shared Libraries**, which are a type of dynamic library that is shared across a fleet of machines and can be upgraded without recompiling and redeploying all applications running on those machines. We will distribute Environment Dependent Shared Libraries through the existing `.artifactbundle` format.
+SwiftPM currently has no support for non-system binary library dependencies on Linux. This proposal adds support for **Environment Constrained Shared Libraries**, which are a type of dynamic library that is shared across a fleet of machines and can be upgraded without recompiling and redeploying all applications running on those machines. We will distribute Environment Constrained Shared Libraries through the existing `.artifactbundle` format.
 
 Swift-evolution thread: [Discussion thread](https://forums.swift.org/t/pitch-replaceable-library-plugins/77605)
 
-Example Producer: [swift-edsl-example](https://github.com/tayloraswift/swift-edsl-example)
+Example Producer: [swift-ECSL-example](https://github.com/tayloraswift/swift-ECSL-example)
 
-Example Consumer: [swift-edsl-example-client](https://github.com/tayloraswift/swift-edsl-example-client)
+Example Consumer: [swift-ECSL-example-client](https://github.com/tayloraswift/swift-ECSL-example-client)
 
 ## Motivation
 
@@ -30,51 +30,54 @@ While macOS has Dynamic Library support through XCFrameworks, on Linux we curren
 
 On Linux, there are a lot of obstacles to having fully general support for Dynamic Libraries. Swift is not ABI stable on Linux, and Linux itself is not a single platform but a wide range of similar platforms that provide few binary compatibility guarantees. This means it is pretty much impossible for a public Swift library to vend precompiled binaries that will Just Work for everyone, and we are not going to try to solve that problem in this proposal.
 
-Instead, we will focus on **Environment Dependent Shared Libraries** (EDSLs). We choose this term to emphasize the distinction between our use case and fully general Dynamic Libraries.
+Instead, we will focus on **Environment Constrained Shared Libraries** (ECSLs). We choose this term to emphasize the distinction between our use case and fully general Dynamic Libraries.
 
-### Organization-Defined Platforms (ODPs)
+### Target environment
 
-Unlike fully general Dynamic Libraries, you would distribute Environment Dependent Shared Libraries strictly for internal consumption within an organization, or to a small set of paying clients.
+Unlike fully general Dynamic Libraries, you would distribute Environment Constrained Shared Libraries strictly for controlled consumption within a known environment, such as a fleet of servers maintained by a single organization.
 
-The organization that distributes an EDSL is responsible for defining what exactly constitutes a “platform” for their purposes. An Organization-Defined Platform (ODP) is not necessarily an operating system or architecture, or even a specific distribution of an operating system. A trivial example of two ODPs might be:
+ECSLs are an advanced tool, and maintaining the prerequisite environment to deploy them safely is neither trivial nor recommended for most users.
 
-1. Ubuntu 24.04 with the Swift 6.0.3 runtime installed at `/home/ubuntu/swift`
-2. Ubuntu 24.04 with the Swift 6.0.3 runtime installed at `/home/ubuntu/swift-runtime`
+The organization that distributes an ECSL is responsible for defining what exactly constitutes a “platform” for their purposes. An organization-defined platform is not necessarily an operating system or architecture, or even a specific distribution of an operating system. A trivial example of two such platforms might be:
 
-Concepts like Platform Triples are not sufficient to describe an ODP. Even though both ODPs above would probably share the Triple `aarch64-unknown-linux-gnu`, Swift code compiled (without `--static-swift-stdlib`) for one would never be able to run on the other.
+1. Ubuntu 24.04 with the Swift 6.1.2 runtime installed at `/home/ubuntu/swift`
+2. Ubuntu 24.04 with the Swift 6.1.2 runtime installed at `/home/ubuntu/swift-runtime`
 
-Organizations add and remove ODPs as needed, and trying to define a global registry of all possible ODPs is a non-goal.
+Concepts like Platform Triples are not sufficient to describe an ECSL deployment target. Even though both “platforms” above would probably share the Triple `aarch64-unknown-linux-gnu`, Swift code compiled (without `--static-swift-stdlib`) for one would never be able to run on the other.
 
-To keep things simple, we identify ODPs by the URL of the Artifact Bundle that contains the EDSL.
+Organizations will add and remove environments as needed, and trying to define a global registry of all possible environments is a non-goal.
 
-### Creating EDSLs
+The proposed ECSL distribution format does not support shipping multiple variants of ECSLs targeting multiple environments in the same Artifact Bundle, nor does it specify a standardized means for identifying the environment in which a particular ECSL is intended to execute in.
+Users are responsible for computing the correct URL of the Artifact Bundle for the environment they are building for, possibly within the package manifest. Swift tooling will not, on its own, diagnose or prevent the installation of an incompatible ECSL.
 
-To compile an EDSL, you just need to build an ordinary SwiftPM library product with the `-enable-library-evolution` flag. This requires no modifications to SwiftPM.
+### Creating ECSLs
 
-You would package an EDSL as an `.artifactbundle` just as you would an executable, with the following differences:
+To compile an ECSL, you just need to build an ordinary SwiftPM library product with the `-enable-library-evolution` flag. This requires no modifications to SwiftPM.
+
+You would package an ECSL as an `.artifactbundle` just as you would an executable, with the following differences:
 
 -   The `info.json` must have `schemaVersion` set to `1.2` or higher.
 -   The artifact type must be `library`, a new enum case introduced in this proposal.
 -   The artifact must have exactly one variant in the `variants` list, and the `supportedTriples` field is forbidden.
 -   The artifact payload must include the `.swiftinterface` file corresponding to the actual library object.
 
-Because SwiftPM is not (and cannot be) aware of a particular organization’s ODPs, this enforces the requirement that each ODP must have its own Artifact Bundle.
+Because SwiftPM is not (and cannot be) aware of a particular organization’s set of deployment environments, this enforces the requirement that each environment must have its own Artifact Bundle.
 
-The organization that distributes the EDSL is responsible for upholding ABI stability guarantees, including the exact Swift compiler and runtime versions needed to safely consume the EDSL.
-
-
-### Consuming EDSLs
-
-To consume an EDSL, you would add a `binaryTarget` to your `Package.swift` manifest, just as you would for an executable. Because ODPs are identified by the URL of the Artifact Bundle, there are no new fields in the `PackageDescription` API.
-
-We expect that the logic for selecting the correct EDSL for a given ODP would live within the `Package.swift` file, that it would be highly organization-specific, and that it would be manipulated using existing means such as environment variables.
+The organization that distributes the ECSL is responsible for upholding ABI stability guarantees, including the exact Swift compiler and runtime versions needed to safely consume the ECSL.
 
 
-### Deploying EDSLs
+### Consuming ECSLs
 
-Deploying EDSLs does not involve SwiftPM or Artifact Bundles at all. You would deploy an EDSL by copying the latest binaries to the appropriate `@rpath` location on each machine in your fleet. The `@rpath` location is part of the ODP definition, and is not modeled by SwiftPM.
+To consume an ECSL, you would add a `binaryTarget` to your `Package.swift` manifest, just as you would for an executable. Because organizations are responsible for defining their set of supported environments, they are also responsible for defining the URLs that the Artifact Bundles for each environment are hosted under, so there are no new fields in the `PackageDescription` API.
 
-Some organizations might choose to forgo the `@rpath` mechanism entirely and simply install the EDSLs in a system-wide location.
+We expect that the logic for selecting the correct ECSL for a given environment would live within the `Package.swift` file, that it would be highly organization-specific, and that it would be manipulated using existing means such as environment variables.
+
+
+### Deploying ECSLs
+
+Deploying ECSLs does not involve SwiftPM or Artifact Bundles at all. You would deploy an ECSL by copying the latest binaries to the appropriate `@rpath` location on each machine in your fleet. The `@rpath` location is part of the organization-specific environment definition, and is not modeled by SwiftPM.
+
+Some organizations might choose to forgo the `@rpath` mechanism entirely and simply install the ECSLs in a system-wide location.
 
 
 ## Detailed design
@@ -111,7 +114,7 @@ Below is an example of an `info.json` file for an Artifact Bundle containing a s
 }
 ```
 
-The artifact must have exactly one variant in the `variants` list, and the `supportedTriples` field is forbidden. An EDSL Artifact Bundle can contain multiple libraries at the top level.
+The artifact must have exactly one variant in the `variants` list, and the `supportedTriples` field is forbidden. An ECSL Artifact Bundle can contain multiple libraries at the top level.
 
 Below is an example of the layout of an Artifact Bundle containing a single library called `MyLibrary`. Only the `info.json` must appear at the root of the Artifact Bundle; all other files can appear at whatever paths are defined in the `info.json`, as long as they are within the Artifact Bundle.
 
@@ -123,12 +126,12 @@ Below is an example of the layout of an Artifact Bundle containing a single libr
     📝 info.json
 ```
 
-A macOS Artifact Bundle would contain a `.dylib` instead of a `.so`. EDSLs will be supported on macOS, although we expect this will be an exceedingly rare use case.
+A macOS Artifact Bundle would contain a `.dylib` instead of a `.so`. ECSLs will be supported on macOS, although we expect this will be an exceedingly rare use case.
 
 
 ## Security
 
-EDSLs are not intended for public distribution, and are not subject to the same security concerns as public libraries. Organizations that distribute EDSLs are responsible for ensuring that the EDSLs are safe to consume.
+ECSLs are not intended for public distribution, and are not subject to the same security concerns as public libraries. Organizations that distribute ECSLs are responsible for ensuring that the ECSLs are safe to consume.
 
 
 ## Impact on existing packages
@@ -138,19 +141,19 @@ There will be no impact on existing packages. All Artifact Bundle schema changes
 
 ## Alternatives considered
 
-### Extending Platform Triples to model ODPs
+### Extending Platform Triples to model deployment targets
 
 SwiftPM currently uses Platform Triples to select among artifact variants when consuming executables. This is workable because it is usually feasible to build executables that are portable across the range of platforms encompassed by a single Platform Triple.
 
-We could extend Platform Triples to model ODPs, but this would privilege a narrow set of predefined deployment architectures, and if you wanted to add a new ODP, you would have to modify SwiftPM to teach it to recognize the new ODP.
+We could extend Platform Triples to model ECSL deployment targets, but this would privilege a narrow set of predefined deployment architectures, and if you wanted to add a new environment, you would have to modify SwiftPM to teach it to recognize the new environment.
 
-### Supporting multiple variants of an EDSL in the same Artifact Bundle
+### Supporting multiple variants of an ECSL in the same Artifact Bundle
 
-We could allow an Artifact Bundle to contain multiple variants of an EDSL, but we would still need to support a way to identify those variants, which in practice makes SwiftPM aware of ODPs.
+We could allow an Artifact Bundle to contain multiple variants of an ECSL, but we would still need to support a way to identify those variants, which in practice forces SwiftPM to become aware of organization-defined environments.
 
-We also don’t see much value in this feature, as you would probably package and upload EDSLs using one CI/CD workflow per ODP anyway. Combining artifacts would require some kind of synchronization mechanism to await all pipelines before fetching and merging bundles.
+We also don’t see much value in this feature, as you would probably package and upload ECSLs using one CI/CD workflow per environment anyway. Combining artifacts would require some kind of synchronization mechanism to await all pipelines before fetching and merging bundles.
 
-One benefit of merging bundles would be that it reduces the number of checksums you need to keep track of, but we expect that most organizations will have a very small number of ODPs, with new ODPs continously phasing out old ODPs.
+One benefit of merging bundles would be that it reduces the number of checksums you need to keep track of, but we expect that most organizations will have a very small number of supported environments, with new environments continously phasing out old environments.
 
 ### Using a different `ArtifactType` name besides `library`
 
