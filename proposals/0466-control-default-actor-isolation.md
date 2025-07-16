@@ -87,6 +87,21 @@ class C {
 
   // @MainActor
   static var value = 10
+
+  nonisolated func f() {
+    // nonisolated
+    struct Nested {
+      // ...
+    }
+  }
+}
+
+nonisolated extension C {
+  // nonisolated
+  func g() { }
+
+  // nonisolated
+  struct NestedInExtension { }
 }
 
 @globalActor
