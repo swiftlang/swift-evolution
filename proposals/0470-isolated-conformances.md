@@ -3,11 +3,11 @@
 * Proposal: [SE-0470](0470-isolated-conformances.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Active review (July 8...15, 2025)**
+* Status: **Implemented (Swift 6.2)**
 * Vision: [Improving the approachability of data-race safety](https://github.com/swiftlang/swift-evolution/blob/main/visions/approachable-concurrency.md)
 * Implementation: On `main` with the experimental features `IsolatedConformances` and `StrictSendableMetatypes`.
 * Upcoming Feature Flag: `InferIsolatedConformances`
-* Review: ([pitch](https://forums.swift.org/t/pre-pitch-isolated-conformances/77726)) ([review](https://forums.swift.org/t/se-0470-global-actor-isolated-conformances/78704)) ([acceptance](https://forums.swift.org/t/accepted-se-0470-global-actor-isolated-conformances/79189)) ([amendment pitch](https://forums.swift.org/t/pitch-amend-se-0466-se-0470-to-improve-isolation-inference/79854)) ([amendment review](https://forums.swift.org/t/amendment-se-0470-global-actor-isolated-conformances/80999))
+* Review: ([pitch](https://forums.swift.org/t/pre-pitch-isolated-conformances/77726)) ([review](https://forums.swift.org/t/se-0470-global-actor-isolated-conformances/78704)) ([acceptance](https://forums.swift.org/t/accepted-se-0470-global-actor-isolated-conformances/79189)) ([amendment pitch](https://forums.swift.org/t/pitch-amend-se-0466-se-0470-to-improve-isolation-inference/79854)) ([amendment review](https://forums.swift.org/t/amendment-se-0470-global-actor-isolated-conformances/80999)) ([amendment acceptance](https://forums.swift.org/t/amendment-accepted-se-0470-global-actor-isolated-conformances/81144))
 
 ## Introduction
 
