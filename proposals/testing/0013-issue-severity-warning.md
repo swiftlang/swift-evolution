@@ -77,11 +77,11 @@ Issue.record("My comment", severity: .warning)
 Here is the `Issue.record` method definition with severity as a parameter.
 
 ```swift
-  /// Record an issue when a running test fails unexpectedly.
+  /// Record an issue when a running test and an issue occurs.
   ///
   /// - Parameters:
   ///   - comment: A comment describing the expectation.
-  ///   - severity: The severity of the issue.
+  ///   - severity: The severity level of the issue.  This factor impacts whether the issue constitutes a failure.  
   ///   - sourceLocation: The source location to which the issue should be
   ///     attributed.
   ///
@@ -117,7 +117,7 @@ public var severity: Severity { get set }
 
 ```
 
-- `isFailure`: A boolean property to determine if an issue results in a test failure, thereby helping in result aggregation and reporting.
+- `isFailure`: A boolean computed property to determine if an issue results in a test failure, thereby helping in result aggregation and reporting.
 
 ```swift
 extension Issue {
@@ -154,7 +154,7 @@ This revision aims to clarify the functionality and usage of the `Severity` enum
 
 ### Integration with supporting tools
 
-Issue severity will be in the event stream output when a `issueRecorded` event occurs. This will be a breaking change because some tools may assume that all `issueRecorded` events are failing. Due to this we will be bumping the event stream version and v1 will maintain it's behavior and not output any events for non failing issues. We will also be adding `isFailure` to the issue so that clients will know if the issue should be treated as a failure.
+Issue severity will be in the event stream output when a `issueRecorded` event occurs. This will be a breaking change because some tools may assume that all `issueRecorded` events are failing. Due to this we will be bumping the event stream version and v1 will maintain it's behavior and not output any events for non failing issues. We will also be adding `isFailure` to the issue so that clients will know if the issue should be treated as a failure.  `isFailure` is a computed property.
 
 The JSON event stream ABI will be amended correspondingly:
 
