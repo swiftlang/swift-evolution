@@ -121,7 +121,7 @@ Platforms that are in Tier 1 should:
 
 - [ ] Have testing in CI, including PR testing.
 
-- [ ] Ship SDKs as regular release from [swift.org](https://swift.org)
+- [ ] Ship Swift SDKs as regular release from [swift.org](https://swift.org)
 
 - [ ] Ensure that instructions needed to get started on the platform
       are publicly available, ideally on or linked to from
@@ -182,7 +182,7 @@ represent Swift's expanding frontier.
 
 Platforms in this tier should:
 
-- [ ] Ensure that dependencies beyond the platform SDK can build from source.
+- [ ] Ensure that dependencies beyond the platform Swift SDK can build from source.
 
 - [ ] Provide provenance information to validate the software supply chain.
 
