@@ -217,6 +217,25 @@ confirmation doesn't pass:
 public struct PollingFailedError: Error, Sendable, CustomIssueRepresentable {}
 ```
 
+### New `Issue.Kind` case
+
+A new issue kind will be added to report specifically when a test fails due to
+a failed polling confirmation.
+
+```swift
+public struct Issue {
+  public enum Kind {
+    /// An issue due to a polling confirmation having failed.
+    ///
+    /// This issue can occur when calling ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-455gr``
+    /// or
+    /// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-5tnlk``
+    /// whenever the polling fails, as described in ``PollingStopCondition``.
+    case pollingConfirmationFailed
+  }
+}
+```
+
 ### New Traits
 
 Two new traits will be added to change the default values for the
@@ -459,6 +478,16 @@ in concurrent testing environments, it is extremely difficult for test authors
 to predict a good-enough polling iterations value. Most test authors will think
 in terms of a duration, and we would expect nearly all test authors to
 add helpers to compute a polling iteration for them.
+
+### Take in a `Clock` instance
+
+Polling confirmations could take in and use an custom Clock by test authors.
+This is not supported because Polling is often used to wait out other delays,
+which may or may not use the specified Clock. By staying with the default
+continuous clock, Polling confirmations will continue to work even if a test
+author otherwise uses a non-standard clock, such as one that skips all sleep
+calls, or a clock that allows test authors to specifically control how it
+advances.
 
 ### Use macros instead of functions
 
