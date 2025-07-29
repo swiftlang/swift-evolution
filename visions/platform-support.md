@@ -264,10 +264,10 @@ about official platform support.
 The same process should be used to request a promotion to a higher
 tier.
 
-## Grandfathering and Demotion
+## Existing Platforms and Demotion
 
-The following platforms are grandfathered into Tier 1 regardless of
-any text in this document:
+The following existing platforms are in Tier 1 regardless of any
+text in this document:
 
 - All Apple platforms (macOS, iOS and so on).
 - Linux
