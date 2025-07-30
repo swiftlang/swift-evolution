@@ -476,14 +476,15 @@ interfaces that use the feature.
 
 ### Special syntax for the current module
 
-We could allow a special token to be used in place of the module name to
-force a lookup to start at the top level, but not restrict it to a specific
-module. Candidates include:
+We could allow a special token, or no token, to be used in place of the module
+name to force a lookup to start at the top level, but not restrict it to a
+specific module. Candidates include:
 
 ```swift
 Self::ignite()
 _::ignite()
 *::ignite()
+::ignite()
 ```
 
 These syntaxes have all been intentionally kept invalid (a module named `Self`,
@@ -548,7 +549,13 @@ However, allowing a protocol name—rather than a module name—to be written
 before the `::` token re-introduces the same ambiguity this proposal seeks
 to solve because a protocol name could accidentally shadow a module name.
 We'll probably need a different feature with a distinct syntax to resolve
-this use case.
+this use case—perhaps something like:
+
+```swift
+if myTechnician.isGoofingOff {
+    (myTechnician as some Employable).fire()
+}
+```
 
 ### Support selecting default implementations
 
@@ -625,9 +632,13 @@ Mission.NASA::Booster.Exhaust    // Looks like it means `(Mission.NASA) :: (Boos
                                  //  but actually means `Mission . (NASA::Booster) . Exhaust` 
 ```
 
+This is not unprecedented—in C++, `myObject.MyClass::myMember` means
+`(myObject) . (MyClass::myMember)`—but it's awkward for developers without
+a background in a language that works like this.
+
 We rejected a number of alternatives that would avoid this problem.
 
-#### Making module selectors qualify the rightmost name
+#### Make module selectors qualify different names
 
 One alternative would be to have the module selector qualify the *rightmost*
 name in the member chain, rather than the leftmost, so that a module selector
@@ -650,6 +661,13 @@ We don't favor this design because we believe:
 
 3. Subjectively, it's just *weird* that the selector applies to a name that's a
    considerable distance from it, rather than the name immediately adjacent.
+
+A closely related alternative would be to have the module selector qualify
+*all* names in the member chain, so that in `(NASA::Mission.Booster).Exhaust`,
+both `Mission` and `Booster` must be in module `NASA`. We think point #1 from
+the list above applies to this design too: `Mission` is a sparse enough
+namespace that developers are more likely to be hindered by `Booster` being
+qualified by the `NASA` module than helped by it.
 
 #### Use a totally different spelling
 
