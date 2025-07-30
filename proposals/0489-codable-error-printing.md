@@ -3,9 +3,9 @@
 * Proposal: [SE-0489](0489-codable-error-printing.md)
 * Authors: [Zev Eisenberg](https://github.com/ZevEisenberg)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Active review (July 9...22, 2025)**
+* Status: **Accepted**
 * Implementation: https://github.com/swiftlang/swift/pull/80941
-* Review: ([pitch](https://forums.swift.org/t/pitch-improve-encodingerror-and-decodingerror-s-printed-descriptions/79872)) ([review](https://forums.swift.org/t/se-0489-improve-encodingerror-and-decodingerrors-printed-descriptions/81021))
+* Review: ([pitch](https://forums.swift.org/t/pitch-improve-encodingerror-and-decodingerror-s-printed-descriptions/79872)) ([review](https://forums.swift.org/t/se-0489-improve-encodingerror-and-decodingerrors-printed-descriptions/81021)) ([acceptance](https://forums.swift.org/t/accepted-se-0489-improve-encodingerror-and-decodingerrors-printed-descriptions/81380))
 
 ## Introduction
 
@@ -71,19 +71,13 @@ However, it is not easy or pleasant to read such an error, particularly when dea
 
 ## Proposed solution
 
-Conform `EncodingError` and `DecodingError` to `CustomDebugStringConvertible` and provide a clean, readable debug description for each. Here is an example of the proposed change for the same decoding error as above.
-
-```
-Key 'population' not found in keyed decoding container.
-Debug description: No value associated with key CodingKeys(stringValue: "population", intValue: nil) ("population").
-Path: [0]/home/country
-```
+Conform `EncodingError` and `DecodingError` to `CustomDebugStringConvertible` and provide a clean, readable debug description for each.
 
 Complete examples of the before/after diffs are available in the description of the [implementation pull request](https://github.com/swiftlang/swift/pull/80941) that accompanies this proposal.
 
-**Note 1:** this proposal is _not_ intended to specify an exact output format. The above is provided as an example, and is not a guarantee of current or future behavior. You are still free to inspect the contents of thrown errors directly if you need to detect specific problems.
+**Note 1:** This proposal is _not_ intended to specify an exact output format, and any examples are not a guarantee of current or future behavior. You are still free to inspect the contents of thrown errors directly if you need to detect specific problems.
 
-**Note 2:** the output could be further improved by modifying `JSONDecoder` to write a better debug description. See [Future Directions](#future-directions) for more.
+**Note 2:** The output could be further improved by modifying `JSONDecoder` to write a better debug description. See [Future Directions](#future-directions) for more.
 
 ## Detailed design
 
@@ -127,7 +121,7 @@ It is technically possible to backdeploy the `debugDescription` property, but wi
 
 ### Better error generation from Foundation encoders/decoders
 
-The debug descriptions generated in Foundation sometimes contain the same information as the new debug descriptions from this proposal. A future change to the standard JSON and Plist encoders and decoders could provide more compact debug descriptions once they can be sure they have the new standard library descriptions available. They could also use a more compact description when rendering the description of a `CodingKey`. Using part of the example from above:
+The debug descriptions generated in Foundation sometimes contain the same information as the new debug descriptions from this proposal. A future change to the standard JSON and Plist encoders and decoders could provide more compact debug descriptions once they can be sure they have the new standard library descriptions available. They could also use a more compact description when rendering the description of a `CodingKey`. Take, for example:
 
 ```
 Debug description: No value associated with key CodingKeys(stringValue: "population", intValue: nil) ("population").
