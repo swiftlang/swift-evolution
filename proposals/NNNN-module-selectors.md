@@ -316,6 +316,9 @@ module selector and identifier instead of an import path:
 > *import-declaration* → *attributes?* `import` *import-kind?* *import-path*<br>
 > ***import-declaration* → *attributes?* `import` *import-kind* *module-selector* *identifier***
 
+Note that this new *import-declaration* production does not allow a submodule
+to be specified.
+
 ### Parsing details
 
 The *identifier* in a *module-selector* must be classified as an identifier
@@ -325,6 +328,17 @@ be misclassified. Dollar-sign-prefixed identifiers are not supported.
 
 The `::` token may have whitespace on either, both, or neither sides without
 affecting how the code is parsed.
+
+The token *after* a module selector is interpreted like a member reference:
+keywords which would not have a special meaning in that position are
+automatically treated as identifiers, even if they are not surrounded by
+backticks. (Compare to [SE-0071 Allow (most) keywords in member references](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0071-member-keywords.md).)
+
+```swift
+print(default)          // Invalid; 'default' is a keyword and needs backticks
+print(NASA.default)     // OK under SE-0071
+print(NASA::default)    // OK under this proposal
+```
 
 #### Syntaxes reserved for future directions
 
@@ -650,4 +664,35 @@ Mission.'NASA.Booster.Exhaust            // Older compilers would mis-lex in ina
 Mission.NASA'Booster.Exhaust             //           "
 Mission.(NASA)Booster.Exhaust            // Arbitrary; little connection to prior art
 Mission.'NASA'.Booster.Exhaust           //           "    
+```
+
+### Restrict whitespace to the right of the `::`
+
+Allowing a newline between `::` and the identifier following it means that
+something that was meant to be a statement-introducing keyword might be 
+misunderstood as an identifier instead. For instance:
+
+```
+let x = NASA::
+do { ... }
+
+// Interpreted as `let x = NASA::do() { ... }`
+``` 
+
+Swift prevents this kind of problem from happening with the member-lookup `.`
+operator by making it whitespace sensitive: a newline is allowed before the
+`.`, but not after it. We could impose a similar rule on `::`, but we have
+chosen not to because when developers need to break up a line with a `::`, we
+aren't certain that they would prefer the style it would still allow:
+
+```swift
+SuperLongAndComplicatedModuleName
+  ::superLongAndComplicatedFunctionName()
+```
+
+Over the one it would forbid:
+
+```swift
+SuperLongAndComplicatedModuleName::
+  superLongAndComplicatedFunctionName()
 ```
