@@ -224,7 +224,7 @@ On an unqualified lookup, a module selector also indicates that lookup should
 start at the top level, skipping over the declarations in contextually-visible
 scopes:
 
-```
+```swift
 // In module NASA
 
 struct Scrubber { ... }
@@ -285,7 +285,7 @@ A module selector has the following grammar:
 
 > *module-selector* → *identifier* `::`
 
-The following productions may now optionally include a module selector:
+The following productions may now optionally include a module selector (changes are in bold):
 
 > *type-identifier* → ***module-selector?*** *type-name* *generic-argument-clause?* | ***module-selector?*** *type-name* *generic-argument-clause?* `.` *type-identifier*
 > 
@@ -326,9 +326,15 @@ be misclassified. Dollar-sign-prefixed identifiers are not supported.
 The `::` token may have whitespace on either, both, or neither sides without
 affecting how the code is parsed.
 
+#### Syntaxes reserved for future directions
+
 It is never valid to write two module selectors in a row; if you want to access
 a declaration which belongs to a clang submodule, you should just write the
 top-level module name in the module selector.
+
+It is never valid to write a keyword, operator, or `_` in place of a module
+name; if a module's name would be mistaken for one of these, it must be
+wrapped in backticks to form an identifier.
 
 #### Attributes
 
@@ -481,9 +487,9 @@ myArray.Swift::[myIndex]
 
 ### Disambiguation for conformances
 
-Retroactive conformances have a similar problem to extension members--the ABI
+Retroactive conformances have a similar problem to extension members—the ABI
 distinguishes between otherwise identical conformances in different modules,
-but the surface syntax has no way to resolve any ambiguity--so a feature which
+but the surface syntax has no way to resolve any ambiguity—so a feature which
 addressed them might be nice. However, there is no visible syntax associated
 with use of a conformance that can be qualified with a module selector, so it's
 difficult to address as part of this proposal.
@@ -524,7 +530,7 @@ if myTechnician.isTooCloseToTheLaunch {
 }
 ```
 
-However, allowing a protocol name--rather than a module name--to be written
+However, allowing a protocol name—rather than a module name—to be written
 before the `::` token re-introduces the same ambiguity this proposal seeks
 to solve because a protocol name could accidentally shadow a module name.
 We'll probably need a different feature with a distinct syntax to resolve
@@ -538,7 +544,7 @@ provides another witness. (This could be used similarly to how `super` is used
 in overrides.) However, this runs into similar problems with reintroducing
 ambiguity, and it also just doesn't quite fit the shape of the syntax (there's
 no name to uniquely identify the default implementation you want). Once again,
-this probably requires a different feature with a distinct syntax--perhaps
+this probably requires a different feature with a distinct syntax—perhaps
 something a little more like how `super` works.
 
 ## Alternatives considered
@@ -586,7 +592,7 @@ a nested type shadowing a top-level type, or a type in one module having the
 same name as a different module). It's also not a very principled rule and
 making it work properly in expressions might complicate the type checker. 
 
-### Syntax involving a special prefix
+### Use a syntax involving a special prefix
 
 We considered creating a special syntax which would indicate unambiguously that
 the next name must be a module name, such as `#Modules.FooKit.bar`. However,
