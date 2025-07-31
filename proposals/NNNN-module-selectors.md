@@ -326,13 +326,27 @@ by the lexer (rather than as a keyword, wildcard, integer literal, or some
 other token). Backticks can be used to escape an identifier that would otherwise
 be misclassified. Dollar-sign-prefixed identifiers are not supported.
 
-The `::` token may have whitespace on either, both, or neither sides without
-affecting how the code is parsed.
+The `::` token may be separated from its *identifier* by any whitespace,
+including newlines.
 
-The token *after* a module selector is interpreted like a member reference:
-keywords which would not have a special meaning in that position are
-automatically treated as identifiers, even if they are not surrounded by
-backticks. (Compare to [SE-0071 Allow (most) keywords in member references](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0071-member-keywords.md).)
+#### Effect on the next token
+
+Much like a member-lookup `.`, the presence of a module selector affects the
+parsing of the token *after* it:
+
+* There must not be any newlines between the `::` and the next token. This
+  restriction aids in recovery when parsing incomplete code.
+
+```swift
+NASA::
+  RocketEngine      // Invalid
+NASA
+  ::RocketEngine    // OK
+```
+
+* If the next token is a keyword, but that keyword does not have any special
+  meaning, it will be treated as an identifier even if it's not surrounded by
+  backticks. (Compare to [SE-0071 Allow (most) keywords in member references](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0071-member-keywords.md).)
 
 ```swift
 print(default)          // Invalid; 'default' is a keyword and needs backticks
@@ -684,33 +698,34 @@ Mission.(NASA)Booster.Exhaust            // Arbitrary; little connection to prio
 Mission.'NASA'.Booster.Exhaust           //           "    
 ```
 
-### Restrict whitespace to the right of the `::`
+### Don't restrict whitespace to the right of the `::`
 
-Allowing a newline between `::` and the identifier following it means that
-something that was meant to be a statement-introducing keyword might be 
-misunderstood as an identifier instead. For instance:
+Allowing a newline between `::` and the identifier following it would mean
+that, when an incomplete line of code ended with a module selector, Swift might
+interpret a keyword on the next line as a variable name, likely causing multiple
+confusing syntax errors in the next statement. For instance:
 
+```swift
+let x = NASA::    // Would be interpreted as `let x = NASA::if x { ... }`,
+if x { ... }      // causing several confusing syntax errors.
 ```
-let x = NASA::
-do { ... }
 
-// Interpreted as `let x = NASA::do() { ... }`
-``` 
+Forbidding it, however, has a cost: it restricts the code styles developers can
+use. If a developer wants to put a line break in the middle of a name with a
+module selector, they will not be able to format it like this:
 
-Swift prevents this kind of problem from happening with the member-lookup `.`
-operator by making it whitespace sensitive: a newline is allowed before the
-`.`, but not after it. We could impose a similar rule on `::`, but we have
-chosen not to because when developers need to break up a line with a `::`, we
-aren't certain that they would prefer the style it would still allow:
+```swift
+SuperLongAndComplicatedModuleName::
+  superLongAndComplicatedFunctionName()
+```
+
+And will have to write it like this instead: 
 
 ```swift
 SuperLongAndComplicatedModuleName
   ::superLongAndComplicatedFunctionName()
 ```
 
-Over the one it would forbid:
-
-```swift
-SuperLongAndComplicatedModuleName::
-  superLongAndComplicatedFunctionName()
-```
+The member-lookup `.` operator has a similar restriction, but developers may
+not want to style them in exactly the same way, particularly since C++
+developers often split a line after a `::`.
