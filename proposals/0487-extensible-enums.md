@@ -1,4 +1,4 @@
-# Nonexhuastive enums
+# Nonexhaustive enums
 
 * Proposal: [SE-0487](0487-extensible-enums.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin), [Franz Busch](https://github.com/FranzBusch), [Cory Benfield](https://github.com/lukasa)
