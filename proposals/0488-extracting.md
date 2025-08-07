@@ -3,7 +3,7 @@
 * Proposal: [SE-0488](0488-extracting.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.2)**
 * Implementation: underscored `_extracting()` members of `Span` and `RawSpan`, pending elsewhere.
 * Review: ([pitch](https://forums.swift.org/t/pitch-apply-the-extracting-slicing-pattern-to-span-and-rawspan/80322)) ([review](https://forums.swift.org/t/se-0488-apply-the-extracting-slicing-pattern-more-widely/80854)) ([acceptance](https://forums.swift.org/t/accepted-se-0488-apply-the-extracting-slicing-pattern-more-widely/81235))
 
