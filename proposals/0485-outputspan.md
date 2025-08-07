@@ -3,7 +3,7 @@
 * Proposal: [SE-0485](0485-outputspan.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.2)** ([Extensions to standard library types](#extensions) pending)
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Implementation: [swiftlang/swift#81637](https://github.com/swiftlang/swift/pull/81637)
 * Review: [Pitch](https://forums.swift.org/t/pitch-outputspan/79473), [Review](https://forums.swift.org/t/se-0485-outputspan-delegate-initialization-of-contiguous-memory/80032), [Acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0485-outputspan-delegate-initialization-of-contiguous-memory/80435)
