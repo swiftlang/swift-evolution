@@ -3,7 +3,7 @@
 * Proposal: [SE-0477](0477-default-interpolation-values.md)
 * Authors: [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Accepted with modifications**
+* Status: **Implemented (Swift 6.2)**
 * Implementation: [swiftlang/swift#80547](https://github.com/swiftlang/swift/pull/80547)
 * Review: ([pitch](https://forums.swift.org/t/pitch-default-values-for-string-interpolations/69381)) ([review](https://forums.swift.org/t/se-0477-default-value-in-string-interpolations/79302)) ([acceptance](https://forums.swift.org/t/accepted-with-modification-se-0477-default-value-in-string-interpolations/79609))
 
