@@ -1,0 +1,47 @@
+# Lines starting with '#' are comments.
+# Each line is a case-sensitive file pattern followed by one or more owners.
+# Order is important. The last matching pattern has the most precedence.
+# More information: https://docs.github.com/en/articles/about-code-owners
+#
+# Please mirror the repository's file hierarchy in case-sensitive lexicographic
+# order.
+
+# .github
+/.github/CODEOWNERS @shahmishal
+
+
+### Evolution process documentation
+
+# The primary Swift Evolution process documentation file.
+/process.md @rjmccall
+
+
+### Vision documents
+
+# The top-level vision documents directory. Approval from the Core Team is
+# required to add new vision documents.
+/visions/ @swiftlang/core-team
+
+# Specific vision documents. Owners typically include the primary author(s) any
+# any relevant steering or workgroups.
+/visions/swift-testing.md @stmontgomery @swiftlang/testing-workgroup
+
+
+### Proposal templates
+
+# The top-level `/proposal-templates` directory. Approval from the Core Team is
+# required to add new proposal templates.
+/proposal-templates/ @swiftlang/core-team
+
+# Specific proposal templates
+/proposal-templates/0000-swift-testing-template.md @swiftlang/testing-workgroup
+
+
+### Proposals
+
+# The top-level `/proposals` directory does not have a designated owner, so its
+# list is empty.
+/proposals
+
+# Swift Testing proposals
+/proposals/testing/ @swiftlang/testing-workgroup
