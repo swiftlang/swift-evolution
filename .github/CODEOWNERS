@@ -16,32 +16,43 @@
 /process.md @rjmccall
 
 
-### Vision documents
+### Visions
 
-# The top-level vision documents directory. Approval from the Core Team is
-# required to add new vision documents.
+# The top-level "visions" directory.
+#
+# Approval from the Core Team is required to add a new vision document.
 /visions/ @swiftlang/core-team
 
-# Specific vision documents. Owners typically include the primary author(s) any
-# any relevant steering or workgroups.
+# Specific vision documents.
+#
+# Owners typically include the primary author(s) and any sponsoring steering
+# group(s) or workgroup(s).
 /visions/swift-testing.md @stmontgomery @swiftlang/testing-workgroup
 
 
 ### Proposal templates
 
-# The top-level `/proposal-templates` directory. Approval from the Core Team is
-# required to add new proposal templates.
+# The top-level "proposal-templates" directory.
+#
+# Approval from the Core Team is required to add a new proposal template.
 /proposal-templates/ @swiftlang/core-team
 
-# Specific proposal templates
+# Specific proposal templates.
+#
+# Owners typically include the steering group(s) or workgroup(s) with authority
+# to conduct reviews of proposals which follow each template.
 /proposal-templates/0000-swift-testing-template.md @swiftlang/testing-workgroup
 
 
 ### Proposals
 
-# The top-level `/proposals` directory does not have a designated owner, so its
-# list is empty.
-/proposals
+# The top-level "proposals" directory.
+#
+# This does not have a designated owner, so its list is empty.
+/proposals/
 
-# Swift Testing proposals
+# Specific proposal directories.
+#
+# Owners typically include the steering group(s) or workgroup(s) with authority
+# to conduct reviews of proposals placed in each directory.
 /proposals/testing/ @swiftlang/testing-workgroup
