@@ -7,7 +7,7 @@
 # order.
 
 # .github
-/.github/CODEOWNERS @shahmishal
+/.github/CODEOWNERS @shahmishal @swiftlang/core-team 
 
 
 ### Evolution process documentation
