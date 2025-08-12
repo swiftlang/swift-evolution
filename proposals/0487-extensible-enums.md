@@ -3,11 +3,11 @@
 * Proposal: [SE-0487](0487-extensible-enums.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin), [Franz Busch](https://github.com/FranzBusch), [Cory Benfield](https://github.com/lukasa)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **[Accepted](https://forums.swift.org/t/accepted-se-0487-nonexhaustive-enums/81508)**
+* Status: **Accepted**
 * Bug: [apple/swift#55110](https://github.com/swiftlang/swift/issues/55110)
 * Implementation: [apple/swift#80503](https://github.com/swiftlang/swift/pull/80503)
 * Upcoming Feature Flag: `ExtensibleAttribute`
-* Review: ([pitch](https://forums.swift.org/t/pitch-extensible-enums-for-non-resilient-modules/77649))
+* Review: ([pitch](https://forums.swift.org/t/pitch-extensible-enums-for-non-resilient-modules/77649)) ([first review](https://forums.swift.org/t/se-0487-extensible-enums/80114)) ([second review](https://forums.swift.org/t/second-review-se-0487-extensible-enums/80837)) ([acceptance](https://forums.swift.org/t/accepted-se-0487-nonexhaustive-enums/81508))
 
 Previously pitched in:
 
