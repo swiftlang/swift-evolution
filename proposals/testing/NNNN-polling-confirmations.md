@@ -93,17 +93,15 @@ testing library:
 ///     This value may not correspond to the wall-clock time that polling lasts
 ///     for, especially on highly-loaded systems with a lot of tests running.
 ///     If nil, this uses whatever value is specified under the last
-///     ``PollingUntilFirstPassConfigurationTrait`` or
-///     ``PollingUntilStopsPassingConfigurationTrait`` added to the test or
-///     suite.
+///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
+///     with a matching stopCondition.
 ///     If no such trait has been added, then polling will be attempted for
 ///     about 1 second before recording an issue.
 ///     `duration` must be greater than 0.
 ///   - interval: The minimum amount of time to wait between polling attempts.
 ///     If nil, this uses whatever value is specified under the last
-///     ``PollingUntilFirstPassConfigurationTrait`` or
-///     ``PollingUntilStopsPassingConfigurationTrait`` added to the test or
-///     suite.
+///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
+///     with a matching stopCondition.
 ///     If no such trait has been added, then polling will wait at least
 ///     1 millisecond between polling attempts.
 ///     `interval` must be greater than 0.
@@ -119,7 +117,7 @@ testing library:
 /// complex scenarios where other forms of confirmation are insufficient. For
 /// example, waiting on some state to change that cannot be easily confirmed
 /// through other forms of `confirmation`.
-@available(_clockAPI, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func confirmation(
   _ comment: Comment? = nil,
   until stopCondition: PollingStopCondition,
@@ -140,17 +138,15 @@ public func confirmation(
 ///     This value may not correspond to the wall-clock time that polling lasts
 ///     for, especially on highly-loaded systems with a lot of tests running.
 ///     If nil, this uses whatever value is specified under the last
-///     ``PollingUntilFirstPassConfigurationTrait`` or
-///     ``PollingUntilStopsPassingConfigurationTrait`` added to the test or
-///     suite.
+///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
+///     with a matching stopCondition.
 ///     If no such trait has been added, then polling will be attempted for
 ///     about 1 second before recording an issue.
 ///     `duration` must be greater than 0.
 ///   - interval: The minimum amount of time to wait between polling attempts.
 ///     If nil, this uses whatever value is specified under the last
-///     ``PollingUntilFirstPassConfigurationTrait`` or
-///     ``PollingUntilStopsPassingConfigurationTrait`` added to the test or
-///     suite.
+///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
+///     with a matching stopCondition.
 ///     If no such trait has been added, then polling will wait at least
 ///     1 millisecond between polling attempts.
 ///     `interval` must be greater than 0.
@@ -168,7 +164,7 @@ public func confirmation(
 /// complex scenarios where other forms of confirmation are insufficient. For
 /// example, waiting on some state to change that cannot be easily confirmed
 /// through other forms of `confirmation`.
-@available(_clockAPI, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 @discardableResult
 public func confirmation<R>(
   _ comment: Comment? = nil,
@@ -191,7 +187,7 @@ how the confirmation should be handled.
 ```swift
 /// A type defining when to stop polling early.
 /// This also determines what happens if the duration elapses during polling.
-public enum PollingStopCondition: Sendable {
+public enum PollingStopCondition: Sendable, Equatable {
   /// Evaluates the expression until the first time it returns true.
   /// If it does not pass once by the time the timeout is reached, then a
   /// failure will be reported.
@@ -214,7 +210,7 @@ confirmation doesn't pass:
 
 ```swift
 /// A type describing an error thrown when polling fails.
-public struct PollingFailedError: Error, Sendable, CustomIssueRepresentable {}
+public struct PollingFailedError: Error, Sendable {}
 ```
 
 ### New `Issue.Kind` case
@@ -224,7 +220,10 @@ a failed polling confirmation.
 
 ```swift
 public struct Issue {
+  // ...
   public enum Kind {
+    // ...
+
     /// An issue due to a polling confirmation having failed.
     ///
     /// This issue can occur when calling ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-455gr``
@@ -232,62 +231,56 @@ public struct Issue {
     /// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-5tnlk``
     /// whenever the polling fails, as described in ``PollingStopCondition``.
     case pollingConfirmationFailed
+
+    // ...
   }
+
+  // ...
 }
 ```
 
-### New Traits
+### New Trait
 
-Two new traits will be added to change the default values for the
-`duration` and `interval` arguments. Test authors will often want to poll for
-the `firstPass` stop condition for longer than they poll for the
-`stopsPassing` stop condition, which is why there are separate traits for
-configuring defaults for these functions.
+A new trait will be added to change the default values for the
+`duration` and `interval` arguments for matching `PollingStopCondition`s.
+Test authors will often want to poll for the `firstPass` stop condition for
+longer than they poll for the `stopsPassing` stop condition, which is why there
+are separate traits for configuring defaults for these functions.
 
 ```swift
 /// A trait to provide a default polling configuration to all usages of
 /// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-455gr``
 /// and
 /// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-5tnlk``
-/// within a test or suite for the ``PollingStopCondition.firstPass``
-/// stop condition.
+/// within a test or suite using the specified stop condition.
 ///
-/// To add this trait to a test, use the
-/// ``Trait/pollingUntilFirstPassDefaults`` function.
-@available(_clockAPI, *)
-public struct PollingUntilFirstPassConfigurationTrait: TestTrait, SuiteTrait {
-  /// How long to continue polling for
-  public var duration: Duration?
-  /// The minimum amount of time to wait between polling attempts
-  public var interval: Duration?
-
-  public var isRecursive: Bool { true }
-}
-
-/// A trait to provide a default polling configuration to all usages of
-/// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-455gr``
-/// and
-/// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-5tnlk``
-/// within a test or suite for the ``PollingStopCondition.stopsPassing``
-/// stop condition.
-///
-/// To add this trait to a test, use the ``Trait/pollingUntilStopsPassingDefaults``
+/// To add this trait to a test, use the ``Trait/pollingConfirmationDefaults``
 /// function.
-@available(_clockAPI, *)
-public struct PollingUntilStopsPassingConfigurationTrait: TestTrait, SuiteTrait {
-  /// How long to continue polling for
-  public var duration: Duration?
-  /// The minimum amount of time to wait between polling attempts
-  public var interval: Duration?
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public struct PollingConfirmationConfigurationTrait: TestTrait, SuiteTrait {
+  /// The stop condition to this configuration is valid for
+  public var stopCondition: PollingStopCondition { get }
 
-  public var isRecursive: Bool { true }
+  /// How long to continue polling for. If nil, this will fall back to the next
+  /// inner-most `PollingUntilStopsPassingConfigurationTrait.duration` value.
+  /// If no non-nil values are found, then it will use 1 second.
+  public var duration: Duration? { get }
+
+  /// The minimum amount of time to wait between polling attempts. If nil, this
+  /// will fall back to earlier `PollingUntilStopsPassingConfigurationTrait.interval`
+  /// values. If no non-nil values are found, then it will use 1 millisecond.
+  public var interval: Duration? { get }
+
+  /// This trait will be recursively applied to all children.
+  public var isRecursive: Bool { get }
 }
 
-@available(_clockAPI, *)
-extension Trait where Self == PollingUntilFirstPassConfigurationTrait {
-  /// Specifies defaults for ``confirmPassesEventually`` in the test or suite.
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+extension Trait where Self == PollingConfirmationConfigurationTrait {
+  /// Specifies defaults for polling confirmations in the test or suite.
   ///
   /// - Parameters:
+  ///   - stopCondition: The `PollingStopCondition` this trait applies to.
   ///   - duration: The expected length of time to continue polling for.
   ///     This value may not correspond to the wall-clock time that polling
   ///     lasts for, especially on highly-loaded systems with a lot of tests
@@ -299,30 +292,9 @@ extension Trait where Self == PollingUntilFirstPassConfigurationTrait {
   ///     If nil, polling will wait at least 1 millisecond between polling
   ///     attempts.
   ///     `interval` must be greater than 0.
-  public static func pollingUntilFirstPassDefaults(
-    until duration: Duration? = nil,
-    pollingEvery interval: Duration? = nil
-  ) -> Self
-}
-
-@available(_clockAPI, *)
-extension Trait where Self == PollingUntilStopsPassingConfigurationTrait {
-  /// Specifies defaults for ``confirmPassesAlways`` in the test or suite.
-  ///
-  /// - Parameters:
-  ///   - duration: The expected length of time to continue polling for.
-  ///     This value may not correspond to the wall-clock time that polling
-  ///     lasts for, especially on highly-loaded systems with a lot of tests
-  ///     running.
-  ///     if nil, polling will be attempted for approximately 1 second.
-  ///     `duration` must be greater than 0.
-  ///   - interval: The minimum amount of time to wait between polling
-  ///     attempts.
-  ///     If nil, polling will wait at least 1 millisecond between polling
-  ///     attempts.
-  ///     `interval` must be greater than 0.
-  public static func pollingUntilStopsPassingDefaults(
-    until duration: Duration? = nil,
+  public static func pollingConfirmationDefaults(
+    until stopCondition: PollingStopCondition,
+    within duration: Duration? = nil,
     pollingEvery interval: Duration? = nil
   ) -> Self
 }
@@ -330,18 +302,20 @@ extension Trait where Self == PollingUntilStopsPassingConfigurationTrait {
 
 Specifying `duration` or `interval` directly on either new `confirmation`
 function will override any value provided by the relevant trait. Additionally,
-when multiple of these configuration traits are specified, the innermost or
-last trait will be applied.
-
-### Default Polling Configuration
-
-For all polling confirmations, the Testing library will default `duration` to
-1 second, and `interval` to 1 millisecond.
+when multiple of these configuration traits with matching stop conditions are
+specified, the innermost or last trait will be applied. When no trait with a
+matching stop condition is found and no `duration` or `interval` values are
+specified at the callsite, then the Testing library will use some default
+values.
 
 ### Platform Availability
 
 Polling confirmations will not be available on platforms that do not support
 Swift Concurrency.
+
+Polling confirmations will also not be available on platforms that do not
+have the `Clock`, `Duration`, and related types. For Apple platforms, this
+requires macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0 and visionOS 1.0.
 
 ### Duration and Concurrent Execution
 
@@ -383,19 +357,16 @@ These functions can be used with an async test function:
 }
 ```
 
-With the definition of `Aquarium` above, the closure will only need to be
+With the definition of `Aquarium` above, the closure may only need to be
 evaluated a few times before it starts returning true. At which point polling
 will end, and no failure will be reported.
 
-Polling will be stopped in the following cases:
+Polling will be stopped when either:
 
-- The specified `duration` has elapsed.
-- If the task that started the polling is cancelled.
-- For `PollingStopCondition.firstPass`: The first time the closure returns true
-  or a non-nil value
-- For `PollingStopCondition.stopsPassing`: The first time the closure returns
-  false or nil.
-- The first time the closure throws an error.
+- the specified `duration` has elapsed,
+- the task that started the polling is cancelled,
+- the closure returns a value that satisfies the stopping condition, or
+- the closure throws an error.
 
 ## Source compatibility
 
@@ -430,6 +401,21 @@ test authors to define their own stop conditions.
 
 In order to keep this proposal focused, I chose not to add them yet. They may
 be added as part of future proposals.
+
+### Curved polling rates
+
+As initially specified, the polling rate is flat: poll, sleep for the
+specified polling interval, repeat until the stop condition or timeout is
+reached.
+
+Instead, polling could be implemented as a curve. For example, poll very
+frequently at first, but progressively wait longer and longer between poll
+attempts. Or the opposite: poll sporadically at first, increasing in frequency
+as polling continues. We could even offer custom curve options.
+
+For this initial implementation, I wanted to keep this simple. As such, while
+a curve is promising, I think it is better considered on its own as a separate
+proposal.
 
 ## Alternatives considered
 
@@ -473,11 +459,13 @@ unreliable the more tests in the test suite.
 Another option considered was using polling iterations, either solely or
 combined with the interval value.
 
-However, while this works and is resistant to many of the issues timeouts face
-in concurrent testing environments, it is extremely difficult for test authors
-to predict a good-enough polling iterations value. Most test authors will think
-in terms of a duration, and we would expect nearly all test authors to
-add helpers to compute a polling iteration for them.
+While this works and is resistant to many of the issues timeouts face
+in concurrent testing environments - which is why polling is implemented using
+iterations & sleep intervals - it is extremely difficult for test authors to
+predict a good-enough polling iterations value, reducing the utility of this
+feature. Most test authors think in terms of a duration, and I would expect test
+authors to either not use this feature, or to add helpers to compute a polling
+iteration count from a duration value anyway.
 
 ### Take in a `Clock` instance
 
