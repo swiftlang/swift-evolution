@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-cdecl.md)
 * Author: [Alexis Laferrière](https://github.com/xymus)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: **Ready for Review**
 * Implementation: On `main` with the experimental feature flags `CDecl` for `@cdecl`, and `CImplementation` for `@cdecl @implementation`. With the exception of the `@objc` support for global functions which is available under the name `@_cdecl`.
 * Review: ([pitch](https://forums.swift.org/t/pitch-formalize-cdecl/79557))
 
