@@ -3,8 +3,7 @@
 * Proposal: [SE-0476](0476-abi-attr.md)
 * Authors: [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Accepted**
-* Implementation: behind experimental feature `ABIAttribute` (refinements in [swiftlang/swift#80383](https://github.com/swiftlang/swift/pull/80383))
+* Status: **Implemented (Swift 6.2)**
 * Review: ([pitch](https://forums.swift.org/t/pitch-controlling-the-abi-of-a-declaration/75123)) ([review](https://forums.swift.org/t/se-0476-controlling-the-abi-of-a-function-initializer-property-or-subscript/79233)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0476-controlling-the-abi-of-a-function-initializer-property-or-subscript/79644))
 
 ## Introduction
