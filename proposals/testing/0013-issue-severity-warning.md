@@ -3,9 +3,10 @@
 - Proposal: [ST-0013](0013-issue-severity-warning.md)
 - Authors: [Suzy Ratcliff](https://github.com/suzannaratcliff)
 - Review Manager: [Maarten Engels](https://github.com/maartene)
-- Status: **Accepted**
-- Implementation: [swiftlang/swift-testing#1075](https://github.com/swiftlang/swift-testing/pull/1075)
-- Review: ([pitch](https://forums.swift.org/t/pitch-test-issue-warnings/79285)) ([review](https://forums.swift.org/t/st-0013-test-issue-warnings/80991)) ([accepted](https://forums.swift.org/t/accepted-st-0013-test-issue-severity/81385))
+- Status: **Implemented (Swift 6.3)**
+- Implementation: [swiftlang/swift-testing#1075](https://github.com/swiftlang/swift-testing/pull/1075),
+  [swiftlang/swift-testing#1247](https://github.com/swiftlang/swift-testing/pull/1247)
+- Review: ([pitch](https://forums.swift.org/t/pitch-test-issue-warnings/79285)) ([review](https://forums.swift.org/t/st-0013-test-issue-warnings/80991)) ([acceptance](https://forums.swift.org/t/accepted-st-0013-test-issue-severity/81385))
 
 ## Introduction
 
