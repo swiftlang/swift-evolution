@@ -176,17 +176,19 @@ Example of an `issueRecorded` event in the json output:
 
 ### Console output
 
-When there is an issue recorded with severity warning the output looks like this:
+When there is an issue recorded with severity warning, such as using the following code:
 
 ```swift
-    Issue.record("My comment", severity: .warning)
+Issue.record("My comment", severity: .warning)
 ```
 
+the console output will look like the following:
+
 ```
-􀟈  Test "All elements of two ranges are equal" started.
-􀄣  Test "All elements of two ranges are equal" recorded a warning at ZipTests.swift:32:17: Issue recorded
-􀄵  My comment
-􁁛  Test "All elements of two ranges are equal" passed after 0.001 seconds with 1 warning.
+◇ Test "All elements of two ranges are equal" started.
+� Test "All elements of two ranges are equal" recorded a warning at ZipTests.swift:32:17: Issue recorded
+↳ My comment
+✔ Test "All elements of two ranges are equal" passed after 0.001 seconds with 1 warning.
 ```
 
 ### Trying this out
