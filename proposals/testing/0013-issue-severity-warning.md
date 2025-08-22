@@ -153,7 +153,9 @@ For more details on `Issue`, refer to the [Issue Documentation](https://develope
 
 This revision aims to clarify the functionality and usage of the `Severity` enum and `Issue` properties while maintaining consistency with the existing Swift API standards.
 
-### Integration with supporting tools
+## Integration with supporting tools
+
+### Event stream
 
 Issue severity will be in the event stream output when a `issueRecorded` event occurs. This will be a breaking change because some tools may assume that all `issueRecorded` events are failing. Due to this we will be bumping the event stream version and v1 will maintain it's behavior and not output any events for non failing issues. We will also be adding `isFailure` to the issue so that clients will know if the issue should be treated as a failure.  `isFailure` is a computed property.
 
