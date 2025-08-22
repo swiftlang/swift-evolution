@@ -159,13 +159,13 @@ Issue severity will be in the event stream output when a `issueRecorded` event o
 
 The JSON event stream ABI will be amended correspondingly:
 
-```
-<issue> ::= {
-  "isKnown": <bool>, ; is this a known issue or not?
-+ "severity": <string>, ; the severity of the issue
-+ "isFailure": <bool>, ; if the issue is a failing issue
-  ["sourceLocation": <source-location>,] ; where the issue occurred, if known
-}
+```diff
+ <issue> ::= {
+   "isKnown": <bool>, ; is this a known issue or not?
++  "severity": <string>, ; the severity of the issue
++  "isFailure": <bool>, ; if the issue is a failing issue
+   ["sourceLocation": <source-location>,] ; where the issue occurred, if known
+ }
 ```
 
 Example of an `issueRecorded` event in the json output:
