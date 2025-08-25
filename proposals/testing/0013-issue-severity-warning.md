@@ -49,6 +49,7 @@ The `Severity` enum:
 ```swift
 extension Issue {
   // ...
+
   public enum Severity: Codable, Comparable, CustomStringConvertible, Sendable {
     /// The severity level for an issue which should be noted but is not
     /// necessarily an error.
@@ -63,7 +64,6 @@ extension Issue {
     /// marked as a failure.
     case error
   }
-  // ...
 }
 ```
 
@@ -78,6 +78,9 @@ Issue.record("My comment", severity: .warning)
 Here is the `Issue.record` method definition with severity as a parameter.
 
 ```swift
+extension Issue {
+  // ...
+
   /// Record an issue when a running test and an issue occurs.
   ///
   /// - Parameters:
@@ -96,8 +99,7 @@ Here is the `Issue.record` method definition with severity as a parameter.
     severity: Severity = .error,
     sourceLocation: SourceLocation = #_sourceLocation
   ) -> Self
-
-  // ...
+}
 ```
 
 ### Issue Type Enhancements
@@ -107,13 +109,11 @@ The Issue type is enhanced with two new properties to better handle and report i
 - `severity`: This property allows access to the specific severity level of an issue, enabling more precise handling of test results.
 
 ```swift
-// ...
-
 extension Issue {
+  // ...
 
-/// The severity of the issue.
-public var severity: Severity { get set }
-
+  /// The severity of the issue.
+  public var severity: Severity { get set }
 }
 
 ```
@@ -141,11 +141,10 @@ extension Issue {
 Example usage of `severity` and `isFailure`:
 
 ```swift
-// ...
 withKnownIssue {
   // ...
 } matching: { issue in
-    return issue.isFailure || issue.severity > .warning
+  issue.isFailure || issue.severity > .warning
 }
 ```
 
