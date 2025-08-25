@@ -152,6 +152,36 @@ For more details on `Issue`, refer to the [Issue Documentation](https://develope
 
 This revision aims to clarify the functionality and usage of the `Severity` enum and `Issue` properties while maintaining consistency with the existing Swift API standards.
 
+## Source compatibility
+
+The aspect of this proposal which adds a new `severity:` parameter to the
+`Issue.record` function introduces the possibility of a source breakage for any
+clients who are capturing a reference to the function. Existing code could break
+despite the fact that the new parameter specifies a default value of `.error`.
+Here's a contrived example:
+
+```
+// ❌ Source breakage due to new `Issue.Severity` parameter
+let myRecordFunc: (Comment?, SourceLocation) -> Issue = Issue.record
+```
+
+To avoid source breakage, we will maintain the existing overload and preserve
+its signature, but mark it deprecated, disfavored, and hidden from documentation:
+
+```swift
+extension Issue {
+  // ...
+
+  @available(*, deprecated, message: "Use record(_:severity:sourceLocation:) instead.")
+  @_disfavoredOverload
+  @_documentation(visibility: private)
+  @discardableResult public static func record(
+    _ comment: Comment? = nil,
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) -> Self
+}
+```
+
 ## Integration with supporting tools
 
 ### Event stream
