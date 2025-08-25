@@ -3,9 +3,10 @@
 - Proposal: [ST-0013](0013-issue-severity-warning.md)
 - Authors: [Suzy Ratcliff](https://github.com/suzannaratcliff)
 - Review Manager: [Maarten Engels](https://github.com/maartene)
-- Status: **Accepted**
-- Implementation: [swiftlang/swift-testing#1075](https://github.com/swiftlang/swift-testing/pull/1075)
-- Review: ([pitch](https://forums.swift.org/t/pitch-test-issue-warnings/79285)) ([review](https://forums.swift.org/t/st-0013-test-issue-warnings/80991)) ([accepted](https://forums.swift.org/t/accepted-st-0013-test-issue-severity/81385))
+- Status: **Implemented (Swift 6.3)**
+- Implementation: [swiftlang/swift-testing#1075](https://github.com/swiftlang/swift-testing/pull/1075),
+  [swiftlang/swift-testing#1247](https://github.com/swiftlang/swift-testing/pull/1247)
+- Review: ([pitch](https://forums.swift.org/t/pitch-test-issue-warnings/79285)) ([review](https://forums.swift.org/t/st-0013-test-issue-warnings/80991)) ([acceptance](https://forums.swift.org/t/accepted-st-0013-test-issue-severity/81385))
 
 ## Introduction
 
@@ -48,6 +49,7 @@ The `Severity` enum:
 ```swift
 extension Issue {
   // ...
+
   public enum Severity: Codable, Comparable, CustomStringConvertible, Sendable {
     /// The severity level for an issue which should be noted but is not
     /// necessarily an error.
@@ -62,7 +64,6 @@ extension Issue {
     /// marked as a failure.
     case error
   }
-  // ...
 }
 ```
 
@@ -77,6 +78,9 @@ Issue.record("My comment", severity: .warning)
 Here is the `Issue.record` method definition with severity as a parameter.
 
 ```swift
+extension Issue {
+  // ...
+
   /// Record an issue when a running test and an issue occurs.
   ///
   /// - Parameters:
@@ -95,8 +99,7 @@ Here is the `Issue.record` method definition with severity as a parameter.
     severity: Severity = .error,
     sourceLocation: SourceLocation = #_sourceLocation
   ) -> Self
-
-  // ...
+}
 ```
 
 ### Issue Type Enhancements
@@ -106,13 +109,11 @@ The Issue type is enhanced with two new properties to better handle and report i
 - `severity`: This property allows access to the specific severity level of an issue, enabling more precise handling of test results.
 
 ```swift
-// ...
-
 extension Issue {
+  // ...
 
-/// The severity of the issue.
-public var severity: Severity { get set }
-
+  /// The severity of the issue.
+  public var severity: Severity { get set }
 }
 
 ```
@@ -140,11 +141,10 @@ extension Issue {
 Example usage of `severity` and `isFailure`:
 
 ```swift
-// ...
 withKnownIssue {
   // ...
 } matching: { issue in
-    return issue.isFailure || issue.severity > .warning
+  issue.isFailure || issue.severity > .warning
 }
 ```
 
@@ -182,19 +182,21 @@ extension Issue {
 }
 ```
 
-### Integration with supporting tools
+## Integration with supporting tools
+
+### Event stream
 
 Issue severity will be in the event stream output when a `issueRecorded` event occurs. This will be a breaking change because some tools may assume that all `issueRecorded` events are failing. Due to this we will be bumping the event stream version and v1 will maintain it's behavior and not output any events for non failing issues. We will also be adding `isFailure` to the issue so that clients will know if the issue should be treated as a failure.  `isFailure` is a computed property.
 
 The JSON event stream ABI will be amended correspondingly:
 
-```
-<issue> ::= {
-  "isKnown": <bool>, ; is this a known issue or not?
-+ "severity": <string>, ; the severity of the issue
-+ "isFailure": <bool>, ; if the issue is a failing issue
-  ["sourceLocation": <source-location>,] ; where the issue occurred, if known
-}
+```diff
+ <issue> ::= {
+   "isKnown": <bool>, ; is this a known issue or not?
++  "severity": <string>, ; the severity of the issue
++  "isFailure": <bool>, ; if the issue is a failing issue
+   ["sourceLocation": <source-location>,] ; where the issue occurred, if known
+ }
 ```
 
 Example of an `issueRecorded` event in the json output:
@@ -205,28 +207,20 @@ Example of an `issueRecorded` event in the json output:
 
 ### Console output
 
-When there is an issue recorded with severity warning the output looks like this:
+When there is an issue recorded with severity warning, such as using the following code:
 
 ```swift
-    Issue.record("My comment", severity: .warning)
+Issue.record("My comment", severity: .warning)
 ```
 
-```
-􀟈  Test "All elements of two ranges are equal" started.
-􀄣  Test "All elements of two ranges are equal" recorded a warning at ZipTests.swift:32:17: Issue recorded
-􀄵  My comment
-􁁛  Test "All elements of two ranges are equal" passed after 0.001 seconds with 1 warning.
-```
-
-### Trying this out
-
-To use severity today, checkout the branch here: https://github.com/swiftlang/swift-testing/pull/1189
+the console output will look like the following:
 
 ```
-.package(url: "https://github.com/suzannaratcliff/swift-testing.git", branch: "suzannaratcliff:suzannaratcliff/enable-severity"),
+◇ Test "All elements of two ranges are equal" started.
+� Test "All elements of two ranges are equal" recorded a warning at ZipTests.swift:32:17: Issue recorded
+↳ My comment
+✔ Test "All elements of two ranges are equal" passed after 0.001 seconds with 1 warning.
 ```
-
-For more details on how to checkout a branch for a package refer to this: https://developer.apple.com/documentation/packagedescription/package/dependency/package(url:branch:)
 
 ## Alternatives considered
 
