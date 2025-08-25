@@ -193,16 +193,6 @@ the console output will look like the following:
 ✔ Test "All elements of two ranges are equal" passed after 0.001 seconds with 1 warning.
 ```
 
-### Trying this out
-
-To use severity today, checkout the branch here: https://github.com/swiftlang/swift-testing/pull/1189
-
-```
-.package(url: "https://github.com/suzannaratcliff/swift-testing.git", branch: "suzannaratcliff:suzannaratcliff/enable-severity"),
-```
-
-For more details on how to checkout a branch for a package refer to this: https://developer.apple.com/documentation/packagedescription/package/dependency/package(url:branch:)
-
 ## Alternatives considered
 
 - Separate Issue Creation and Recording: We considered providing a mechanism to create issues independently before recording them, rather than passing the issue details directly to the `record` method. This approach was ultimately set aside in favor of simplicity and directness in usage.
