@@ -4,8 +4,8 @@
 * Authors: [Alastair Houghton](https://github.com/al45tair), [Konrad
   Malawski](https://github.com/ktoso), [Evan Wilde](https://github.com/etcwilde)
 * Review Manager: TBD
-* Status: **Pitch, Awaiting Implementation**
-* Implementation: TBA
+* Status: **Pitch**
+* Implementation: On main branch
 * Review: ([first
   pitch](https://forums.swift.org/t/pitch-custom-main-and-global-executors/77247))
   ([second
