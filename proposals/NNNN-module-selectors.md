@@ -50,7 +50,7 @@ type, so Swift will find that declaration using an unqualified lookup.
 > slightly different but the principles are the same.
 
 Both kinds of lookups are slightly sensitive to context in that, since the
-acceptance of [SE-0444 Member Import Visibility](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0444-member-import-visibility.md),
+acceptance of [SE-0444 Member Import Visibility][SE-0444],
 they are both limited to declarations imported in the current source file;
 however, unqualified lookups take *much* more than just that into account. They
 search through any enclosing scopes to find the "closest" use of that name. For
@@ -171,8 +171,7 @@ one that's visible.
 Macros cannot have members--the grammar of a macro expansion allows only a
 single identifier, and any subsequent `.` is taken to be a member lookup on
 the expansion--so there is currently no way to qualify a macro expansion with
-a module name. This limitation was discussed during the
-[second review of SE-0382](https://forums.swift.org/t/se-0382-second-review-expression-macros/63064)
+a module name. This limitation was discussed during the [second review of SE-0382][SE-0382-review-2]
 and the author suggested the only viable solution was to add a new,
 grammatically-distinguishable syntax for module qualification.
 
@@ -317,36 +316,26 @@ module selector and identifier instead of an import path:
 > ***import-declaration* → *attributes?* `import` *import-kind* *module-selector* *identifier***
 
 Note that this new *import-declaration* production does not allow a submodule
-to be specified.
+to be specified. Use the old `.`-operator-based syntax for submodules.
 
-### Parsing details
+#### Token-level behavior
 
-The *identifier* in a *module-selector* must be classified as an identifier
-by the lexer (rather than as a keyword, wildcard, integer literal, or some
-other token). Backticks can be used to escape an identifier that would otherwise
-be misclassified. Dollar-sign-prefixed identifiers are not supported.
-
-The `::` token may be separated from its *identifier* by any whitespace,
-including newlines.
-
-#### Effect on the next token
-
-Much like a member-lookup `.`, the presence of a module selector affects the
-parsing of the token *after* it:
-
-* There must not be any newlines between the `::` and the next token. This
-  restriction aids in recovery when parsing incomplete code.
+The `::` operator may be separated from its *identifier* by any whitespace,
+including newlines. However, the `::` operator must *not* be separated from the 
+token after it by a newline:
 
 ```swift
-NASA::
+NationalAeronauticsAndSpaceAdministration::
   RocketEngine      // Invalid
-NASA
+NationalAeronauticsAndSpaceAdministration
   ::RocketEngine    // OK
 ```
 
-* If the next token is a keyword, but that keyword does not have any special
-  meaning, it will be treated as an identifier even if it's not surrounded by
-  backticks. (Compare to [SE-0071 Allow (most) keywords in member references](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0071-member-keywords.md).)
+> **Note**: This restriction aids in recovery when parsing incomplete code;
+> the member-lookup `.` operator follows a similar rule.
+
+If the token after the `::` operator is a keyword, it will be treated as an
+ordinary identifier unless it would have special meaning:
 
 ```swift
 print(default)          // Invalid; 'default' is a keyword and needs backticks
@@ -354,25 +343,22 @@ print(NASA.default)     // OK under SE-0071
 print(NASA::default)    // OK under this proposal
 ```
 
-#### Syntaxes reserved for future directions
+Depending on context, the following keywords may still be treated as special in
+expressions:
 
-It is never valid to write two module selectors in a row; if you want to access
-a declaration which belongs to a clang submodule, you should just write the
-top-level module name in the module selector.
+* `deinit`
+* `init`
+* `subscript`
 
-It is never valid to write a keyword, operator, or `_` in place of a module
-name; if a module's name would be mistaken for one of these, it must be
-wrapped in backticks to form an identifier.
+> **Note**: This behavior is analogous to [SE-0071 Allow (most) keywords in member references][SE-0071].
 
-#### Attributes
-
-Built-in attributes do not belong to any module and cannot have a module
-selector, so if an *attribute-name* has a module selector, it is interpreted as
-a custom attribute and its argument list (if present) is parsed like an
-ordinary function call.
+Similarly, attributes that use a module selector will always be treated as
+custom attributes, not built-in attributes. (Put another way, built-in
+attributes do not belong to *any* module—not even `Swift`.) Like all custom
+attributes, any arguments must be valid expressions.
 
 ```swift
-@Swift::available(macOS 15.0.1, *)    // Invalid; `macOS 15.0.1` isn't a well-formed expression
+@Swift::available(macOS 15.0.1, *)    // Invalid; not parsed as the built-in `@available`
 class X {}
 ```
 
@@ -397,6 +383,38 @@ Task { [rocket = NASA::rocket] in ... }    // OK
 The *precedence-group-name* production is unmodified and does not permit
 a module selector. Precedence group names exist in a separate namespace from
 other identifiers and no need for this feature has been demonstrated.
+
+#### Parsed declaration names
+
+A parsed declaration name, such as the name in an `@available(renamed:)`
+argument, may use module selectors on the declaration's base name and context
+names.
+
+```swift
+@available(*, deprecated, renamed: "NASA::launch(_:from:)")    // OK
+public func launch(_ mission: Mission) {
+  launch(mission, from: LaunchPad.default)
+}
+```
+
+Module selectors are not valid on base names in clang `swift_name` and
+`swift_async_name` attributes, since these specify the name of the current
+declaration, rather than referencing a different declaration.
+
+> **Note**: Clang Importer currently cannot apply import-as-member `swift_name`
+> or `swift_async_name` attributes that name a context in a different module,
+> but if this limitation is ever lifted, module selectors ought to be supported
+> on context names in these clang attributes.
+
+#### Syntaxes reserved for future directions
+
+It is never valid to write two module selectors in a row; if you want to access
+a declaration which belongs to a clang submodule, you should just write the
+top-level module name in the module selector.
+
+It is never valid to write a keyword, operator, or `_` in place of a module
+name; if a module's name would be mistaken for one of these, it must be
+wrapped in backticks to form an identifier.
 
 ### Effects on lookup
 
@@ -523,7 +541,7 @@ addressed them might be nice. However, there is no visible syntax associated
 with use of a conformance that can be qualified with a module selector, so it's
 difficult to address as part of this proposal.
 
-It's worth keeping in mind that [SE-0364's introduction of `@retroactive`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0364-retroactive-conformance-warning.md)
+It's worth keeping in mind that [SE-0364's introduction of `@retroactive`][SE-0364]
 reflects a judgment that retroactive conformances should be used with care. The
 absence of such a feature is one of the complications `@retroactive` is meant
 to flag.
@@ -729,3 +747,8 @@ SuperLongAndComplicatedModuleName
 The member-lookup `.` operator has a similar restriction, but developers may
 not want to style them in exactly the same way, particularly since C++
 developers often split a line after a `::`.
+
+  [SE-0071]: <https://github.com/swiftlang/swift-evolution/blob/main/proposals/0071-member-keywords.md> "Allow (most) keywords in member references"
+  [SE-0364]: <https://github.com/swiftlang/swift-evolution/blob/main/proposals/0364-retroactive-conformance-warning.md> "Warning for Retroactive Conformances of External Types"
+  [SE-0382-review-2]: <https://forums.swift.org/t/se-0382-second-review-expression-macros/63064> "SE-0382 (second review): Expression Macros"
+  [SE-0444]: <https://github.com/swiftlang/swift-evolution/blob/main/proposals/0444-member-import-visibility.md> "SE-0444 Member Import Visibility"
