@@ -127,7 +127,7 @@ We propose extending the backtick-based syntax used to escape keywords as identi
 We will distinguish these two uses of backticks with the following terminology:
 
 *   An **escaped identifier** is a sequence of characters surrounded by backticks that starts with `identifier-head` and is followed by zero or more `identifier-character`, as defined in the Swift [grammar](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/summaryofthegrammar/). This is what Swift supports today to treat keywords as identifiers.
-*   A **raw identifier** is a sequence of characters surrounded by backticks that contains characters other than those allowed in an escaped identifier. The exact contents are described in [Permissible Characters](#permissible-characters) below.
+*   A **raw identifier** is a sequence of characters surrounded by backticks that contains characters other than those allowed in an escaped identifier. The exact contents are described in [Permitted Characters](#permitted-characters) below.
 
 In both cases, the backticks are **not** considered part of the identifier; they only delimit the identifier from surrounding tokens.
 
