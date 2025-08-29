@@ -4,7 +4,7 @@
 * Authors: [Kavon Farvardin](https://github.com/kavon), [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: on `main`, using `-enable-experimental-feature SuppressedAssociatedTypes`
+* Implementation: on `main` and available since at least Swift 6.1.2, using `-enable-experimental-feature SuppressedAssociatedTypes`
 * Previous Proposals: [SE-427: Noncopyable Generics](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md), [SE-446: Nonescapable Types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md)
 
 ## Introduction
