@@ -1,338 +1,204 @@
-# Suppresssed Associated Types
+# Suppressed Default Conformances on Associated Types
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon), [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: on `main`, using `-enable-experimental-feature SuppressedAssociatedTypes`
-* Previous Proposal: [SE-427: Noncopyable Generics](0427-noncopyable-generics.md)
+* Previous Proposals: [SE-427: Noncopyable Generics](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md), [SE-446: Nonescapable Types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md)
 
 ## Introduction
 
-When defining an associated type within a protocol, there should be a way to 
-permit noncopyable types as a witness. This would allow for the definition of
-protocols that operate on a generic type that is not required to be `Copyable`:
-
+Today, it is not possible to declare an associated type that does not require its
+_type witnesses_ to be `Copyable` or `Escapable`. For example, consider the `Element`
+associated type of `Queue` below:
 ```swift
-// Queue has no reason to require Element to be Copyable.
-protocol Queue<Element> {
+/// Queue has no reason to require Element to be Copyable.
+protocol Queue<Element>: ~Copyable {
   associatedtype Element
 
-  mutating func push(_: consuming Element)
-  mutating func pop() -> Element
+  mutating func push(_: consuming Self.Element)
+  mutating func pop() -> Self.Element
 }
 ```
+While the conforming type is itself permitted to be noncopyable, its `Element`
+type witness has to be `Copyable`:
+```swift
+/// error: LinkedListQueue does not conform to Queue
+struct LinkedListQueue<Element: ~Copyable>: ~Copyable, Queue {
+  ...
+}
+```
+This is an expressivity limitation in practice, and there is no workaround
+possible today.
 
-This creates a problem using the `Queue` protocol as an abstraction over a queue
-of noncopyable elements, because the `associatedtype Element` implicitly
-requires its type witness to be Copyable.
+## Proposed Solution
+
+We propose that the existing syntax for suppressing these conformances be
+extended to associated type declarations:
 
 ```swift
-struct WorkItem: ~Copyable { /* ... */ }
+/// Correct Queue protocol.
+protocol Queue<Element>: ~Copyable {
+  associatedtype Element: ~Copyable
 
-class WorkQueue: Queue {
-//    `- error: type 'WorkQueue' does not conform to protocol 'Queue'
-  typealias Element = WorkItem
-//          `- note: possibly intended match 'WorkQueue.Element' (aka 'WorkItem') does not conform to 'Copyable'
-
-  func push(_ elm: consuming Element) { /* ... */ }
-  func pop() -> Element? { /* ... */ }
+  mutating func push(_: consuming Self.Element)
+  mutating func pop() -> Self.Element
 }
 ```
 
-There is no workaround for this problem; protocols simply cannot be used in this
-situation!
+Similarly, stating `~Escapable` should be allowed, to suppress the default conformance
+to `Escapable`.
 
-## Proposed solution
+## Detailed Design
 
-A simple design for suppressed associated types is proposed. A protocol's 
-associated type that does not require a copyable type witness must be annotated
-with `~Copyable`:
+There are three ways to impose a requirement on an associated type:
+- In the inheritance clause of the associated type declaration.
+- In a `where` clause attached to the associated type declaration.
+- In a `where` clause attached to the protocol itself.
 
-```swift
-protocol Manager {
-  associatedtype Resource: ~Copyable
-}
-```
-
-A protocol extension of `Manager` does _not_ carry an implicit 
-`Self.Resource: Copyable` requirement:
-
-```swift
-extension Manager {
-  func f(resource: Resource) {
-    // `resource' cannot be copied here!
-  }
-}
-```
-
-Thus, the default conformance in a protocol extension applies only to `Self`,
-and not the associated types of `Self`. For this reason, while adding
-`~Copyable` to the inheritance clause of a protocol is a source-compatible
-change, the same with an _associated type_ is __not__ source compatible.
-The designer of a new protocol must decide which associated types are
-`~Copyable` up-front.
-
-## Detailed design
-
-Requirements on associated types can be written in the associated type's
-inheritance clause, or in a `where` clause, or on the protocol itself. As
-with ordinary requirements, all three of the following forms define the same
-protocol:
+We extend the **Detailed Design** section of
+[SE-427: Noncopyable Generics](0427-noncopyable-generics.md) to allow
+suppressing default conformance to `Copyable` in `Escapable` in all of
+the above positions. Thus, all three below are equivalent:
 ```swift
 protocol P { associatedtype A: ~Copyable }
-protocol P { associatedtype A where A: ~Copyable }
-protocol P where A: ~Copyable { associatedtype A }
+protocol P { associatedtype A where Self.A: ~Copyable }
+protocol P where Self.A: ~Copyable { associatedtype A }
 ```
 
-If a base protocol declares an associated type with a suppressed conformance
-to `Copyable`, and a derived protocol re-states the associated type, a
-default conformance is introduced in the derived protocol, unless it is again
-suppressed:
+### Protocol inheritance
 
+This interacts with protocol inheritance as follows. If a base protocol
+declares an associated type with a suppressed conformance, this
+associated type will also have a suppressed conformance in the derived
+protocol, unless the derived protocol re-states the associated type. That is:
 ```swift
 protocol Base {
   associatedtype A: ~Copyable
-  func f() -> A
 }
 
-protocol Derived: Base {
-  associatedtype A /* : Copyable */
-  func g() -> A
+protocol Derived1: Base {
+  // A is still ~Copyable here
 }
-```
 
-Finally, conformance to `Copyable` cannot be conditional on the copyability of
-an associated type:
-```swift
-struct ManagerManager<T: Manager>: ~Copyable {}
-extension ManagerManager: Copyable where T.Resource: Copyable {}  // error
-```
-
-## Source compatibility
-
-The addition of this feature to the language does not break any existing code.
-
-## ABI compatibility
-
-The ABI of existing code is not affected by this proposal. Changing existing
-code to make use of `~Copyable` associated types _can_ break ABI.
-
-TODO: how, exactly (??)
-
-## Implications on adoption
-
-Using the feature to mark an associated type as `~Copyable` risks breaking existing source code using that protocol and ABI.
-
-For example, suppose the following `Queue` protocol existed before, but has now
-had `~Copyable` added to the `Element`:
-
-```swift
-public protocol Queue {
-  associatedtype Element: ~Copyable  // <- newly added ~Copyable
-  
-  // Checks for a front element and returns it, without removal.
-  func peek() -> Element?
-  
-  // Removes and returns the front element.
-  mutating func pop() throws -> Element
-  
-  // Adds an element to the end.
-  mutating func push(_: consuming Element)
+protocol Derived2: Base {
+  // A now defaults to Copyable
+  associatedtype A
 }
 ```
 
-Any existing code that worked with generic types that conform to `Queue` could
-show an error when attempting to copy the elements of the queue:
+### No recursion
 
+Suppressed conformances on associated types differ from those on generic
+parameters and protocols in one crucial respect. Here is the protocol
+`Queue` from earlier:
 ```swift
-// error: parameter of noncopyable type 'Q.Element' must specify ownership
-func fill<Q: Queue>(queue: inout Q, 
-                    with element: Q.Element,
-                    times n: Int) {
-  for _ in 0..<n {
-    queue.push(element)
+/// Correct Queue protocol.
+protocol Queue<Element>: ~Copyable {
+  associatedtype Element: ~Copyable
+
+  mutating func push(_: consuming Self.Element)
+  mutating func pop() -> Self.Element
+}
+```
+
+Recall the existing rules from
+[SE-427: Noncopyable Generics](0427-noncopyable-generics.md). Under
+those rules, a protocol extension of `Queue` always introduces a
+default `Self: Copyable` requirement; that is:
+```swift
+extension Queue /* where Self: Copyable */ {
+  ...
+}
+```
+An unconstrained extension of `Queue` is declared by suppressing
+`Copyable` on `Self`:
+```swift
+extension Queue where Self: ~Copyable {
+  ...
+}
+```
+
+However, with the current proposal,this  defaulting behavior does
+not extend to associated types
+with supressed conformances. In particular, no implicit
+`Self.Element: Copyable` requirement is introduced above, by
+either extension. Instead, a protocol extension
+for queue types where **both** the queue itself and the element
+type are `Copyable` takes the following form:
+```swift
+extension Queue where Self.Element: Copyable {
+  ...
+}
+```
+
+This is discussed further in **Source Compatibility** below.
+
+### Conditional conformance
+
+Finally, recall that concrete types may conform to `Copyable` and
+`Escapable` conditionally, depending on the copyability or
+escapability of a generic parameter. Even though associated types
+may now suppress conformance to these protocols, a conditional
+conformance to `Copyable` or `Escapable` that depends on an
+associated type is still not allowed:
+```swift
+struct QueueHolder<Q: Queue>: ~Copyable {}
+extension QueueHolder: Copyable where Q.Element: Copyable {}  // error
+```
+This restriction is for runtime implementation reasons.
+
+## Source Compatibility
+
+The introduction of this feature in the language does not break
+any existing code, because any usage of the suppressed conformance
+syntax with associated types was diagnosed as an error.
+
+However, changing an existing associated type declaration to suppress
+conformance to `Copyable` or `Escapable` is a
+**source-breaking** change, as a consequence of the design
+discussed in **No recursion** above.
+
+For example, if a library publishes this protocol:
+```swift
+public protocol Manager: ~Copyable {
+  associatedtype Resource
+}
+```
+Client code that states a `T: Manager` requirement on a generic
+parameter `T` can then assume that the type parameter
+`T.Resource` is `Copyable`:
+```swift
+extension Manager where Self: ~Copyable {
+  func makeCopies(_ e: Self.Element) -> (Self.Element, Self.Element) {
+    return (e, e)
   }
 }
 ```
-
-This `fill` function fundamentally cannot work with noncopyable elements, as it
-depends on the ability to make copies of `element` to push onto the queue. 
-
-### Strategy 1: Add missing Copyable requirements
- 
-One way to solve this source break in the `fill` function is to update it, by 
-adding a `where` clause requiring the queue's elements to be copyable:
-
+Now suppose the library author then changes the protocol to
+suppress conformance:
 ```swift
-func fill<Q: Queue>(queue: inout Q, 
-                    with element: Q.Element,
-                    times n: Int) 
-                    where Q.Element: Copyable {
-  // same as before
+public protocol Manager: ~Copyable {
+  associatedtype Resource: ~Copyable
 }
 ```
+The client's extension of `Manager` will no longer type check, because
+the body of `makeCopies()` assumes `e` is `Copyable`, and this
+assumption is no longer true. 
 
-This strategy is only appropriate when all users can easily update their code.
+## ABI Compatibility
 
-> NOTE: Adding the `where` clause will also help preserve the ABI of functions
-> like `fill`, because without it, the new _absence_ of a Copyable requirement
-> on the  `Q.Element` will be mangled into the symbol for that generic function.
-> 
-> In addition, without the `where` clause, the parameter `element` would require
-> some sort of ownership annotation. Adding ownership for parameters can break 
-> ABI. See [SE-0377](0377-parameter-ownership-modifiers.md) for details.
+The ABI of existing code is not affected by this proposal.
 
-### Strategy 2: Introduce a new base protocol
+On the other hand, changing an associated type declaration in an library
+to suppress conformance is an ABI-breaking change, for similar reasons
+to those described above.
 
-Rather than annotate the existing `Queue`'s associated type to be noncopyable,
-introduce a new base protocol `BasicQueue` that `Queue` now inherits from:
+## Alternatives Considered
 
-```swift
-public protocol BasicQueue {
-  associatedtype Element: ~Copyable
-  
-  // Removes and returns the front element.
-  mutating func pop() throws -> Element
-  
-  // Adds an element to the end.
-  mutating func push(_: consuming Element)
-}
-
-public protocol Queue: BasicQueue {
-  associatedtype Element
-  
-  // Checks for a front element and returns it, without removal.
-  func peek() -> Element?
-}
-```
-
-There are two major advantages of this approach. First, users of `Queue` do not
-need to update their source code. Second, any method or property requirements
-that cannot be satisfied by conformers can remain in the derived protocol.
-
-In this example, the `peek` method requirement cannot be realistically
-satisfied by an implementation of `BasicQueue` that holds noncopyable elements.
-It requires the ability to return a copy of the same first element each time 
-it is called. Thus, it remains in `Queue`, which is now derived from the
-`BasicQueue` that holds the rest of the API that _is_ compatible with
-noncopyable elements. 
-
-This strategy is only appropriate if the new base protocol can stand on its own
-as a useful type to implement and use. 
-
-> NOTE: introducing a new inherited protocol to an existing one will break ABI
-> compatibility. It is equivalent to adding a new requirement on Self in the 
-> protocol, which can impact the mangling of generic signatures into symbols.
-
-<!-- ### Strategy 3: Introduce a new protocol beside another
-
-To avoid breaking ABI or source compatibility, it's possible to introduce new
-protocols that do not require a Copyable associated type, while providing a
-default conformance to this new protocol for types that only conform to the old
-one:
-
-```swift
-// A new Queue-like protocol that is very mindful to not include requirements
-// like 'peek' cannot be implemented for noncopyable Elements.
-public protocol DemureQueue {
-  associatedtype Element: ~Copyable
-  mutating func pop() throws -> Element
-  mutating func push(_: consuming Element)
-}
-
-// The original Queue that requires Element to be Copyable.
-public protocol Queue {
-  associatedtype Element
-  func peek() -> Element?
-  mutating func pop() throws -> Element
-  mutating func push(_: consuming Element)
-}
-```
-
-FIXME: Delete this. It isn't workable like I thought! See Future Directions. 
-
- -->
-
-
-## Future directions
-
-The future directions for this proposal are machinery to aid in the 
-adoption of noncopyable associated types. This is particularly relevant for 
-Standard Library types like Collection.
-
-#### Conditional Requirements
-
-Suppose we could say that a protocol's requirement only needs to be witnessed
-if the associated type were Copyable. Then, we'd have a way to hide specific requirements of an existing protocol if they aren't possible to implement:
-
-```swift
-public protocol Queue {
-  associatedtype Element: ~Copyable
-  
-  // Only require 'peek' if the Element is Copyable.
-  func peek() -> Element? where Element: Copyable
-
-  mutating func pop() throws -> Element
-  mutating func push(_: consuming Element)
-}
-```
-
-This idea is similar optional requirements, which are only available to
-Objective-C protocols. The difference is that you statically know whether a 
-generic type that conforms to the protocol will offer the method. Today, this 
-is not possible at all:
-
-```swift
-protocol Q {}
-
-protocol P {
-  associatedtype A
-  func f() -> A where A: Q
-  // error: instance method requirement 'f()' cannot add constraint 'Self.A: P' on 'Self'
-}
-```
-
-#### Bonus Protocol Conformances
-
-Even if the cost of introducing a new protocol is justified, it is still an 
-ABI break to introduce a new inherited protocol to an existing one.
-That's for good reason: a library author may add new requirements that are 
-unfulfilled by existing users, and that should result in a linking error.
-
-However, it might be possible to allow "bonus" protocol conformances, which
-adds an extra conformance to any type that conforms to some other protocol:
-
-```swift
-protocol NewQueue { 
-  associatedtype Element: ~Copyable
-  // ... push, pop ...
-}
-
-protocol Queue { 
-  associatedtype Element
-  // ... push, pop, peek ...
-}
-
-// A type conforming to Queue also conforms to NewQueue where Element: Copyable.
-// This is a "bonus" conformance.
-extension Queue: NewQueue {
-  typealias Element = Queue.Element
-  mutating func push(_ e: consuming Element) { Queue.push(e) }
-  mutating func pop() -> Element throws { try Queue.pop() }
-}
-```
-
-To make this work, this bonus protocol conformance:
-  1. Needs to provide implementations of all requirements in the bonus protocol.
-  2. Take lower precedence than a conformance to `NewQueue` declared directly on the type that conforms to `Queue`.
-  3. Perhaps needs to be limited to being declared in the same module that defines the extended protocol.
-   
-The biggest benefit of this capability is that it provides a way for all 
-existing types that conform to `Queue` to also work with new APIs that are based
-on `NewQueue`. It is a general mechanism that works for scenarios beyond the 
-adoption of noncopyable associated types.
-
-## Acknowledgments
-
-TODO: thank people
+A more advanced form of this idea would attempt to introduce "recursive
+`Copyable` requirements" (and similarly for `Escapable`). This was already
+discussed in the **Alternatives Considered** section of
+[SE-427: Noncopyable Generics](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md), and the difficulties outlined there still
+apply today.
