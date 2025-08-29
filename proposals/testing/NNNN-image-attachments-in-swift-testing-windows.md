@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift-testing#1245](https://github.com/swiftlang/swift-testing/pull/1245), [swiftlang/swift-testing#1254](https://github.com/swiftlang/swift-testing/pull/1254), _et al_.
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-image-attachments-in-swift-testing-windows/81871))
 
 ## Introduction
 
@@ -233,16 +233,19 @@ Conveniences over those COM classes' `CLSID` values are provided:
 
 ```swift
 extension AttachableImageFormat {
-  /// The `CLSID` value corresponding to the WIC image encoder for this image
-  /// format.
-  public var clsid: CLSID { get }
+  /// The `CLSID` value of the Windows Imaging Component (WIC) encoder class
+  /// that corresponds to this image format.
+  ///
+  /// For example, if this image format equals ``png``, the value of this
+  /// property equals [`CLSID_WICPngEncoder`](https://learn.microsoft.com/en-us/windows/win32/wic/-wic-guids-clsids#wic-guids-and-clsids).
+  public var encoderCLSID: CLSID { get }
 
-  /// Construct an instance of this type with the given `CLSID` value and
-  /// encoding quality.
+  /// Construct an instance of this type with the `CLSID` value of a Windows
+  /// Imaging Component (WIC) encoder class and the desired encoding quality.
   ///
   /// - Parameters:
-  ///   - clsid: The `CLSID` value corresponding to a WIC image encoder to use
-  ///     when encoding images.
+  ///   - encoderCLSID: The `CLSID` value of the Windows Imaging Component
+  ///     encoder class to use when encoding images.
   ///   - encodingQuality: The encoding quality to use when encoding images. For
   ///     the lowest supported quality, pass `0.0`. For the highest supported
   ///     quality, pass `1.0`.
@@ -250,11 +253,11 @@ extension AttachableImageFormat {
   /// If the target image encoder does not support variable-quality encoding,
   /// the value of the `encodingQuality` argument is ignored.
   ///
-  /// If `clsid` does not represent an image encoder type supported by WIC, the
-  /// result is undefined. For a list of image encoders supported by WIC, see
-  /// the documentation for the [`IWICBitmapEncoder`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapencoder)
+  /// If `clsid` does not represent an image encoder class supported by WIC, the
+  /// result is undefined. For a list of image encoder classes supported by WIC,
+  /// see the documentation for the [`IWICBitmapEncoder`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapencoder)
   /// class.
-  public init(_ clsid: CLSID, encodingQuality: Float = 1.0)
+  public init(encoderCLSID: CLSID, encodingQuality: Float = 1.0)
 }
 ```
 
@@ -337,9 +340,16 @@ None needed.
   `var attachableIWICBitmapSource: IWICBitmapSource { get throws }`) as it would
   be able to participate in Swift's automatic reference counting.
 
+  The Swift team is tracking COM interop with [swiftlang/swift#84056](https://github.com/swiftlang/swift/issues/84056).
+
 - Adding support for managed (.NET or C#) image types. Support for managed types
   on Windows would first require a new Swift/.NET or Swift/C# interop feature
   and is therefore beyond the scope of this proposal.
+
+- Adding support for WinRT image types. WinRT is a thin wrapper around COM and
+  has C++ and .NET projections, neither of which are readily accessible from
+  Swift. It may be possible to add support for WinRT image types if COM interop
+  is implemented.
 
 - Adding support for other platforms. See [ST-0014](https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0014-image-attachments-in-swift-testing-apple-platforms.md#future-directions)
   for further discussion about supporting additional platforms.
