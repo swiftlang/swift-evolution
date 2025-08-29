@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift-testing#1245](https://github.com/swiftlang/swift-testing/pull/1245), [swiftlang/swift-testing#1254](https://github.com/swiftlang/swift-testing/pull/1254), _et al_.
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-image-attachments-in-swift-testing-windows/81871))
 
 ## Introduction
 
