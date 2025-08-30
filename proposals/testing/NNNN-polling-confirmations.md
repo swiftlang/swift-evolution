@@ -20,23 +20,65 @@ APIs or awaiting on an `async` callable in order to block test execution until
 a callback is called, or an async callable returns. However, this requires the
 code being tested to support callbacks or return a status as an async callable.
 
-This proposal adds another avenue for waiting for code to update to a specified
-value, by proactively polling the test closure until it passes or a timeout is
-reached.
-
-More concretely, we can imagine a type that updates its status over an
-indefinite timeframe:
+Consider the following class, `Aquarium`, modeling raising dolphins:
 
 ```swift
-actor Aquarium {
-    var dolphins: [Dolphin]
-    
-    func raiseDolphins() async {
-        // over a very long timeframe
-        dolphins.append(Dolphin())
+@MainActor
+final class Aquarium {
+    private(set) var isRaising = false
+    var hasFunding = true
+
+    func raiseDolphins() {
+        Task {
+            if hasFunding {
+                isRaising = true
+
+                // Long running work that I'm not qualified to describe.
+                // ...
+
+                isRaising = false
+            }
+        }
     }
 }
 ```
+
+As is, it is extremely difficult to check that `isRaising` is correctly set to
+true once `raiseDolphins` is called. The system offers test authors no
+control for when the created task runs, leaving test authors add arbitrary sleep
+calls. Like this example:
+
+```swift
+@Test func `raiseDolphins if hasFunding sets isRaising to true`() async throws {
+    let subject = Aquarium()
+    subject.hasFunding = true
+
+    subject.raiseDolphins()
+
+    try await Task.sleep(for: .seconds(1))
+
+    #expect(subject.isRaising == true)
+}
+```
+
+This requires test authors to have to figure out how long to wait so that
+`isRaising` will reliably be set to true, while not waiting too long, such that
+the test suite is not unnecessarily delayed or task itself finishes.
+
+As another example, imagine a test author wants to verify that no dolphins are
+raised when there isn't any funding. There isn't and can't be a mechanism for
+verifying that `isRaising` is never set to `true`, but if we constrain the
+problem to within a given timeframe, then we can have a reasonable assumption
+that `isRaising` remains set to false. Again, without some other mechanism to
+notify the test when to check `isRaising`, test authors are left to add
+arbitrary sleep calls, when having the ability to fail fast would save a not
+insignificant amount of time in the event that `isRaising` is mistakenly set to
+true.
+
+This proposal introduces polling to help test authors address these cases. In
+this and other similar cases, polling makes these tests practical or even
+possible, as well as speeding up the execution of individual tests as well as
+the entire test suite.
 
 ## Proposed solution
 
@@ -63,15 +105,26 @@ When `PollingStopCondition.stopsPassing` is specified, reaching the duration
 stop point will mark the confirmation as passing.
 
 Tests will now be able to poll code updating in the background using either of
-the stop conditions:
+the stop conditions. For the example of `Aquarium.raiseDolphins`, valid tests
+might look like:
 
 ```swift
-let subject = Aquarium()
-Task {
-    await subject.raiseDolphins()
+@Test func `raiseDolphins if hasFunding sets isRaising to true`() async throws {
+    let subject = Aquarium()
+    subject.hasFunding = true
+
+    subject.raiseDolphins()
+
+    try await confirmation(until: .firstPass) { subject.isRaising == true }
 }
-await confirmation(until: .firstPass) {
-    subject.dolphins.count == 1
+
+@Test func `raiseDolphins if no funding keeps isRaising false`() async throws {
+    let subject = Aquarium()
+    subject.hasFunding = false
+
+    subject.raiseDolphins()
+
+    try await confirmation(until: .stopsPassing) { subject.isRaising == false }
 }
 ```
 
@@ -367,6 +420,39 @@ Polling will be stopped when either:
 - the task that started the polling is cancelled,
 - the closure returns a value that satisfies the stopping condition, or
 - the closure throws an error.
+
+### When Polling should not be used
+
+Polling is not a silver bullet, and should not be abused. In many cases, the
+problems that polling solves can be solved through other, better means. Such as
+the observability system, using Async sequences, callbacks, or delegates. When
+possible, implementation code which requires polling to be tested should be
+refactored to support other means. Polling exists for the case where such
+refactors are either not possible or require a large amount of overhead.
+
+Polling introduces a small amount of instability to the tests - in the example
+of waiting for `Aquarium.isRaising` to be set to true, it is entirely possible
+that, unless the code covered by
+`// Long running work that I'm not qualified to describe` has a test-controlled
+means to block further execution, the created `Task` could finish between
+polling attempts - resulting `Aquarium.isRaising` to always be read as false,
+and failing the test despite the code having done the right thing.
+
+Polling also only offers a snapshot in time of the state. When
+`PollingStopCondition.firstPass` is used, polling will stop and return a pass
+after the first time the `body` returns true, even if any subsequent calls
+would've returned false.
+
+Furthermore, polling introduces delays to the running code. This isn't that
+much of a concern for `PollingStopCondition.firstPass`, where the passing
+case minimizes test execution time. However, the
+passing case when using `PollingStopCondition.stopsPassing` utilizes the full
+duration specified. If the test author specifies the polling duration to be
+10 minutes, then the test will poll for approximately that long, so long as the
+polling body keeps returning true.
+
+Despite all this, we think that polling is an extremely valuable tool, and is
+worth adding to the Testing library.
 
 ## Source compatibility
 
