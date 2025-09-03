@@ -62,7 +62,7 @@ This proposal recommends to use sections of the various object file formats as t
 The proposal is to add two new attributes `@section` and `@used` that will allow annotating global and static variables with directives to place the value into a custom section, and to require no-dead-stripping aka "attribute used". The `@section` attribute relies heavily on the facilities provided by [Swift Compile-Time Values](https://github.com/artemcm/swift-evolution/blob/const-values/proposals/0nnn-const-values.md), namely the ability to enforce constantness of an expressions. Using `@section` requires that the initializer expression is a constant expression:
 
 ```swift
-// Place entry into a section, mark as "do not dead strip".
+// Place an entry into a section, mark as "do not dead strip".
 // Initializer expression must be a constant expression.
 // The global variable is implicitly made statically initialized.
 @section("__DATA,mysection")
@@ -91,24 +91,14 @@ let myPlugin: PluginData = (
 
 On top of specifying a custom section name with the `@section` attribute, marking a variable as `@used` is needed to prevent otherwise unused symbols from being removed by the compiler. When using section placement to e.g. implement linker sets, such values are typically going to have no usage at compile time, and at the same time they should not be exposed in public interface of libraries (not be made public), therefore we the need the `@used` attribute.
 
-A related new attribute, `@constInitialized` is to be added, which can be used to enforce that a global or static variable is statically initialized, without placing it into a custom section. Using attribute `@section` implies `@constInitialized`.
-
-```swift
-// Static initialization can be requested separately
-@constInitialized
-var fourPages = 4 * 4096
-```
-
-Different object file formats (ELF, Mach-O, COFF) have different restrictions and rules on what are valid section names, and cross-platform code will have to use different names for different file formats. To support that, custom section names can be specified as either a string literal, or by referencing a constant global/static declaration that contains the name. The name will be directly set for the symbol in the resulting object file, without any processing. A new `#if objectFileFormat(...)` conditional compilation directive will be provided to support conditionalizing based on the file format:
+Different object file formats (ELF, Mach-O, COFF) have different restrictions and rules on what are valid section names, and cross-platform code will have to use different names for different file formats. To support that, custom section names can be specified as a string literal. The name will be directly set for the symbol in the resulting object file, without any processing. A new `#if objectFileFormat(...)` conditional compilation directive will be provided to support conditionalizing based on the file format:
 
 ```swift
 #if objectFileFormat(ELF)
-@const let mySectionName = ".mysection"
+@section(".mysection")
 #elseif objectFileFormat(MachO)
-@const let mySectionName = "__DATA,mysection"
+@section("__DATA,mysection")
 #endif
-
-@section(mySectionName)
 var global = ...
 ```
 
@@ -118,7 +108,7 @@ For the ELF file format specifically, the compiler will also emit a “section i
 
 ### Attributes @section and @used on global and static variables
 
-Two new attributes are to be added: `@section`, which has a single argument specifying the section name, and a argument-less `@used` attribute. The section name must be either a string literal, or a reference to a constant string declaration.
+Two new attributes are to be added: `@section`, which has a single argument specifying the section name, and a argument-less `@used` attribute. The section name must be a string literal. The attributes can be used either together or independently.
 
 ```swift
 // (1)
@@ -127,32 +117,23 @@ Two new attributes are to be added: `@section`, which has a single argument spec
 let global = ... // ✅
 
 // (2)
-@const let mySectionName = "__DATA,mysection"
-
-@section(mySectionName)
+@section("__DATA,mysection")
 let global = ... // ✅
 
 // (3)
-@section(Bool.rand() ? "a" : "b")
-let global = ... // ❌
-```
-
-The section name must not be one of Swift’s runtime reserved sections (e.g. `__swift5_types`, etc.), such sections would be rejected:
-
-```swift
-@section("__TEXT,__swift5_types")
-let global = ... // ❌
+@used
+let global = ... // ✅
 ```
 
 The new attributes (`@section` and `@used`) can be used on variable declarations under these circumstances:
 
 * the variable must be a global variable or a static member variable (no local variables, no non-static member variables)
 * the variable must not be declared inside a generic context (either directly in generic type or nested in a generic type)
-* the variable must be a stored property (not be a computed property)
+* the variable must be a stored property (not a computed property)
 * the variable must not have property observers (didSet, willSet)
 * the initial expression assigned to the variable must be a constant expression, and it must be eligible for static initilization
 
-*Note: These restrictions limit the `@section` and `@used` attributes to only be allowed on variables that are expected to be represented as exactly one statically-initialized global storage symbol (in the linker sense) for the variable’s content. This is generally true for all global and static variables in C and C++, but in Swift global variables might have zero global storage symbols (e.g. a computed property), or need non-trivial storage (e.g. lazily initialized variables with runtime code in the initializer expression).*
+> *Note: These restrictions limit the `@section` and `@used` attributes to only be allowed on variables that are expected to be represented as exactly one statically-initialized global storage symbol (in the linker sense) for the variable’s content. This is generally true for all global and static variables in C and C++, but in Swift global variables might have zero global storage symbols (e.g. a computed property), or need non-trivial storage (e.g. lazily initialized variables with runtime code in the initializer expression).*
 
 ```swift
 @section("__DATA,mysection") @used
@@ -201,31 +182,34 @@ The effects described above are applied to the storage symbols and don’t gener
 
 ### Guaranteed static initialization
 
-Using attribute `@section` requires the initializer expression of the variable to be a constant expression. The `@const` annotation on the expression is not required (it’s implied). On top of the constant-ness, `@section` on a global or static variable enforces **static initialization** on that variable. The variable can be statically initialized, if the constant expression not only represents a valid compile-time constant, but also is able to be constant-folded into a representation that does not require any runtime initialization (pointer relocations/fixups done automatically by the loader are not considered runtime initialization for this purpose).
+Using attribute `@section` requires the initializer expression of the variable to be a **constant expression**. It's not required to separately annotate the expression for being a compile-time expression, instead this is implied from the `@section` attribute. On top of the constant-ness, `@section` on a global or static variable enforces **static initialization** on that variable.
 
-This is a property that `@const` alone does not provide, but it’s necessary because we expect the data to be readable without any runtime mechanisms (i.e. reading raw bytes from the section at runtime, or offline binary inspection).
+We consider the variable to be eligible for static initialization when:
+
+1. the initializer expression represents a valid compile-time constant, and
+2. the initializer expression can be constant-folded into a representation that does not require any runtime initialization (pointer relocations/fixups done automatically by the loader are not considered runtime initialization for this purpose).
+
+Not all constant expressions are necessarily statically initializable. For section placement we require the stronger property (static initialization) because we expect the data to be readable without any runtime mechanisms (i.e. reading raw bytes from the section at runtime, or offline binary inspection).
 
 ```swift
 @section("__DATA,mysection")
 let a = 42 // ✅
 
 @section("__DATA,mysection")
-let b = @const 42 // warning: @const is superfluous
+let sectionPlaced = ...expression... // ✅, guaranteed to be statically initialized
 
 @section("__DATA,mysection")
-let sectionPlaced = ...expression... // guaranteed to be statically initialized
-
-let justConstant = @const ...expression... // not guaranteed to be statically initialized
+let notStaticallyInitializable = ...expression that cannot be statically initialized... // ❌
 ```
 
-*Note: As of this writing, all valid constant values are also eligible to be statically initialized, but we don’t expect that to hold in the future. So it’s important to distinguish between (a) a global variable being initialized with a language-level constant value (`@const`), and (b) a global variable that is guaranteed to be statically initialized. The difference can be subtle, and in some cases immaterial in practice, but future enhancements of constant values in Swift might take advantage of this difference — i.e. not all constant values are going to be statically initializable. Consider the following example: If a future language versions allows dictionary literals to be constant values, such values might not be statically initializable because of randomized hash seeding:*
+> *Note: As of this writing, all valid constant values are also eligible to be statically initialized, but we don’t expect that to hold in the future. So it’s important to distinguish between (a) a global variable being initialized with a language-level constant value, and (b) a global variable that is guaranteed to be statically initialized. The difference can be subtle, and in some cases immaterial in practice, but future enhancements of constant values in Swift might take advantage of this difference — i.e. not all constant values are going to be statically initializable. Consider the following example: If a future language versions allows dictionary literals to be constant values, such values might not be statically initializable because of randomized hash seeding:*
 
-```swift
-let d1 = @const ["a": 42, "b": 777] // constant, but not statically initializable
-let d2 = @const d1.count            // statically initializable
-```
+> ```swift
+> let d1 = ["a": 42, "b": 777] // constant, but not statically initializable
+> let d2 = d1.count            // statically initializable
+> ```
 
-*However, using a statically non-initializable value in an expression does not preclude the outer expression from being statically initialized either. In this example, `d1` would not be allowed to be placed into a custom section because it’s not statically initializable. But `d2` could still potentially be statically initializable (even though the definition of `d2` uses a sub-expression that is not statically initializable), as it’s simply an integer.*
+> *However, using a statically non-initializable value in an expression does not preclude the outer expression from being statically initialized either. In this example, `d1` would not be allowed to be placed into a custom section because it’s not statically initializable. But `d2` could still potentially be statically initializable (even though the definition of `d2` uses a sub-expression that is not statically initializable), as it’s simply an integer.*
 
 As described in [Swift Compile-Time Values](https://github.com/artemcm/swift-evolution/blob/const-values/proposals/0nnn-const-values.md), values of function types are eligible for being compile-time evaluable. Their concrete pointer value is not fully known until link-time or program load-time (depending on type of linking, ASLR, PAC, etc.). For the purposes of guaranteed static initialization, function values are statically initialized into a function pointer. This pointer is still subject to normal linking and loading resolutions and fixups.
 
@@ -236,22 +220,6 @@ func foo() { ... }
 let a = (42, foo) // "foo" is statically initialized into a
                   // linkable/relocatable pointer
 ```
-
-### Attribute `@constInitialized`
-
-Static initialization of a global can be useful on its own, without placing data into a custom section. For that, a new attribute `@constInitialized` can be used. This attribute can be only used on variable declarations under the same conditions that `@section` and `@used` require (e.g. only on globals and statics, not in generic contexts, etc.)
-
-```swift
-@constInitialized
-var fourPages = 4 * 4096 // ✅
-
-struct S {
-  @constInitialized
-  var fourPages = 4 * 4096 // ❌
-}
-```
-
-The effect of this attribute is the same as of the `@section` attribute (static initialization, normal initalization behavior if top-level code) except the symbol is not actually placed into any custom sections.
 
 ### Cross-platform object file format support
 
@@ -305,7 +273,7 @@ The goal of placing metadata into custom section is to make them discoverable bo
     * In Wasm, dynamic linking is work in progress and not generally available yet.
     * In ELF, however, section bounds are not guaranteed to be present in the address space at runtime, and in practice they are typically not present. This creates a challenge for retrieving section data in this configuration (ELF + multiple modules with dynamic linking) at runtime.
 
-To solve this problem for the ELF object file format, the Swift compiler is going to emit a “**section index**” into every compilation that uses any symbols placed into a custom section.  The index will be emitted only when producing ELF files, and consists of entries added into its own separate well-named section called `swift5_sections`. Each entry will have the following structure:
+To solve this problem for the ELF object file format, the Swift compiler is going to emit a “**section index**” into every compilation that uses any symbols placed into a custom section. The index will be emitted only when producing ELF files, and consists of entries added into its own separate well-named section called `swift5_sections`. Each entry will have the following structure:
 
 ```c
 struct SectionIndexEntry {
@@ -352,6 +320,25 @@ func firmwareBootEntrypoint() { ... }
 ```
 
 This will require some design decisions to be made around when should that be allowed, whether the attribute should be automatically inherited, and what exact behavior should we expect from the compiler around thunks, compiler-generated helper functions, getters and setters, etc.
+
+### Standalone attribute for required static initialization
+
+Static initialization of a global can be useful on its own, without placing data into a custom section, and a separate attribute for that could be added. This way, one can get the same effects as the `@section` attribute (static initialization, normal initalization behavior if top-level code) except the symbol would not be actually placed into any custom section.
+
+### Allowing a reference to a constant string declaration as a section name
+
+The requirement to only use string literals as the section names could be lifted in the future, and we might allow referring to a declaration of variable with a compile-time string. This would be useful to avoid repetition when placing multiple values into the same section without needing to use macros.
+
+```swift
+#if objectFileFormat(ELF)
+let mySectionName = ".mysection" // required to be a compile-time value
+#elseif objectFileFormat(MachO)
+let mySectionName = "__DATA,mysection" // required to be a compile-time value
+#endif
+
+@section(mySectionName)
+var global = ...
+```
 
 ### Runtime discovery of data in custom sections
 
@@ -445,3 +432,7 @@ In a lot of the list code snippets in this proposal, both `@section` and `@used`
 
 * `@section` and `@used` represent separate concepts and all combinations of them can be useful. An example of using `@section` without `@used` is to place for example a large data table from a library into its own section for binary size accounting reasons (so that it shows up separately in per-section binary size listings), but where we’d still expect the data table to be dead-code removed if not used.
 * It’s already common to have those attributes as separate options in existing popular systems programming languages (C, C++, Rust).
+
+### Blocking section placement into compiler reserved sections
+
+In most cases, placing data into one of Swift’s runtime reserved sections (e.g. `__swift5_types`, etc.) without relying on extreme details of the compiler and runtime would result in invalid binaries. It was considered to simply reject using `@section` to target one of these reserved sections, but ultimately that would introduce both false positives (*what if we at some point wanted to write compiler/runtime code in Swift to actually legitimately place data into these sections?*) and false negatives (*there are many other "reserved" sections that the Swift compiler and language cannot know about*), and is thus left out of this proposal.
