@@ -1,6 +1,6 @@
 # Environment Constrained Shared Libraries
 
-* Proposal: [SE-NNNN](NNNN-environment-constrained-shared-libraries.md)
+* Proposal: [SE-0490](0490-environment-constrained-shared-libraries.md)
 * Authors: [tayloraswift](https://github.com/tayloraswift)
 * Review Manager: TBD
 * Implementation: [swiftlang/swift-package-manager#8249](https://github.com/swiftlang/swift-package-manager/pull/8249)
