@@ -372,27 +372,49 @@ requires macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0 and visionOS 1.0.
 
 ### Duration and Concurrent Execution
 
-It is an unfortunate side effect that directly using the `duration` to determine
-when to stop polling (i.e. `while duration has not elapsed { poll() }`) is
-unreliable in a parallel execution environment. Especially on systems that are
-under-resourced, under very high load, or both - such as CI systems. This is
-especially the case for the Testing library, which, at time of writing, submits
-every test at once to the concurrency system for scheduling. Under this
-environment, with heavily-burdened machines running test suites with a very
-large amount of tests, there is a very real case that a polling confirmation's
-`duration` might elapse before the `body` has had a chance to return even once.
+Directly using the `duration` to determine when to stop polling is incredibly
+unreliable in a
+parallel execution environment, like most platforms Swift Testing runs on. The
+fundamental issue is that if polling were to directly use a timeout to determine
+when to stop execution, such as:
+
+```swift
+let end = ContinuousClock.now + timeout
+while ContinuousClock.now < end {
+    if await runPollAndCheckIfShouldStop() {
+        // alert the user!
+    }
+    await Task.yield
+}
+```
+
+With enough system load, the polling check might only run a handful of times, or
+even once, before the timeout is triggered. In this case, the component being
+polled might not have had time to update its status such that polling could
+pass. Using the `Aquarium.raiseDolphins` example from earlier: On the first time
+that `runPollAndCheckIfShouldStop` executes the background task created by
+`raiseDolphins` might not have started executing its closure, leading the
+polling to continue. If the system is under sufficiently high load, which can
+be caused by having a very large amount of tests in the test suite, then once
+the `Task.yield` finishes and the while condition is checked again, then it
+might now be past the timeout. Or the task created by `Aquarium.runDolphins`
+might have started and the closure run to completion before the next time
+`runPollAndCheckIfShouldStop()` is executed. Or both. This approach of using
+a clock to check when to stop is inherently unreliable, and becomes increasingly
+unreliable as the load on the system increases and as the size of the test suite
+increases.
 
 To prevent this, the Testing library will calculate how many times to poll the
-`body`. This is done by dividing the `duration` by the `interval`. For example,
+`body`. This can be done by dividing the `duration` by the `interval`. For example,
 with the default 1 second duration and 1 millisecond interval, the Testing
-library will poll 1000 times, waiting 1 millisecond between polling attempts.
-This works and is immune to the issues posed by concurrent execution on
-heavily-burdened systems.
+library could poll 1000 times, waiting 1 millisecond between polling attempts.
+This is immune to the issues posed by concurrent execution, allowing it to
+scale with system load and test suite size.
 This is also very easy for test authors to understand and predict, even if it is
-not fully accurate - each poll attempt takes some amount of time, even for very
-fast `body` closures. Which means that the real-time duration of a polling
-confirmation will always be longer than the value specified in the `duration`
-argument.
+not fully accurate to wall-clock time - each poll attempt takes some amount of
+time, even for very  fast `body` closures. Which means that the real-time
+duration of a polling confirmation will always be longer than the value
+specified in the `duration` argument.
 
 ### Usage
 
