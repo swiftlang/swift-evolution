@@ -323,6 +323,13 @@ extension Task {
 }
 ```
 
+These are mainly used by the implementation, but there may be
+situations where it's useful for a user program, or the implementer of
+some executor, to get hold of a reference to the default main or
+global executor.  (An example is where the executor is a
+`RunLoopExecutor` and they want to explicitly call the `run(until:)`
+method for some reason.)
+
 There will also be an `ExecutorFactory` protocol, which is used to set
 the default executors:
 
@@ -378,6 +385,10 @@ extension Task {
 to allow `Task.sleep()` to wait on the appropriate executor, rather
 than its current behaviour of always waiting on the global executor,
 which adds unnecessary executor hops and context switches.
+
+Again, while these are mainly useful in the implementation of
+`Task.sleep()`, they are also useful for debugging (user programs can
+print the current executor to see which one they are presently using).
 
 We will also need to expose the executor storage fields on
 `ExecutorJob`, so that they are accessible to Swift implementations of
@@ -501,7 +512,8 @@ re-emphasising that the data needs to be released, in reverse order
 of allocation, prior to execution of the job to which it is attached.
 
 We will also add a `SchedulingExecutor` protocol as well as a way to
-get it efficiently from an `Executor`:
+get it efficiently from an `Executor`; this is required to let us
+build `Task.sleep()` on top of the new custom executor infrastructure:
 
 ```swift
 protocol Executor {
@@ -564,6 +576,9 @@ As an implementer, you will only need to implement _one_ of the two
 APIs to get both of them working; there is a default implementation
 that will do the necessary mathematics for you to implement the other
 one.
+
+The new `enqueue` APIs in `SchedulingExecutor` are used by the
+implementation of `Task.sleep()`.
 
 To support these `Clock`-based APIs, we will add to the `Clock`
 protocol as follows:
@@ -641,6 +656,25 @@ final class UnimplementedTaskExecutor: TaskExecutor, @unchecked Sendable {
   ...
 }
 ```
+
+There are intended to be used in cases where there is a desire to
+ensure that no attempts are made to execute tasks either on the main
+executor or on the default executor.  An example of such a case is
+where a program is using the "hook function" API to take control over
+task execution directly; in that case, setting the
+`Unimplemented*Executor`s as the default executors means that we will
+trap if some code somehow manages to sneak task execution past the
+hook function interface.
+
+They are also useful in situations where e.g. there is a main executor
+but no default global executor (e.g. on a co-operative system that
+doesn't have threads), or where there is a default global executor but
+no main executor (this seems less likely overall, but we might imagine
+a system that works using callbacks on a thread pool, where there is
+no "main thread" and so the notion of a main executor makes no sense).
+
+We anticipate that most uses of the `Unimplemented*Executor` types are
+going to come from the Embedded Swift space.
 
 ### Embedded Swift
 
@@ -836,6 +870,30 @@ knowledge of those libraries.
 
 While a good idea, it was decided that this would be better dealt with
 as a separate proposal.
+
+### Adding conversion functions and traits for `Clock`s
+
+An alternative approach to the `clock.run()` and `clock.enqueue()`
+APIs was explored in an earlier revision of this proposal; the idea
+was that `Clock` would provide API to convert its `Instant` and
+`Duration` types to those provided by some other `Clock`, and then
+each `Clock` would expose a `traits` property that specified features
+of the clock that could be matched against the support a given
+executor might have for time-based execution.
+
+The benefit of this is that it allows any executor to use any `Clock`,
+albeit on a best-effort basis.  The downside is that clock conversions
+will necessarily be lossy in nature, and also would only work on the
+assumption that `Clock` types were actually measuring time in a
+similar manner (i.e. one second in `Clock` A is equal to one second in
+`Clock` B).  It might also result in unusual behaviour in some cases,
+e.g. where an executor did not pay attention to some clock trait that
+ordinarily would affect behaviour.
+
+We decided after some discussion that it was better instead for
+executors to know which `Clock` types they directly support, and in
+cases where they are handed an unknown `Clock`, have the `Clock`
+itself take responsibility for appropriately scheduling a job.
 
 ### Adding special support for canonicalizing `Clock`s
 
