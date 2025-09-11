@@ -393,7 +393,13 @@ When we build and run our SwiftUI app we confirm that we are not computing new `
 
 We propose adding `isIdentical` methods to the following concrete types from Standard Library:
 * `String`
+* `String.UnicodeScalarView`
+* `String.UTF16View`
+* `String.UTF8View`
 * `Substring`
+* `Substring.UnicodeScalarView`
+* `Substring.UTF16View`
+* `Substring.UTF8View`
 * `Array`
 * `ArraySlice`
 * `ContiguousArray`
@@ -419,6 +425,16 @@ extension String {
   /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
   ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
   /// - `a.isIdentical(b)` implies `a == b`
+  ///   - `a == b` does not imply `a.isIdentical(b)`
+  ///
+  /// Values produced by copying the same value, with no intervening mutations,
+  /// will compare identical:
+  ///
+  /// ```swift
+  /// let d = c
+  /// print(c.isIdentical(to: d))
+  /// // Prints true
+  /// ```
   ///
   /// Comparing strings this way includes comparing (normally) hidden
   /// implementation details such as the memory location of any underlying
@@ -430,6 +446,11 @@ extension String {
   public func isIdentical(to other: Self) -> Bool { ... }
 }
 ```
+
+The following types will adopt the same semantic guarantees as `String`:
+* `String.UnicodeScalarView`
+* `String.UTF16View`
+* `String.UTF8View`
 
 ### `Substring`
 
@@ -448,6 +469,16 @@ extension Substring {
   /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
   ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
   /// - `a.isIdentical(b)` implies `a == b`
+  ///   - `a == b` does not imply `a.isIdentical(b)`
+  ///
+  /// Values produced by copying the same value, with no intervening mutations,
+  /// will compare identical:
+  ///
+  /// ```swift
+  /// let d = c
+  /// print(c.isIdentical(to: d))
+  /// // Prints true
+  /// ```
   ///
   /// Comparing substrings this way includes comparing (normally) hidden
   /// implementation details such as the memory location of any underlying
@@ -459,6 +490,11 @@ extension Substring {
   public func isIdentical(to other: Self) -> Bool { ... }
 }
 ```
+
+The following types will adopt the same semantic guarantees as `Substring`:
+* `Substring.UnicodeScalarView`
+* `Substring.UTF16View`
+* `Substring.UTF8View`
 
 ### `Array`
 
@@ -477,6 +513,16 @@ extension Array {
   /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
   ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
   /// - If `a` and `b` are `Equatable`, then `a.isIdentical(b)` implies `a == b`
+  ///   - `a == b` does not imply `a.isIdentical(b)`
+  ///
+  /// Values produced by copying the same value, with no intervening mutations,
+  /// will compare identical:
+  ///
+  /// ```swift
+  /// let d = c
+  /// print(c.isIdentical(to: d))
+  /// // Prints true
+  /// ```
   ///
   /// Comparing arrays this way includes comparing (normally) hidden
   /// implementation details such as the memory location of any underlying
@@ -506,6 +552,16 @@ extension ArraySlice {
   /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
   ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
   /// - If `a` and `b` are `Equatable`, then `a.isIdentical(b)` implies `a == b`
+  ///   - `a == b` does not imply `a.isIdentical(b)`
+  ///
+  /// Values produced by copying the same value, with no intervening mutations,
+  /// will compare identical:
+  ///
+  /// ```swift
+  /// let d = c
+  /// print(c.isIdentical(to: d))
+  /// // Prints true
+  /// ```
   ///
   /// Comparing arrays this way includes comparing (normally) hidden
   /// implementation details such as the memory location of any underlying
@@ -535,6 +591,16 @@ extension ContiguousArray {
   /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
   ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
   /// - If `a` and `b` are `Equatable`, then `a.isIdentical(b)` implies `a == b`
+  ///   - `a == b` does not imply `a.isIdentical(b)`
+  ///
+  /// Values produced by copying the same value, with no intervening mutations,
+  /// will compare identical:
+  ///
+  /// ```swift
+  /// let d = c
+  /// print(c.isIdentical(to: d))
+  /// // Prints true
+  /// ```
   ///
   /// Comparing arrays this way includes comparing (normally) hidden
   /// implementation details such as the memory location of any underlying
@@ -564,6 +630,16 @@ extension Dictionary {
   /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
   ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
   /// - If `a` and `b` are `Equatable`, then `a.isIdentical(b)` implies `a == b`
+  ///   - `a == b` does not imply `a.isIdentical(b)`
+  ///
+  /// Values produced by copying the same value, with no intervening mutations,
+  /// will compare identical:
+  ///
+  /// ```swift
+  /// let d = c
+  /// print(c.isIdentical(to: d))
+  /// // Prints true
+  /// ```
   /// 
   /// Comparing dictionaries this way includes comparing (normally) hidden
   /// implementation details such as the memory location of any underlying
@@ -593,6 +669,16 @@ extension Set {
   /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
   ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
   /// - `a.isIdentical(b)` implies `a == b`
+  ///   - `a == b` does not imply `a.isIdentical(b)`
+  ///
+  /// Values produced by copying the same value, with no intervening mutations,
+  /// will compare identical:
+  ///
+  /// ```swift
+  /// let d = c
+  /// print(c.isIdentical(to: d))
+  /// // Prints true
+  /// ```
   ///
   /// Comparing sets this way includes comparing (normally) hidden
   /// implementation details such as the memory location of any underlying set
@@ -622,12 +708,6 @@ Any Standard Library types that are copy-on-write values could be good candidate
 * `KeyValuePairs`
 * `StaticBigInt`
 * `StaticString`
-* `String.UnicodeScalarView`
-* `String.UTF16View`
-* `String.UTF8View`
-* `Substring.UnicodeScalarView`
-* `Substring.UTF16View`
-* `Substring.UTF8View`
 * `UTF8Span`
 
 This proposal focuses on what we see as the most high-impact types to support from Standard Library. This proposal *is not* meant to discourage adding `isIdentical(to:)` on any of these types at some point in the future. A follow-up “second-round” proposal could focus on these remaining types.
