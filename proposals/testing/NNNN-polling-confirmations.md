@@ -384,7 +384,7 @@ while ContinuousClock.now < end {
     if await runPollAndCheckIfShouldStop() {
         // alert the user!
     }
-    await Task.yield
+    await Task.yield()
 }
 ```
 
