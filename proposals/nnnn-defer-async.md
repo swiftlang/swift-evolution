@@ -92,6 +92,14 @@ The body of a `defer` statement will always inherit the isolation of its enclosi
 
 This change is additive and opt-in. Since no `defer` bodies today can do any asynchronous work, the behavior of existing code will not change.
 
+## ABI compatibility
+
+This proposal does not have any impact at the ABI level. It is purely an implementation detail.
+
+## Implications on adoption
+
+Adoping asynchronous `defer` is an implementation-level detail and does not have any implications on ABI or API stability.
+
 ## Alternatives considered
 
 ### Require some statement-level marking such as `defer async`
@@ -110,3 +118,15 @@ This proposal declines to introduce such requirement. Because `defer` bodies are
 The decision to implicltly await asyncrhonous `defer` bodies has the potential to introduce unexpected suspension points within function bodies. This proposal takes the position that the implicit suspension points introduced by asynchronous `defer` bodies is almost entirely analagous to the [analysis](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0317-async-let.md#requiring-an-awaiton-any-execution-path-that-waits-for-an-async-let) provided by the `async let` proposal. Both of these proposals would require marking every possible control flow edge which exits a scope.
 
 If anything, the analysis here is even more favorable to `defer`. In the case of `async let` it is possible to have an implicit suspension point without `await` appearing anywhere in the source—with `defer`, any suspension point within the body will be marked with `await`.
+
+### Suppress task cancellation within `defer` bodies
+
+During discussion of the behavior expected from asynchronous `defer` bodies, one point raised was whether we ought to remove the ability of code within a `defer` to observe the current task's cancellation state. Under this proposal, no such change is adopted, and if the current task is cancelled then all code called from the `defer` will observe that cancellation (via `Task.isCancelled`, `Task.checkCancellation()`, etc.) just as it would if called from within the main function body.
+
+The alternative suggestion here noted that because task cancellation can sometimes cause code to be skipped, it is not in the general case appropriate to run necessary cleanup code within an already-cancelled task. For instance, if one wishes to run some cleanup on a timeout (via `Task.sleep`) or via an HTTP request or filesystem operation, these operations could interpret running in a cancelled task as an indication that they _should not perform the requested work_.
+
+We could, instead, notionally 'un-cancel' the current task if we enter a `defer` body: all code called from within the `defer` would observe `Task.isCancelled == true`, `Task.checkCancellation()` would not throw, etc. This would allow timeouts to continue to function and ensure that any downstream cleanup would not misinterpret task cancellation as an indication that it should early-exit.
+
+This proposal does not adopt such behavior, for a combination of reasons:
+1. Synchronous `defer` bodies already observe cancellation 'normally', i.e., `Task.isCancelled` can be accessed within the body of a synchronous `defer`, and it will reflect the actual cancellation status of the enclosing task. While it is perhaps less likely that existing synchronous code exhibits behavior differences with respect to cancellation status, it would be undesirable if merely adding `await` in one part of a `defer` body could result in behavior changes for other, unrelated code in the same `defer` body.
+2. We do not want a difference in behavior that could occur merely from moving existing code into a `defer`. Existing APIs which are sensitive to cancellation must already be used with care even in straight-line code where `defer` may not be used (since cancellation can happen at any time), and this proposal takes the position that such APIs are more appropriately addressed by a general `withCancellationIgnored { ... }` feature (or similar) as discussed in the pitch thread.
