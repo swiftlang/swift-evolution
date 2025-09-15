@@ -171,8 +171,8 @@ parameter `T` can then assume that the type parameter
 `T.Resource` is `Copyable`:
 ```swift
 extension Manager where Self: ~Copyable {
-  func makeCopies(_ e: Self.Element) -> (Self.Element, Self.Element) {
-    return (e, e)
+  func makeCopies(_ r: Self.Resource) -> (Self.Resource, Self.Resource) {
+    return (r, r)
   }
 }
 ```
@@ -184,7 +184,7 @@ public protocol Manager: ~Copyable {
 }
 ```
 The client's extension of `Manager` will no longer type check, because
-the body of `makeCopies()` assumes `e` is `Copyable`, and this
+the body of `makeCopies()` assumes `r` is `Copyable`, and this
 assumption is no longer true. 
 
 ## ABI Compatibility
