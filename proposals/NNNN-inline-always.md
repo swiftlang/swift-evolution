@@ -3,6 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-inline-always.md)
 * Authors: [Arnold Schwaighofer](https://github.com/aschwaighofer)
 * Implementation: [swiftlang/swift#84178](https://github.com/swiftlang/swift/pull/84178)
+* Pitch thread: https://forums.swift.org/t/pitch-inline-always-attribute/82040
 
 ## Introduction
 
@@ -149,17 +150,54 @@ be possible?
 
 ### Interaction with `@inlinable`
 
-Function bodies of functions referenceable outside of the defining module are
-only available to the outside module if the definition is marked `@inlinable`.
+`@inlinable` and `@_alwaysEmitIntoClient` make the function body available to
+clients (callers in other modules) in library evolution mode. `@inlinable` makes
+the body of the function available to the client and causes an ABI entry point
+in the vending module to vended. `@_alwaysEmitIntoClient` makes the body of the
+function available for clients but does not cause emission of an ABI entry
+point. Functions with `open`, `public`, or `package` level access cause emission
+of an ABI entry point for clients to call but in the absence of aforementioned
+attributes do not make the body available to the client.
 
-Therefore, a function marked with `@inline(always)` must be marked `@inlinable`
-if it has `open`, `public`, or `package` level access.
+`@inline(always)` intention is to be able to guarantee that inlining will happen
+for any caller inside or outside the defining module therefore it makes sense to
+require the use some form of "inline-ability" attribute with them. This
+attribute could be required to be explicitly stated. And for it to be an error
+when the attribute is omitted.
 
 ```swift
+@inline(always)
+@inlinable // or @_alwaysEmitIntoClient
+public func caller() { ... }
+
 @inline(always) // error: a public function marked @inline(always) must be marked @inlinable
 public func callee() {
 }
 ```
+
+Alternatively, the attribute could be implicitly implied by the usage of
+`@inline(always)`. In this proposal, we take the position that it should be
+implied to avoid the redundancy of spelling this out. The intention of
+`@inline(always)` is for it to inline in all contexts. Instead of an error in the
+absence of the attribute we should imply "inline-ability". The question is what
+should we default to?
+
+`@_alwaysEmitIntoClient`'s semantics seems preferable for new functions. We
+intend for the function to be always inlined, why should there be an ABI entry
+point?
+
+`@inlinable` semantics allows for annotating existing functions with
+`@inline(always)` without breaking ABI compatibility. `@inlinable` keeps an
+entry point in the vending module for older code that assumed the existence of
+an entry point.
+
+This proposals takes the position to give `@inline(always)` the semantics of
+`@inlineable` and provide an alternative spelling for the case when we desire
+`@_alwaysEmitIntoClient` semantics: `@inline(only)`.
+
+For access levels equal and lower than `internal` `@inlinable` should not be
+implied.
+
 
 ### Interaction with `@usableFromInline`
 
@@ -297,7 +335,9 @@ changes to inlining heuristic).
 
 ## ABI compatibility
 
-The addition of the attribute has no effect on ABI compatibility.
+The addition of the attribute has no effect on ABI compatibility. We chose to
+imply `@inlinable` for `public` (et al.) declarations which will continue to
+emit an entry point for existing binary clients.
 
 ## Implications on adoption
 
@@ -342,6 +382,11 @@ This would deliver less predictable optimization behavior in cases where authors
 overlooked requirements for inlining to happen such as not marking a public
 function as `@inlinable`.
 
+With respect to `@inlinable` an initial draft of the proposal suggested to
+require spelling the `@inlinable` attribute on `public` declarations or an error
+would be displayed. The argument was that this would ensure that authors would
+be aware of the additional semantics implied by the attribute: the body is
+exposed.
 
 ## Acknowledgments
 
