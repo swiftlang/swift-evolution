@@ -21,13 +21,43 @@ The Swift evolution process aims to leverage the collective ideas, insights, and
 
 There is a natural tension between these two goals. Open evolution processes are, by nature, chaotic. Yet, maintaining a coherent vision for something as complicated as a programming language requires some level of coordination. The Swift evolution process aims to strike a balance that best serves the Swift community as a whole.
 
-## General principles
+## Evolution workgroups
 
 The [Core Team](https://www.swift.org/community/#core-team) is responsible for the strategic direction of Swift. As part of this, it identifies areas of the Swift project that should be covered by the evolution process. Anything not so identified is not covered by the evolution process.
 
 The Core Team may elect to delegate evolution authority over a specific area to a particular [steering group or workgroup](https://www.swift.org/community/). Otherwise, that evolution authority remains with the Core Team. The group that exercises evolution authority over an area is called its *evolution workgroup*. The Core Team's delegation of authority is not absolute, and it retains the right to override individual decisions as it sees fit.
 
-Evolution workgroups are responsible for deciding the details of how the evolution process applies to its evolution area, within the general principles laid out in this section. If a proposal touches on multiple evolution areas, all affected evolution workgroups work together to decide the process for the proposal and bring it through evolution review.
+Evolution workgroups are responsible for deciding the details of how the evolution process applies to its evolution area, within the guidelines laid out in the following section. If a proposal touches on multiple evolution areas, all affected evolution workgroups work together to decide and carry out the details of the evolution process for the proposal.
+
+## Evolution review
+
+The evolution process normally consists of two steps:
+
+1. the creation of a *proposal document* that describes the proposal, which is usually developed and discussed in a [forums thread][forums] called a *pitch*; and
+
+2. an *open review* of the proposal by the community at large.
+
+After the open review, the evolution workgroup makes a decision about what to do.
+
+Every substantial design change in an area covered by the evolution process must have a proposal document and undergo open review before it can be accepted.
+
+Most proposals must undergo the *full evolution process*. In the full evolution process, the pitch and open review are separate steps. The proposal is developed in a pitch thread until the author is satisfied with it and the workgroup believes it is ready for review. The workgroup then creates a new thread for the open review. After the review is complete, the workgroup may make a final decision or ask for revisions to the proposal. A single proposal may include multiple rounds of pitch and review.
+
+An evolution workgroup may also elect to use the *lightweight evolution process* for certain kinds of proposal. The lightweight process combines the pitch and open review steps: the proposal document is developed and discussed in a single thread, and the workgroup makes its decision when it feels that the proposal has solidified and a reasonable time for feedback has passed.
+
+The extra structure of the full evolution process gives the community greater awareness of the proposal and a better opportunity to read and provide feedback on it. The lightweight evolution process is generally only appropriate for simple proposals with relatively low stakes. For example, if compiler diagnostic groups were covered by evolution (they currently are not), proposals to create and reorganize groups would be a reasonable use of the lightweight process.
+
+Evolution workgroups may decide that certain design changes are sufficiently obvious to accept without a proposal document or open review. This is generally only appropriate for small adjustments to recently-accepted proposals where the workgroup feels that there is no reasonable objection to the proposed change. Examples include:
+
+- adding a method to a particular type which was overlooked in a proposal that added that method to several similar types;
+
+- forbidding an unsafe or nonsensical use of a new feature; or
+
+- gating a change behind an upcoming feature flag after it was discovered to cause significant source-compatibility problems.
+
+Such changes should still generally be announced in the release notes when they are made. Evolution workgroups should be circumspect about making changes this way, and in close cases, they should err on the side of conducting a normal review.
+
+Evolution workgroups may also reject proposals without review if the workgroup feels that there is no possibility that a review would lead to an acceptance.
 
 ## Participation
 
@@ -54,21 +84,21 @@ To participate in the pitch phase, you watch for pitch threads in the appropriat
 
 ### Making a proposal
 
-Different evolution areas may use slightly different evolution processes, but the basic structure for making a new proposal is generally the same:
+The exact details of making a proposal may vary between evolution areas; read the [descriptions of the different areas](#evolution-areas) for more information.
 
-1. You start by checking to see if your idea's already being discussed. The [Swift forums][forums] have a search function that you can use to look for existing threads. Some evolution areas also maintain a list of commonly rejected proposals, which you can find linked from the appropriate section of this document. If the idea has come up before, but the discussion has died down, it hasn't been rejected, and you think you have something new to add, you are welcome to start a new pitch.
+1. You should start by checking to see if your idea's already being discussed. The [Swift forums][forums] have a search function that you can use to look for existing threads. Some evolution areas also maintain a list of commonly rejected proposals, which you can find linked from the appropriate section of this document. If the idea has come up before, but it hasn't been rejected, the discussion died down a long time ago, and you think you have something new to add, you are welcome to start a new pitch.
 
 2. You *pitch* an idea by creating a thread to discuss it in a specific section of the forums. This is usually an informal, open-ended discussion about the problem you're trying to solve and your ideas about how to solve it. You do not need to have written a formal proposal at this point. If your search found any relevant prior threads, please link to them in your new pitch.
 
-3. When you've developed a solid idea of what you want to propose, you write a formal *proposal document*. You should follow the appropriate template document for the evolution area you're working in. The template may describe additional requirements, like having a prototype implementation ready; this varies from area to area.
+3. When you've developed a solid idea of what you want to propose, you write a formal *proposal document*. You should follow the appropriate template document for the evolution area you're working in. The template may describe additional requirements, like having a prototype implementation ready; this varies from area to area. Be sure to update the pitch thread whenever you make significant changes to the proposal.
 
-4. You signal that you think your proposal is almost ready for review by creating a non-[draft][draft-pr] pull request to add it to the appropriate directory in the [evolution repository][swift-evolution-repo]. The evolution workgroup will appoint a *review manager* to oversee your proposal, and they should get in touch with you within a few weeks to talk about it and relay additional feedback from the workgroup.
+4. You signal that you think your proposal is ready for review by creating a non-[draft][draft-pr] pull request to add it to the appropriate directory in the [evolution repository][swift-evolution-repo].
 
-5. If the evolution workgroup agrees that your proposal is viable and ready for review, they will schedule it for a period of open review. This period will be at least ten days, covering at minimum two consecutive weekends and the work week between.
+5. In the full evolution process, the evolution workgroup will appoint a *review manager* to oversee your proposal. The review manager should get in touch within a few weeks to relay any additional feedback from the workgroup. When they agree that your proposal is ready, they'll create a dedicated thread for the open review in the appropriate section of the forums. This thread will be kept open for a period of at least ten days, covering at minimum two consecutive weekends. If you need to make revisions to your proposal during the review, the review period may need to be extended to give adequate review time to the change.
 
-6. For the open review period, the evolution workgroup will create a dedicated thread to receive review feedback about your proposal in a specific section of the [Swift forums][forums], as discussed in [the previous section](#reviewing-a-proposal).
+6. In the lightweight evolution process, the open review is less formal and just continues in the original thread. You can make changes to the proposal document whenever you want as long as you update the thread. The review ends when the evolution workgroup decides that the discussion has reached a conclusion.
 
-7. After the review period ends, the evolution workgroup will decide what to do with your proposal. Possible outcomes include accepting it, outright rejecting it, or asking you to revise it, with the expectation of putting the revised proposal through another round of pitch or review.
+7. After the review period ends, the evolution workgroup will decide what to do with your proposal. Possible outcomes include accepting it, outright rejecting it, or asking you to revise it, with the expectation of putting the revised proposal through another round of pitch or review. In the lightweight process, requests for changes will just be made as comments in the discussion thread, keeping the conversation alive.
 
 As a proposal author, you have a responsibility to try to respond to questions during the pitch and open review. Especially during the pitch phase, keep in mind that questions about your proposal often identify places where you can improve your proposal document to be clearer.
 
@@ -80,7 +110,7 @@ Ultimately, open review is not a vote. The role of evolution reviewers is to pro
 
 There are three kinds of documents commonly used in the evolution process.
 
-* An evolution *proposal* describes a specific proposed change in detail. All evolution changes are advanced as proposals which will be discussed in the community and given a formal open review.
+* An evolution *proposal* describes a specific proposed change in detail. All substantial design changes are advanced as proposals which will be discussed in the community and given a formal open review.
 
 * An evolution *roadmap* describes a concrete plan for how a complex change will be broken into separate proposals that can be individually pitched and reviewed.  Considering large changes in small pieces allows the community to provide more focused feedback about each part of the change.  A roadmap makes this organization easier for community members to understand.
 
