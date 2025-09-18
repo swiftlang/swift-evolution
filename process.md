@@ -31,23 +31,27 @@ Evolution workgroups are responsible for deciding the details of how the evoluti
 
 ## Evolution review
 
-The evolution process normally consists of two steps:
+The evolution process normally consists of two key steps:
 
 1. the creation of a *proposal document* that describes the proposal, which is usually developed and discussed in a [forums thread][forums] called a *pitch*; and
 
-2. an *open review* of the proposal by the community at large.
+2. an *open review* of the proposal by the community at large, after which the evolution workgroup decides what to do with it.
 
-After the open review, the evolution workgroup makes a decision about what to do.
+A proposal that has gone through these two steps and been accepted by the evolution workgroup is said to have undergone review. Every substantial design change in an area covered by the evolution process must undergo review. An evolution workgroup may also decide to reject or, for minor proposals, accept a change without it undergoing review; these cases will be described in more detail [at the end of this section](#summary-acceptance-and-rejection).
 
-Every substantial design change in an area covered by the evolution process must have a proposal document and undergo open review before it can be accepted.
+The exact details of the review process for a specific evolution area are decided by the appropriate evolution workgroup and documented in the [Evolution Areas](#evolution-areas) section of this document. In general, though, it looks like one of two basic processes:
 
-Most proposals must undergo the *full evolution process*. In the full evolution process, the pitch and open review are separate steps. The proposal is developed in a pitch thread until the author is satisfied with it and the workgroup believes it is ready for review. The workgroup then creates a new thread for the open review. After the review is complete, the workgroup may make a final decision or ask for revisions to the proposal. A single proposal may include multiple rounds of pitch and review.
+Most evolution areas use *full evolution review*. In this process, the pitch and open review are separate and explicit steps. The proposal is developed in a pitch thread until the author is satisfied with it and the workgroup believes it is ready for review. The workgroup then creates a new thread for the open review of that specific version of the proposal. After the review is complete, the workgroup either decides to accept it, reject it, or ask for revisions. If the proposal is revised in a substantially new way that has not been adequately discussed, the revised proposal must then undergo another round of open review. This may continue until the workgroup is ready to make a final decision.
 
-An evolution workgroup may also elect to use the *lightweight evolution process* for certain kinds of proposal. The lightweight process combines the pitch and open review steps: the proposal document is developed and discussed in a single thread, and the workgroup makes its decision when it feels that the proposal has solidified and a reasonable time for feedback has passed.
+Some kinds of proposals instead use *lightweight evolution review*, which is significantly less formal. In the lightweight process, the pitch and open review steps are combined; there's no specifically-scheduled open review period. The proposal author creates a thread to discuss their proposal, and community members just offer their feedback in an open discussion there. If the author wants to revise their proposal, they just do so and inform the thread what they changed. Evolution workgroup members participate in that discussion normally. When the workgroup decides that the discussion has reached a logical conclusion and they're ready to make a final decision, they either accept or reject the proposal.
 
-The extra structure of the full evolution process gives the community greater awareness of the proposal and a better opportunity to read and provide feedback on it. The lightweight evolution process is generally only appropriate for simple proposals with relatively low stakes. For example, if compiler diagnostic groups were covered by evolution (they currently are not), proposals to create and reorganize groups would be a reasonable use of the lightweight process.
+The extra structure of full evolution review gives the Swift community much greater awareness of the proposal and a better opportunity to read, consider, and provide feedback on it. The core parts of the Swift project use full evolution review for all subtantial proposals. Lightweight evolution review is generally only appropriate for proposals with relatively low stakes for most Swift users. This might cover something like creating or organizing compiler diagnostic groups, or changes to the public API of a package that's not distributed as part of Swift releases. Workgroups should get the approval of their steering group or the Core Team before using lightweight evolution review for proposals.
 
-Evolution workgroups may decide that certain design changes are sufficiently obvious to accept without a proposal document or open review. This is generally only appropriate for small adjustments to recently-accepted proposals where the workgroup feels that there is no reasonable objection to the proposed change. Examples include:
+Whether an evolution area uses full or lightweight evolution review is documented in the [Evolution Areas](#evolution-areas) section of this document.
+
+### Summary acceptance and rejection
+
+Evolution workgroups may decide that certain design changes are sufficiently obvious to accept without a proposal document or open review. This is generally only appropriate for small adjustments to recently-accepted proposals where the workgroup feels that there is no reasonable objection or alternative to the proposed change. Examples include:
 
 - adding a method to a particular type which was overlooked in a proposal that added that method to several similar types;
 
@@ -55,9 +59,9 @@ Evolution workgroups may decide that certain design changes are sufficiently obv
 
 - gating a change behind an upcoming feature flag after it was discovered to cause significant source-compatibility problems.
 
-Such changes should still generally be announced in the release notes when they are made. Evolution workgroups should be circumspect about making changes this way, and in close cases, they should err on the side of conducting a normal review.
+Such changes should still generally be announced in the release notes when they are made. Evolution workgroups should be circumspect about approving changes this way, and in close cases, they should err on the side of conducting a normal review.
 
-Evolution workgroups may also reject proposals without review if the workgroup feels that there is no possibility that a review would lead to an acceptance.
+Evolution workgroups may also reject proposals without review if the workgroup believes that there's no possibility that further development or review of the proposal would lead to it being accepted. This should only be done when there's consensus within the workgroup, but it can be appropriate if, for example, the workgroup feels that the proposal is simply out of keeping with its overall design direction for the evolution area. The workgroup should clearly communicate its decision and the reasons why in any threads discussing the proposal.
 
 ## Participation
 
@@ -130,29 +134,29 @@ The [Language Steering Group][language-steering-group] has authority over:
 - the language configuration options of the Swift compiler, and
 - the language configuration options of [Swift package manager][spm] manifest files.
 
-Language and library proposals use the "SE" prefix and can be found in the [`proposals` directory](proposals/) of the Swift evolution repository.
+Language and standard library proposals use full evolution review. They are pitched in the [Evolution > Pitches][forum-pitches] section of the Swift forums and reviewed in the [Evolution > Proposal Reviews][forums-reviews] section.
 
-Language and library proposals are generally required to have a prototype implementation before they can be review. This implementation doesn't have to be ready to release, but it at least has to be a viable proof of concept.
+The LSG requires language and standard library proposals to have a prototype implementation before they can be reviewed. This implementation doesn't have to be fully professional and ready to release, but it at least has to be a viable proof of concept and in a state that can be used by reviewers.
+
+Language and standard library proposal documents should use the [Swift proposal template](proposal-templates/0000-swift-template.md). They use the "SE" prefix and can be found in the [`proposals` directory](proposals/) of the Swift evolution repository.
 
 The LSG maintains a list of [commonly rejected proposals](commonly_proposed.md).
 
-Language and standard library proposals should use the [Swift proposal template](proposal-templates/0000-swift-template.md). They are pitched in the [Evolution > Pitches][forum-pitches] section of the Swift forums and reviewed in the [Evolution > Proposal Reviews][forums-reviews] section.
-
 ### Package manager evolution
 
-The [Platform Steering Group][platform-steering-group] has authority over all other aspects of the [Swift package manager][spm] and its manifest files.
+The [Platform Steering Group][platform-steering-group] has authority over all aspects of the [Swift package manager][spm] and its manifest files except language configuration.
 
-For historical reasons, package manager proposals also use the "SE" prefix and can be bound in the [`proposals` directory](proposals/) of the Swift evolution repository.
+Package manager proposals use full evolution review. Proposals are pitched in the [Evolution > Pitches][forum-pitches] section of the Swift forums and reviewed in the [Evolution > Proposal Reviews][forums-reviews] section.
 
-Package manager proposals should use the [package manager proposal template](proposal-templates/0000-swiftpm-template.md). They are pitched in the [Evolution > Pitches][forum-pitches] section of the Swift forums and reviewed in the [Evolution > Proposal Reviews][forums-reviews] section.
+Package manager proposal documents should be based on the [package manager proposal template](proposal-templates/0000-swiftpm-template.md). For historical reasons, they also use the "SE" prefix and can be bound in the [`proposals` directory](proposals/) of the Swift evolution repository.
 
 ### Testing evolution
 
 The [Testing Workgroup][testing-workgroup] has authority over the evolution of the [Swift Testing](https://github.com/swiftlang/swift-testing) and [Corelibs XCTest](https://github.com/swiftlang/swift-corelibs-xctest) projects.
 
-Testing proposals use the "ST" prefix and can be found in the [`proposals/testing` directory](proposals/testing/) of the Swift evolution repository.
+Testing proposals use full evolution review. They are pitched in the [Evolution > Pitches][forum-pitches] section of the Swift forums and reviewed in the [Evolution > Proposal Reviews][forums-reviews] section.
 
-Testing proposals should use the [testing proposal template](proposal-templates/0000-swift-testing-template.md). They are pitched in the [Evolution > Pitches][forum-pitches] section of the Swift forums and reviewed in the [Evolution > Proposal Reviews][forums-reviews] section.
+Testing proposals should use the [testing proposal template](proposal-templates/0000-swift-testing-template.md). They use the "ST" prefix and can be found in the [`proposals/testing` directory](proposals/testing/) of the Swift evolution repository.
 
 ## Focus areas for Swift releases
 
@@ -165,7 +169,9 @@ If you are worried that an idea might out of scope for the current release, plea
 
 ## Proposal documents
 
-To simplify automated "scraping" of proposal documents, all proposal documents (and therefore proposal templates) should have the following basic structure:
+Proposal documents should generally not be renamed once they've been added to the repository. It's okay to change the name of the proposal in the text, but the filename should remain stable.
+
+To simplify automated "scraping" of proposal documents, all proposal documents (and therefore proposal templates) should start with the following basic structure and use standard fields:
 
 ```text
 # Name of proposal
@@ -176,26 +182,21 @@ To simplify automated "scraping" of proposal documents, all proposal documents (
 The remainder of the document has no specific requirements.
 ```
 
-The following header fields are required in all proposal documents in the repository:
+Standard fields include:
 
-* `Proposal`: exactly `[prefix-number](filename.md)`, where `prefix` is the appropriate document prefix (such as `SE` for language and SPM proposals), `number` is the sequence number of this proposal within that prefix, and `filename.md` is the filename of this proposal document.
-* `Author` or `Authors`: a comma-separated list of authors. Usually, these will be links to their github profiles, but that is not required. The plural name `Authors` should be used if and only if there are multiple authors in the list.
-* `Review Manager` or `Review Managers`: a comma-separated list of review managers. Usually, these will be links to their github profiles, but that is not required. The plural name `Review Managers` should be used if and only if there are multiple review managers in the list.
-* `Status`: one of the [proposal states](#proposal-states), bolded using `**`.
-* `Review`: a space-separated list of parenthesized links to different forums threads about this proposal. Link text can be free-form but is encouraged to match the [standard grammar](#standard-review-links) whenever applicable.
+* `Proposal`: exactly `[prefix-number](filename.md)`, where `prefix` is the appropriate document prefix (such as `SE` for language and SPM proposals), `number` is the sequence number of this proposal within that prefix, and `filename.md` is the filename of this proposal document. Required in all proposal documents.
+* `Author` or `Authors`: a comma-separated list of authors. Required in all proposal documents. Usually, author names will link to their github profiles, but that is not required. The plural name `Authors` should be used if and only if there are multiple authors in the list. Authors should only list other people as co-authors with their explicit consent.
+* `Review Manager` or `Review Managers`: a comma-separated list of review managers. Required in all proposal documents that use full evolution review. Usually, these will be links to their github profiles, but that is not required. The plural name `Review Managers` should be used if and only if there are multiple review managers in the list.
+* `Status`: one of the [proposal states](#proposal-states), bolded using `**`. Required in all proposal documents.
+* `Vision`: a link to a vision document which encompasses this proposal. Optional.
+* `Roadmap`: a link to a roadmap document or thread which encompasses this proposal. Optional.
+* `Bug`: a link to a bug related to this proposal. Optional.
+* `Implementation`: a comma-separated list of links to implementation pull requests for this proposal. Optional.
+* `Previous Proposal`: a link to a previous proposal (with a different document number) addressing the same idea. This field is rare because proposals are usually revised rather than replaced. Optional.
+* `Previous Revision` or `Previous Revisions`: a space-separated list of permalinks to previous revisions of this proposal document. Optional. The link text should be a number, starting with 1. Only "official" revisions need to be listed, such as those used for different open reviews. The plural name `Previous Revisions` should be used if and only if there are multiple revisions in the list. Usually, there will be a previous revision for each additional review in the `Review` field, but sometimes multiple reviews are conducted on the same text in order to focus on different aspects of the proposal.
+* `Review`: a space-separated list of parenthesized links to different forums threads about this proposal. Link text can be free-form but is encouraged to match the [standard grammar](#standard-review-links) whenever applicable. Required in all new proposal documents.
 
-The first four of these fields should be the first four fields in the header, in that order. `Review` should always be the last field in the header.
-
-`Review` is a relatively recent addition and is not present in older documents. It'd be nice to fix this, but it's a lot of work. New documents should always include it.
-
-The following header fields are standard but not required in all proposal documents:
-
-* `Vision`: a link to a vision document which encompasses this proposal.
-* `Roadmap`: a link to a roadmap document or thread which encompasses this proposal.
-* `Bug`: a link to a bug related to this proposal.
-* `Implementation`: a comma-separated list of links to implementation pull requests for this proposal.
-* `Previous Proposal`: a link to a previous proposal (with a different document number) addressing the same idea. This field is rare because proposals are usually revised rather than replaced.
-* `Previous Revision` or `Previous Revisions`: a space-separated list of permalinks to previous revisions of this proposal document. The link text should be a number, starting with 1. Only "official" revisions need to be listed, such as those used for different open reviews. The plural name `Previous Revisions` should be used if and only if there are multiple revisions in the list. Usually, there will be a previous revision for each additional review in the `Review` field, but sometimes multiple reviews are conducted on the same text in order to focus on different aspects of the proposal.
+These standard fields should be provided in this order. Other fields can be added between `Status` and `Review`.
 
 The following header fields are used only in specific evolution areas:
 
@@ -279,9 +280,13 @@ standard-review-label:
 
 This grammar assumes a single space between adjacent tokens.
 
+The unified review thread of a proposal that uses lightweight evolution review should be linked as `review`.
+
 ## Review announcement
 
-When a proposal enters review, a new topic will be posted to the appropriate section of the Swift forums using the appropriate announcement template below:
+When a proposal enters full evolution review, a new topic will be posted to the appropriate section of the Swift forums using the appropriate announcement template below.
+
+There's no specific announcement template for a proposal using lightweight evolution review, but evolution workgroups should make it clear in the thread that the proposal is now under formal consideration.
 
 ---
 
