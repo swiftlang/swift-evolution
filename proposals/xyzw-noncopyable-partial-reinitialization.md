@@ -46,7 +46,7 @@ than to initialize an entirely new value:
 
 ```swift
 extension BufferedFile {
-  mutating func switchFile(to: File) -> Buffer {
+  mutating func switchFile(to: consuming File) {
     // Consume the old file...
     file.close()
 
@@ -72,7 +72,7 @@ valid again:
 
 ```swift
 extension BufferedFile {
-  mutating func switchFile(to: File) -> Buffer {
+  mutating func switchFile(to: consuming File) {
     // Consume the old file...
     file.close()
 
@@ -256,6 +256,39 @@ func attemptReplace(_ value: consuming FrozenSemiImmutable)
 This ensures that partial reinitialization cannot violate API boundaries
 and mutate values in ways that would not otherwise be allowed.
 
+### Values cannot be elementwise initialized from nothing
+
+The analogy to assignment only works when the code already has a complete
+value to start with. It is not allowed to partially initialize a variable
+that did not have a value to begin with:
+
+```swift
+do {
+  var foo: Frozen
+
+  foo.a = NC() // ERROR: cannot initialize a single property of an uninitialized value
+}
+```
+
+Doing so would allow for the type's initializers to be bypassed in forming
+a new value. Similarly, a value cannot be partially initialized after being
+fully consumed:
+
+```swift
+do {
+  var foo = Frozen(a: NC(), b: NC())
+  consume(foo)
+
+  foo.a = NC() // ERROR: cannot initialize a single property of an uninitialized value
+}
+```
+
+A consuming operation on `foo` will potentially trigger its `deinit`, and will
+at the very least transfer the responsibility of invoking the current value's
+`deinit` to someone else, so allowing for partial reinitialization after
+full value consumption would also allow for the formation of a new value with
+independent ownership outside of the API's control.
+
 ### Partial consumption and reinitialization of types with `deinit`
 
 Partial consumption has, prior to this proposal, been disallowed for types
@@ -321,6 +354,23 @@ Since tuples are always a straightforward combination of their
 elements, with no API abstraction or nontrivial initialization/deinitialization
 behavior, it should be possible to consume and reinitialize their
 elements without restriction.
+
+### Explicit partial consumption and reinitialization of copyable properties
+
+Reading copyable stored properties will typically copy the property's value.
+It would make sense to allow the `consume` operator to apply to stored properties
+of consumable bindings, which would allow for partial consumption and reinitialization
+of copyable fields. Aside from the explicit `consume` operator, the behavior should
+be the same for `Copyable` and non-`Copyable` types, including the ability to reinitialize
+them after being consumed.
+
+### Elementwise initialization from scratch for types with trivial memberwise initializers
+
+This proposal bans partial initialization from scratch, since it would allow for
+values to be formed without using the value's published initializers. However, many
+structs have only simple memberwise initializers that do not meaningfully restrict
+what values callers can form. We could provide a way in the future for these types
+to opt in to allowing for partial initialization from scratch.
 
 ## Alternatives considered
 
