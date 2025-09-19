@@ -55,7 +55,7 @@ This proposal recommends to use sections of the various object file formats as t
 
 ## Proposed Solution
 
-The proposal is to add two new attributes `@section` and `@used` that will allow annotating global and static variables with directives to place the value into a custom section, and to require no-dead-stripping aka "attribute used". Using `@section` requires that the initializer expression is a constant expression (see Constant Expressions below for the definition of that):
+The proposal is to add two new attributes `@section` and `@used` that will allow annotating global and static variables with directives to place the value into a custom section, and to require no-dead-stripping aka "attribute used". Using `@section` requires that the initializer expression is a constant expression (see [Constant expressions](#constant-expressions) below for the definition of that):
 
 ```swift
 // Place an entry into a section, mark as "do not dead strip".
