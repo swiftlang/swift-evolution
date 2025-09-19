@@ -21,10 +21,11 @@ review, e.g. if a UI element is not being drawn correctly. If something doesn't
 render correctly in a CI environment, for instance, it is very useful to test
 authors to be able to download the failed rendering and examine it at-desk.
 
-We recently introduced the ability to attach images to tests on Apple's
-platforms. Swift Testing is a cross-platform testing library, so we should
-extend this functionality to other platforms too. This proposal covers Windows
-in particular.
+In [ST-0014](https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0014-image-attachments-in-swift-testing-apple-platforms.md#integration-with-supporting-tools),
+we introduced the ability to attach images to tests on Apple's platforms. Swift
+Testing is a cross-platform testing library, so we should extend this
+functionality to other platforms too. This proposal covers Windows in
+particular.
 
 ## Proposed solution
 
