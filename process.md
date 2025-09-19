@@ -144,7 +144,7 @@ The LSG maintains a list of [commonly rejected proposals](commonly_proposed.md).
 
 ### Package manager evolution
 
-The [Platform Steering Group][platform-steering-group] has authority over all aspects of the [Swift package manager][spm] and its manifest files except language configuration.
+The [Ecosystem Steering Group][ecosystem-steering-group] has authority over all aspects of the [Swift package manager][spm] and its manifest files except language configuration.
 
 Package manager proposals use full evolution review. Proposals are pitched in the [Evolution > Pitches][forum-pitches] section of the Swift forums and reviewed in the [Evolution > Proposal Reviews][forums-reviews] section.
 
@@ -415,6 +415,7 @@ Review Manager
 [preview-package]: https://github.com/apple/swift-standard-library-preview/
 [language-steering-group]: https://www.swift.org/language-steering-group
 [platform-steering-group]: https://www.swift.org/platform-steering-group
+[ecosystem-steering-group]: https://www.swift.org/ecosystem-steering-group
 [testing-workgroup]: https://www.swift.org/testing-workgroup  "Testing Workgroup page on Swift.org"
 [swift-template]: proposal-templates/0000-swift-template.md  "Swift proposal template"
 [swiftpm-template]: proposal-templates/0000-swiftpm-template.md  "Swift Package Manager proposal template"
