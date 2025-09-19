@@ -10,11 +10,7 @@
 
 ## Introduction
 
-This proposal builds on top of [Swift Compile-Time Values](https://github.com/artemcm/swift-evolution/blob/const-values/proposals/0nnn-const-values.md) and adds two new attributes into the Swift language: `@section`  and `@used`. These allow users to directly control which section of the resulting binary should globals variables be emitted into, and give users the ability to disable DCE (dead code elimination) on those. The goal is to enable systems and embedded programming use cases like runtime discovery of test metadata from multiple modules, and also to serve as a low-level building block for higher-level features (e.g. linker sets, plugins).
-
-The intention is that these attributes are to be used rarely and only by specific use cases; high-level application code should not need to use them directly and instead should rely on libraries, macros and other abstractions over the low-level attributes.
-
-The scope of this proposal is limited to compile-time behavior and compile-time control. We expect that full user-facing solutions for features like linker sets, test discovery or plugins will also require runtime implementations to discover and iterate the contents of custom sections, possibly from multiple modules. This proposal makes sure to provide the right building blocks and artifacts in binaries for the runtime components, but doesn’t prescribe the shape of those. However, it is providing a significant step towards generalized and safe high-level mechanisms for those use cases. See the discussion of that in the sections [Runtime discovery of data in custom sections](#runtime-discovery-of-data-in-custom-sections) and [Linker sets, plugins as high-level APIs](#linker-sets-plugins-as-high-level-apis) in Future Directions.
+This proposal adds `@section` and `@used` attributes which can be applied to global variables. These allow users to directly control which section of the resulting binary should global variables be emitted into, and give users the ability to disable DCE (dead code elimination) on those. The goal is to enable systems and embedded programming use cases like runtime discovery of test metadata from multiple modules, and also to serve as a low-level building block for higher-level features (e.g. linker sets, plugins).
 
 ## Motivation
 
@@ -103,6 +99,10 @@ var global = ...
 ```
 
 For the ELF file format specifically, the compiler will also emit a “section index” into produced object files, containing an entry about each custom section used in the compilation. This is a solution to an ELF specific problem where the behavior of ELF linkers and loaders means that sections are not easily discoverable at runtime.
+
+> Note: The intention is that the `@section` and `@used` attributes are to be used rarely and only by specific use cases; high-level application code should not need to use them directly and instead should rely on libraries, macros and other abstractions over the low-level attributes.
+
+> The scope of this proposal is limited to compile-time behavior and compile-time control. We expect that full user-facing solutions for features like linker sets, test discovery or plugins will also require runtime implementations to discover and iterate the contents of custom sections, possibly from multiple modules. This proposal makes sure to provide the right building blocks and artifacts in binaries for the runtime components, but doesn’t prescribe the shape of those. However, it is providing a significant step towards generalized and safe high-level mechanisms for those use cases. See the discussion in [Runtime discovery of data in custom sections](#runtime-discovery-of-data-in-custom-sections) and [Linker sets, plugins as high-level APIs](#linker-sets-plugins-as-high-level-apis) in Future Directions.
 
 ## Detailed design
 
