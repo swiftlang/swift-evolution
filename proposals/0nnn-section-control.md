@@ -55,7 +55,7 @@ This proposal recommends to use sections of the various object file formats as t
 
 ## Proposed Solution
 
-The proposal is to add two new attributes `@section` and `@used` that will allow annotating global and static variables with directives to place the value into a custom section, and to require no-dead-stripping aka "attribute used". The `@section` attribute relies heavily on the facilities provided by [Swift Compile-Time Values](https://github.com/artemcm/swift-evolution/blob/const-values/proposals/0nnn-const-values.md), namely the ability to enforce constantness of an expressions. Using `@section` requires that the initializer expression is a constant expression:
+The proposal is to add two new attributes `@section` and `@used` that will allow annotating global and static variables with directives to place the value into a custom section, and to require no-dead-stripping aka "attribute used". Using `@section` requires that the initializer expression is a constant expression (see Constant Expressions below for the definition of that):
 
 ```swift
 // Place an entry into a section, mark as "do not dead strip".
@@ -99,6 +99,13 @@ var global = ...
 ```
 
 For the ELF file format specifically, the compiler will also emit a “section index” into produced object files, containing an entry about each custom section used in the compilation. This is a solution to an ELF specific problem where the behavior of ELF linkers and loaders means that sections are not easily discoverable at runtime.
+
+When placing variables into a custom section, it's also allowed to use the `lazy` keyword to opt out of the mandatory static initialization and mandatory constant expression behavior, while still achieving section placement of the backing store of the data:
+
+```swift
+@section("__DATA,colocated") lazy let data1: Int = 42 // ✅
+@section("__DATA,colocated") lazy let data2: Int = Int.random(in: 0 ..< 10) // ✅
+```
 
 > Note: The intention is that the `@section` and `@used` attributes are to be used rarely and only by specific use cases; high-level application code should not need to use them directly and instead should rely on libraries, macros and other abstractions over the low-level attributes.
 
@@ -180,6 +187,54 @@ When allowed, the `@used` attribute on a variable declaration has the following 
 
 The effects described above are applied to the storage symbols and don’t generally affect optimizations and other transformations in the compiler. For example, the compiler is still allowed to propagate and copy a the constant value to code that uses the value, so there’s no guarantee that a value stored into a global with a custom section will not be propagated and “leak” outside of the section. The `@used` annotation, however, does inform the optimizer that such a variable cannot be removed, even when it doesn’t have any observed users or even if it’s inaccessible due to language rules (e.g. if it’s a private static member on an otherwise empty type).
 
+### Constant expressions
+
+Swift currently does not have a formal notion of a **constant expression**, i.e. an expression with a syntactic form that *guarantees the ability to know it's value at compile-time*. This proposal provides a definition of a "bare minimum" constant expression, with the understanding that this does not cover the language needs in generality, and the expectation that the Swift compiler and language will keep expanding the allowed forms of constant expressions. See [Generalized constant values and expressions](#generalized-constant-values-and-expressions) in Future Directions for further discussion on this.
+
+This proposal defines a **constant expression** as being one of:
+
+- an integer literal using any of built-in integer types (Int, UInt, Int8/16/32/64/128, UInt8/16/32/64/128)
+- a floating-point literal of type Float or Double
+- a boolean literal of type Bool
+- a direct reference to a non-generic function using its name (the function itself is not generic, and also it must not be defined in a generic context)
+- a direct reference to a non-generic metatype using the type name directly (the type itself is not generic, and also it must not be defined in a generic context), where the type is non-resilient
+- a tuple composed of only other constant expressions
+- an array literal of type InlineArray composed of only other constant expressions
+
+Explicitly, this definition currently does **not allow** any operators, using any user-defined named types, any other built-in type (e.g. strings, dictionaries, sets), using closures, or referencing any variables by name. See below for examples of valid and invalid constant expressions:
+
+```swift
+@section("...") let a = 42 // ✅
+@section("...") let b = 3.14 // ✅
+@section("...") let c = 1 + 1 // ❌ operators not allowed
+@section("...") let d = Int.max // ❌ not a literal
+@section("...") let e: UInt8 = 42 // ✅
+@section("...") let f = UInt8(42) // ❌ not a literal
+@section("...") let g: MyCustomExpressibleByIntegerLiteral = 42 // ❌ not a built-in type
+
+@section("...") let composition1 = (1, 2, 3, 2.718, true) // ✅
+@section("...") let composition2 = (1, 2, Int.max) // ❌ tuple component not constant
+@section("...") let composition3: InlineArray = [1, 2, 3] // ✅
+@section("...") let composition4: InlineArray = [1, 2, Int.max] // ❌ array component not constant
+@section("...") let composition5: (Int, [1 of Int], [1 of (Int, Int)]) = (1, [1], [(1, 1)]) // ✅
+
+func foo() -> Int { return 42 }
+@section("...") let func1 = foo // ✅
+@section("...") let func2 = foo() // ❌ not a function reference
+@section("...") let func3 = Bool.random // ✅
+@section("...") let func4 = Bool.self.random // ❌ not a direct reference
+@section("...") let func5 = (Bool.self as Bool.Type).random // ❌ not a direct reference
+@section("...") let func6 = [Int].randomElement // ❌ generic
+@section("...") let func7 = { } // ❌ not using name
+
+struct S { }
+@section("...") let metatype1 = S.self // ✅
+@section("...") let metatype2 = Int.self // ✅
+@section("...") let metatype3 = Int.self.self // ❌ not a direct reference
+import Foundation
+@section("...") let metatype4 = URL.self // ❌ resilient
+```
+
 ### Guaranteed static initialization
 
 Using attribute `@section` requires the initializer expression of the variable to be a **constant expression**. It's not required to separately annotate the expression for being a compile-time expression, instead this is implied from the `@section` attribute. On top of the constant-ness, `@section` on a global or static variable enforces **static initialization** on that variable.
@@ -220,6 +275,17 @@ func foo() { ... }
 let a = (42, foo) // "foo" is statically initialized into a
                   // linkable/relocatable pointer
 ```
+
+### Lazy variables with section placement
+
+On global and static variables that are annotated with `@section`, the compiler will now allow the `lazy` keyword (which is currently disallowed on all global and static variables). Using it will opt such variable out of the "mandatory static initialization" behavior and instead use the at-runtime lazy initialization that traditional global and static variables have. The initializer expression does not need to be a constant expression in this case. This is useful for the uncommon use case of placing variables into a custom section purely for colocation (e.g. to improve performance by increasing page/cacheline locality):
+
+```swift
+@section("__DATA,colocated") lazy let data1: Int = 42 // ✅
+@section("__DATA,colocated") lazy let data2: Int = Int.random(in: 0 ..< 10) // ✅
+```
+
+Traditional global and static variables are backed by two symbols: An init-once token and the actual storage for the variable's content. Both of these symbols are going to be placed into the custom section when using `@section` with `lazy`. This also means that any offline or in-process introspection mechanisms cannot assume a specific layout or state of such variables and their storage bytes in the sections, as the exact layout and content of the symbols of lazy variables is an implementation detail of the Swift language runtime.
 
 ### Cross-platform object file format support
 
@@ -324,6 +390,10 @@ This will require some design decisions to be made around when should that be al
 ### Standalone attribute for required static initialization
 
 Static initialization of a global can be useful on its own, without placing data into a custom section, and a separate attribute for that could be added. This way, one can get the same effects as the `@section` attribute (static initialization, normal initalization behavior if top-level code) except the symbol would not be actually placed into any custom section.
+
+### Generalized constant values and expressions
+
+The notions of constant expressions and constant values is applicable to a much wider set of use cases that just section placement, and the set of allowed types and syntactical forms should be expanded in the future into a full-featured system for compile-time programming. A dedicated proposal, [Swift Compile-Time Values](https://github.com/artemcm/swift-evolution/blob/const-values/proposals/0nnn-const-values.md), is being pitched [on the forums](https://forums.swift.org/t/pitch-3-swift-compile-time-values/77434) and describes in detail the possible future of generalized constants, the relevant motivation and use cases.
 
 ### Allowing a reference to a constant string declaration as a section name
 
