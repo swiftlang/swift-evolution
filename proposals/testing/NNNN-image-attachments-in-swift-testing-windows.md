@@ -321,7 +321,8 @@ This change is additive only.
 
 ## Integration with supporting tools
 
-None needed.
+Tools that handle attachments created by Swift Testing will gain support for
+this functionality automatically and do not need to make any changes.
 
 ## Future directions
 
