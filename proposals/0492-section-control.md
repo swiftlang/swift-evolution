@@ -1,8 +1,10 @@
 # Section Placement Control
 
-* Proposal: [SE-0NNN](0nnn-section-control.md)
+* Proposal: [SE-0492](0492-section-control.md)
 * Authors: [Kuba Mracek](https://github.com/kubamracek)
-* Status: Pitch #3
+* Status: **Active review (September 22 ... October 6, 2025)**
+* Implementation: available in recent `main` snapshots under the experimental feature `SymbolLinkageMarkers` and with undercored attribute names `@_section` and `@_used`.
+* Review: TBD
 * Discussion threads:
   * Pitch #1: https://forums.swift.org/t/pitch-low-level-linkage-control-attributes-used-and-section/65877
   * Pitch #2: https://forums.swift.org/t/pitch-2-low-level-linkage-control/69752
