@@ -1,11 +1,11 @@
 # Support `async` calls in `defer` bodies
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0493](0493-defer-async.md)
 * Authors: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
-* Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN)
-* Review: ([pitch](https://forums.swift.org/...))
+* Review Manager: [Holly Borla](https://github.com/hborla)
+* Status: **Active review (September 22 - October 6, 2025)**
+* Implementation: [swiftlang/swift#83891](https://github.com/swiftlang/swift/pull/83891)
+* Review: ([pitch](https://forums.swift.org/t/support-async-calls-in-defer-bodies/81790))
 
 ## Introduction
 
