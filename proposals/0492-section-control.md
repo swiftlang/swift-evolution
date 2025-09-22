@@ -4,7 +4,7 @@
 * Authors: [Kuba Mracek](https://github.com/kubamracek)
 * Status: **Active review (September 22 ... October 6, 2025)**
 * Implementation: available in recent `main` snapshots under the experimental feature `SymbolLinkageMarkers` and with undercored attribute names `@_section` and `@_used`.
-* Review: TBD
+* Review: [review](https://forums.swift.org/t/se-0492-section-placement-control/82289)
 * Discussion threads:
   * Pitch #1: https://forums.swift.org/t/pitch-low-level-linkage-control-attributes-used-and-section/65877
   * Pitch #2: https://forums.swift.org/t/pitch-2-low-level-linkage-control/69752
