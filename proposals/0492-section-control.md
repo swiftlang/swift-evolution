@@ -75,14 +75,13 @@ let myLinkerSetEntry: Int = Int.random(in: 0 ..< 10) // ❌ error
 @section("__DATA,mysection")
 var mutableVariable: Int = 42 // ✅
 
-// Some complex data types are allowed (static strings, functions)
-typealias PluginData = (version: Int, name: String, initializer: @convention(c) ()->())
+// Some complex data types are allowed (tuples, function references)
+typealias PluginData = (version: Int, identifier: UInt64, initializer: @convention(c) ()->())
 
 @section("__DATA,plugins")
 @used
 let myPlugin: PluginData = (
     version: 1,
-    name: "MyPlugin",
     initializer: { print("init") }
 )
 ```
