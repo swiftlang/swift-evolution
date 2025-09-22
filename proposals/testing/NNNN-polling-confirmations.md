@@ -256,6 +256,23 @@ public enum PollingStopCondition: Sendable, Equatable {
 }
 ```
 
+### New `PollingFailureReason` enum
+
+There are 2 reasons why polling confirmations can fail: the stop condition
+failed, or the confirmation was cancelled during the run. To help express this,
+we will be adding a new `PollingFailureReason` enum.
+
+```swift
+/// A type describing why polling failed
+public enum PollingFailureReason: Sendable, Codable {
+  /// The polling failed because it was cancelled using `Task.cancel`.
+  case cancelled
+
+  /// The polling failed because the stop condition failed.
+  case stopConditionFailed(PollingStopCondition)
+}
+```
+
 ### New Error Type
 
 A new error type, `PollingFailedError` to be thrown when the polling
@@ -263,7 +280,13 @@ confirmation doesn't pass:
 
 ```swift
 /// A type describing an error thrown when polling fails.
-public struct PollingFailedError: Error, Sendable {}
+public struct PollingFailedError: Error, Sendable {
+  /// A user-specified comment describing this confirmation
+  public var comment: Comment? { get }
+
+  /// Why polling failed, either cancelled, or because the stop condition failed.
+  public var reason: PollingFailureReason { get }
+}
 ```
 
 ### New `Issue.Kind` case
@@ -279,11 +302,15 @@ public struct Issue {
 
     /// An issue due to a polling confirmation having failed.
     ///
+    /// - Parameters:
+    ///   - reason: The ``PollingFailureReason`` behind why the polling
+    ///     confirmation failed.
+    ///
     /// This issue can occur when calling ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-455gr``
     /// or
     /// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-5tnlk``
     /// whenever the polling fails, as described in ``PollingStopCondition``.
-    case pollingConfirmationFailed
+    case pollingConfirmationFailed(reason: PollingFailureReason)
 
     // ...
   }
