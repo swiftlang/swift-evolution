@@ -92,7 +92,7 @@ Different object file formats (ELF, Mach-O, COFF) have different restrictions an
 
 ```swift
 #if objectFileFormat(ELF)
-@section(".mysection")
+@section("mysection")
 #elseif objectFileFormat(MachO)
 @section("__DATA,mysection")
 #endif
@@ -190,11 +190,11 @@ The effects described above are applied to the storage symbols and don’t gener
 
 ### Constant expressions
 
-Swift currently does not have a formal notion of a **constant expression**, i.e. an expression with a syntactic form that *guarantees the ability to know it's value at compile-time*. This proposal provides a definition of a "bare minimum" constant expression, with the understanding that this does not cover the language needs in generality, and the expectation that the Swift compiler and language will keep expanding the allowed forms of constant expressions. See [Generalized constant values and expressions](#generalized-constant-values-and-expressions) in Future Directions for further discussion on this.
+Swift currently does not have a formal notion of a **constant expression**, i.e. an expression with a syntactic form that *guarantees the ability to know it's value at compile-time*. This proposal provides a definition of a "bare minimum" constant expression, with the understanding that this does not cover the language needs in generality, and with the expectation that the Swift compiler and language will keep expanding the allowed forms of constant expressions in the future. See [Generalized constant values and expressions](#generalized-constant-values-and-expressions) in Future Directions for further discussion on this.
 
 This proposal defines a **constant expression** as being one of:
 
-- an integer literal using any of built-in integer types (Int, UInt, Int8/16/32/64/128, UInt8/16/32/64/128)
+- an integer literal using any of standard integer types (Int, UInt, Int8/16/32/64/128, UInt8/16/32/64/128)
 - a floating-point literal of type Float or Double
 - a boolean literal of type Bool
 - a direct reference to a non-generic function using its name (the function itself is not generic, and also it must not be defined in a generic context)
@@ -202,7 +202,7 @@ This proposal defines a **constant expression** as being one of:
 - a tuple composed of only other constant expressions
 - an array literal of type InlineArray composed of only other constant expressions
 
-Explicitly, this definition currently does **not allow** any operators, using any user-defined named types, any other built-in type (e.g. strings, dictionaries, sets), using closures, or referencing any variables by name. See below for examples of valid and invalid constant expressions:
+Explicitly, this definition currently does **not allow** any operators, using any user-defined named types, any other standard type (e.g. strings, dictionaries, sets), using closures, or referencing any variables by name. See below for examples of valid and invalid constant expressions:
 
 ```swift
 @section("...") let a = 42 // ✅
@@ -211,7 +211,7 @@ Explicitly, this definition currently does **not allow** any operators, using an
 @section("...") let d = Int.max // ❌ not a literal
 @section("...") let e: UInt8 = 42 // ✅
 @section("...") let f = UInt8(42) // ❌ not a literal
-@section("...") let g: MyCustomExpressibleByIntegerLiteral = 42 // ❌ not a built-in type
+@section("...") let g: MyCustomExpressibleByIntegerLiteral = 42 // ❌ not a standard type
 
 @section("...") let composition1 = (1, 2, 3, 2.718, true) // ✅
 @section("...") let composition2 = (1, 2, Int.max) // ❌ tuple component not constant
@@ -321,7 +321,7 @@ In some cases, it’s not possible to differentiate on the OS to support multipl
 #if objectFileFormat(MachO)
 @section("__DATA_CONST,mysection")
 #elseif objectFileFormat(ELF)
-@section(".mysection")
+@section("mysection")
 #endif
 let value = ...
 ```
@@ -402,7 +402,7 @@ The requirement to only use string literals as the section names could be lifted
 
 ```swift
 #if objectFileFormat(ELF)
-let mySectionName = ".mysection" // required to be a compile-time value
+let mySectionName = "mysection" // required to be a compile-time value
 #elseif objectFileFormat(MachO)
 let mySectionName = "__DATA,mysection" // required to be a compile-time value
 #endif
