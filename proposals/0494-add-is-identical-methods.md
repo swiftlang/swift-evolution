@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (September 22nd...October 6th, 2025)**
 * Implementation: ([String, Substring](https://github.com/swiftlang/swift/pull/82055)), ([Array, ArraySlice, ContiguousArray](https://github.com/swiftlang/swift/pull/82438)), ([Dictionary, Set](https://github.com/swiftlang/swift/pull/82439))
-* Review: ([prepitch](https://forums.swift.org/t/-/78792)) ([first pitch](https://forums.swift.org/t/-/79145)) ([second pitch](https://forums.swift.org/t/-/80496))
+* Review: ([prepitch](https://forums.swift.org/t/-/78792)) ([first pitch](https://forums.swift.org/t/-/79145)) ([second pitch](https://forums.swift.org/t/-/80496)) ([review](https://forums.swift.org/t/se-0494-add-isidentical-to-methods-for-quick-comparisons-to-concrete-types/82296))
 
 ### Table of Contents
 
