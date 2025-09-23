@@ -1,11 +1,11 @@
 # Add `isIdentical(to:)` Methods for Quick Comparisons to Concrete Types
 
-* Proposal: [SE-NNNN](NNNN-add-is-identical-methods.md)
+* Proposal: [SE-0494](0494-add-is-identical-methods.md)
 * Authors: [Rick van Voorden](https://github.com/vanvoorden), [Karoy Lorentey](https://github.com/lorentey)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (September 22nd...October 6th, 2025)**
 * Implementation: ([String, Substring](https://github.com/swiftlang/swift/pull/82055)), ([Array, ArraySlice, ContiguousArray](https://github.com/swiftlang/swift/pull/82438)), ([Dictionary, Set](https://github.com/swiftlang/swift/pull/82439))
-* Review: ([Pre-Pitch](https://forums.swift.org/t/-/78792)), ([Pitch #1](https://forums.swift.org/t/-/79145)), ([Pitch #2](https://forums.swift.org/t/-/80496))
+* Review: ([prepitch](https://forums.swift.org/t/-/78792)) ([first pitch](https://forums.swift.org/t/-/79145)) ([second pitch](https://forums.swift.org/t/-/80496))
 
 ### Table of Contents
 
