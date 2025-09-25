@@ -134,7 +134,7 @@ were called on that task.
 ### Throwing semantics
 
 Unlike [`Task.cancel()`](https://developer.apple.com/documentation/swift/task/cancel()),
-these functions always throw an error instead of returning. This simplifies
+this function always throws an error instead of returning. This simplifies
 control flow when a test is cancelled; instead of having to write:
 
 ```swift
@@ -152,7 +152,7 @@ if condition {
 }
 ```
 
-The errors these functions throw are of a type internal to Swift Testing that is
+The errors this function throws are of a type internal to Swift Testing that is
 semantically similar to [`CancellationError`](https://developer.apple.com/documentation/swift/cancellationerror)
 but carries additional information (namely the `comment` and `sourceLocation`
 arguments to `cancel(_:sourceLocation:)`) that Swift Testing can present to the
@@ -269,7 +269,7 @@ JSON schema (currently expected to be schema version `"6.3"`).
   but core functionality of Swift Testing needs to be usable without also
   importing XCTest.
 
-- Spelling the functions `static func cancel(_:sourceLocation:) -> some Error`
+- Spelling the function `static func cancel(_:sourceLocation:) -> some Error`
   and requiring it be called as `throw Test.cancel()`. This is closer to how
   the [`XCTSkip`](https://developer.apple.com/documentation/xctest/xctskip-swift.struct)
   type is used in XCTest. We have received indirect feedback about [`XCTSkip`](https://developer.apple.com/documentation/xctest/xctskip-swift.struct)
