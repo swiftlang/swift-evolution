@@ -3,7 +3,7 @@
 * Proposal: [SE-0491](0491-module-selectors.md)
 * Authors: [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: [Freddy Kellison-Linn](https)
-* Status: **Active review (September 13 ... September 26, 2025)**
+* Status: **Active review (September 13 ... September 30, 2025)**
 * Bug: [swiftlang/swift#53580](https://github.com/swiftlang/swift/issues/53580) (SR-11183)
 * Implementation: [swiftlang/swift#34556](https://github.com/swiftlang/swift/pull/34556)
 * Review: ([pitch](https://forums.swift.org/t/pitch-module-selectors/80835)) ([review](https://forums.swift.org/t/se-0491-module-selectors-for-name-disambiguation/82124))
@@ -475,6 +475,28 @@ chosen instead of the desired declaration; it cannot access a declaration which
 some other language feature has ruled out. For example, if a declaration is
 inaccessible because of access control or hasn't been imported into the current
 source file, a module selector will not allow it to be accessed.
+
+#### Member types of type parameters
+
+A member type of a type parameter must not be qualified by a module selector.
+
+```swift
+func fn<T: Identifiable>(_: T) where T.Swift::ID == Int {    // not allowed
+    ...
+}
+```
+
+This is because, when a generic parameter conforms to two protocols that have
+associated types with the same name, the member type actually refers to *both*
+of those associated types. It doesn't make sense to use a module name to select
+one associated type or the other--it will always encompass both of them.
+
+(In some cases, a type parameter's member type might end up referring to a 
+concrete type—typically a typealias in a protocol extension–which
+theoretically *could* be disambiguated in this way. However, in these
+situations you could always use the protocol instead of the generic parameter
+as the base (and apply a module selector to it if needed), so we've chosen not
+to make an exception for them.)
 
 ## Source compatibility
 
