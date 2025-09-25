@@ -93,77 +93,271 @@ func callee(_ result: inout SomeValue, _ cond: Bool) {
 ## Proposed solution
 
 We desire for the attribute to function as an optimization control. That means
-that the proposed `@inline(always)` attribute should emit an error if inlining
-cannot be guaranteed in all optimization modes. The value of the function at a
-call site can might determined dynamically at runtime. In such cases the
-compiler cannot determine a call site which function is applied without doing
-global analysis. In these cases we don't guarantee inlining even if the dynamic
-value of the applied function was annotated with `@inline(always)`.
-We only guarantee inlining if the annotated function is directly referenced and
-not derived by some function value computation such as method lookup or function
-value (closure) formation and diagnose errors if this guarantee cannot be
-upheld.
+that the proposed `@inline(always)` attribute should emit an error diagnostic if
+inlining is not possible in all optimization modes. However, this gets
+complicated by the fact that the value of the function at a call site might be
+determined dynamically at runtime:
 
-A sufficiently clever optimizer might be able to derive the dynamic value at the
-call site, in such cases the optimizer shall respect the optimization control
-and perform inlining.
+- Calls through first class function values
+  ```swift
+  @inline(always) f() {...}
+
+  func a() {
+    let fv = f
+    fv()
+  }
+  ```
+- Calls through protocol values and protocol constraint generic types
+  ```swift
+  protocol P {
+    func method()
+  }
+  struct S : P {
+    @inline(always)
+    func method() {...}
+  }
+  func a<T: P>(_ t: T) {
+      t.method()
+      let p : P = S()
+      p.method()
+  }
+  ```
+- Calls through class instance values and the method referenced is not `final`
+  ```swift
+  class C {
+    @inline(always)
+    func method() {...}
+  }
+  func a(c: C) {
+    c.method()
+  }
+  ```
+
+In such cases, the compiler cannot determine at a call site which function is
+applied without doing non-local analysis: either dataflow, or class hiarchy
+analysis.
+These cases are in contrast to when the called function can statically be
+determined purely by looking at the call site, we refer to this set as direct
+function references in the following:
+
+- Calls to free standing functions
+- Calls to methods of `actor`, `struct`, `enum` type
+- Calls to final methods of `class` type, and type (`static/class`) methods of
+  `class` type
+
+Therefore, in cases where the value of the function at a usage site is
+dynamically derived we don't emit an error even if the dynamic value of the
+applied function was annotated with `@inline(always)`. We only emit an error if
+the annotated function is directly referenced and something would cause it to be
+not inlined or if some property at the declaration site of the function would
+make it not possible in the common case.
+
+Listing the different scenarios that can occur for a function marked with
+`@inline(always)`:
+
+1. A function can definitely be inlined at the use site: direct function
+   references barring recursion cycles
+2. A function can never be always inlined at a use site and we diagnose an
+   error: cycles in `@inline(always)` functions calling each other and all
+   references are direct.
+3. A function can not be inlined reliably and we diagnose an error at the
+   declaration site: non-final method declaration
+4. A function can not be inlined and we don't diagnose an error: calls through
+   first class function values, protocol values, and protocol constraint generic
+   types.
+
+### Direct function references
+
+Calls to freestanding functions, methods of `enum`, `struct`, `actor` types,
+final methods of `class` types, and type methods of `class` types don't
+dynamically dispatch to different implementations. Calls to such methods can
+always be inlined barring the recursion limitation (see later). (case 1)
 
 ```swift
-protocol SomeProtocol {
-    func mightBeOverriden()
+struct S {
+  @inline(always)
+  final func method() {}
 }
 
-class C : SomeProtocol{
-    @inline(always)
-    func mightBeOverriden() {
-    }
+func f() {
+    let s: S = ...
+    s.method() // can definitely be inlined
+}
+
+class C {
+  @inline(always)
+  final func finalMethod() {}
+
+  @inline(always)
+  class func method() {}
+}
+
+class Sub : C {}
+
+func f2() {
+    let c: C = ...
+    c.finalMethod() // can definitely be inlined
+    let c2: Sub = ..
+    c2.finalMethod() // can definitely be inlined
+    C.method() // can definitely be inlined
 }
 
 @inline(always)
-func callee() {
+func freestanding() {}
+
+func f3() {
+    freestanding() // can definitely be inlined
 }
 
-func applyFunctionValues(_ funValue: () -> (), c: C, p: SomeProtocol) {
-    funValue() // function value, not guaranteed
-    c.mightBeOverriden() // dynamic method lookup, not guaranteed
-    p.mightBeOverriden() // dynamic method lookup, not guaranteed
-    callee() // directly referenced, guaranteed
-}
-
-func caller() {
-  applyFunctionValue(callee, C())
-}
-
-caller()
 ```
 
-Code authors shall be able to rely on that if a function is marked with
-`@inline(always)` and directly referenced from any context (within or outside of
-the defining module) that the function can be inlined or an error is emitted.
+### Non final class methods
 
+Swift performs dynamic dispatch for non-final methods of classes based on the
+dynamic receiver type of the class instance value at a use site. Inferring the
+value of that dynamic computation at compile time is not possible in many cases
+and the success of inlining cannot be ensured. We treat a non-final method
+declaration with `@inline(always)` as an declaration site error because we
+assume that the intention of the attribute is that the method will be inlined in
+most cases and this cannot be guaranteed (case 3).
 
-## Detailed design
+```swift
+class C {
+    @inline(always) // error: non-final method marked @inline(always)
+    func method() {}
+}
 
-We want to diagnose an error if a directly referenced function is marked with
-`@inline(always)` and cannot be inlined. What are the cases where this might not
-be possible?
+class C2 : C {
+    @inline(always) // error: non-final method marked @inline(always)
+    override func method() {}
+}
+
+func f(c: C) {
+   c.method() // dynamic type of c might be C or C2, could not ensure success
+              // of inlining in general
+}
+```
+
+### Recursion
+
+Repeatedly inlining `@inline(always)` functions calling each other would lead to
+an infinite cycle of inlining. We can never follow the `@inline(always)`
+semantics and diagnose an error (case 2).
+
+```swift
+@inline(always)
+func callee() {
+  ...
+  if cond2 {
+    caller() // error: caller is marked @inline(always) and would create an
+             //        inlining cycle
+  }
+}
+
+@inline(always)
+func caller() {
+  ...
+  if cond {
+    callee()
+  }
+}
+```
+
+### First class function values
+
+Swift allows for functions as first class objects. They can be assigned to
+variables and passed as arguments. The reference function of a function value
+cannot be reliably be determined at the usage and is therefore not diagnosed as
+an error (case 4).
+
+```swift
+@inline(always)
+func callee() {}
+
+func use(_ f: () -> ()) {
+    f()
+}
+func useFunctionValue() {
+  let f = callee
+  ...
+  f()         // function value use, may be inlined but not diagnosed if not
+  use(callee) // function value use, may be inlined in `use()` but not diagnosed
+              // if not
+}
+```
+
+### Protocol methods
+
+Protocol constraint or protocol typed values require a dynamic computation to
+determine the eventual method called. Inferring the value of the eventual method
+called at compile time is not possible in general and the success of inlining
+cannot be ensured. We don't diagnose a usage site error if the underlying method
+is marked with `@inline(always)` (case 4)
+
+```swift
+protocol P {
+    func method()
+}
+struct S : P {
+    @inline(always)
+    func method() {}
+}
+final class C : P {
+    @inline(always)
+    func method() {}
+}
+
+@inline(always)
+func generic<T: P> (_ t: T) {
+    t.method()
+}
+
+func f() {
+    let p: P = S()
+    p.method() // might not get inlined, not diagnosed
+    generic(S()) // might not get inlined, not diagnosed
+    let p2: P = C()
+    p2.method() // might not get inlined, not diagnosed
+    generic(C()) // might not get inlined, not diagnosed
+}
+```
+
+### Optimization control as optimization hint
+
+A clever optimizer might be able to derive the dynamic value at the
+call site, in such cases the optimizer shall respect the optimization control
+and perform inlining.
+
+In the following example the functions will be inlined when build with higher
+optimization levels than `-Onone`.
+
+```swift
+@inline(always)
+func binaryOp<T>(_ left: T, _ right: T, _ op: (T, T) -> T) -> T {
+   op(left, right)
+}
+
+@inline(always)
+func add(_ left: Int, _ right: Int) -> Int { left + right }
+
+print(binaryOp(5, 10, add))
+print(binaryOp(5, 10) { add($0, $1) })
+```
+
 
 ### Interaction with `@inlinable`
 
-`@inlinable` and `@_alwaysEmitIntoClient` make the function body available to
-clients (callers in other modules) in library evolution mode. `@inlinable` makes
-the body of the function available to the client and causes an ABI entry point
-in the vending module to vended. `@_alwaysEmitIntoClient` makes the body of the
-function available for clients but does not cause emission of an ABI entry
-point. Functions with `open`, `public`, or `package` level access cause emission
-of an ABI entry point for clients to call but in the absence of aforementioned
-attributes do not make the body available to the client.
+`@inlinable` makes the function body available to clients (callers in other
+modules) in library evolution mode. Functions with `open`, `public`, or
+`package` level access cause emission of an ABI entry point for clients to call
+but in the absence of aforementioned attributes do not make the body available
+to the client.
 
 `@inline(always)` intention is to be able to guarantee that inlining will happen
 for any caller inside or outside the defining module therefore it makes sense to
-require the use some form of "inline-ability" attribute with them. This
-attribute could be required to be explicitly stated. And for it to be an error
-when the attribute is omitted.
+require the use of  "@inlinable" attribute with them. This attribute could be
+required to be explicitly stated. And for it to be an error when the attribute
+is omitted.
 
 ```swift
 @inline(always)
@@ -176,28 +370,23 @@ public func callee() {
 ```
 
 Alternatively, the attribute could be implicitly implied by the usage of
-`@inline(always)`. In this proposal, we take the position that it should be
-implied to avoid the redundancy of spelling this out. The intention of
-`@inline(always)` is for it to inline in all contexts. Instead of an error in the
-absence of the attribute we should imply "inline-ability". The question is what
-should we default to?
+`@inline(always)`. We take the position that it should be implied to avoid the
+redundancy of spelling it out.
 
-`@_alwaysEmitIntoClient`'s semantics seems preferable for new functions. We
-intend for the function to be always inlined, why should there be an ABI entry
-point?
+For access levels equal and lower than `internal` `@inlinable` is not implied.
 
-`@inlinable` semantics allows for annotating existing functions with
-`@inline(always)` without breaking ABI compatibility. `@inlinable` keeps an
-entry point in the vending module for older code that assumed the existence of
-an entry point.
+As a consequence all the rules that apply to `@inlinable` also apply to
+`public`/`open`/`package` declarations marked with `@inline(always).
 
-This proposals takes the position to give `@inline(always)` the semantics of
-`@inlineable` and provide an alternative spelling for the case when we desire
-`@_alwaysEmitIntoClient` semantics: `@inline(only)`.
+```swift
+internal func g() { ... }
 
-For access levels equal and lower than `internal` `@inlinable` should not be
-implied.
-
+@inline(always)
+public func inlinableImplied() {
+    g() // error: global function 'g()' is internal and cannot be referenced from an
+    '@inlinable' function
+}
+```
 
 ### Interaction with `@usableFromInline`
 
@@ -206,7 +395,7 @@ if it is either `@inlinable` (see above) or `@usableFromInline`. `@usableFromInl
 ensures that there is a public entry point to the `internal` level function but
 does not ensure that the body of the function is available to external
 modules. Therefore, it is an error to combine `@inline(always)` with a
-`@usableFromInline` function as we cannot guaranteed that the function can
+`@usableFromInline` function as we cannot guarantee that the function can
 always be inlined.
 
 ```swift
@@ -224,9 +413,11 @@ public func caller() {
 
 ### Module internal access levels
 
-It is okay to mark `internal`, `private` and `fileprivate` function declarations
-with `@inline(always)` in cases other than the ones mention above without the
-`@inlinable` attribute as they can only be referenced from within the module.
+To mark `internal`, `private` and `fileprivate` function declarations
+with `@inline(always)` does not imply the `@inlinable` attribute's semantics.
+They can only be referenced from within the module. `internal` declarations can
+be marked with `@inlinable` if this is required by the presence of other
+`@inlinable` (or public `@inline(always)`) functions that reference them.
 
 
 ```swift
@@ -244,86 +435,6 @@ internal func callee() {
 private func callee2() {
 }
 ```
-
-#### Infinite recursion during inlining
-
-We will diagnose if inlining cannot happen due to calls within a
-[strongly connected component](https://en.wikipedia.org/wiki/Strongly_connected_component)
-marked with `@inline(always)` as errors.
-
-```swift
-@inline(always)
-func callee() {
-  ...
-  if cond2 {
-    caller()
-  }
-}
-
-@inline(always)
-func caller() {
-  ...
-  if cond {
-    callee()
-  }
-}
-```
-
-### Dynamic function values
-
-As outlined earlier the attribute does not guarantee inlining or diagnose the
-failure to inline when the function value is dynamic at a call site: a function
-value is applied, or the function value is obtained via class method lookup or
-protocol lookup.
-
-```swift
-@inline(always)
-func callee() {}
-func useFunctionValue() {
-  let f = callee
-  ...
-  f() // function value use, not guaranteed to be inlined
-}
-
-class SomeClass : SomeProto{
-  @inline(always)
-  func nonFinalMethod() {}
-
-  @inline(always)
-  func method() {}
-}
-
-protocol SomeProto {
-  func method()
-}
-
-
-func dynamicMethodLookup() {
-  let c = SomeClass()
-  ...
-  c.nonFinalMethod() // method lookup, not guaranteed to be inlined
-
-  let p: SomeProto = SomeClass()
-  p.method() // method lookup, not guaranteed to be inlined
-}
-
-class A {
-  func finalInSub() {}
-  final func finalMethod() {}
-}
-class B : A {
-  overrided final func finalInSub() {}
-}
-
-func noMethodLookup() {
-    let a = A()
-    a.finalMethod() // no method lookup, guaranteed to be inlined
-
-    let b = B()
-    b.finalInSubClass() // no method lookup, guaranteed to be inlined
-}
-```
-
 
 ## Source compatibility
 
@@ -384,9 +495,10 @@ function as `@inlinable`.
 
 With respect to `@inlinable` an initial draft of the proposal suggested to
 require spelling the `@inlinable` attribute on `public` declarations or an error
-would be displayed. The argument was that this would ensure that authors would
-be aware of the additional semantics implied by the attribute: the body is
-exposed.
+would be displayed. The argument was made that this would ensure that authors
+would be aware of the additional semantics implied by the attribute: the body is
+exposed. This was juxtaposed by the argument that spelling both `@inlinable` and
+`@inline(always)` is redundant.
 
 ## Acknowledgments
 
