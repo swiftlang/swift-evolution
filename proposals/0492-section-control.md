@@ -88,7 +88,7 @@ let myPlugin: PluginData = (
 
 On top of specifying a custom section name with the `@section` attribute, marking a variable as `@used` is needed to prevent otherwise unused symbols from being removed by the compiler. When using section placement to e.g. implement linker sets, such values are typically going to have no usage at compile time, and at the same time they should not be exposed in public interface of libraries (not be made public), therefore we the need the `@used` attribute.
 
-Different object file formats (ELF, Mach-O, COFF) have different restrictions and rules on what are valid section names, and cross-platform code will have to use different names for different file formats. To support that, custom section names can be specified as a string literal. The name will be directly set for the symbol in the resulting object file, without any processing. A new `#if objectFileFormat(...)` conditional compilation directive will be provided to support conditionalizing based on the file format:
+Different object file formats (ELF, Mach-O, COFF) have different restrictions and rules on what are valid section names, and cross-platform code will have to use different names for different file formats. To support that, custom section names can be specified as a string literal. The string will be used directly, without any processing, as the section name for the symbol. A new `#if objectFileFormat(...)` conditional compilation directive will be provided to support conditionalizing based on the file format:
 
 ```swift
 #if objectFileFormat(ELF)
@@ -180,13 +180,14 @@ When allowed, the `@section` attribute on a variable declaration has the followi
 
 1. The variable’s initializer expression is going to be constant folded at compile-time, and assigned as the initial value to the storage symbol for the variable, i.e. the variable will be **statically initialized**. The variable’s value will not be lazily computed at runtime, and it will not use the one-time initialization helper code and token. If that’s not possible, an error is diagnosed.
 2. The storage symbol for the variable will be placed into a custom section with the specified name.
+   - Concretely, the section name string value will be set verbatim as a section specifier for the storage symbol at the LLVM IR level of the compiler. This means that any special behavior that the optimizer, the backend, the assembler or the linker applies based on known section names (or attributes specified as suffixes on the section name) will apply.
 3. If applied to a global that is declared as part of top-level executable code (i.e. main.swift), the usual non-top-level-code initialization behavior is applied to the global. I.e. the variable is not sequentially initialized at startup.
 
 When allowed, the `@used` attribute on a variable declaration has the following effect:
 
 1. The storage symbol for the variable will be marked as “do not dead-strip”.
 
-The effects described above are applied to the storage symbols and don’t generally affect optimizations and other transformations in the compiler. For example, the compiler is still allowed to propagate and copy a the constant value to code that uses the value, so there’s no guarantee that a value stored into a global with a custom section will not be propagated and “leak” outside of the section. The `@used` annotation, however, does inform the optimizer that such a variable cannot be removed, even when it doesn’t have any observed users or even if it’s inaccessible due to language rules (e.g. if it’s a private static member on an otherwise empty type).
+The effects described above are applied to the storage symbols and don’t generally affect optimizations and other transformations in the compiler. For example, the compiler is still allowed to propagate and copy a constant value of a `let` variable to code that uses the variable, therefore there’s no guarantee that a value stored into a global with a custom section will not be propagated and “leak” outside of the section. The `@used` annotation, however, does inform the optimizer that such a variable cannot be removed, even when it doesn’t have any observed users or even if it’s inaccessible due to language rules (e.g. if it’s a private static member on an otherwise empty type).
 
 ### Constant expressions
 
