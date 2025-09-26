@@ -261,12 +261,20 @@ We propose adding a new protocol to represent an Executor that is
 backed by some kind of run loop:
 
 ```swift
+/// An executor that can take over a thread.
+public protocol ThreadDonationExecutor: Executor {
+  /// Donate the calling thread to this executor.
+  ///
+  /// This method will synchronously block the calling thread.
+  func run() throws
+}
+
 /// An executor that is backed by some kind of run loop.
 ///
 /// The idea here is that some executors may work by running a loop
 /// that processes events of some sort; we want a way to enter that loop,
 /// and we would also like a way to trigger the loop to exit.
-public protocol RunLoopExecutor: Executor {
+public protocol RunLoopExecutor: SerialExecutor, ThreadDonationExecutor {
   /// Run the executor's run loop.
   ///
   /// This method will synchronously block the calling thread.  Nested calls to
@@ -275,10 +283,6 @@ public protocol RunLoopExecutor: Executor {
   func run() throws
 
   /// Run the executor's run loop until a condition is satisfied.
-  ///
-  /// Not every `RunLoopExecutor` will support this method; you must not call
-  /// it unless you *know* that it is supported.  The default implementation
-  /// generates a fatal error.
   ///
   /// Parameters:
   ///
@@ -300,11 +304,17 @@ public protocol RunLoopExecutor: Executor {
 We will also add a protocol for the main actor's executor:
 
 ```swift
-protocol MainExecutor: RunLoopExecutor, SerialExecutor {
+protocol MainExecutor: SerialExecutor, ThreadDonationExecutor {
+  /// Run the executor's run loop.
+  ///
+  /// This method will synchronously block the calling thread.  Nested calls to
+  /// `run()` may be permitted, however it is not permitted to call `run()` on a
+  /// single executor instance from more than one thread.
+  func run() throws
 }
 ```
 
-This cannot be a typealias because those will not work for Embedded Swift.
+This is not just a `RunLoopExecutor`, because 
 
 We will then expose properties on `MainActor` and `Task` to allow
 users to query the executors:
@@ -352,6 +362,11 @@ along with a default implementation of `ExecutorFactory` called
 `PlatformExecutorFactory` that sets the default executors for the
 current platform.
 
+So that it is not necessary to override both properties, we will
+provide default implementations for both `mainExecutor` and
+`defaultExecutor` that return the default executors for the current
+platform.
+
 Additionally, `Task` will expose a new `currentExecutor` property, as
 well as properties for the `preferredExecutor` and the
 `currentSchedulingExecutor`:
@@ -382,13 +397,15 @@ extension Task {
 }
 ```
 
-to allow `Task.sleep()` to wait on the appropriate executor, rather
-than its current behaviour of always waiting on the global executor,
-which adds unnecessary executor hops and context switches.
-
-Again, while these are mainly useful in the implementation of
-`Task.sleep()`, they are also useful for debugging (user programs can
-print the current executor to see which one they are presently using).
+These are not intended to replace use of Swift's isolation keywords
+(see [SE-0420 Inheritance of actor
+isolation](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0420-inheritance-of-actor-isolation.md)
+and [SE-0431 `isolated(any)` Function
+Types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0431-isolated-any-functions.md)),
+but may be useful for debugging purposes or in combination with task
+executor preference support.  If what you want to do can be
+accomplished with `isolation` or `@isolated(any)`, you should prefer
+that approach to any direct use of these executor properties.
 
 We will also need to expose the executor storage fields on
 `ExecutorJob`, so that they are accessible to Swift implementations of
@@ -403,6 +420,9 @@ struct ExecutorJob {
   /// referenced from the private data area are cleared up prior to running the
   /// job.
   ///
+  /// The size and alignment of the private data buffer are both twice the
+  /// machine word size (i.e. `2 * sizeof(void *)`, or `2 * MemoryLayout<UInt>`).
+  ///
   /// Parameters:
   ///
   /// - body: The closure to execute.
@@ -410,30 +430,13 @@ struct ExecutorJob {
   /// Returns the result of executing the closure.
   public func withUnsafeExecutorPrivateData<R, E>(body: (UnsafeMutableRawBufferPointer) throws(E) -> R) throws(E) -> R
 
-  /// Kinds of scheduling jobs.
-  @frozen
-  public struct Kind: Sendable, RawRepresentable {
-    public typealias RawValue = UInt8
-
-    /// The raw job kind value.
-    public var rawValue: RawValue
-
-    /// A task
-    public static let task = RawValue(0)
-
-    // Job kinds >= 192 are private to the implementation
-    public static let firstReserved = RawValue(192)
-  }
-
-  /// What kind of job this is
-  public var kind: Kind { get }
   ...
 }
 ```
 
-Finally, jobs of type `ExecutorJob.Kind.task` have the ability to
-allocate task memory, using a stack disciplined allocator; this memory
-must be released _in reverse order_ before the job is executed.
+Finally, some jobs have the ability to allocate task memory, using a
+stack disciplined allocator; this memory must be released _in reverse
+order_ before the job is executed.
 
 Rather than require users to test the job kind to discover this, which
 would mean that they would not be able to use allocation on new job
@@ -462,36 +465,34 @@ extension ExecutorJob {
   struct LocalAllocator {
 
     /// Allocate a specified number of bytes of uninitialized memory.
-    public func allocate(capacity: Int) -> UnsafeMutableRawBufferPointer?
+    public func allocate(capacity: Int) -> UnsafeMutableRawBufferPointer
 
     /// Allocate uninitialized memory for a single instance of type `T`.
-    public func allocate<T>(as: T.Type) -> UnsafeMutablePointer<T>?
+    public func allocate<T>(as: T.Type) -> UnsafeMutablePointer<T>
 
     /// Allocate uninitialized memory for the specified number of
     /// instances of type `T`.
     public func allocate<T>(capacity: Int, as: T.Type)
-      -> UnsafeMutableBufferPointer<T>?
+      -> UnsafeMutableBufferPointer<T>
 
     /// Deallocate previously allocated memory.  You must do this in
     /// reverse order of allocations, prior to running the job.
-    public func deallocate(_ buffer: UnsafeMutableRawBufferPointer?)
+    public func deallocate(_ buffer: UnsafeMutableRawBufferPointer)
 
     /// Deallocate previously allocated memory.  You must do this in
     /// reverse order of allocations, prior to running the job.
-    public func deallocate<T>(_ pointer: UnsafeMutablePointer<T>?)
+    public func deallocate<T>(_ pointer: UnsafeMutablePointer<T>)
 
     /// Deallocate previously allocated memory.  You must do this in
     /// reverse order of allocations, prior to running the job.
-    public func deallocate<T>(_ buffer: UnsafeMutableBufferPointer<T>?)
+    public func deallocate<T>(_ buffer: UnsafeMutableBufferPointer<T>)
 
   }
 
 }
 ```
 
-In the current implementation, `allocator` will be `nil` for jobs
-other than those of type `ExecutorJob.Kind.task`.  This means that you
-can write code like
+To use the allocator, you can write code like
 
 ```swift
 if let chunk = job.allocator?.allocate(capacity: 1024) {
