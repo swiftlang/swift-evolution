@@ -83,6 +83,17 @@ We could remove the underscores from the existing attributes, which use the phra
 
 Instead of introducing a new attribute, the `interface` and `implementation` options could be provided to the access control modifiers, such as `public`, `open`, and `package`. This runs some risk of complicating a feature that developers learn very early on (`public`) with a very advanced notion (the proposed `@export` attribute), but is otherwise equivalent.
 
+## Future Directions
+
+### Visibility extensions
+
+The `@export` attribute could be extended to support visibility-related descriptions, such as those provided by the GCC [`visibility` attribute](https://gcc.gnu.org/wiki/Visibility) as well as the Visual C++ notions of [`dllimport` and `dllexport`](https://learn.microsoft.com/en-us/cpp/cpp/dllexport-dllimport?view=msvc-170). For example:
+
+```swift
+@export(interface, visibility: hidden)
+public func f() { }
+```
+
 ## Acknowledgments
 
 Thank you to Andy Trick for the `@export` syntax suggestion.
