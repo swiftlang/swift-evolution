@@ -1,6 +1,6 @@
 # Improving package creation with custom templates: SwiftPM Template Initialization
 
-* Proposal: [SE-0496]()
+* Proposal: [SE-NNNN]()
 * Authors: [John Bute](https://github.com/johnbute)
 * Review Manager: TBD
 * Status: Awaiting implementation
