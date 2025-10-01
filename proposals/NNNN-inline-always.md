@@ -502,4 +502,8 @@ exposed. This was juxtaposed by the argument that spelling both `@inlinable` and
 
 ## Acknowledgments
 
-TODO: ....
+Thanks to [Jordan Rose](https://forums.swift.org/t/optimization-controls-and-optimization-hints/81612/7) for pointing out that inlining can't be always guaranteed, specifically the case of closures.
+Thanks to [Xiaodi Wu](https://forums.swift.org/t/pitch-inline-always-attribute/82040/7) for proposing inferring `@inlinable`.
+Thanks to [Tony Allevato](https://github.com/swiftlang/swift-evolution/pull/2958#discussion_r2379238582) for suggesting to error on on non-final methods and
+providing editing feedback.
+Thanks to [Doug Gregor](https://github.com/DougGregor), [Joe Groff](https://github.com/jckarter), [Tim Kientzle](https://github.com/tbkka), and [Allan Shortlidge](https://github.com/tshortli) for discussions related to the feature.
