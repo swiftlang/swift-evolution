@@ -4,7 +4,7 @@
 * Authors: [John Bute](https://github.com/johnbute)
 * Review Manager: TBD
 * Status: Awaiting implementation
-* Implementation: [apple/swift-package-manager#04956](https://github.com/apple/swift-package-manager/pull/NNNNN)
+* Implementation: [apple/swift-package-manager#04956](https://github.com/swiftlang/swift-package-manager/pull/9211)
 * Review: ( [pitch](https://forums.swift.org/t/pitch-improving-package-creation-with-custom-templates-swiftpm-template-initialization/81525/1) ) ( [review](LINK TO SWIFT FORUMS POST HERE) )
 
 ## Introduction
