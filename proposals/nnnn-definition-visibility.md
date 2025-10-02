@@ -47,7 +47,7 @@ Outside of those constraints on the interpretation of the language, the Swift co
 * Incremental compilation (typical of debug builds) allows the compiler to avoid emitting symbols for `fileprivate` and `private` functions if they aren't needed elsewhere in the file, for example because all of their uses have been inlined (or there were no uses).
 * Whole-module optimization (WMO) allows the definitions of `internal` , `fileprivate`, and `private` functions to be available to other source files in the same module. The compiler may choose not to emit symbols for `internal`, `fileprivate`, or `private` entities at all if they aren't needed. (For example, because they've been inlined into all callers)
 * Cross-module optimization (CMO) allows the definitions of functions to be made available to clients in other modules. The "conservative" form of CMO, which has been enabled by the Swift Package Manager since Swift 5.8, does this primarily for `public` functions. A more aggressive form of cross-module optimization can also make the definitions of `internal`, `fileprivate`, or `private` entities available to clients (for the compiler's use only!).
-* [Embedded Swift](https://github.com/swiftlang/swift-evolution/blob/main/visions/embedded-swift.md) relies on WMO and the aggressive CMO described above. It will also avoid emitting symbols to binaries unless they appear to be needed, which helps reduce code size. It is also necessary, because Embedded Swift cannot create symbols for certain 
+* [Embedded Swift](https://github.com/swiftlang/swift-evolution/blob/main/visions/embedded-swift.md) relies on WMO and the aggressive CMO described above. It will also avoid emitting symbols to binaries unless they appear to be needed, which helps reduce code size. It is also necessary, because Embedded Swift cannot create symbols for certain functions, such as unspecialized generic functions.
 
 The same Swift source code may very well be compiled in a number of different ways at different times: debug builds often use incremental compilation, release builds generally use WMO and conservative CMO, and an embedded build would use the more aggressive CMO. The differences in symbol availability and the use of function definitions by clients don't generally matter. It is expected that the default behavior may shift over time: for example, the build system might enable progressively more aggressive CMO to improve performance.
 
@@ -89,7 +89,7 @@ This proposal introduces a new attribute `@exported` that provides the required 
 * `interface`: means that a symbol is present in the binary in a manner that can be called by clients. 
 * `implementation`: means that the function definition is available for clients to use for any purpose, including specializtion, inlining, or merely analyzing the body for optimization purposes. 
 
-The existing `@inlinable` for public symbols is subsumed by `@export(interface, implementation)`, meaning that there is a callable symbol, but the definition is also available for specialization/inlining/etc. The existing `@_alwaysEmitIntoClient` is subsumed by `@export(implementation)`, meaning that the definition is available and each client that uses it must emit their own copy of the definition, because there is not symbol. The `@_neverEmitIntoClient` attribute on `main`is subsumed by `@export(interface)`, meaning that a callable symbol is emitted but the definition is not available to callers for any reason.
+The existing `@inlinable` for public symbols is subsumed by `@export(interface, implementation)`, meaning that there is a callable symbol, but the definition is also available for specialization/inlining/etc. The existing `@_alwaysEmitIntoClient` is subsumed by `@export(implementation)`, meaning that the definition is available and each client that uses it must emit their own copy of the definition, because there is no symbol. The `@_neverEmitIntoClient` attribute on `main`is subsumed by `@export(interface)`, meaning that a callable symbol is emitted but the definition is not available to callers for any reason.
 
 ## Detailed design
 
@@ -121,7 +121,7 @@ func g() {
 
 Module B cannot call the function `secret` under any circumstance. However, with aggressive CMO or Embedded Swift, the compiler will still make the definition available when compiling `B`, which can be used to (for example) inline both `f()` and `secret` into the body of `g`. 
 
-If this behavior is not desired, the `secret` function could be marked as `@export(interface)` to ensure that it is compiled to a symbol that it usable from outside of module A. It is still `private`, meaning that it still cannot be referenced by source code outside of that file.
+If this behavior is not desired, there are two options. The easiest option to is mark `f` with `@export(interface)`, so that it's definition won't be available to clients and therefore cannot leak `secret`. Alternatively, the `secret` function could be marked as `@export(interface)` and  `@inline(never)` to ensure that it is compiled to a symbol that it usable from outside of module A, and that its body is never inlined anywhere, including into `f`. It is still `private`, meaning that it still cannot be referenced by source code outside of that file.
 
 ### Relationship to `@inline(always)` / `@inline(never)`
 
@@ -129,11 +129,11 @@ The `@inline(always)` attribute [under discussion now](https://forums.swift.org/
 
 The following table captures the ways in which these attributes interact. 
 
-|                                      | `@inline(always)`                                            | `@inline(never)`                                             |
-| ------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| `@export(implementation)`            | Always inlined everywhere; callers emit their own definitions. Use this when a function should not be part of the ABI and should always be inlined for performance reasons. | Never inlined; callers emit their own definitions. Use this when a function should not be part of the ABI but never needs to be inlined. |
-| `@export(interface, implementation)` | Always inlined everywhere; a symbol exists that could only be used by non-Swift clients. | Never inlined; callers may emit their own definitions or may call the definition in the function's module. |
-| `@export(interface)`                 | Always inlined within the function's module; a symbol exists for callers outside the function's module. | Never inlined; callers may call the definition in the function's module. Use this to fully encapsulate a function definition so that it can be replaced at link time without affecting any other code. |
+|                                      | `@inline(always)`                                            | `@inline(never)`                                             | (no @inline)                                                 |
+| ------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `@export(implementation)`            | Always inlined everywhere; callers emit their own definitions. Use this when a function should not be part of the ABI and should always be inlined for performance reasons. | Never inlined; callers emit their own definitions. Use this when a function should not be part of the ABI but never needs to be inlined. | May be inlined. Callers emit their own definitions. Use when the function should not be part of the ABI, but leave it up to the optimizer to decide when to inline. |
+| `@export(interface, implementation)` | Always inlined everywhere; a symbol exists that could only be used by non-Swift clients. | Never inlined; callers may emit their own definitions or may call the definition in the function's module. | May be inlined. Callers may emit their own definitions for specialization/inlining/etc. or may call the definition in the function's module, depending on the optimizer. |
+| `@export(interface)`                 | Always inlined within the function's module; a symbol exists for callers outside the function's module. | Never inlined; callers may call the definition in the function's module. Use this to fully encapsulate a function definition so that it can be replaced at link time without affecting any other code. | May be inlined within the function's module, if the optimizer determines that it should be profitable. A symbol exists for callers from outside the module to use. |
 
 ### Embedded Swift limitations
 
