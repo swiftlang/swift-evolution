@@ -157,6 +157,14 @@ func h() {
 
 This means that generic functions are incompatible with `@export(interface)`, because there is no way to export a generic interface without the implementation.
 
+### `@export` attribute on stored properties and types
+
+Stored properties and types can also result in symbols being produced within the binary, in much the same manner as functions. For stored properties, the symbols describe the storage itself. For types, the symbols are for metadata associated with the type. In both cases, it can be reasonable for the compiler to defer creation of the symbol until use. For example, Embedded Swift will defer emission of a stored property until it is referenced, and will only emit type metadata when it is required (e.g., for use with `AnyObject`). 
+
+For stored properties and types,`@exported(interface)` would emit the stored property symbol and type metadata eagerly, similar to the emission of the symbol for a function.
+
+`@exported(implementation)` is less immediately relevant. For stored properties, it could mean that the initializer value is available for clients to use. For types, it would effectively be the equivalent of `@frozen` in Library Evolution (`@frozen` exposes implementation and layout details), but there does not exist a notion of non-`@frozen` types outside of Library Evolution.
+
 ## Source compatibility
 
 Introduces a new attribute. This could cause a source-compatibility problem with an attached macro of the same name, but otherwise has no impact.
