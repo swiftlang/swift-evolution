@@ -182,6 +182,8 @@ The `@inlinable` attribute without a modifier would remain as specified in [SE-0
 
 We could remove the underscores from the existing attributes, which use the phrase "emit into client" to mean that the client (calling module) is responsible for emitting the definition if it needs it. This would mean two new attributes, `@alwaysEmitIntoClient` and `@neverEmitIntoClient`.
 
+A variant of this would be `@emitIntoClient(always)` or `@emitIntoClient(never)`. That does leave space for a third option to be the equivalent of `@export(interface,implementation)`.
+
 ### Make this part of access control
 
 Instead of introducing a new attribute, the `interface` and `implementation` options could be provided to the access control modifiers, such as `public`, `open`, and `package`. This runs some risk of complicating a feature that developers learn very early on (`public`) with a very advanced notion (the proposed `@export` attribute), but is otherwise equivalent.
