@@ -1,4 +1,4 @@
-# Interoperability between Swift Testing and XCTest
+# Targeted Interoperability between Swift Testing and XCTest
 
 - Proposal: [ST-NNNN](NNNN-xctest-interoperability.md)
 - Authors: [Jerry Chen](https://github.com/jerryjrchen)
@@ -51,18 +51,15 @@ Generally, we get into trouble today when ALL the following conditions are met:
 - You call XCTest API in a Swift Testing test, or call Swift Testing API in a
   XCTest test
 - The API doesn't function as expected in some or all cases, and
-- You get no notice at build or runtime about the malfunction
-
-Example: calling `XCTAssertEqual(x, y)` in a Swift Testing test: if x does not
-equal y, it should report a failure but does nothing instead.
+- You get no notice at build time or runtime about the malfunction
 
 For the remainder of this proposal, we’ll describe tests which exhibit this
 problem as **lossy without interop**.
 
 If you've switched completely to Swift Testing and don't expect to use XCTest in
 the future, this proposal includes a mechanism to **prevent you from
-inadvertently introducing XCTest APIs to your project, including via a testing
-library.**
+inadvertently introducing XCTest APIs to your project**, including via a testing
+library.
 
 ## Proposed solution
 
@@ -90,7 +87,7 @@ We propose supporting the following XCTest APIs in Swift Testing:
 
 - Assertions: `XCTAssert*` and [unconditional failure][] `XCTFail`
 - [Expected failures][], such as `XCTExpectFailure`: marking a Swift Testing
-  issue in this way will generate a runtime issue.
+  issue in this way will generate a runtime warning issue.
 - `XCTAttachment`
 - [Issue handling traits][]: we will make our best effort to translate issues
   from XCTest to Swift Testing. Note that there are certain issue kinds that are
@@ -104,16 +101,18 @@ We also propose highlighting usage of above XCTest APIs in Swift Testing:
 
 - **Report [runtime warning issues][]** for XCTest API usage in Swift Testing.
   This **applies to assertion successes AND failures**! We want to make sure you
-  can identify opportunities to modernise even if your tests currently all pass.
+  can identify opportunities to modernise even if your tests currently pass.
 
-- Opt-in **strict interop mode**, which will trigger a crash instead.
+- Opt-in **strict interop mode**, where XCTest API usage will result in
+  `fatalError("Usage of XCTest API in a Swift Testing context is not
+supported")`.
 
 Here are some concrete examples:
 
 | When running a Swift Testing test... | Current         | Proposed (default)                           | Proposed (strict) |
 | ------------------------------------ | --------------- | -------------------------------------------- | ----------------- |
-| `XCTAssert` failure is a ...         | ‼️ No-op        | ❌ Test Failure and ⚠️ Runtime Warning Issue | 💥 Crash          |
-| `XCTAssert` success is a ...         | No-op           | ⚠️ Runtime Warning Issue                     | 💥 Crash          |
+| `XCTAssert` failure is a ...         | ‼️ No-op        | ❌ Test Failure and ⚠️ Runtime Warning Issue | 💥 `fatalError`   |
+| `XCTAssert` success is a ...         | No-op           | ⚠️ Runtime Warning Issue                     | 💥 `fatalError`   |
 | `throw XCTSkip` is a ...             | ❌ Test Failure | ❌ Test Failure                              | ❌ Test Failure   |
 
 ### Limited support for Swift Testing APIs in XCTest
@@ -122,8 +121,8 @@ We propose supporting the following Swift Testing APIs in XCTest:
 
 - `#expect` and `#require`
   - Includes [exit testing][]
-- `withKnownIssue`: when this suppresses `XCTAssert` failures, it will still
-  show a runtime warning issue.
+- `withKnownIssue`: marking an XCTest issue in this way will generate a runtime
+  warning issue. In strict interop mode, this becomes a `fatalError`.
 - Attachments
 - [Test cancellation][] (links to pitch)
 
@@ -136,12 +135,12 @@ Testing at your own pace.
 Present and future Swift Testing APIs will be supported in XCTest if the
 XCTest API _already_ provides similar functionality.
 
-- For example, we plan on supporting the proposed Swift Testing [test
-  cancellation][] feature in XCTest since it is analogous to `XCTSkip`
+- For example, we support the proposed Swift Testing [test cancellation][]
+  feature in XCTest since it is analogous to `XCTSkip`.
 
 - On the other hand, [Traits][] are a powerful Swift Testing feature, and
   include the ability to [add tags][tags] to organise tests. Even though XCTest
-  does not interact with tags, this is beyond the scope of interoperability
+  does not interact with tags, **this is beyond the scope of interoperability**
   because XCTest doesn't have existing “tag-like” behaviour to map onto.
 
 Here are some concrete examples:
@@ -150,38 +149,33 @@ Here are some concrete examples:
 | -------------------------------------------- | --------------- | ------------------------ | ----------------- |
 | `#expect` failure is a ...                   | ‼️ No-op        | ❌ Test Failure          | ❌ Test Failure   |
 | `#expect` success is a ...                   | No-op           | No-op                    | No-op             |
-| `withKnownIssue` wrapping `XCTFail` is a ... | ❌ Test Failure | ⚠️ Runtime Warning Issue | 💥 Crash          |
+| `withKnownIssue` wrapping `XCTFail` is a ... | ❌ Test Failure | ⚠️ Runtime Warning Issue | 💥 `fatalError`   |
 
 ### Interoperability Modes
 
-The default interoperability surfaces test failures that were previously
-ignored. We include two more permissible interoperability modes to avoid
-breaking projects that are dependent on this pre-interop behaviour.
+The default interoperability mode surfaces test failures that were previously
+ignored. We also include two alternative interoperability modes:
 
 - **Warning-only**: This is for projects which do not want to see new test
   failures surfaced due to interoperability.
 
-- **None**: Some projects may additionally have issue handling trait that
-  promote warnings to errors, which means that warning-only mode could still
-  cause test failures.
-
-For projects that want to bolster their Swift Testing adoption, there is also an
-opt-in strict interop mode.
-
 - **Strict**: Warning issues included in the default mode can be easily
   overlooked, especially in CI. The strict mode guarantees that no XCTest API
   usage occurs when running Swift Testing tests by turning those warnings into a
-  runtime crash.
+  `fatalError`.
 
 Configure the interoperability mode when running tests using the
-`SWT_XCTEST_INTEROP_MODE` environment variable:
+`SWIFT_TESTING_XCTEST_INTEROP_MODE` environment variable:
 
-| Interop Mode | Issue behaviour across framework boundary    | `SWT_XCTEST_INTEROP_MODE`                   |
-| ------------ | -------------------------------------------- | ------------------------------------------- |
-| Off          | ‼️ No-op (status quo)                        | `off`                                       |
-| Warning-only | ⚠️ Runtime Warning Issue                     | `warning`                                   |
-| Default      | ❌ Test Failure and ⚠️ Runtime Warning Issue | `default`, or empty value, or invalid value |
-| Strict       | 💥 Crash                                     | `strict`                                    |
+| Interop Mode | Issue behaviour across framework boundary                         | `SWIFT_TESTING_XCTEST_INTEROP_MODE`         |
+| ------------ | ----------------------------------------------------------------- | ------------------------------------------- |
+| Warning-only | ⚠️ Runtime Warning Issue for XCTest API usage                     | `warning`                                   |
+| Default      | ❌ Test Failure and ⚠️ Runtime Warning Issue for XCTest API usage | `default`, or empty value, or invalid value |
+| Strict       | 💥 `fatalError` for XCTest API usage                              | `strict`                                    |
+
+<!-- TODO: alternative name besides strict. It should reflect that, it does
+still have interop for SWT API in XCTest, but a hard failure going the other way
+around-->
 
 ### Phased Rollout
 
@@ -196,7 +190,7 @@ lead to situations where previously "passing" test code now starts showing
 failures. We believe this should be a net positive if it can highlight actual
 bugs you would have missed previously.
 
-You can use `SWT_XCTEST_INTEROP_MODE=off` in the short-term to revert back to
+You can use `SWIFT_TESTING_XCTEST_INTEROP_MODE=off` in the short-term to revert back to
 the current behaviour. Refer to the "Interoperability Modes" section for a full list
 of options.
 
@@ -204,7 +198,7 @@ of options.
 
 Interoperability will be first available in future toolchain version,
 hypothetically named `6.X`, where default interop mode will be enabled for
-projects. After that, a `6.Y` release would make strict interop mode the
+projects. After that, a `7.Y` release would make strict interop mode the
 default.
 
 - Swift Package Manager projects: `swift-tools-version` declared in
@@ -214,8 +208,8 @@ default.
 - Xcode projects: Installed toolchain version will be used to determine interop
   mode.
 
-- Any project can use `SWT_XCTEST_INTEROP_MODE` to override interop mode at
-  runtime, provided they are on toolchain version `6.X` or newer
+- Any project can use `SWIFT_TESTING_XCTEST_INTEROP_MODE` to override interop
+  mode at runtime, provided they are on toolchain version `6.X` or newer
 
 ## Future directions
 
@@ -228,10 +222,9 @@ Testing:
   API usage, which would be challenging to do completely and find usages of this
   API within helper methods.
 
-- After new API added to SWT in future, will need to evaluate for
-  interoperability with XCTest until strict mode is the default. "strict" is
-  kind of saying "from this point forward, no new interop will be added" for new
-  SWT features.
+- After new API is added to Swift Testing in future, will need to evaluate for
+  interoperability with XCTest. Once strict mode is the default, we will no
+  longer include interoperability for new Swift Testing features.
 
 ## Alternatives considered
 
@@ -249,6 +242,18 @@ helping users catch more bugs are too important to pass up. We've also included
 a plan to increase the strictness of the interoperability mode over time, which
 should make it clear that this is not intended to be a permanent measure.
 
+### Opt-out of interoperability
+
+In a similar vein, we considered `SWIFT_TESTING_XCTEST_INTEROP_MODE=off` as a
+way to completely turn off interoperability. Some projects may additionally have
+issue handling trait that promote warnings to errors, which means that
+warning-only mode could still cause test failures.
+
+However, in the scenario above, we think users who set up tests to elevate
+warnings as errors would be interested in increased visibility of testing issues
+surfaced by interop. We're open to feedback about other scenarios where a
+"interop off" mode would be preferred.
+
 ### Strict interop mode as the default
 
 We believe that for projects using only Swift Testing, strict interop mode is
@@ -258,6 +263,24 @@ that we want users to migrate to Swift Testing.
 However, we are especially sensitive to use cases that depend upon the currently
 lossy without interop APIs, and decided to prioritise the current default as a
 good balance between notifying users yet not breaking existing test suites.
+
+### Alternative methods to control interop mode
+
+- **Build setting:** e.g. a new `SwiftSetting` that can be included in
+  Package.swift or an Xcode project. A project could then configure their test
+  targets to have a non-default interop mode.
+
+  However, interop is a runtime concept, and would be difficult or at least
+  non-idiomatic to modify with a build setting.
+
+- **CLI option through SwiftPM:**
+
+  ```
+  swift test --interop-mode=warning-only
+  ```
+
+  This could be offered in addition to the proposed environment variable option,
+  although it would be unclear which one should take precedence.
 
 ## Acknowledgments
 
