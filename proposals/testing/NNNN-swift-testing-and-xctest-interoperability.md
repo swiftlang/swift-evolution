@@ -63,16 +63,14 @@ library.
 
 ## Proposed solution
 
-At a high level, we propose the following **changes for APIs which are lossy
-without interop**:
+- **XCTest APIs which are lossy without interop will work as expected when
+  called in Swift Testing.** In addition, runtime diagnostics will be included
+  to highlight opportunities to adopt newer Swift Testing equivalent APIs.
 
-- **XCTest API called in Swift Testing will work as expected.** In addition,
-  runtime diagnostics will be included to highlight opportunities to adopt newer
-  Swift Testing equivalent APIs.
-
-- Conversely, **Swift Testing API called in XCTest will also work as expected.**
-  You should always feel empowered to choose Swift Testing when writing new
-  tests or test helpers, as it will work properly in both types of tests.
+- Conversely, **Swift Testing API called in XCTest will work as expected if
+  XCTest already provides similar functionality.** You should always feel
+  empowered to choose Swift Testing when writing new tests or test helpers, as
+  it will work properly in both types of tests.
 
 We don't propose supporting interoperability for APIs without risk of data loss,
 because they naturally have high visibility. For example, using `throw XCTSkip`
@@ -81,7 +79,7 @@ providing a clear indication that migration is needed.
 
 ## Detailed design
 
-### Highlight usage of XCTest APIs in Swift Testing tests
+### Highlight and support XCTest APIs which are lossy without interop
 
 We propose supporting the following XCTest APIs in Swift Testing:
 
@@ -115,7 +113,7 @@ Here are some concrete examples:
 | `XCTAssert` success is a ...         | No-op           | ⚠️ Runtime Warning Issue                     | 💥 `fatalError`   |
 | `throw XCTSkip` is a ...             | ❌ Test Failure | ❌ Test Failure                              | ❌ Test Failure   |
 
-### Limited support for Swift Testing APIs in XCTest
+### Targeted support for Swift Testing APIs with XCTest API equivalents
 
 We propose supporting the following Swift Testing APIs in XCTest:
 
@@ -176,9 +174,9 @@ Configure the interoperability mode when running tests using the
 
 ### Phased Rollout
 
-When interoperability is first available, "permissive" will be the default interop mode
-enabled for new projects. In a future release, "strict" will become the default
-interop mode.
+When interoperability is first available, "permissive" will be the default
+interop mode enabled for new projects. In a future release, "strict" will become
+the default interop mode.
 
 ## Source compatibility
 
@@ -187,9 +185,9 @@ lead to situations where previously "passing" test code now starts showing
 failures. We believe this should be a net positive if it can highlight actual
 bugs you would have missed previously.
 
-You can use `SWIFT_TESTING_XCTEST_INTEROP_MODE=off` in the short-term to revert back to
-the current behaviour. Refer to the "Interoperability Modes" section for a full list
-of options.
+You can use `SWIFT_TESTING_XCTEST_INTEROP_MODE=off` in the short-term to revert
+back to the current behaviour. Refer to the "Interoperability Modes" section for
+a full list of options.
 
 ## Integration with supporting tools
 
