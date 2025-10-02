@@ -7,7 +7,7 @@
 
 *During the review process, add the following fields as needed:*
 
-* Implementation: [apple/swift-package-manager#NNNNN](https://github.com/apple/swift-package-manager/pull/NNNNN)
+* Implementation: [swiftlang/swift-package-manager#NNNNN](https://github.com/swiftlang/swift-package-manager/pull/NNNNN)
 * Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
 * Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
 * Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
