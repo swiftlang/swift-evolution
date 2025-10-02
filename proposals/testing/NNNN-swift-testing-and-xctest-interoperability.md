@@ -109,7 +109,7 @@ supported")`.
 
 Here are some concrete examples:
 
-| When running a Swift Testing test... | Current         | Proposed (default)                           | Proposed (strict) |
+| When running a Swift Testing test... | Current         | Proposed                                     | Proposed (strict) |
 | ------------------------------------ | --------------- | -------------------------------------------- | ----------------- |
 | `XCTAssert` failure is a ...         | ‼️ No-op        | ❌ Test Failure and ⚠️ Runtime Warning Issue | 💥 `fatalError`   |
 | `XCTAssert` success is a ...         | No-op           | ⚠️ Runtime Warning Issue                     | 💥 `fatalError`   |
@@ -145,7 +145,7 @@ XCTest API _already_ provides similar functionality.
 
 Here are some concrete examples:
 
-| When running a XCTest test...                | Current         | Proposed (default)       | Proposed (strict) |
+| When running a XCTest test...                | Current         | Proposed                 | Proposed (strict) |
 | -------------------------------------------- | --------------- | ------------------------ | ----------------- |
 | `#expect` failure is a ...                   | ‼️ No-op        | ❌ Test Failure          | ❌ Test Failure   |
 | `#expect` success is a ...                   | No-op           | No-op                    | No-op             |
@@ -153,13 +153,14 @@ Here are some concrete examples:
 
 ### Interoperability Modes
 
-The default interoperability mode surfaces test failures that were previously
-ignored. We also include two alternative interoperability modes:
-
 - **Warning-only**: This is for projects which do not want to see new test
   failures surfaced due to interoperability.
 
-- **Strict**: Warning issues included in the default mode can be easily
+- **Permissive**: This is the default interoperability mode, which surfaces test
+  failures that were previously ignored. It also includes runtime warning issues
+  for XCTest API usage in a Swift Testing context.
+
+- **Strict**: Warning issues included in the permissive mode can be easily
   overlooked, especially in CI. The strict mode guarantees that no XCTest API
   usage occurs when running Swift Testing tests by turning those warnings into a
   `fatalError`.
@@ -167,19 +168,15 @@ ignored. We also include two alternative interoperability modes:
 Configure the interoperability mode when running tests using the
 `SWIFT_TESTING_XCTEST_INTEROP_MODE` environment variable:
 
-| Interop Mode | Issue behaviour across framework boundary                         | `SWIFT_TESTING_XCTEST_INTEROP_MODE`         |
-| ------------ | ----------------------------------------------------------------- | ------------------------------------------- |
-| Warning-only | ⚠️ Runtime Warning Issue for XCTest API usage                     | `warning`                                   |
-| Default      | ❌ Test Failure and ⚠️ Runtime Warning Issue for XCTest API usage | `default`, or empty value, or invalid value |
-| Strict       | 💥 `fatalError` for XCTest API usage                              | `strict`                                    |
-
-<!-- TODO: alternative name besides strict. It should reflect that, it does
-still have interop for SWT API in XCTest, but a hard failure going the other way
-around-->
+| Interop Mode | Issue behaviour across framework boundary                         | `SWIFT_TESTING_XCTEST_INTEROP_MODE`            |
+| ------------ | ----------------------------------------------------------------- | ---------------------------------------------- |
+| Warning-only | XCTest API: ⚠️ Runtime Warning Issue                              | `warning-only`                                 |
+| Permissive   | XCTest API: ⚠️ Runtime Warning Issue. All Issues: ❌ Test Failure | `permissive`, or empty value, or invalid value |
+| Strict       | XCTest API: 💥 `fatalError`. Swift Testing API: ❌ Test Failure   | `strict`                                       |
 
 ### Phased Rollout
 
-When interoperability is first available, "default" will be the interop mode
+When interoperability is first available, "permissive" will be the default interop mode
 enabled for new projects. In a future release, "strict" will become the default
 interop mode.
 
@@ -197,7 +194,7 @@ of options.
 ## Integration with supporting tools
 
 Interoperability will be first available in future toolchain version,
-hypothetically named `6.X`, where default interop mode will be enabled for
+hypothetically named `6.X`, where permissive interop mode will be enabled for
 projects. After that, a `7.Y` release would make strict interop mode the
 default.
 
@@ -276,7 +273,7 @@ good balance between notifying users yet not breaking existing test suites.
 - **CLI option through SwiftPM:**
 
   ```
-  swift test --interop-mode=warning-only
+  swift test --interop-mode=warning
   ```
 
   This could be offered in addition to the proposed environment variable option,
