@@ -5,7 +5,7 @@
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Active review (October 2–16, 2025)**
 * Implementation: [swiftlang/swift#84178](https://github.com/swiftlang/swift/pull/84178)
-* Review: ((pitch)[https://forums.swift.org/t/pitch-inline-always-attribute/82040])
+* Review: ([pitch](https://forums.swift.org/t/pitch-inline-always-attribute/82040)) ([review](https://forums.swift.org/t/se-0496-inline-always-attribute/82480))
 
 ## Introduction
 
