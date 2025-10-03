@@ -159,7 +159,7 @@ Here are some concrete examples:
 
 ### Interoperability Modes
 
-- **Warning-only**: Test failures that were previously ignored are reported as
+- **Advisory**: Test failures that were previously ignored are reported as
   runtime warning issues. It also includes runtime warning issues for XCTest API
   usage in a Swift Testing context. This is for projects which do not want to
   see new test failures surfaced due to interoperability.
@@ -178,7 +178,7 @@ Configure the interoperability mode when running tests using the
 
 | Interop Mode | Issue behaviour across framework boundary                                  | `SWIFT_TESTING_XCTEST_INTEROP_MODE`            |
 | ------------ | -------------------------------------------------------------------------- | ---------------------------------------------- |
-| Warning-only | XCTest API: ⚠️ Runtime Warning Issue. All Issues: ⚠️ Runtime Warning Issue | `warning-only`                                 |
+| Advisory     | XCTest API: ⚠️ Runtime Warning Issue. All Issues: ⚠️ Runtime Warning Issue | `warning-only`                                 |
 | Permissive   | XCTest API: ⚠️ Runtime Warning Issue. All Issues: ❌ Test Failure          | `permissive`, or empty value, or invalid value |
 | Strict       | XCTest API: 💥 `fatalError`. Swift Testing API: ❌ Test Failure            | `strict`                                       |
 
@@ -195,7 +195,7 @@ lead to situations where previously "passing" test code now starts showing
 failures. We believe this should be a net positive if it can highlight actual
 bugs you would have missed previously.
 
-You can use `SWIFT_TESTING_XCTEST_INTEROP_MODE=warning-only` in the short-term
+You can use `SWIFT_TESTING_XCTEST_INTEROP_MODE=advisory` in the short-term
 to revert any changes to test pass/fail outcomes as a result of
 interoperability.
 
@@ -249,7 +249,7 @@ should make it clear that this is not intended to be a permanent measure.
 In a similar vein, we considered `SWIFT_TESTING_XCTEST_INTEROP_MODE=off` as a
 way to completely turn off interoperability. Some projects may additionally have
 an issue handling trait that promotes warnings to errors, which means that
-warning-only mode could still cause test failures.
+advisory mode could still cause test failures.
 
 However, in the scenario above, we think users who set up tests to elevate
 warnings as errors would be interested in increased visibility of testing issues
@@ -282,7 +282,7 @@ disruptive to the testing flow.
 - **CLI option through SwiftPM:**
 
   ```
-  swift test --interop-mode=warning-only
+  swift test --interop-mode=advisory
   ```
 
   This could be offered in addition to the proposed environment variable option,
