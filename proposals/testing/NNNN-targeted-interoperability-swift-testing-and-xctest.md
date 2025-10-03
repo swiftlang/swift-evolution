@@ -26,9 +26,7 @@ test, it won't report the assertion failure:
 
 ```swift
 func assertUnique(_ elements: [Int]) {
-  if Set(elements).count != elements.count {
-    XCTFail("\(elements) has non unique elements")
-  }
+  XCTAssertEqual(Set(elements).count, elements.count, "\(elements) has non unique elements")
 }
 
 // XCTest
