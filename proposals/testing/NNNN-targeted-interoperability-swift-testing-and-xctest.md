@@ -81,12 +81,12 @@ test skip, providing a clear indication that migration is needed.
 
 > [!NOTE]
 > This proposal refers to XCTest in the abstract. There are two different
-> implementations of XCTest: the open source [Corelibs XCTest][] and a
+> implementations of XCTest: the open source [swift-corelibs-xctest][] and a
 > [proprietary XCTest][Xcode XCTest] that is shipped as part of Xcode. The Swift
 > evolution process governs changes to the former only. Therefore,
 > this proposal is targeted for Corelibs XCTest.
 
-[Corelibs XCTest]: https://github.com/swiftlang/swift-corelibs-xctest
+[swift-corelibs-xctest]: https://github.com/swiftlang/swift-corelibs-xctest
 [Xcode XCTest]: https://developer.apple.com/documentation/xctest
 
 ### Highlight and support XCTest APIs which are lossy without interop
@@ -97,7 +97,6 @@ We propose supporting the following XCTest APIs in Swift Testing:
   `XCTFail`
 - [Expected failures][], such as `XCTExpectFailure`: marking a Swift Testing
   issue in this way will generate a runtime warning issue.
-- [`XCTAttachment`][XCTest attachments]
 - [Issue handling traits][]: we will make our best effort to translate issues
   from XCTest to Swift Testing. For issue details unique to XCTest, we will
   include them as a comment when constructing the Swift Testing issue.
@@ -131,7 +130,6 @@ We propose supporting the following Swift Testing APIs in XCTest:
   - Includes [exit testing][]
 - `withKnownIssue`: marking an XCTest issue in this way will generate a runtime
   warning issue. In strict interop mode, this becomes a `fatalError`.
-- Attachments
 - [Test cancellation][] (currently pitched)
 
 We think developers will find utility in using Swift Testing APIs in XCTest. For
@@ -297,7 +295,6 @@ the proposal.
 
 <!-- XCTest -->
 [XCTest assertions]: https://developer.apple.com/documentation/xctest/equality-and-inequality-assertions
-[XCTest attachments]: https://developer.apple.com/documentation/xctest/adding-attachments-to-tests-activities-and-issues
 [unconditional failure]: https://developer.apple.com/documentation/xctest/unconditional-test-failures
 [expected failures]: https://developer.apple.com/documentation/xctest/expected-failures
 <!-- Swift Testing -->
