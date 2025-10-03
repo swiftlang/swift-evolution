@@ -14,13 +14,13 @@ intermediate state where test helpers written using XCTest API are called from
 Swift Testing. Today, the Swift Testing and XCTest libraries stand mostly
 independently, which means an `XCTAssert` failure in a Swift Testing test is
 silently ignored. To address this, we formally declare a set of interoperability
-principles and propose updates to specific APIs that will enable users to
-migrate with confidence.
+principles and propose changes to the handling of specific APIs that will enable
+users to migrate with confidence.
 
 ## Motivation
 
-Unfortunately, mixing an API call from one framework with a test from the other
-framework may not work as expected. As a more concrete example, if you take an
+Calling XCTest or Swift Testing API within a test from the opposite framework
+may not always work as expected. As a more concrete example, if you take an
 existing test helper function written for XCTest and call it in a Swift Testing
 test, it won't report the assertion failure:
 
@@ -49,17 +49,16 @@ class FooTests: XCTestCase {
 Generally, we get into trouble today when ALL the following conditions are met:
 
 - You call XCTest API in a Swift Testing test, or call Swift Testing API in a
-  XCTest test
+  XCTest test,
 - The API doesn't function as expected in some or all cases, and
 - You get no notice at build time or runtime about the malfunction
 
-For the remainder of this proposal, we’ll describe tests which exhibit this
+For the remainder of this proposal, we’ll describe test APIs which exhibit this
 problem as **lossy without interop**.
 
-If you've switched completely to Swift Testing and don't expect to use XCTest in
-the future, this proposal includes a mechanism to **prevent you from
-inadvertently introducing XCTest APIs to your project**, including via a testing
-library.
+This problem risks regressing test coverage for projects which migrate to Swift
+Testing. Furthermore, projects that have switched completely to Swift Testing
+may want to go and ensure they don't inadvertently add XCTest API.
 
 ## Proposed solution
 
@@ -72,10 +71,10 @@ library.
   empowered to choose Swift Testing when writing new tests or test helpers, as
   it will work properly in both types of tests.
 
-We don't propose supporting interoperability for APIs without risk of data loss,
-because they naturally have high visibility. For example, using `throw XCTSkip`
-in a Swift Testing test results in a test failure rather than a test skip,
-providing a clear indication that migration is needed.
+We don't propose supporting interoperability for APIs which are not lossy
+without interop, because they naturally have high visibility. For example, using
+`throw XCTSkip` in a Swift Testing test results in a test failure rather than a
+test skip, providing a clear indication that migration is needed.
 
 ## Detailed design
 
@@ -83,27 +82,26 @@ providing a clear indication that migration is needed.
 
 We propose supporting the following XCTest APIs in Swift Testing:
 
-- Assertions: `XCTAssert*` and [unconditional failure][] `XCTFail`
+- [Assertions][XCTest Assertions]: `XCTAssert*` and [unconditional failure][]
+  `XCTFail`
 - [Expected failures][], such as `XCTExpectFailure`: marking a Swift Testing
   issue in this way will generate a runtime warning issue.
-- `XCTAttachment`
+- [`XCTAttachment`][XCTest attachments]
 - [Issue handling traits][]: we will make our best effort to translate issues
-  from XCTest to Swift Testing. Note that there are certain issue kinds that are
-  new to Swift Testing and not expressible from XCTest.
+  from XCTest to Swift Testing. For issue details unique to XCTest, we will
+  include them as a comment when constructing the Swift Testing issue.
 
 Note that no changes are proposed for the `XCTSkip` API, because they already
-feature prominently as a test failure to be corrected when thrown in Swift
-Testing.
+feature prominently as a test failure when thrown in Swift Testing.
 
 We also propose highlighting usage of above XCTest APIs in Swift Testing:
 
 - **Report [runtime warning issues][]** for XCTest API usage in Swift Testing.
-  This **applies to assertion successes AND failures**! We want to make sure you
-  can identify opportunities to modernise even if your tests currently pass.
+  This **applies to both assertion failures _and successes_**! This notifies you
+  about opportunities to modernise even if your tests currently pass.
 
 - Opt-in **strict interop mode**, where XCTest API usage will result in
-  `fatalError("Usage of XCTest API in a Swift Testing context is not
-supported")`.
+  `fatalError("Usage of XCTest API in a Swift Testing context is unsupported")`.
 
 Here are some concrete examples:
 
@@ -122,7 +120,7 @@ We propose supporting the following Swift Testing APIs in XCTest:
 - `withKnownIssue`: marking an XCTest issue in this way will generate a runtime
   warning issue. In strict interop mode, this becomes a `fatalError`.
 - Attachments
-- [Test cancellation][] (links to pitch)
+- [Test cancellation][] (currently pitched)
 
 We think developers will find utility in using Swift Testing APIs in XCTest. For
 example, you can replace `XCTAssert` with `#expect` in your XCTest tests and
@@ -133,13 +131,13 @@ Testing at your own pace.
 Present and future Swift Testing APIs will be supported in XCTest if the
 XCTest API _already_ provides similar functionality.
 
-- For example, we support the proposed Swift Testing [test cancellation][]
-  feature in XCTest since it is analogous to `XCTSkip`.
+For example, the recently-pitched [test cancellation][] feature in Swift Testing
+is analogous to `XCTSkip`. If that pitch were accepted, this proposal would
+support interop of the new API with XCTest.
 
-- On the other hand, [Traits][] are a powerful Swift Testing feature, and
-  include the ability to [add tags][tags] to organise tests. Even though XCTest
-  does not interact with tags, **this is beyond the scope of interoperability**
-  because XCTest doesn't have existing “tag-like” behaviour to map onto.
+On the other hand, [traits][] are a powerful Swift Testing feature which is not
+related to any functionality in XCTest. Therefore, there would be
+interoperability for traits under this proposal.
 
 Here are some concrete examples:
 
@@ -151,8 +149,10 @@ Here are some concrete examples:
 
 ### Interoperability Modes
 
-- **Warning-only**: This is for projects which do not want to see new test
-  failures surfaced due to interoperability.
+- **Warning-only**: Test failures that were previously ignored are reported as
+  runtime warning issues. It also includes runtime warning issues for XCTest API
+  usage in a Swift Testing context. This is for projects which do not want to
+  see new test failures surfaced due to interoperability.
 
 - **Permissive**: This is the default interoperability mode, which surfaces test
   failures that were previously ignored. It also includes runtime warning issues
@@ -166,11 +166,11 @@ Here are some concrete examples:
 Configure the interoperability mode when running tests using the
 `SWIFT_TESTING_XCTEST_INTEROP_MODE` environment variable:
 
-| Interop Mode | Issue behaviour across framework boundary                         | `SWIFT_TESTING_XCTEST_INTEROP_MODE`            |
-| ------------ | ----------------------------------------------------------------- | ---------------------------------------------- |
-| Warning-only | XCTest API: ⚠️ Runtime Warning Issue                              | `warning-only`                                 |
-| Permissive   | XCTest API: ⚠️ Runtime Warning Issue. All Issues: ❌ Test Failure | `permissive`, or empty value, or invalid value |
-| Strict       | XCTest API: 💥 `fatalError`. Swift Testing API: ❌ Test Failure   | `strict`                                       |
+| Interop Mode | Issue behaviour across framework boundary                                  | `SWIFT_TESTING_XCTEST_INTEROP_MODE`            |
+| ------------ | -------------------------------------------------------------------------- | ---------------------------------------------- |
+| Warning-only | XCTest API: ⚠️ Runtime Warning Issue. All Issues: ⚠️ Runtime Warning Issue | `warning-only`                                 |
+| Permissive   | XCTest API: ⚠️ Runtime Warning Issue. All Issues: ❌ Test Failure          | `permissive`, or empty value, or invalid value |
+| Strict       | XCTest API: 💥 `fatalError`. Swift Testing API: ❌ Test Failure            | `strict`                                       |
 
 ### Phased Rollout
 
@@ -185,9 +185,9 @@ lead to situations where previously "passing" test code now starts showing
 failures. We believe this should be a net positive if it can highlight actual
 bugs you would have missed previously.
 
-You can use `SWIFT_TESTING_XCTEST_INTEROP_MODE=off` in the short-term to revert
-back to the current behaviour. Refer to the "Interoperability Modes" section for
-a full list of options.
+You can use `SWIFT_TESTING_XCTEST_INTEROP_MODE=warning-only` in the short-term
+to revert any changes to test pass/fail outcomes as a result of
+interoperability.
 
 ## Integration with supporting tools
 
@@ -218,8 +218,7 @@ Testing:
   API within helper methods.
 
 - After new API is added to Swift Testing in future, will need to evaluate for
-  interoperability with XCTest. Once strict mode is the default, we will no
-  longer include interoperability for new Swift Testing features.
+  interoperability with XCTest.
 
 ## Alternatives considered
 
@@ -241,7 +240,7 @@ should make it clear that this is not intended to be a permanent measure.
 
 In a similar vein, we considered `SWIFT_TESTING_XCTEST_INTEROP_MODE=off` as a
 way to completely turn off interoperability. Some projects may additionally have
-issue handling trait that promote warnings to errors, which means that
+an issue handling trait that promotes warnings to errors, which means that
 warning-only mode could still cause test failures.
 
 However, in the scenario above, we think users who set up tests to elevate
@@ -256,8 +255,12 @@ the best choice. Making this the default would also send the clearest signal
 that we want users to migrate to Swift Testing.
 
 However, we are especially sensitive to use cases that depend upon the currently
-lossy without interop APIs, and decided to prioritise the current default as a
-good balance between notifying users yet not breaking existing test suites.
+lossy without interop APIs. With strict interop mode, the test process will
+crash on the first instance of XCTest API usage in Swift Testing, completely
+halting testing. In this same scenario, the default permissive interop mode
+would record a runtime warning issue and continue the remaining test, which we
+believe strikes a better balance between notifying users yet not being totally
+disruptive to the testing flow.
 
 ### Alternative methods to control interop mode
 
@@ -271,7 +274,7 @@ good balance between notifying users yet not breaking existing test suites.
 - **CLI option through SwiftPM:**
 
   ```
-  swift test --interop-mode=warning
+  swift test --interop-mode=warning-only
   ```
 
   This could be offered in addition to the proposed environment variable option,
@@ -282,11 +285,12 @@ good balance between notifying users yet not breaking existing test suites.
 Thanks to Stuart Montgomery, Jonathan Grynspan, and Brian Croom for feedback on
 the proposal.
 
+[XCTest assertions]: https://developer.apple.com/documentation/xctest/equality-and-inequality-assertions
+[XCTest attachments]: https://developer.apple.com/documentation/xctest/adding-attachments-to-tests-activities-and-issues
 [unconditional failure]: https://developer.apple.com/documentation/xctest/unconditional-test-failures
 [runtime warning issues]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0013-issue-severity-warning.md
 [expected failures]: https://developer.apple.com/documentation/xctest/expected-failures
 [issue handling traits]: https://developer.apple.com/documentation/testing/issuehandlingtrait
 [test cancellation]: https://forums.swift.org/t/pitch-test-cancellation/81847
 [traits]: https://swiftpackageindex.com/swiftlang/swift-testing/main/documentation/testing/traits
-[tags]: https://swiftpackageindex.com/swiftlang/swift-testing/main/documentation/testing/addingtags
 [exit testing]: https://developer.apple.com/documentation/testing/exit-testing
