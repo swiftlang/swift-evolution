@@ -78,6 +78,16 @@ test skip, providing a clear indication that migration is needed.
 
 ## Detailed design
 
+> [!NOTE]
+> This proposal refers to XCTest in the abstract. There are two different
+> implementations of XCTest: the open source [Corelibs XCTest][] and a
+> [proprietary XCTest][Xcode XCTest] that is shipped as part of Xcode. The Swift
+> evolution process governs changes to the former only. Therefore,
+> this proposal is targeted for Corelibs XCTest.
+
+[Corelibs XCTest]: https://github.com/swiftlang/swift-corelibs-xctest
+[Xcode XCTest]: https://developer.apple.com/documentation/xctest
+
 ### Highlight and support XCTest APIs which are lossy without interop
 
 We propose supporting the following XCTest APIs in Swift Testing:
@@ -196,12 +206,10 @@ hypothetically named `6.X`, where permissive interop mode will be enabled for
 projects. After that, a `7.Y` release would make strict interop mode the
 default.
 
-- Swift Package Manager projects: `swift-tools-version` declared in
-  Package.swift will be used to determine interop mode, regardless of the
-  toolchain used to run tests.
+- Swift packages: `swift-tools-version` declared in Package.swift will be used
+  to determine interop mode, regardless of the toolchain used to run tests.
 
-- Xcode projects: Installed toolchain version will be used to determine interop
-  mode.
+- Otherwise, installed toolchain version will be used to determine interop mode.
 
 - Any project can use `SWIFT_TESTING_XCTEST_INTEROP_MODE` to override interop
   mode at runtime, provided they are on toolchain version `6.X` or newer
