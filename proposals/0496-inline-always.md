@@ -378,7 +378,7 @@ redundancy of spelling it out.
 For access levels equal and lower than `internal` `@inlinable` is not implied.
 
 As a consequence all the rules that apply to `@inlinable` also apply to
-`public`/`open`/`package` declarations marked with `@inline(always).
+`public`/`open`/`package` declarations marked with `@inline(always)`.
 
 ```swift
 internal func g() { ... }
