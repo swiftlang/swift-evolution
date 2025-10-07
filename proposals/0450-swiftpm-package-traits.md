@@ -75,7 +75,7 @@ let package = Package(
             enabledTraits: [ // Other traits that are enabled when this trait is being enabled
                 "Foo",
             ]
-        )
+        ),
         .trait(
             name: "FooBar",
             enabledTraits: [
@@ -92,7 +92,7 @@ let package = Package(
 When depending on a package the `default` trait is enabled. However, the enabled
 traits can be customized by passing a set of enabled traits when declaring the
 dependency. When specifying the enabled traits of the dependencies the
-`.default` trait can be passed which will enable the default trait. The below
+`.defaults` trait can be passed which will enable the default trait. The below
 example enables the default trait and the additional `SomeTrait` of the package.
 
 ```swift
@@ -101,7 +101,7 @@ dependencies: [
         url: "https://github.com/Org/SomePackage.git",
         from: "1.0.0",
         traits: [
-            .default,
+            .defaults,
             "SomeTrait"
         ]
     ),
@@ -130,7 +130,7 @@ dependencies: [
         url: "https://github.com/Org/SomePackage.git",
         from: "1.0.0",
         traits:[
-            .trait("SomeOtherTrait", condition: .when(traits: ["Foo"])),
+            .trait(name: "SomeOtherTrait", condition: .when(traits: ["Foo"])),
         ]
     ),
 ]
