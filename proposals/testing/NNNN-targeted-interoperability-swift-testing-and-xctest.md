@@ -104,6 +104,16 @@ We propose supporting the following XCTest APIs in Swift Testing:
 Note that no changes are proposed for the `XCTSkip` API, because they already
 feature prominently as a test failure when thrown in Swift Testing.
 
+We also don't propose changes for [`XCTestExpectation`][XCTestExpectation] and
+[`XCTWaiter`][XCTWaiter]. They cannot be used safely in a Swift concurrency
+context when running Swift Testing tests. Instead, we recommend that users
+migrate to Swift concurrency where possible. For code that does not easily map
+to `async`/`await` semantics, use [continuations][] and [confirmations][]
+instead.
+
+Refer to [Migrating a test from XCTest][XCTest migration validate async] for a
+detailed discussion.
+
 We also propose highlighting usage of above XCTest APIs in Swift Testing:
 
 - **Report [runtime warning issues][]** for XCTest API usage in Swift Testing.
@@ -294,15 +304,25 @@ Thanks to Stuart Montgomery, Jonathan Grynspan, and Brian Croom for feedback on
 the proposal.
 
 <!-- XCTest -->
+
 [XCTest assertions]: https://developer.apple.com/documentation/xctest/equality-and-inequality-assertions
 [unconditional failure]: https://developer.apple.com/documentation/xctest/unconditional-test-failures
 [expected failures]: https://developer.apple.com/documentation/xctest/expected-failures
+[XCTWaiter]: https://developer.apple.com/documentation/xctest/xctwaiter
+[XCTestExpectation]: https://developer.apple.com/documentation/xctest/xctestexpectation
+
 <!-- Swift Testing -->
+
 [Swift Testing expectations]: https://developer.apple.com/documentation/testing/expectations
 [Testing for errors]: https://developer.apple.com/documentation/testing/testing-for-errors-in-swift-code
 [exit testing]: https://developer.apple.com/documentation/testing/exit-testing
 [issue handling traits]: https://developer.apple.com/documentation/testing/issuehandlingtrait
 [traits]: https://developer.apple.com/documentation/testing/traits
+[confirmations]: https://developer.apple.com/documentation/testing/confirmation
+[XCTest migration validate async]: https://developer.apple.com/documentation/testing/migratingfromxctest#Validate-asynchronous-behaviors
+
 <!-- Misc -->
+
 [runtime warning issues]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0013-issue-severity-warning.md
+[continuations]: https://developer.apple.com/documentation/swift/checkedcontinuation
 [test cancellation]: https://forums.swift.org/t/pitch-test-cancellation/81847
