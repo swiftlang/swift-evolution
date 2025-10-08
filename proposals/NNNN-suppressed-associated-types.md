@@ -1,7 +1,7 @@
 # Suppressed Default Conformances on Associated Types
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
-* Authors: [Kavon Farvardin](https://github.com/kavon), [Slava Pestov](https://github.com/slavapestov)
+* Authors: [Kavon Farvardin](https://github.com/kavon)
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: on `main` and available since at least Swift 6.1.2, using `-enable-experimental-feature SuppressedAssociatedTypes`
@@ -366,3 +366,11 @@ extension Container without Copying, Escaping {}
 // In v2, code can now do the following for maximum permissivity:
 extension Container without Copying, Escaping, Runcing {}
 ```
+
+## Acknowledgements
+
+I'd like to thank the following people for their discussion, insights and/or 
+contributions throughout the development of this proposal: 
+
+- [Slava Pestov](https://github.com/slavapestov)
+- [Joe Groff](https://github.com/jckarter)
