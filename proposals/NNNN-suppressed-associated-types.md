@@ -123,7 +123,7 @@ extension Queue where Self: ~Copyable {
 
 However, with the current proposal, this defaulting behavior does
 not extend to associated types
-with supressed conformances. In particular, no implicit
+with suppressed conformances. In particular, no implicit
 `Self.Element: Copyable` requirement is introduced above, by
 either extension. Instead, a protocol extension
 for queue types where **both** the queue itself and the element
@@ -194,6 +194,7 @@ struct QueueHolder<Q: Queue>: ~Copyable {}
 extension QueueHolder: Copyable where Q.Element: Copyable {}  // error
 ```
 This restriction is for runtime implementation reasons.
+<!-- TODO: Perhaps this needs elaboration -->
 
 ## Source Compatibility
 
@@ -268,9 +269,12 @@ Some possibilities for how this might look include:
 
 #### Defaulting only for primary associated types
 
-Primary associated types have a strong correlation to what one might consider the core interface of a protocol. They also can’t be added to or removed once declared without breaking source compatibility. So we could only default primary associated types:
+Primary associated types have a strong correlation to what one might consider 
+the core interface of a protocol. They also can’t be added to or removed once 
+declared without breaking source compatibility. 
+So we could only default primary associated types:
 
-```
+```swift
 protocol Container<Element> {
   associatedtype Element: ~Copyable & ~Escapable
   associatedtype Iterator: ~Copyable & ~Escapable
@@ -282,7 +286,23 @@ func foo<T: Container>() {...}
 ```
 
 In order to avoid creating an infinite set of defaults, this would not be
-recursive, but only apply to
+recursive. One idea is to only apply it to the first level of associated types:
+
+```swift
+protocol Sliceable<Items>: ~Copyable {
+  associatedtype Items: Sliceable & ~Copyable
+  consuming func split() -> (Self.Items, Self.Items)
+}
+
+func flatten<S: Sliceable>(_ root: S) {
+  // defaults to S: Copyable, S.Items: Copyable
+  //   but leaves all other recursive associated types unconstrained, such as
+  //   S.Item.Item and all those matching the regular expression S.Item[.Item]+
+
+  let one: S.Items = root.split().0  // 'one' is Copyable
+  let two: S.Items.Items = one.split().0 // 'two' is noncopyable
+}
+```
 
 One drawback of this approach is that it would make adding a `~Copyable` and/or
 `~Escapable` associated type as a primary associated type to a protocol that
