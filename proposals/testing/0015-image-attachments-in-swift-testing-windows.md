@@ -3,9 +3,9 @@
 * Proposal: [ST-0015](0015-image-attachments-in-swift-testing-windows.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Stuart Montgomery](https://github.com/stmontgomery)
-* Status: **Active Review (September 19…29, 2025)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift-testing#1245](https://github.com/swiftlang/swift-testing/pull/1245), [swiftlang/swift-testing#1254](https://github.com/swiftlang/swift-testing/pull/1254), _et al_.
-* Review: ([pitch](https://forums.swift.org/t/pitch-image-attachments-in-swift-testing-windows/81871)) ([review](https://forums.swift.org/t/st-0015-image-attachments-in-swift-testing-windows/82241))
+* Review: ([pitch](https://forums.swift.org/t/pitch-image-attachments-in-swift-testing-windows/81871)) ([review](https://forums.swift.org/t/st-0015-image-attachments-in-swift-testing-windows/82241)) ([acceptance](https://forums.swift.org/t/accepted-st-0015-image-attachments-in-swift-testing-windows/82575))
 
 ## Introduction
 
