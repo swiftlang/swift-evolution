@@ -101,13 +101,6 @@ var global = ...
 
 For the ELF file format specifically, the compiler will also emit a “section index” into produced object files, containing an entry about each custom section used in the compilation. This is a solution to an ELF specific problem where the behavior of ELF linkers and loaders means that sections are not easily discoverable at runtime.
 
-When placing variables into a custom section, it's also allowed to use the `lazy` keyword to opt out of the mandatory static initialization and mandatory constant expression behavior, while still achieving section placement of the backing store of the data:
-
-```swift
-@section("__DATA,colocated") lazy let data1: Int = 42 // ✅
-@section("__DATA,colocated") lazy let data2: Int = Int.random(in: 0 ..< 10) // ✅
-```
-
 > Note: The intention is that the `@section` and `@used` attributes are to be used rarely and only by specific use cases; high-level application code should not need to use them directly and instead should rely on libraries, macros and other abstractions over the low-level attributes.
 
 > The scope of this proposal is limited to compile-time behavior and compile-time control. We expect that full user-facing solutions for features like linker sets, test discovery or plugins will also require runtime implementations to discover and iterate the contents of custom sections, possibly from multiple modules. This proposal makes sure to provide the right building blocks and artifacts in binaries for the runtime components, but doesn’t prescribe the shape of those. However, it is providing a significant step towards generalized and safe high-level mechanisms for those use cases. See the discussion in [Runtime discovery of data in custom sections](#runtime-discovery-of-data-in-custom-sections) and [Linker sets, plugins as high-level APIs](#linker-sets-plugins-as-high-level-apis) in Future Directions.
@@ -277,17 +270,6 @@ func foo() { ... }
 let a = (42, foo) // "foo" is statically initialized into a
                   // linkable/relocatable pointer
 ```
-
-### Lazy variables with section placement
-
-On global and static variables that are annotated with `@section`, the compiler will now allow the `lazy` keyword (which is currently disallowed on all global and static variables). Using it will opt such variable out of the "mandatory static initialization" behavior and instead use the at-runtime lazy initialization that traditional global and static variables have. The initializer expression does not need to be a constant expression in this case. This is useful for the uncommon use case of placing variables into a custom section purely for colocation (e.g. to improve performance by increasing page/cacheline locality):
-
-```swift
-@section("__DATA,colocated") lazy let data1: Int = 42 // ✅
-@section("__DATA,colocated") lazy let data2: Int = Int.random(in: 0 ..< 10) // ✅
-```
-
-Traditional global and static variables are backed by two symbols: An init-once token and the actual storage for the variable's content. Both of these symbols are going to be placed into the custom section when using `@section` with `lazy`. This also means that any offline or in-process introspection mechanisms cannot assume a specific layout or state of such variables and their storage bytes in the sections, as the exact layout and content of the symbols of lazy variables is an implementation detail of the Swift language runtime.
 
 ### Cross-platform object file format support
 
