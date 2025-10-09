@@ -10,20 +10,13 @@
 
 ## Introduction
 
-This proposal modifies the API of `Task` to adopt typed throws and makes it
+This proposal modifies the `Task` APIs to adopt typed throws and makes it
 more difficult to ignore thrown errors accidentally.
 
 ## Motivation
 
-The purpose of unstructured tasks is to create a new asynchronous context in
-which computation may happen.
-Unlike the structured constructs (async lets and task groups),
-unstructured tasks to not have to be awaited.
-Their results and thrown errors are simple to discard by just not storing and
-not awaiting on the created task's `.value`.
-
 Tasks are typed using both the `Success` and `Failure`.
-However, until the recent introduction of [typed throws][] to the language,
+However, until the introduction of [typed throws][] to the language,
 the `Failure` type could only ever have been `Never` or `any Error`.
 
 For example, the following snippet showcases how we lose the error type
@@ -56,11 +49,11 @@ Task {
 ```
 
 Because the creating site has not captured a reference to the task,
-this code is ignoring any failure.
+this code is ignoring all failures.
 This *could* be the author's intention, but it not really possible to
 determine this by looking the code.
-The community has frequently requested this be rectified,
-such that ignoring an error requires a more explicit expression of intention.
+The community has frequently requested this be addressed,
+such that ignoring an error requires a more explicit expression of intent.
 
 [typed throws]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0413-typed-throws.md
 
@@ -74,14 +67,12 @@ these problems:
 
 ## Detailed design
 
-`Task` currently has two initializers and matching detached variants:
-`.init` and `.detached`.
-
+`Task` currently has many initializers and matching detached variants.
 We propose to adjust these initializers in two ways.
 
 ### Non-throwing overloads
 
-In these cases, the `@discardableResult` remains useful.
+In the case of a non-throwing overload, the `@discardableResult` remains useful.
 It is common to create fire-and-forget tasks that do not require access to the
 result at the point of creation.
 
@@ -89,7 +80,7 @@ result at the point of creation.
 Task { await doSomething() }
 ```
 
-These signatures would be unchanged.
+All variants of these signatures would be unchanged.
 
 ```swift
 extension Task where Failure == Never {
@@ -118,12 +109,11 @@ In the cases of a non-`Never` error, the signatures would be adjusted by:
 - removing the `@discardableResult` attribute
 - adopting typed throws
 
-We argue that the fact that accidentally forgetting to handle an error is
-more common and "risky"
+Accidentally forgetting to handle an error is both more common and "risky"
 than forgetting to obtain the result value of an unstructured task.
-If a task is created and it's result is important to handle,
+If a task is created and its result is important to handle,
 developers naturally will store and await it.
-However, ignoring errors even in the simple "fire-and-forget" task case,
+However, ignoring errors, even in the simple "fire-and-forget" task case,
 may yield to unexpected and silent dropping of errors.
 
 Therefore we argue that the discardable result behavior need only be dropped
@@ -133,17 +123,54 @@ These signatures would be modified:
 
 ```swift
 extension Task {
-  public init(
-    priority: TaskPriority? = nil,
-    operation: sending @escaping @isolated(any) () async throws(Failure) -> Success
+  init(
+      name: String? = nil,
+      priority: TaskPriority? = nil,
+      operation: sending @escaping @isolated(any) () async throws(Failure) -> Success
   ) {
     // ...
   }
 
-  @_alwaysEmitIntoClient
-  public static func detached(
-    priority: TaskPriority? = nil,
-    operation: __owned sending @escaping @isolated(any) () async throws(Failure) -> Success
+  init(
+      name: String? = nil,
+      executorPreference taskExecutor: (any TaskExecutor)?,
+      priority: TaskPriority? = nil,
+      operation: sending @escaping () async throws(Failure) -> Success
+  ) {
+    // ...
+  }
+
+  static func detached(
+      name: String? = nil,
+      priority: TaskPriority? = nil,
+      operation: sending @escaping @isolated(any) () async throws(Failure) -> Success
+  ) -> Task<Success, Failure> {
+    // ...
+  }
+
+  static func detached(
+      name: String? = nil,
+      executorPreference taskExecutor: (any TaskExecutor)?,
+      priority: TaskPriority? = nil,
+      operation: sending @escaping () async throws(Failure) -> Success
+  ) -> Task<Success, Failure> {
+    // ...
+  }
+
+  static func immediate(
+      name: String? = nil,
+      priority: TaskPriority? = nil,
+      executorPreference taskExecutor: consuming (any TaskExecutor)? = nil,
+      operation: sending @escaping @isolated(any) () async throws(Failure) -> Success
+  ) -> Task<Success, Failure> {
+    // ...
+  }
+
+  static func immediateDetached(
+      name: String? = nil,
+      priority: TaskPriority? = nil,
+      executorPreference taskExecutor: consuming (any TaskExecutor)? = nil,
+      operation: sending @escaping @isolated(any) () async throws(Failure) -> Success
   ) -> Task<Success, Failure> {
     // ...
   }
@@ -161,6 +188,14 @@ extension Task {
     }
   }
 }
+```
+
+```swift
+func withTaskCancellationHandler<T>(
+    operation: () async throws -> T,
+    onCancel handler: () -> Void,
+    isolation: isolated (any Actor)? = #isolation
+) async rethrows -> T
 ```
 
 ## Source compatibility
