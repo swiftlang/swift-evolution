@@ -88,12 +88,12 @@ let myPlugin: PluginData = (
 
 On top of specifying a custom section name with the `@section` attribute, marking a variable as `@used` is needed to prevent otherwise unused symbols from being removed by the compiler. When using section placement to e.g. implement linker sets, such values are typically going to have no usage at compile time, and at the same time they should not be exposed in public interface of libraries (not be made public), therefore we the need the `@used` attribute.
 
-Different object file formats (ELF, Mach-O, COFF) have different restrictions and rules on what are valid section names, and cross-platform code will have to use different names for different file formats. To support that, custom section names can be specified as a string literal. The string will be used directly, without any processing, as the section name for the symbol. A new `#if objectFileFormat(...)` conditional compilation directive will be provided to support conditionalizing based on the file format:
+Different object file formats (ELF, Mach-O, COFF) have different restrictions and rules on what are valid section names, and cross-platform code will have to use different names for different file formats. To support that, custom section names can be specified as a string literal. The string will be used directly, without any processing, as the section name for the symbol. A new `#if objectFormat(...)` conditional compilation directive will be provided to support conditionalizing based on the file format:
 
 ```swift
-#if objectFileFormat(ELF)
+#if objectFormat(ELF)
 @section("mysection")
-#elseif objectFileFormat(MachO)
+#elseif objectFormat(MachO)
 @section("__DATA,mysection")
 #endif
 var global = ...
@@ -311,7 +311,7 @@ let plugin = ...
 
 See [Structured section specifiers](#structured-section-specifiers) below for more rationale.
 
-In some cases, it’s not possible to differentiate on the OS to support multiple object file formats, for example when using Embedded Swift to target baremetal systems without any OS. For that, a new `#if objectFileFormat(...)` conditional compilation directive will be provided. The allowed values in this directive will match the set of supported object file formats by the Swift compiler (and expand as needed in the future). Currently, they exact values will be (case sensitive):
+In some cases, it’s not possible to differentiate on the OS to support multiple object file formats, for example when using Embedded Swift to target baremetal systems without any OS. For that, a new `#if objectFormat(...)` conditional compilation directive will be provided. The allowed values in this directive will match the set of supported object file formats by the Swift compiler (and expand as needed in the future). Currently, they exact values will be (case sensitive):
 
 * COFF
 * ELF
@@ -319,9 +319,9 @@ In some cases, it’s not possible to differentiate on the OS to support multipl
 * Wasm
 
 ```swift
-#if objectFileFormat(MachO)
+#if objectFormat(MachO)
 @section("__DATA_CONST,mysection")
-#elseif objectFileFormat(ELF)
+#elseif objectFormat(ELF)
 @section("mysection")
 #endif
 let value = ...
@@ -402,9 +402,9 @@ The notions of constant expressions and constant values is applicable to a much 
 The requirement to only use string literals as the section names could be lifted in the future, and we might allow referring to a declaration of variable with a compile-time string. This would be useful to avoid repetition when placing multiple values into the same section without needing to use macros.
 
 ```swift
-#if objectFileFormat(ELF)
+#if objectFormat(ELF)
 let mySectionName = "mysection" // required to be a compile-time value
-#elseif objectFileFormat(MachO)
+#elseif objectFormat(MachO)
 let mySectionName = "__DATA,mysection" // required to be a compile-time value
 #endif
 
