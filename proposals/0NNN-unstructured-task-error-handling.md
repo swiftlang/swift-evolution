@@ -11,7 +11,7 @@
 ## Introduction
 
 This proposal modifies the `Task` creation APIs to adopt typed throws and makes it
-more difficult to ignore thrown errors accidentally.
+more obvious to notice when a task might be throwing errors that could previously be accidentally discarded.
 
 ## Motivation
 
