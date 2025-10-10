@@ -67,7 +67,7 @@ these problems:
 
 ## Detailed design
 
-`Task` currently has many initializers and matching detached variants.
+`Task` currently has many initializers and matching detached and immediate variants.
 We propose to adjust these initializers in two ways.
 
 ### Non-throwing overloads
