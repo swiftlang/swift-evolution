@@ -10,7 +10,7 @@
 
 ## Introduction
 
-This proposal modifies the `Task` APIs to adopt typed throws and makes it
+This proposal modifies the `Task` creation APIs to adopt typed throws and makes it
 more difficult to ignore thrown errors accidentally.
 
 ## Motivation
