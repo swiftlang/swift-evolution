@@ -99,6 +99,8 @@ extension Task where Failure == Never {
   ) -> Task<Success, Never> {
     // ...
   }
+  
+  // ... same for: immediate, immediateDetached
 }
 ```
 
