@@ -4,7 +4,7 @@
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Matt Massicotte](https://github.com/mattmassicotte)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: [swiftlang/swift/pull/74110](https://github.com/swiftlang/swift/pull/74110)
+* Implementation: [#84802](https://github.com/swiftlang/swift/pull/84802)
 * Upcoming Feature Flag: `TaskInitTypedThrows`
 * Review: ([pitch](https://forums.swift.org/t/pitch-non-discardable-throwing-tasks/74138))
 
