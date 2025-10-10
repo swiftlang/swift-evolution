@@ -5,7 +5,6 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [#84802](https://github.com/swiftlang/swift/pull/84802)
-* Upcoming Feature Flag: `TaskInitTypedThrows`
 * Review: ([pitch](https://forums.swift.org/t/pitch-non-discardable-throwing-tasks/74138))
 
 ## Introduction
@@ -38,7 +37,8 @@ Additionally, all the `Task` creation APIs are annotated with
 `@discardableResult`, including those that permit failure.
 This makes it extremely easy for the code creating the task to
 unintentionally ignore errors thrown in the body.
-This default has proven to be surprising and leads to accidentally missing thrown errors, like in this example:
+This default has proven to be surprising and leads to accidentally missing thrown errors,
+like in this example:
 
 ```swift
 Task {
@@ -190,14 +190,6 @@ extension Task {
     }
   }
 }
-```
-
-```swift
-func withTaskCancellationHandler<T>(
-    operation: () async throws -> T,
-    onCancel handler: () -> Void,
-    isolation: isolated (any Actor)? = #isolation
-) async rethrows -> T
 ```
 
 ## Source compatibility
