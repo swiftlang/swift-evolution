@@ -38,7 +38,7 @@ Additionally, all the `Task` creation APIs are annotated with
 `@discardableResult`, including those that permit failure.
 This makes it extremely easy for the code creating the task to
 unintentionally ignore errors thrown in the body.
-This default has proven to be surprising, error-prone, and difficult to debug.
+This default has proven to be surprising and leads to accidentally missing thrown errors, like in this example:
 
 ```swift
 Task {
