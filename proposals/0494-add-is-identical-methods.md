@@ -21,6 +21,8 @@
     * [`ContiguousArray`](#contiguousarray)
     * [`Dictionary`](#dictionary)
     * [`Set`](#set)
+    * [`UnsafeBufferPointer`](#unsafebufferpointer)
+    * [`UTF8Span`](#utf8span)
   * [Source Compatibility](#source-compatibility)
   * [Impact on ABI](#impact-on-abi)
   * [Future Directions](#future-directions)
@@ -405,6 +407,11 @@ We propose adding `isIdentical` methods to the following concrete types from Sta
 * `ContiguousArray`
 * `Dictionary`
 * `Set`
+* `UnsafeBufferPointer`
+* `UnsafeMutableBufferPointer`
+* `UnsafeMutableRawBufferPointer`
+* `UnsafeRawBufferPointer`
+* `UTF8Span`
 
 For each type being presented we codify important semantics in our header documentation.
 
@@ -688,6 +695,30 @@ extension Set {
   /// - Performance: O(1)
   public func isIdentical(to other: Self) -> Bool { ... }
 }
+```
+
+### `UnsafeBufferPointer`
+
+```swift
+extension UnsafeBufferPointer where Element: ~Copyable {
+  /// Returns a Boolean value indicating whether two `UnsafeBufferPointer`
+  /// instances refer to the same region in memory.
+  public func isIdentical(to other: Self) -> Bool { ... }
+}
+```
+
+The following types will adopt the same semantic guarantees as `UnsafeBufferPointer`:
+* `UnsafeMutableBufferPointer`
+* `UnsafeMutableRawBufferPointer`
+* `UnsafeRawBufferPointer`
+
+### `UTF8Span`
+
+```swift
+extension UTF8Span where Element: ~Copyable {
+  /// Returns a Boolean value indicating whether two `UTF8Span` instances
+  /// refer to the same region in memory.
+  public func isIdentical(to other: Self) -> Bool { ... }
 ```
 
 ## Source Compatibility
