@@ -63,22 +63,22 @@ The proposal is to add two new attributes `@section` and `@used` that will allow
 // Place an entry into a section, mark as "do not dead strip".
 // Initializer expression must be a constant expression.
 // The global variable is implicitly made statically initialized.
-@section(MachO: "__DATA,mysection")
+@section("__DATA,mysection")
 @used
 let myLinkerSetEntry: Int = 42 // ✅
 
 // Non-constant or statically non-initializable expressions are disallowed
-@section(MachO: "__DATA,mysection")
+@section("__DATA,mysection")
 let myLinkerSetEntry: Int = Int.random(in: 0 ..< 10) // ❌ error
 
 // Section-placed globals can be "var", the initializer expression still must be constant
-@section(MachO: "__DATA,mysection")
+@section("__DATA,mysection")
 var mutableVariable: Int = 42 // ✅
 
 // Some complex data types are allowed (tuples, function references)
 typealias PluginData = (version: Int, identifier: UInt64, initializer: @convention(c) ()->())
 
-@section(MachO: "__DATA,plugins")
+@section("__DATA,plugins")
 @used
 let myPlugin: PluginData = (
     version: 1,
@@ -88,19 +88,13 @@ let myPlugin: PluginData = (
 
 On top of specifying a custom section name with the `@section` attribute, marking a variable as `@used` is needed to prevent otherwise unused symbols from being removed by the compiler. When using section placement to e.g. implement linker sets, such values are typically going to have no usage at compile time, and at the same time they should not be exposed in public interface of libraries (not be made public), therefore we the need the `@used` attribute.
 
-Custom section names can be specified as a string literal. The string will be used directly, without any processing, as the section name for the symbol. Different object file formats (ELF, Mach-O, COFF) have different restrictions and rules on what are valid section names, and cross-platform code will have to use different names for different file formats. To support that, the `@section` attribute will allow specifying one or more section names per object file formats, optionally with a fallback:
+Different object file formats (ELF, Mach-O, COFF) have different restrictions and rules on what are valid section names, and cross-platform code will have to use different names for different file formats. To support that, custom section names can be specified as a string literal. The string will be used directly, without any processing, as the section name for the symbol. A new `#if objectFormat(...)` conditional compilation directive will be provided to support conditionalizing based on the file format:
 
 ```swift
-@section(MachO: "__DATA,mysection") var global = ... // ok when compiling for Mach-O, error if compiling for ELF
-@section(MachO: "__DATA,mysection", ELF: "mysection") var global = ...
-@section(MachO: "__DATA,mysection", default: "mysection") var global = ...
-```
-
-A new `#if objectFormat(...)` conditional compilation directive will be provided to support conditionalizing based on the file format:
-
-```swift
-#if objectFormat(MachO)
-@section(MachO: "__DATA,mysection") // Custom section on Mach-O, normal placement otherwise
+#if objectFormat(ELF)
+@section("mysection")
+#elseif objectFormat(MachO)
+@section("__DATA,mysection")
 #endif
 var global = ...
 ```
@@ -115,29 +109,21 @@ For the ELF file format specifically, the compiler will also emit a “section i
 
 ### Attributes @section and @used on global and static variables
 
-Two new attributes are to be added: `@section`, with a labeled list of arguments specifying the section name(s), and a argument-less `@used` attribute. The attributes can be used either together or independently.
-
-On `@section`, the arguments are labeled by object file format type (see [Cross-platform object file format support](#cross_platform_object_file_format_support) for the full list), there must be at least one labeled argument present, and optionally there can be a `default:` argument with a fallback section. The section names must be string literals. If compiling for a object file format that is not listed, and no `default:` argument is present, the compilation fails.
+Two new attributes are to be added: `@section`, which has a single argument specifying the section name, and a argument-less `@used` attribute. The section name must be a string literal. The attributes can be used either together or independently.
 
 ```swift
 // (1)
-@section(MachO: "__DATA,mysection")
+@section("__DATA,mysection")
 @used
 let global = ... // ✅
 
 // (2)
-@section(MachO: "__DATA,mysection")
+@section("__DATA,mysection")
 let global = ... // ✅
 
 // (3)
 @used
 let global = ... // ✅
-
-// (4)
-@section let global = ... // ❌ no argument
-@section(abc: "section") let global = ... // ❌ "abc" not a valid object file format
-@section(ELF: "section") let global = ... // ok if compiling for ELF, compilation failure otherwise
-@section(ELF: "section", default: "default_section") let global = ... // ✅
 ```
 
 The new attributes (`@section` and `@used`) can be used on variable declarations under these circumstances:
@@ -151,34 +137,34 @@ The new attributes (`@section` and `@used`) can be used on variable declarations
 > *Note: These restrictions limit the `@section` and `@used` attributes to only be allowed on variables that are expected to be represented as exactly one statically-initialized global storage symbol (in the linker sense) for the variable’s content. This is generally true for all global and static variables in C and C++, but in Swift global variables might have zero global storage symbols (e.g. a computed property), or need non-trivial storage (e.g. lazily initialized variables with runtime code in the initializer expression).*
 
 ```swift
-@section(MachO: "__DATA,mysection") @used
+@section("__DATA,mysection") @used
 let global = 42 // ✅
 
-@section(MachO: "__DATA,mysection") @used
+@section("__DATA,mysection") @used
 var global = 42 // ✅
 
-@section(MachO: "__DATA,mysection") @used
+@section("__DATA,mysection") @used
 var computed: Int { return 42 } // ❌ ERROR: @section cannot be used on computed properties
 
 struct MyStruct {
-  @section(MachO: "__DATA,mysection") @used
+  @section("__DATA,mysection") @used
   static let staticMemberLet = 42 // ✅ 
 
-  @section(MachO: "__DATA,mysection") @used
+  @section("__DATA,mysection") @used
   static var staticMemberVar = 42 // ✅ 
   
-  @section(MachO: "__DATA,mysection") @used
+  @section("__DATA,mysection") @used
   let member = 42 // ❌ ERROR: @section cannot be used on non-static members
 
-  @section(MachO: "__DATA,mysection") @used
+  @section("__DATA,mysection") @used
   var member = 42 // ❌ ERROR: @section cannot be used on non-static members
 }
 
 struct MyGenericStruct<T> {
-  @section(MachO: "__DATA,mysection") @used
+  @section("__DATA,mysection") @used
   static let staticMember = 42 // ❌ ERROR: @section cannot be used in a generic context
 
-  @section(MachO: "__DATA,mysection") @used
+  @section("__DATA,mysection") @used
   static var staticMember = 42 // ❌ ERROR: @section cannot be used in a generic context
 }
 ```
@@ -215,35 +201,35 @@ This proposal defines a **constant expression** as being one of:
 Explicitly, this definition currently does **not allow** any operators, using any user-defined named types, any other standard type (e.g. strings, dictionaries, sets), using closures, or referencing any variables by name. See below for examples of valid and invalid constant expressions:
 
 ```swift
-@section(...) let a = 42 // ✅
-@section(...) let b = 3.14 // ✅
-@section(...) let c = 1 + 1 // ❌ operators not allowed
-@section(...) let d = Int.max // ❌ not a literal
-@section(...) let e: UInt8 = 42 // ✅
-@section(...) let f = UInt8(42) // ❌ not a literal
-@section(...) let g: MyCustomExpressibleByIntegerLiteral = 42 // ❌ not a standard type
+@section("...") let a = 42 // ✅
+@section("...") let b = 3.14 // ✅
+@section("...") let c = 1 + 1 // ❌ operators not allowed
+@section("...") let d = Int.max // ❌ not a literal
+@section("...") let e: UInt8 = 42 // ✅
+@section("...") let f = UInt8(42) // ❌ not a literal
+@section("...") let g: MyCustomExpressibleByIntegerLiteral = 42 // ❌ not a standard type
 
-@section(...) let composition1 = (1, 2, 3, 2.718, true) // ✅
-@section(...) let composition2 = (1, 2, Int.max) // ❌ tuple component not constant
-@section(...) let composition3: InlineArray = [1, 2, 3] // ✅
-@section(...) let composition4: InlineArray = [1, 2, Int.max] // ❌ array component not constant
-@section(...) let composition5: (Int, [1 of Int], [1 of (Int, Int)]) = (1, [1], [(1, 1)]) // ✅
+@section("...") let composition1 = (1, 2, 3, 2.718, true) // ✅
+@section("...") let composition2 = (1, 2, Int.max) // ❌ tuple component not constant
+@section("...") let composition3: InlineArray = [1, 2, 3] // ✅
+@section("...") let composition4: InlineArray = [1, 2, Int.max] // ❌ array component not constant
+@section("...") let composition5: (Int, [1 of Int], [1 of (Int, Int)]) = (1, [1], [(1, 1)]) // ✅
 
 func foo() -> Int { return 42 }
-@section(...) let func1 = foo // ✅
-@section(...) let func2 = foo() // ❌ not a function reference
-@section(...) let func3 = Bool.random // ✅
-@section(...) let func4 = Bool.self.random // ❌ not a direct reference
-@section(...) let func5 = (Bool.self as Bool.Type).random // ❌ not a direct reference
-@section(...) let func6 = [Int].randomElement // ❌ generic
-@section(...) let func7 = { } // ❌ not using name
+@section("...") let func1 = foo // ✅
+@section("...") let func2 = foo() // ❌ not a function reference
+@section("...") let func3 = Bool.random // ✅
+@section("...") let func4 = Bool.self.random // ❌ not a direct reference
+@section("...") let func5 = (Bool.self as Bool.Type).random // ❌ not a direct reference
+@section("...") let func6 = [Int].randomElement // ❌ generic
+@section("...") let func7 = { } // ❌ not using name
 
 struct S { }
-@section(...) let metatype1 = S.self // ✅
-@section(...) let metatype2 = Int.self // ✅
-@section(...) let metatype3 = Int.self.self // ❌ not a direct reference
+@section("...") let metatype1 = S.self // ✅
+@section("...") let metatype2 = Int.self // ✅
+@section("...") let metatype3 = Int.self.self // ❌ not a direct reference
 import Foundation
-@section(...) let metatype4 = URL.self // ❌ resilient
+@section("...") let metatype4 = URL.self // ❌ resilient
 ```
 
 ### Guaranteed static initialization
@@ -258,13 +244,13 @@ We consider the variable to be eligible for static initialization when:
 Not all constant expressions are necessarily statically initializable. For section placement we require the stronger property (static initialization) because we expect the data to be readable without any runtime mechanisms (i.e. reading raw bytes from the section at runtime, or offline binary inspection).
 
 ```swift
-@section(MachO: "__DATA,mysection")
+@section("__DATA,mysection")
 let a = 42 // ✅
 
-@section(MachO: "__DATA,mysection")
+@section("__DATA,mysection")
 let sectionPlaced = ...expression... // ✅, guaranteed to be statically initialized
 
-@section(MachO: "__DATA,mysection")
+@section("__DATA,mysection")
 let notStaticallyInitializable = ...expression that cannot be statically initialized... // ❌
 ```
 
@@ -282,14 +268,34 @@ As described in [Swift Compile-Time Values](https://github.com/artemcm/swift-evo
 ```swift
 func foo() { ... }
 
-@section(MachO: "__DATA,mysection")
+@section("__DATA,mysection")
 let a = (42, foo) // "foo" is statically initialized into a
                   // linkable/relocatable pointer
 ```
 
 ### Cross-platform object file format support
 
-In some cases, it’s useful to conditionalize code to support multiple object file formats, for example when using Embedded Swift to target baremetal systems without any OS. For that, a new `#if objectFormat(...)` conditional compilation directive will be provided. The allowed values in this directive will match the set of supported object file formats by the Swift compiler (and expand as needed in the future). Currently, they exact values will be (case sensitive):
+Different platforms supported by Swift are using different object and binary file formats (Linux uses ELF, Darwin uses Mach-O, Windows uses COFF), and that implies different restrictions and rules on what are valid section names. Because of that, a multi-platform library code is expected to use `#if os(...)` to use different section names for different platforms. Because of that, it’s expected that the attributes are to be typically only used indirectly via macros that hide the low-level nature of sections and object file formats from higher-level code developers:
+
+```swift
+// Example of a potential project-specific "@RegisterPlugin" macro:
+@RegisterPlugin
+let plugin = ...
+
+// The macro expands to:
+#if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
+@section("__DATA_CONST,plugins")
+#elseif os(Linux)
+@section("plugins")
+#elseif os(Windows)
+@section(".plugins")
+#endif
+let plugin = ...
+```
+
+See [Structured section specifiers](#structured-section-specifiers) below for more rationale.
+
+In some cases, it’s not possible to differentiate on the OS to support multiple object file formats, for example when using Embedded Swift to target baremetal systems without any OS. For that, a new `#if objectFormat(...)` conditional compilation directive will be provided. The allowed values in this directive will match the set of supported object file formats by the Swift compiler (and expand as needed in the future). Currently, they exact values will be (case sensitive):
 
 * COFF
 * ELF
@@ -297,10 +303,12 @@ In some cases, it’s useful to conditionalize code to support multiple object f
 * Wasm
 
 ```swift
-#if objectFormat(MachO) || objectFormat(ELF)
-@section(MachO: "__DATA_CONST,mysection", ELF: "mysection")
+#if objectFormat(MachO)
+@section("__DATA_CONST,mysection")
+#elseif objectFormat(ELF)
+@section("mysection")
 #endif
-let value = ... // the value gets a custom section on MachO and ELF, but not on other object file formats
+let value = ...
 ```
 
 ### ELF section index
@@ -359,7 +367,7 @@ This proposal only allows data placement into custom sections, however, placing 
 
 ```swift
 // code for the function is placed into the custom section
-@section(MachO: "__TEXT,boot")
+@section("__TEXT,boot")
 func firmwareBootEntrypoint() { ... }
 ```
 
@@ -378,13 +386,13 @@ The notions of constant expressions and constant values is applicable to a much 
 The requirement to only use string literals as the section names could be lifted in the future, and we might allow referring to a declaration of variable with a compile-time string. This would be useful to avoid repetition when placing multiple values into the same section without needing to use macros.
 
 ```swift
-#if DEBUG
+#if objectFormat(ELF)
+let mySectionName = "mysection" // required to be a compile-time value
+#elseif objectFormat(MachO)
 let mySectionName = "__DATA,mysection" // required to be a compile-time value
-#else
-let mySectionName = "__DATA,myothersection" // required to be a compile-time value
 #endif
 
-@section(MachO: mySectionName)
+@section(mySectionName)
 var global = ...
 ```
 
@@ -457,6 +465,14 @@ let address: UnsafePointer<Int> = #address(x) // would only work on statically i
 ```
 
 Because `@const` does not affect parsing or type resolution of the expression, it’s not helpful to the compiler, and it doesn’t seem to improve readability for users either: If the expression is a constant expression or not statically initializable, it will be rejected from compilation with a clear explanation. Adding a `@const` does not convey any new information.
+
+### Structured section specifiers
+
+In Mach-O, custom section names are written as a pair of segment (e.g. `__DATA`) + section (e.g. `mysection`). Structured section names with separate segment and section names, `@section(segment: "...", section: "...")` were considered instead, however this pattern does not generalize across object file formats, and is Mach-O specific (ELF and PE/COFF don’t have segments).
+
+Because different object file formats impose different restrictions on custom section names (length, “.” prefix), a shorthand syntax to specify different section names for different object file formats was considered: `@section(ELF: “...”, MachO: “...”, COFF: “...”)`.  This, however, has drawbacks of repeating the file format in cases where the code is only ever targeting a single format (common for example for embedded firmwares on ELF). The benefits of a shorthand syntax is marginal, given that we don’t expect normal application code to use the `@section` attribute directly but instead rely on macros or other higher-level API.
+
+The alternative of using conditional compilation is what is expected to be used for those cases instead.
 
 ### Umbrella attribute for linkage properties
 
