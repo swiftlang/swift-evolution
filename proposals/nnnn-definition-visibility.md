@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation:  Functionality is available via hidden `@_alwaysEmitIntoClient` and `@_neverEmitIntoClient` attributes in recent `main` snapshots.
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-controlling-function-definition-visibility-in-clients/82372))
 
 ## Introduction
 
