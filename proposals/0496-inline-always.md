@@ -357,13 +357,13 @@ to the client.
 
 `@inline(always)` intention is to be able to guarantee that inlining will happen
 for any caller inside or outside the defining module therefore it makes sense to
-require the use of  "@inlinable" attribute with them. This attribute could be
+require the use of an `@inlinable` attribute with them. This attribute could be
 required to be explicitly stated. And for it to be an error when the attribute
 is omitted.
 
 ```swift
 @inline(always)
-@inlinable // or @_alwaysEmitIntoClient
+@inlinable
 public func caller() { ... }
 
 @inline(always) // error: a public function marked @inline(always) must be marked @inlinable
@@ -467,13 +467,13 @@ attribute in the future.
 
 ```swift
 @inlinable
-public caller() {
+public func caller() {
   if coldPath {
     callee()
   }
 }
 
-public otherCaller() {
+public func otherCaller() {
     if hotPath {
         callee()
     }
