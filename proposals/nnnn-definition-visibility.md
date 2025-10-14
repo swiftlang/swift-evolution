@@ -214,6 +214,10 @@ The `@export` attribute could be extended to support visibility-related descript
 public func f() { }
 ```
 
+### Implementation hiding for internal and private imports
+
+One of the motivations for this proposal is implementation hiding for uses of `private` and `internal` imports. This motivation would be weakened by the [future direction in SE-0409](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0409-access-level-on-imports.md#hiding-dependencies-for-non-resilient-modules) where the transitive dependencies from those imports are hidden, because one would no longer need to use `@export(interface)` to explicitly hide a transitive dependency. In such a case, `@export(interface)` would make explicit what would happen implicitly when the definition of such a function references something available via an internal import.
+
 ## Acknowledgments
 
 Thank you to Andy Trick for the `@export` syntax suggestion.
