@@ -84,7 +84,7 @@ This can present a code portability problem for Embedded Swift. The proposed att
 
 ## Proposed solution
 
-This proposal introduces a new attribute `@exported` that provides the required control over the ability of clients to make use of the callable interface or the definition of a particular function (or both). The `@exported` attribute takes one or both of the following arguments in parentheses:
+This proposal introduces a new attribute `@export` that provides the required control over the ability of clients to make use of the callable interface or the definition of a particular function (or both). The `@export` attribute takes one or both of the following arguments in parentheses:
 
 * `interface`: means that a symbol is present in the binary in a manner that can be called by clients. 
 * `implementation`: means that the function definition is available for clients to use for any purpose, including specializtion, inlining, or merely analyzing the body for optimization purposes. 
@@ -168,9 +168,9 @@ This means that generic functions are incompatible with `@export(interface)`, be
 
 Stored properties and types can also result in symbols being produced within the binary, in much the same manner as functions. For stored properties, the symbols describe the storage itself. For types, the symbols are for metadata associated with the type. In both cases, it can be reasonable for the compiler to defer creation of the symbol until use. For example, Embedded Swift will defer emission of a stored property until it is referenced, and will only emit type metadata when it is required (e.g., for use with `AnyObject`). 
 
-For stored properties and types,`@exported(interface)` would emit the stored property symbol and type metadata eagerly, similar to the emission of the symbol for a function.
+For stored properties and types,`@export(interface)` would emit the stored property symbol and type metadata eagerly, similar to the emission of the symbol for a function.
 
-`@exported(implementation)` is less immediately relevant. For stored properties, it could mean that the initializer value is available for clients to use. For types, it would effectively be the equivalent of `@frozen` in Library Evolution (`@frozen` exposes implementation and layout details), but there does not exist a notion of non-`@frozen` types outside of Library Evolution.
+`@export(implementation)` is less immediately relevant. For stored properties, it could mean that the initializer value is available for clients to use. For types, it would effectively be the equivalent of `@frozen` in Library Evolution (`@frozen` exposes implementation and layout details), but there does not exist a notion of non-`@frozen` types outside of Library Evolution.
 
 ## Source compatibility
 
