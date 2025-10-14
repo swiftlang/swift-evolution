@@ -87,7 +87,7 @@ This can present a code portability problem for Embedded Swift. The proposed att
 This proposal introduces a new attribute `@export` that provides the required control over the ability of clients to make use of the callable interface or the definition of a particular function (or both). The `@export` attribute takes one or both of the following arguments in parentheses:
 
 * `interface`: means that a symbol is present in the binary in a manner that can be called by clients. 
-* `implementation`: means that the function definition is available for clients to use for any purpose, including specializtion, inlining, or merely analyzing the body for optimization purposes. 
+* `implementation`: means that the function definition is available for clients to use for any purpose, including specialization, inlining, or merely analyzing the body for optimization purposes.
 
 The existing `@_alwaysEmitIntoClient` is subsumed by `@export(implementation)`, meaning that the definition is available and each client that uses it must emit their own copy of the definition, because there is no symbol. The `@_neverEmitIntoClient` attribute on `main` is subsumed by `@export(interface)`, meaning that a callable symbol is emitted but the definition is not available to callers for any reason.
 
