@@ -45,6 +45,8 @@ class FooTests: XCTestCase {
 }
 ```
 
+### Lossy without interop
+
 Generally, you encounter the above limitation with testing APIs when _all_ the
 following conditions are met:
 
@@ -125,11 +127,11 @@ We also propose highlighting usage of above XCTest APIs in Swift Testing:
 
 Here are some concrete examples:
 
-| When running a Swift Testing test... | Current         | Proposed                                     | Proposed (strict) |
-| ------------------------------------ | --------------- | -------------------------------------------- | ----------------- |
-| `XCTAssert` failure is a ...         | ‼️ No-op        | ❌ Test Failure and ⚠️ Runtime Warning Issue | 💥 `fatalError`   |
-| `XCTAssert` success is a ...         | No-op           | ⚠️ Runtime Warning Issue                     | 💥 `fatalError`   |
-| `throw XCTSkip` is a ...             | ❌ Test Failure | ❌ Test Failure                              | ❌ Test Failure   |
+| When running a Swift Testing test... | Current                   | Proposed                                     | Proposed (strict) |
+| ------------------------------------ | ------------------------- | -------------------------------------------- | ----------------- |
+| `XCTAssert` failure is a ...         | ‼️ False Negative (No-op) | ❌ Test Failure and ⚠️ Runtime Warning Issue | 💥 `fatalError`   |
+| `XCTAssert` success is a ...         | No-op                     | ⚠️ Runtime Warning Issue                     | 💥 `fatalError`   |
+| `throw XCTSkip` is a ...             | ❌ Test Failure           | ❌ Test Failure                              | ❌ Test Failure   |
 
 ### Targeted support for Swift Testing APIs with XCTest API equivalents
 
@@ -161,11 +163,11 @@ interoperability for traits under this proposal.
 
 Here are some concrete examples:
 
-| When running a XCTest test...                | Current         | Proposed                 | Proposed (strict) |
-| -------------------------------------------- | --------------- | ------------------------ | ----------------- |
-| `#expect` failure is a ...                   | ‼️ No-op        | ❌ Test Failure          | ❌ Test Failure   |
-| `#expect` success is a ...                   | No-op           | No-op                    | No-op             |
-| `withKnownIssue` wrapping `XCTFail` is a ... | ❌ Test Failure | ⚠️ Runtime Warning Issue | 💥 `fatalError`   |
+| When running a XCTest test...                | Current                   | Proposed                 | Proposed (strict) |
+| -------------------------------------------- | ------------------------- | ------------------------ | ----------------- |
+| `#expect` failure is a ...                   | ‼️ False Negative (No-op) | ❌ Test Failure          | ❌ Test Failure   |
+| `#expect` success is a ...                   | No-op                     | No-op                    | No-op             |
+| `withKnownIssue` wrapping `XCTFail` is a ... | ❌ Test Failure           | ⚠️ Runtime Warning Issue | 💥 `fatalError`   |
 
 ### Interoperability Modes
 
