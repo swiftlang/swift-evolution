@@ -1,11 +1,11 @@
 # Controlling function definition visibility in clients
 
-* Proposal: [SE-0497](0497-filename.md)
+* Proposal: [SE-0497](0497-definition-visibility.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor/)
 * Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
 * Status: **Active review (October 13...20, 2025)**
 * Implementation:  Functionality is available via hidden `@_alwaysEmitIntoClient` and `@_neverEmitIntoClient` attributes in recent `main` snapshots.
-* Review: ([pitch](https://forums.swift.org/t/pitch-controlling-function-definition-visibility-in-clients/82372))
+* Review: ([pitch](https://forums.swift.org/t/pitch-controlling-function-definition-visibility-in-clients/82372)) ([review](https://forums.swift.org/t/se-0497-controlling-function-definition-visibility-in-clients/82666))
 
 ## Introduction
 
