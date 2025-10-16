@@ -133,6 +133,16 @@ determined dynamically at runtime:
   func a(c: C) {
     c.method()
   }
+- Calls through `class` methods on `class` types and the method referenced
+  is not `final`
+  ```swift
+  class C {
+    @inline(always)
+    class func method() {...}
+  }
+  func a(c: C.Type) {
+    c.method()
+  }
   ```
 
 In such cases, the compiler cannot determine at a call site which function is
@@ -144,8 +154,8 @@ function references in the following:
 
 - Calls to free standing functions
 - Calls to methods of `actor`, `struct`, `enum` type
-- Calls to final methods of `class` type, and type (`static/class`) methods of
-  `class` type
+- Calls to final methods, final `class` type methods of `class` type, and
+  `static` type methods of `class` type
 
 Therefore, in cases where the value of the function at a usage site is
 dynamically derived we don't emit an error even if the dynamic value of the
@@ -171,9 +181,10 @@ Listing the different scenarios that can occur for a function marked with
 ### Direct function references
 
 Calls to freestanding functions, methods of `enum`, `struct`, `actor` types,
-final methods of `class` types, and type methods of `class` types don't
-dynamically dispatch to different implementations. Calls to such methods can
-always be inlined barring the recursion limitation (see later). (case 1)
+final methods of `class` types, and `static` (but not `class`) type methods of
+`class` types don't dynamically dispatch to different implementations. Calls to
+such methods can always be inlined barring the recursion limitation (see later).
+(case 1)
 
 ```swift
 struct S {
@@ -191,7 +202,10 @@ class C {
   final func finalMethod() {}
 
   @inline(always)
-  class func method() {}
+  static func method() {}
+
+  @inline(always)
+  final class func finalTypeMethod()
 }
 
 class Sub : C {}
@@ -202,6 +216,8 @@ func f2() {
     let c2: Sub = ..
     c2.finalMethod() // can definitely be inlined
     C.method() // can definitely be inlined
+    let c: C.Type = ...
+    c.finalTypeMethod() // can definitely be inlined
 }
 
 @inline(always)
@@ -215,28 +231,36 @@ func f3() {
 
 ### Non final class methods
 
-Swift performs dynamic dispatch for non-final methods of classes based on the
-dynamic receiver type of the class instance value at a use site. Inferring the
-value of that dynamic computation at compile time is not possible in many cases
-and the success of inlining cannot be ensured. We treat a non-final method
-declaration with `@inline(always)` as an declaration site error because we
-assume that the intention of the attribute is that the method will be inlined in
-most cases and this cannot be guaranteed (case 3).
+Swift performs dynamic dispatch for non-final methods of classes and non final
+`class` methods of classes based on the dynamic receiver type of the class
+instance/class type value at a use site. Inferring the value of that dynamic
+computation at compile time is not possible in many cases and the success of
+inlining cannot be ensured. We treat a non-final method declaration with
+`@inline(always)` as an declaration site error because we assume that the
+intention of the attribute is that the method will be inlined in most cases and
+this cannot be guaranteed (case 3).
 
 ```swift
 class C {
     @inline(always) // error: non-final method marked @inline(always)
     func method() {}
+
+    @inline(always) // error: non-final method marked @inline(always)
+    class func class_method() {}
 }
 
 class C2 : C {
     @inline(always) // error: non-final method marked @inline(always)
     override func method() {}
+
+    class func class_method() {}
 }
 
-func f(c: C) {
+func f(c: C, c2: C.Type) {
    c.method() // dynamic type of c might be C or C2, could not ensure success
               // of inlining in general
+   c2.class_method() // dynamic type of c2 might be C.self or C2.self, could not
+                     // ensure success of inlining in general
 }
 ```
 
@@ -357,13 +381,13 @@ to the client.
 
 `@inline(always)` intention is to be able to guarantee that inlining will happen
 for any caller inside or outside the defining module therefore it makes sense to
-require the use of  "@inlinable" attribute with them. This attribute could be
+require the use of an `@inlinable` attribute with them. This attribute could be
 required to be explicitly stated. And for it to be an error when the attribute
 is omitted.
 
 ```swift
 @inline(always)
-@inlinable // or @_alwaysEmitIntoClient
+@inlinable
 public func caller() { ... }
 
 @inline(always) // error: a public function marked @inline(always) must be marked @inlinable
@@ -467,13 +491,13 @@ attribute in the future.
 
 ```swift
 @inlinable
-public caller() {
+public func caller() {
   if coldPath {
     callee()
   }
 }
 
-public otherCaller() {
+public func otherCaller() {
     if hotPath {
         callee()
     }
