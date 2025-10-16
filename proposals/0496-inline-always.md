@@ -259,8 +259,8 @@ class C2 : C {
 func f(c: C, c2: C.Type) {
    c.method() // dynamic type of c might be C or C2, could not ensure success
               // of inlining in general
-   c2.method() // dynamic type of c2 might be C.self or C2.self, could not
-               // ensure success of inlining in general
+   c2.class_method() // dynamic type of c2 might be C.self or C2.self, could not
+                     // ensure success of inlining in general
 }
 ```
 
