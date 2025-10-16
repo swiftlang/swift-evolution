@@ -186,12 +186,12 @@ The primary alternatives here involving naming of this functionality. There are 
 
 ### Parameterize `@inlinable`
 
-The `@inlinable` attribute already exists and is equivalent to the proposed `@export(interface, implementation)`. We could extend that attribute with two other forms:
+The `@inlinable` attribute already exists and is the same as the proposed `@export(interface, implementation)` when Library Evolution is enabled. Outside of Library Evolution, `@inlinable` makes the definition available to clients but does not necessarily create a callable symbol. If we assume that the distinction is not important, we could extend `@inlinable` with two other forms:
 
 * `@inlinable(only)`, equivalent to `@export(implementation)`,  means that the function definition is inlinable and can *only* be used by inlining. Practically speaking, this means that a client has must emit its own definition of the function in order to use it, because the defining module does not emit a copy as a public, callable symbol. This spelling formalizes `@_alwaysEmitIntoClient`.
 * `@inlinable(never)`, equivalent to `@export(interface)`, means that the function definition is never available to callers, even if the compiler options (aggressive CMO, Embedded Swift, etc.) would make it so by default. The defining module will emit a public, callable symbol that the client can use. At the time of this writing, the Swift `main` branch provides this behavior with the `@_neverEmitIntoClient` attribute.
 
-The `@inlinable` attribute without a modifier would remain as specified in [SE-0193](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0193-cross-module-inlining-and-specialization.md): it makes the definition available to the client (for any purpose) as well as emitting a public, callable symbol. It is essentially a midpoint between `only` and `never`, leaving it up to the optimizer to determine when and how to make use of the definition.
+The `@inlinable` attribute without a modifier would remain as specified in [SE-0193](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0193-cross-module-inlining-and-specialization.md): it makes the definition available to the client (for any purpose) as well as emitting a public, callable symbol in Library Evolution. It is essentially a midpoint between `only` and `never`, leaving it up to the optimizer to determine when and how to make use of the definition.
 
 ### Remove underscores from the existing attributes
 
