@@ -169,7 +169,9 @@ Existing adopters of `@_cdecl` can replace the attribute with `@objc` to preserv
 
 ## ABI compatibility
 
-Marking a global function with `@c` or `@objc` makes it use the C calling convention. Adding or removing these attributes on a function is an ABI breaking change. Updating existing `@_cdecl` to `@objc` or `@c` is ABI stable.
+The compiler emits a single symbol for `@c` and `@objc` functions, the symbol uses the C calling convention.
+
+Adding or removing the attributes `@c` and `@objc` on a function is an ABI breaking change. Changing between `@c` and `@objc` is ABI stable. Changing between `@_cdecl` and either `@c` or `@objc` is an ABI breaking change since `@_cdecl` emits two symbols and Swift clients of `@_cdecl` call the one with the Swift calling convention.
 
 Adding or removing the `@c` attribute on an enum is ABI stable, but changing its raw type is not.
 
