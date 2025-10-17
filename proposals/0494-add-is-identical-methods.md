@@ -171,6 +171,8 @@ struct FavoriteContactList: View {
 }
 ```
 
+We can assume there is another view component in our application that could be editing these `Contact` values. It's not very important for us right now to show *how* these `Contact` values could change — let's just assume that our `FavoriteContactList` component might need to recompute its `body` over time with new `Contact` values.
+
 When we compute our `body` property we also compute our `favorites` property. The implication is that *every* time our `body` property is computed we perform *another* `O(n)` algorithm across our `contacts`. Because our `FavoriteContactList` supports selection, every time our user selects a `Contact` value we update our `State`. Updating our `State` computes our `body` which computes our `favorites` property. So even though our `contacts` values *have not changed*, we *still* pay the performance penalty of *another* `O(n)` operation just to support cell selection.
 
 This might look like a good opportunity for another attempt at memoization. Here is an approach using a dynamic property wrapper:
@@ -714,6 +716,8 @@ Thanks to [Ben Cohen](https://forums.swift.org/t/-/78792/7) for helping to think
 Thanks to [David Nadoba](https://forums.swift.org/t/-/80496/61/) for proposing the formal equivalence relation semantics and axioms on concrete types.
 
 Thanks to [Xiaodi Wu](https://forums.swift.org/t/-/80496/67) for proposing that our equivalence relation semantics would carve-out for “exceptional” values like `Float.nan`.
+
+Thanks to [QuinceyMorris](https://forums.swift.org/t/-/82296/72) for proposing the name `isTriviallyIdentical(to:)`.
 
 [^1]: https://github.com/swiftlang/swift/blob/swift-6.1.2-RELEASE/stdlib/public/core/String.swift#L397-L415
 [^2]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/DequeModule/Deque._Storage.swift#L223-L225
