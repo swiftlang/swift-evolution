@@ -65,12 +65,16 @@ A `@c` enum may declare a custom C name, and must declare an integer raw type co
 ```swift
 @c
 enum CEnum: CInt {
-    case a
-    case b
+    case first
+    case second
 }
 ```
 
 The attribute `@objc` is already accepted on enums. These enums qualify as an Objective-C representable type and are usable from `@objc` global function signatures but not from `@c` functions.
+
+In the compatibility header, the `@c` enum is printed with the C name specified in the `@c` attribute or the Swift name by default. It defines a storage of the specified raw type with support for different dialects of C.
+
+Each case is printed using a name composed of the enum name with the case name attached. The first letter of the case name is capitalized automatically. For the enum above, the generated cases for C are named `CEnumFirst` and `CEnumSecond`.
 
 ### `@c @implementation` global functions
 
