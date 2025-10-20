@@ -16,7 +16,7 @@ using the [`.enabled(if:)`](https://developer.apple.com/documentation/testing/tr
 etc. family of traits:
 
 ```swift
-@Test(.disabled(if: Species.all.in(: .dinosauria).isEmpty)
+@Test(.disabled(if: Species.all(in: .dinosauria).isEmpty)
 func `Are all dinosaurs extinct?`() {
   // ...
 }
