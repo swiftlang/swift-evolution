@@ -108,15 +108,19 @@ that its first argument has an explicit label:
 This change makes the type's interface more consistent between Darwin and
 Windows (where it has an `init(encoderCLSID:encodingQuality:)` initializer.)
 
-As well, conformance to `Equatable` and `Hashable` is added:
+As well, conformances to `Equatable`, `Hashable`, `CustomStringConvertible`, and
+`CustomDebugStringConvertible` are added:
 
 ```swift
 extension AttachableImageFormat: Equatable, Hashable {}
+extension AttachableImageFormat: CustomStringConvertible, CustomDebugStringConvertible {}
 ```
 
 Conformance to `Equatable` is necessary to correctly implement the
 `withUnsafeBytes(as:_:)` protocol requirement mentioned above, and conformance
-to `Hashable` is generally useful and straightforward to implement.
+to `Hashable` is generally useful and straightforward to implement. Conformance
+to `CustomStringConvertible` and `CustomDebugStringConvertible` allows for
+better diagnostic output (especially if an encoding failure occurs.)
 
 ### Adding an imageFormat property to Attachment
 
