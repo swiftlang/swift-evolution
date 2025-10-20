@@ -1,4 +1,4 @@
-# Improved error handling in unstructured Task initializers
+# Improved error handling for `Task` initializers and `TaskLocal`
 
 * Proposal: [SE-NNNN](0NNN-unstructured-task-error-handling.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Matt Massicotte](https://github.com/mattmassicotte)
@@ -9,8 +9,8 @@
 
 ## Introduction
 
-This proposal modifies the `Task` creation APIs to adopt typed throws and makes it
-more obvious to notice when a task might be throwing errors that could previously be accidentally discarded.
+This proposal modifies the `Task` creation and `TaskLocal` accessor APIs to adopt typed throws.
+It also makes it more difficult to accidential ignore errors thrown by a task.
 
 ## Motivation
 
@@ -32,6 +32,9 @@ do {
   // type information has been lost and error is now `any Error`
 }
 ```
+
+Another, related API that is not capable of preserving error types
+are the `TaskLocal` accessor `withValue` functions.
 
 Additionally, all the `Task` creation APIs are annotated with
 `@discardableResult`, including those that permit failure.
@@ -59,18 +62,16 @@ such that ignoring an error requires a more explicit expression of intent.
 
 ## Proposed solution
 
-We propose two changes to the `Task` initialization functions to address
-these problems:
-
-- adopt typed throws
-- remove the use of `@discardableResult` unless `Failure` is `Never`
+We propose two changes.
+First, to adopt typed throws for the `Task` initialization and `TaskLocal` `withValue` functions.
+And second, to remove the use of `@discardableResult` for `Task` initialization unless `Failure` is `Never`.
 
 ## Detailed design
 
 `Task` currently has many initializers and matching detached and immediate variants.
 We propose to adjust these initializers in two ways.
 
-### Non-throwing overloads
+### `Task` non-throwing overloads
 
 In the case of a non-throwing overload, the `@discardableResult` remains useful.
 It is common to create fire-and-forget tasks that do not require access to the
@@ -104,7 +105,7 @@ extension Task where Failure == Never {
 }
 ```
 
-### Throwing overloads
+### `Task` throwing overloads
 
 In the cases of a non-`Never` error, the signatures would be adjusted by:
 
@@ -189,6 +190,31 @@ extension Task {
       // ...
     }
   }
+}
+```
+
+### `TaskLocal` accessors
+
+Similarly, the two accessor functions for `TaskLocal` will be modified to adopt typed throws.
+
+```swift
+extension TaskLocak {
+  @discardableResult
+  final func withValue<R, Failure: Error>(
+    _ valueDuringOperation: Value,
+    operation: () throws(Failure) -> R,
+    file: String = #fileID,
+    line: UInt = #line
+  ) throws(Failure) -> R
+  
+  @discardableResult
+  final func withValue<R, Failure: Error>(
+    _ valueDuringOperation: Value,
+    operation: () async throws(Failure) -> R,
+    isolation: isolated (any Actor)? = #isolation,
+    file: String = #fileID,
+    line: UInt = #line
+  ) async throws(Failure) -> R
 }
 ```
 
