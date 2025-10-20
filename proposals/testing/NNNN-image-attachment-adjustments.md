@@ -1,4 +1,4 @@
-# Adjustments to image attachments in Swift Testing
+# Consolidate Swift Testing's image attachments API across platforms
 
 * Proposal: [ST-NNNN](NNNN-image-attachment-adjustments.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
