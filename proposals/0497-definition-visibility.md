@@ -91,20 +91,20 @@ This proposal introduces a new attribute `@export` that provides the required co
 
 The existing `@_alwaysEmitIntoClient` is subsumed by `@export(implementation)`, meaning that the definition is available and each client that uses it must emit their own copy of the definition, because there is no symbol. The `@_neverEmitIntoClient` attribute on `main` is subsumed by `@export(interface)`, meaning that a callable symbol is emitted but the definition is not available to callers for any reason.
 
-The two attributes introduced by [SE-0193](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0193-cross-module-inlining-and-specialization.md) are mostly subsumed by `@export`:
+The two attributes introduced by [SE-0193](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0193-cross-module-inlining-and-specialization.md) are partially subsumed by `@export`:
 
-* `@inlinable` for public symbols provides both a definition in the owning module and makes the definition available for callers, akin to `@export(interface, implementation)`. Note that `@inlinable` doesn't *guarantee* the presence of a symbol in the way that `@export(interface)` does: in practice, Embedded Swift may not produce a symbol, but non-Embedded Swift will.
+* `@inlinable` for making a definition available to callers, similar to `@export(implementation)`. `@inlinable` is guaranteed to produce a symbol under Library Evolution, but there are no guarantees otherwise. In practice, non-Embedded Swift will produce a symbol, but Embedded Swift generally does not.
 * `@usableFromInline` for making a less-than-public symbol available for use in an inlinable function (per SE-0193) is akin to `@export(interface)`. As with `@inlinable`, `@usableFromInline` does not *guarantee* the presence of a symbol in the way that `@export(interface)` does: in practice, Embedded Swift may not produce a symbol, but non-Embedded Swift will.
 
 `@export` cannot be combined with any of `@inlinable`, `@usableFromInline`, `@_alwaysEmitIntoClient`, or `@_neverEmitIntoClient`.
 
 ## Detailed design
 
-`@export` that includes the `implementation` argument inherits all of the restrictions as `@inlinable` that are outlined in [SE-0193](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0193-cross-module-inlining-and-specialization.md), for example, the definition itself can only reference public entities or those that are themselves `@usableFromInline` or `@export(interface)`.
+`@export(implementation)` inherits all of the restrictions as `@inlinable` that are outlined in [SE-0193](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0193-cross-module-inlining-and-specialization.md), for example, the definition itself can only reference public entities or those that are themselves `@usableFromInline` or `@export(interface)`.
 
-`@export` that includes `interface` always produces a symbol in the object file.
+`@export(interface)` always produces a symbol in the object file.
 
-`@export` cannot be used without arguments.
+`@export` cannot be used without arguments. There can only be one of `@export(interface)` or `@export(implementation)` on a given declaration.
 
 ### Relationship to access control
 
@@ -136,11 +136,10 @@ The `@inline(always)` attribute [under discussion now](https://forums.swift.org/
 
 The following table captures the ways in which these attributes interact. 
 
-|                                      | `@inline(always)`                                            | `@inline(never)`                                             | (no `@inline`)                                               |
-| ------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| `@export(implementation)`            | Always inlined everywhere; callers emit their own definitions. Use this when a function should not be part of the ABI and should always be inlined for performance reasons. | Never inlined; callers emit their own definitions. Use this when a function should not be part of the ABI but never needs to be inlined. | May be inlined. Callers emit their own definitions. Use when the function should not be part of the ABI, but leave it up to the optimizer to decide when to inline. |
-| `@export(interface, implementation)` | Always inlined everywhere; a symbol exists that could only be used by non-Swift clients. | Never inlined; callers may emit their own definitions or may call the definition in the function's module. | May be inlined. Callers may emit their own definitions for specialization/inlining/etc. or may call the definition in the function's module, depending on the optimizer. |
-| `@export(interface)`                 | Always inlined within the function's module; a symbol exists for callers outside the function's module. | Never inlined; callers may call the definition in the function's module. Use this to fully encapsulate a function definition so that it can be replaced at link time without affecting any other code. | May be inlined within the function's module, if the optimizer determines that it should be profitable. A symbol exists for callers from outside the module to use. |
+|                           | `@inline(always)`                                            | `@inline(never)`                                             | (no `@inline`)                                               |
+| ------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `@export(implementation)` | Always inlined everywhere; callers emit their own definitions. Use this when a function should not be part of the ABI and should always be inlined for performance reasons. | Never inlined; callers emit their own definitions. Use this when a function should not be part of the ABI but never needs to be inlined. | May be inlined. Callers emit their own definitions. Use when the function should not be part of the ABI, but leave it up to the optimizer to decide when to inline. |
+| `@export(interface)`      | Always inlined within the function's module; a symbol exists for callers outside the function's module. | Never inlined; callers may call the definition in the function's module. Use this to fully encapsulate a function definition so that it can be replaced at link time without affecting any other code. | May be inlined within the function's module, if the optimizer determines that it should be profitable. A symbol exists for callers from outside the module to use. |
 
 ### Embedded Swift limitations
 
@@ -186,7 +185,7 @@ The primary alternatives here involving naming of this functionality. There are 
 
 ### Parameterize `@inlinable`
 
-The `@inlinable` attribute already exists and is the same as the proposed `@export(interface, implementation)` when Library Evolution is enabled. Outside of Library Evolution, `@inlinable` makes the definition available to clients but does not necessarily create a callable symbol. If we assume that the distinction is not important, we could extend `@inlinable` with two other forms:
+The `@inlinable` attribute already exists and is the combination of the proposed `@export(interface)` and `@export(implementation)` when Library Evolution is enabled. Outside of Library Evolution, `@inlinable` makes the definition available to clients but does not necessarily create a callable symbol. If we assume that the distinction is not important, we could extend `@inlinable` with two other forms:
 
 * `@inlinable(only)`, equivalent to `@export(implementation)`,  means that the function definition is inlinable and can *only* be used by inlining. Practically speaking, this means that a client has must emit its own definition of the function in order to use it, because the defining module does not emit a copy as a public, callable symbol. This spelling formalizes `@_alwaysEmitIntoClient`.
 * `@inlinable(never)`, equivalent to `@export(interface)`, means that the function definition is never available to callers, even if the compiler options (aggressive CMO, Embedded Swift, etc.) would make it so by default. The defining module will emit a public, callable symbol that the client can use. At the time of this writing, the Swift `main` branch provides this behavior with the `@_neverEmitIntoClient` attribute.
@@ -217,6 +216,10 @@ public func f() { }
 ### Implementation hiding for internal and private imports
 
 One of the motivations for this proposal is implementation hiding for uses of `private` and `internal` imports. This motivation would be weakened by the [future direction in SE-0409](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0409-access-level-on-imports.md#hiding-dependencies-for-non-resilient-modules) where the transitive dependencies from those imports are hidden, because one would no longer need to use `@export(interface)` to explicitly hide a transitive dependency. In such a case, `@export(interface)` would make explicit what would happen implicitly when the definition of such a function references something available via an internal import.
+
+### Allow both `@export(interface)` and `@export(implementation)`
+
+The initial revision of this proposal allowed `@export(interface, implementation)` to mean that both a symbol is exported and the definition is available to callers. This feature was lacking any use case: it matches `@inlinable` for Library Evolution, but does not replace it elsewhere. The presence of this feature complicates the story, so it has been removed. If use cases are found for this case later, it's easy to lift the restriction.
 
 ## Acknowledgments
 
