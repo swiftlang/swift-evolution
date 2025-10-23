@@ -1,9 +1,9 @@
 # Test cancellation
 
-* Proposal: [ST-NNNN](NNNN-test-cancellation.md)
+* Proposal: [ST-0016](0016-test-cancellation.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Maarten Engels](https://github.com/maartene)
+* Status: **Active review (October 23...November 5, 2025)**
 * Bug: [swiftlang/swift-testing#120](https://github.com/swiftlang/swift-testing/issues/120)
 * Implementation: [swiftlang/swift-testing#1284](https://github.com/swiftlang/swift-testing/pull/1284)
 * Review: ([pitch](https://forums.swift.org/t/pitch-test-cancellation/81847))
