@@ -256,36 +256,30 @@ public enum PollingStopCondition: Sendable, Equatable {
 }
 ```
 
-### New `PollingFailureReason` enum
-
-There are 2 reasons why polling confirmations can fail: the stop condition
-failed, or the confirmation was cancelled during the run. To help express this,
-we will be adding a new `PollingFailureReason` enum.
-
-```swift
-/// A type describing why polling failed
-public enum PollingFailureReason: Sendable, Codable {
-  /// The polling failed because it was cancelled using `Task.cancel`.
-  case cancelled
-
-  /// The polling failed because the stop condition failed.
-  case stopConditionFailed(PollingStopCondition)
-}
-```
-
-### New Error Type
+### New `PollingFailedError` Error Type and `PollingFailedError.Reason` enum
 
 A new error type, `PollingFailedError` to be thrown when the polling
-confirmation doesn't pass:
+confirmation doesn't pass. This contains a nested enum expressing the 2 reasons
+why polling confirmations can fail: the stop condition failed, or the
+confirmation was cancelled during the run:
 
 ```swift
 /// A type describing an error thrown when polling fails.
 public struct PollingFailedError: Error, Sendable {
+  /// A type describing why polling failed
+  public enum Reason: Sendable, Codable {
+    /// The polling failed because it was cancelled using `Task.cancel`.
+    case cancelled
+
+    /// The polling failed because the stop condition failed.
+    case stopConditionFailed(PollingStopCondition)
+  }
+
   /// A user-specified comment describing this confirmation
   public var comment: Comment? { get }
 
   /// Why polling failed, either cancelled, or because the stop condition failed.
-  public var reason: PollingFailureReason { get }
+  public var reason: Reason { get }
 }
 ```
 
