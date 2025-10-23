@@ -6,7 +6,7 @@
 * Status: **Active review (October 23...November 5, 2025)**
 * Bug: [swiftlang/swift-testing#120](https://github.com/swiftlang/swift-testing/issues/120)
 * Implementation: [swiftlang/swift-testing#1284](https://github.com/swiftlang/swift-testing/pull/1284)
-* Review: ([pitch](https://forums.swift.org/t/pitch-test-cancellation/81847))
+* Review: ([pitch](https://forums.swift.org/t/pitch-test-cancellation/81847)) ([review](https://forums.swift.org/t/st-0016-test-cancellation/82817))
 
 ## Introduction
 
