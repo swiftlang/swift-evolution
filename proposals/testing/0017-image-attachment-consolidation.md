@@ -5,7 +5,7 @@
 * Review Manager: [Rachel Brindle](https://github.com/younata)
 * Status: **Active Review (October 22-30, 2025)**
 * Implementation: [swiftlang/swift-testing#1359](https://github.com/swiftlang/swift-testing/pull/1359)
-* Review: ([pitch](https://forums.swift.org/t/pitch-adjustments-to-image-attachments-in-swift-testing/82581), Review TBA)
+* Review: ([pitch](https://forums.swift.org/t/pitch-adjustments-to-image-attachments-in-swift-testing/82581), [review](https://forums.swift.org/t/st-0017-consolidate-swift-testing-s-image-attachments-api-across-platforms/82815))
 
 ## Introduction
 
