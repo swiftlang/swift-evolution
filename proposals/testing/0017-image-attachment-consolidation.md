@@ -1,11 +1,11 @@
 # Consolidate Swift Testing's image attachments API across platforms
 
-* Proposal: [ST-NNNN](NNNN-image-attachment-adjustments.md)
+* Proposal: [ST-0017](0017-image-attachment-consolidation.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Rachel Brindle](https://github.com/younata)
+* Status: **Active Review (October 22-30, 2025)**
 * Implementation: [swiftlang/swift-testing#1359](https://github.com/swiftlang/swift-testing/pull/1359)
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-adjustments-to-image-attachments-in-swift-testing/82581), Review TBA)
 
 ## Introduction
 
