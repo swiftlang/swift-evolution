@@ -3,9 +3,9 @@
 * Proposal: [SE-0496](0496-inline-always.md)
 * Authors: [Arnold Schwaighofer](https://github.com/aschwaighofer)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Active review (October 2–16, 2025)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#84178](https://github.com/swiftlang/swift/pull/84178)
-* Review: ([pitch](https://forums.swift.org/t/pitch-inline-always-attribute/82040)) ([review](https://forums.swift.org/t/se-0496-inline-always-attribute/82480))
+* Review: ([pitch](https://forums.swift.org/t/pitch-inline-always-attribute/82040)) ([review](https://forums.swift.org/t/se-0496-inline-always-attribute/82480)) ([acceptance](https://forums.swift.org/t/accepted-se-0496-inline-always-attribute/82825))
 
 ## Introduction
 
