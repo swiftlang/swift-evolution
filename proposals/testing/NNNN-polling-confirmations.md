@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift-testing#1115](https://github.com/swiftlang/swift-testing/pull/1115)
-* Review: ([Pitch](https://forums.swift.org/t/pitch-polling-expectations/79866))
+* Review: ([Pitch 1](https://forums.swift.org/t/pitch-polling-expectations/79866), [Pitch 2](https://forums.swift.org/t/pitch-2-polling-confirmations-in-the-testing-library/81711))
 
 ## Introduction
 
