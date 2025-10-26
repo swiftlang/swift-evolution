@@ -362,12 +362,12 @@ extension Trait where Self == PollingConfirmationConfigurationTrait {
   ///     lasts for, especially on highly-loaded systems with a lot of tests
   ///     running.
   ///     if nil, polling will be attempted for approximately 1 second.
-  ///     `duration` must be greater than `interval`.
+  ///     If specified, `duration` must be greater than or equal to `interval`.
   ///   - interval: The minimum amount of time to wait between polling
   ///     attempts.
   ///     If nil, polling will wait at least 1 millisecond between polling
   ///     attempts.
-  ///     `interval` must be greater than 0.
+  ///     If specified, `interval` must be greater than 0.
   public static func pollingConfirmationDefaults(
     until stopCondition: PollingStopCondition,
     within duration: Duration? = nil,
