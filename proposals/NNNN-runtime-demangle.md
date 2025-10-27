@@ -34,13 +34,19 @@ A simple demangle method, returning an optional `String`:
 public func demangle(_ mangledName: String) -> String?
 ```
 
-And an overload which accepts a pre-allocated buffer into which the demangled string can be written:
+The demangling function supports all valid Swift symbols. Valid Swift symbols begin with the following prefixes:
+
+- Swift 3, and below: `_T`
+- Swift 4: `_T0`
+- Swift 4.x: `$S`
+- Swift 5+: `$s`
+
+And an overload which accepts an `UTF8Span` into which the demangled string can be written:
 
 ```swift
-@discardableResult
 public func demangle(
-  _ input: String,
-  into buffer: UnsafeMutableBufferPointer<Int8>
+  _ mangledName: borrowing UTF8Span,
+  into output: inout OutputSpan<UTF8.CodeUnit>
 ) -> DemanglingResult
 
 public enum DemanglingResult: Equatable {
@@ -50,15 +56,37 @@ public enum DemanglingResult: Equatable {
 }
 ```
 
-The buffer accepting API is necessary for performance sensitive use-cases, which attempt to demangle symbols in process, before displaying or sending them for further processing. In those use-cases it is common to have a known maximum buffer size into which we are willing to write the demangled representation.
+The span accepting API is necessary for performance sensitive use-cases, which attempt to demangle symbols in process, before displaying or sending them for further processing. In those use-cases it is common to have a known maximum buffer size into which we are willing to write the demangled representation.
+
+The output from this API is an `OutputSpan` of `UTF8.CodeUnit`s, and it may not necessarily be well-formed UTF8, because of the potential of truncation happening between two code units which would render the UTF8 invalid.
 
 If the demangled representation does not fit the preallocated buffer, the demangle method will return `truncated(actualSize)` such that developers can determine by how much the buffer might need to be increased to handle the complete demangling.
+
+To construct an `UTF8Span` or valid `String` from the `OutputSpan` you can do the following:
+
+```swift
+var demangledOutputSpan: OutputSpan<UTF8.CodeUnit> = ...
+
+if demangle("$sSG", into: &demangledOutputSpan) == .success {
+  let utf8 = try UTF8Span(validating: demangledOutputSpan.span)
+  let demangledString = String(copying: utf8)
+  print(demangledString) // Swift.RandomNumberGenerator
+}
+```
 
 ### Demangling format
 
 While the mangled strings are part of Swift ABI and can therefore not really change on platforms with stable ABI, the demangled representation returned by the `demangle` functions is _not guaranteed to be stable in any way_.
 
 The demangled representation may change without any warning, during even patch releases of Swift. The returned strings should be treated mostly as nicer to present to developers human readable representations, and it is not a goal to provide any form of guarantee about the exact shape of these.
+
+## Future directions
+
+### Customizing demangling behavior with options
+
+We intentionally do not offer customization of demangling modes in this initial revision of this API. The Swift demangler does offer various options about hot demangling should be performed, however we are not confident enough in selecting a subset of those options to offer as API at this point.
+
+Adding those options will be possible in future revisions, by adding an additional `options: DemanglingOptions` parameter to the demangle functions introduced in this proposal.
 
 ## Source compatibility
 
