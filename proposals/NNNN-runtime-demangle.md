@@ -41,6 +41,8 @@ The demangling function supports all valid Swift symbols. Valid Swift symbols be
 - Swift 4.x: `$S`
 - Swift 5+: `$s`
 
+The demangle function will also attempt to decode mangled C++ symbols which can be identified by the the `_Z` prefix.
+
 And an overload which accepts an `UTF8Span` into which the demangled string can be written:
 
 ```swift
