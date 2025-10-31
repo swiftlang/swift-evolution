@@ -151,7 +151,13 @@ No changes.
 
 ## Future directions
 
-N/A
+- Migrating from `UnsafeRawBufferPointer` to `RawSpan`. We shipped the initial
+  attachments feature using `UnsafeRawBufferPointer` before `RawSpan` was
+  available and, in particular, before it was back-deployed to earlier Apple
+  platforms. We want the attachments API to consistently use the same types at
+  all layers, so adoption of `RawSpan` only in the image attachments layer is a
+  non-goal. In the future, we may wish to deprecate the existing APIs that use
+  `UnsafeRawBufferPointer` and introduce replacements that use `RawSpan`.
 
 ## Alternatives considered
 
