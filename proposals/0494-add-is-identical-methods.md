@@ -1,4 +1,4 @@
-# Add `isIdentical(to:)` Methods for Quick Comparisons to Concrete Types
+# Add `isTriviallyIdentical(to:)` Methods for Quick Comparisons to Concrete Types
 
 * Proposal: [SE-0494](0494-add-is-identical-methods.md)
 * Authors: [Rick van Voorden](https://github.com/vanvoorden), [Karoy Lorentey](https://github.com/lorentey)
@@ -17,10 +17,10 @@
     * [`String`](#string)
     * [`Substring`](#substring)
     * [`Array`](#array)
-    * [`ArraySlice`](#arrayslice)
-    * [`ContiguousArray`](#contiguousarray)
     * [`Dictionary`](#dictionary)
     * [`Set`](#set)
+    * [`UnsafeBufferPointer`](#unsafebufferpointer)
+    * [`UTF8Span`](#utf8span)
   * [Source Compatibility](#source-compatibility)
   * [Impact on ABI](#impact-on-abi)
   * [Future Directions](#future-directions)
@@ -35,7 +35,7 @@
 
 ## Introduction
 
-We propose new `isIdentical(to:)` instance methods to concrete types for quickly determining if two instances must be equal by-value.
+We propose new `isTriviallyIdentical(to:)` instance methods to concrete types for quickly determining if two instances must be equal by-value.
 
 ## Motivation
 
@@ -171,6 +171,8 @@ struct FavoriteContactList: View {
 }
 ```
 
+We can assume there is another view component in our application that could be editing these `Contact` values. It's not very important for us right now to show *how* these `Contact` values could change — let's just assume that our `FavoriteContactList` component might need to recompute its `body` over time with new `Contact` values.
+
 When we compute our `body` property we also compute our `favorites` property. The implication is that *every* time our `body` property is computed we perform *another* `O(n)` algorithm across our `contacts`. Because our `FavoriteContactList` supports selection, every time our user selects a `Contact` value we update our `State`. Updating our `State` computes our `body` which computes our `favorites` property. So even though our `contacts` values *have not changed*, we *still* pay the performance penalty of *another* `O(n)` operation just to support cell selection.
 
 This might look like a good opportunity for another attempt at memoization. Here is an approach using a dynamic property wrapper:
@@ -248,7 +250,7 @@ struct FavoriteContactList: View {
 
 When we build and run our app we see that we no longer compute our `favorites` values every time our user selects a new `Contact`. But similar to what we saw in our command line utility, we have traded performance in a different direction. The value equality operation we perform is *also* `O(n)`. As the amount of time we spend computing value equality grows, we can begin to spend more time computing value equality than we would have spent computing our `favorites`: we no longer see the performance benefits of memoization.
 
-This proposal introduces an advanced performance hook for situations like this: a set of `isIdentical(to:)` methods that are designed to return *faster* than an operation to determine value equality. The `isIdentical(to:)` methods can return `true` in `O(1)` to indicate two values *must* be equal.
+This proposal introduces an advanced performance hook for situations like this: a set of `isTriviallyIdentical(to:)` methods that are designed to return *faster* than an operation to determine value equality. The `isTriviallyIdentical(to:)` methods can return `true` in `O(1)` to indicate two values *must* be equal.
 
 ## Prior Art
 
@@ -264,9 +266,9 @@ Even if we were able to use `withUnsafeBytes` for other data structures, a compa
 
 A solution for modern operating systems is the support we added from [SE-0456](0456-stdlib-span-properties.md) to bridge an `Array` to `Span`. We can then compare these instances using the `isIdentical(to:)` method on `Span`. One drawback here is that we are blocked on back-deploying support for bridging `Array` to `Span`: it is only available on the most modern operating systems. Another drawback is that if our `Array` does not have a contiguous storage, we have to copy one: an `O(n)` operation. We are also blocked on bringing support for `Span` to collection types like `Dictionary` that do not already implement contiguous storage.
 
-A new `isIdentical(to:)` method could work around all these restrictions. We could return in constant time *without* needing to copy memory to a contiguous storage. We could adopt this method on many types that might not *ever* have a contiguous storage. We could also work with our library maintainers to discuss a back-deployment strategy that could bring this method to legacy operating systems.
+A new `isTriviallyIdentical(to:)` method could work around all these restrictions. We could return in constant time *without* needing to copy memory to a contiguous storage. We could adopt this method on many types that might not *ever* have a contiguous storage. We could also work with our library maintainers to discuss a back-deployment strategy that could bring this method to legacy operating systems.
 
-Our proposal would not be the first example of `isIdentical(to:)` shipping across Swift. `String` already ships a public-but-underscored version of this API.[^1]
+`String` already ships a public-but-underscored version of this API.[^1]
 
 ```swift
 extension String {
@@ -292,36 +294,36 @@ extension String {
 
 We don’t see this API currently being used in Standard Library, but it’s possible this API is already being used to optimize performance in private frameworks from Apple.
 
-Many more examples of `isIdentical(to:)` functions are currently shipping in `Swift-Collections`[^2][^3][^4][^5][^6][^7][^8][^9][^10][^11][^12][^13], `Swift-Markdown`[^14], and `Swift-CowBox`[^15]. We also support `isIdentical(to:)` on the upcoming `Span` and `RawSpan` types from Standard Library.[^16]
+Many more examples of `isIdentical(to:)` functions are currently shipping in `Swift-Collections`[^2][^3][^4][^5][^6][^7][^8][^9][^10][^11][^12][^13], `Swift-Markdown`[^14], and `Swift-CowBox`[^15]. We also support `isIdentical(to:)` on the `Span` and `RawSpan` types from Standard Library.[^16]
 
 ## Proposed Solution
 
 Before we look at the concrete types in this proposal, let’s begin with some more general principles and ideas we would expect for *all* concrete types to follow when adopting this new method. While this specific proposal is not adding a new protocol to Standard Library, it could be helpful to think of an “informal” protocol that guides us in choosing the types to adopt this new method. This could then serve as a guide for library maintainers that might choose to adopt this method on *new* types in the future.
 
-Suppose we are proposing an `isIdentical(to:)` method on a type `T`. We propose the following axioms that library maintainers should adopt:
-* `a.isIdentical(to: a)` is always `true` (Reflexivity)
+Suppose we are proposing an `isTriviallyIdentical(to:)` method on a type `T`. We propose the following axioms that library maintainers should adopt:
+* `a.isTriviallyIdentical(to: a)` is always `true` (Reflexivity)
 * If `T` is `Equatable`:
-  * `a.isIdentical(to: b)` implies `a == b` (*or else `a` and `b` are exceptional values*)
-  * `isIdentical(to:)` is *meaningfully* faster than `==`
+  * `a.isTriviallyIdentical(to: b)` implies `a == b` (*or else `a` and `b` are exceptional values*)
+  * `isTriviallyIdentical(to:)` is *meaningfully* faster than `==`
 
 Let’s look through these axioms a little closer:
 
-**`a.isIdentical(to: a)` is always `true` (Reflexivity)**
+**`a.isTriviallyIdentical(to: a)` is always `true` (Reflexivity)**
 
-* An implementation of `isIdentical(to:)` that always returns `false` would not be an impactful API. We must guarantee that `isIdentical(to:)` *can* return `true` at least *some* of the time.
+* An implementation of `isTriviallyIdentical(to:)` that always returns `false` would not be an impactful API. We must guarantee that `isTriviallyIdentical(to:)` *can* return `true` at least *some* of the time.
 
-**If `T` is `Equatable` then `a.isIdentical(to: b)` implies `a == b`**
+**If `T` is `Equatable` then `a.isTriviallyIdentical(to: b)` implies `a == b`**
 
-* This is the “fast path” performance optimization that will speed up the memoization examples we saw earlier. One important side effect here is that when `a.isIdentical(to: b)` returns `false` we make *no* guarantees about whether or not `a` is equal to `b`.
+* This is the “fast path” performance optimization that will speed up the memoization examples we saw earlier. One important side effect here is that when `a.isTriviallyIdentical(to: b)` returns `false` we make *no* guarantees about whether or not `a` is equal to `b`.
 * We assume this axiom holds only if `a` and `b` are not “exceptional” values. A example of an exceptional value would be if a container that is generic over `Float` contains `nan`.
 
-**If `T` is `Equatable` then `isIdentical(to:)` is *meaningfully* faster than `==`**
+**If `T` is `Equatable` then `isTriviallyIdentical(to:)` is *meaningfully* faster than `==`**
 
-* While we could implement `isIdentical(to:)` on types like `Int` or `Bool`, these types are not included in this proposal. Our proposal focuses on types that have the ability to return from `isIdentical(to:)` meaningfully faster than `==`. If a type would perform the same amount of work in `isIdentical(to:)` that takes place in `==`, our advice is that library maintainers should *not* adopt `isIdentical(to:)` on this type. There should exist some legit internal fast-path on this type: like a pointer to a storage buffer that can be compared by reference identity.
+* While we could implement `isTriviallyIdentical(to:)` on types like `Int` or `Bool`, these types are not included in this proposal. Our proposal focuses on types that have the ability to return from `isTriviallyIdentical(to:)` meaningfully faster than `==`. If a type would perform the same amount of work in `isTriviallyIdentical(to:)` that takes place in `==`, our advice is that library maintainers should *not* adopt `isTriviallyIdentical(to:)` on this type. There should exist some legit internal fast-path on this type: like a pointer to a storage buffer that can be compared by reference identity.
 
-This proposal focuses on concrete types that are `Equatable`, but it might also be the case that a library maintainer would adopt `isIdentical(to:)` on a type that is *not* `Equatable`: like `Span`. Our expectation is that a library maintainer adopting  `isIdentical(to:)`on a type that is not `Equatable` has some strong and impactful real-world use-cases ready to make use of this API. Just because a library maintainer *can* adopt this API does not imply they *should*. A library maintainer should also be ready to document for product engineers exactly what is implied from `a.isIdentical(to: b)` returning `true`. What does it *mean* for `a` to be “identical” to `b` if we do not have the implication that `a == b`? We leave this decision to the library maintainers that have the most context on the types they have built.
+This proposal focuses on concrete types that are `Equatable`, but it might also be the case that a library maintainer would adopt `isTriviallyIdentical(to:)` on a type that is *not* `Equatable`: like `Span`. Our expectation is that a library maintainer adopting  `isTriviallyIdentical(to:)`on a type that is not `Equatable` has some strong and impactful real-world use-cases ready to make use of this API. Just because a library maintainer *can* adopt this API does not imply they *should*. A library maintainer should also be ready to document for product engineers exactly what is implied from `a.isTriviallyIdentical(to: b)` returning `true`. What does it *mean* for `a` to be “identical” to `b` if we do not have the implication that `a == b`? We leave this decision to the library maintainers that have the most context on the types they have built.
 
-Suppose we had an `isIdentical(to:)` method available on `Array`. Let’s go back to our earlier example and see how we can use this as an alternative to checking for value equality from our command line utility:
+Suppose we had an `isTriviallyIdentical(to:)` method available on `Array`. Let’s go back to our earlier example and see how we can use this as an alternative to checking for value equality from our command line utility:
 
 ```swift
 final class Memoizer {
@@ -329,7 +331,7 @@ final class Memoizer {
   
   func result(for input: [Int]) -> [Int] {
     if let result = self.result,
-       self.input.isIdentical(to: input) {
+       self.input.isTriviallyIdentical(to: input) {
       return result
     } else {
       ...
@@ -366,9 +368,9 @@ print(memoizer.result(for: f))
 // Prints "[2, 4, 6]"
 ```
 
-When we return `true` from `isIdentical(to:)` we skip computing a new `result`. When `isIdentical(to:)` returns `false` we compute a new `result`. Because `isIdentical(to:)` *can* return `false` when two values are equal, we might be computing the same `result` more than once. The performance tradeoff is that because the operation to compute a new `result` is `O(n)` time, we might not *want* to perform another `O(n)` value equality operation to determine if we should compute a new `result`. Our `isIdentical(to:)` will return in constant time no matter how many elements are in `input` or how expensive this value equality operation would be.
+When we return `true` from `isTriviallyIdentical(to:)` we skip computing a new `result`. When `isTriviallyIdentical(to:)` returns `false` we compute a new `result`. Because `isTriviallyIdentical(to:)` *can* return `false` when two values are equal, we might be computing the same `result` more than once. The performance tradeoff is that because the operation to compute a new `result` is `O(n)` time, we might not *want* to perform another `O(n)` value equality operation to determine if we should compute a new `result`. Our `isTriviallyIdentical(to:)` will return in constant time no matter how many elements are in `input` or how expensive this value equality operation would be.
 
-Let’s go back to our SwiftUI app for displaying `Contact` values. Here is what the change would look like to use `isIdentical(to:)` in place of value equality to memoize `favorites`:
+Let’s go back to our SwiftUI app for displaying `Contact` values. Here is what the change would look like to use `isTriviallyIdentical(to:)` in place of value equality to memoize `favorites`:
 
 ```swift
 extension Favorites {
@@ -376,7 +378,7 @@ extension Favorites {
     ...
     
     func update(_ contacts: [Contact]) {
-      if self.contacts.isIdentical(to: contacts) == false {
+      if self.contacts.isTriviallyIdentical(to: contacts) == false {
         self.contacts = contacts
         self.favorites = nil
       }
@@ -391,7 +393,7 @@ When we build and run our SwiftUI app we confirm that we are not computing new `
 
 ## Detailed Design
 
-We propose adding `isIdentical` methods to the following concrete types from Standard Library:
+We propose adding `isTriviallyIdentical(to:)` methods to the following concrete types from Standard Library:
 * `String`
 * `String.UnicodeScalarView`
 * `String.UTF16View`
@@ -405,6 +407,13 @@ We propose adding `isIdentical` methods to the following concrete types from Sta
 * `ContiguousArray`
 * `Dictionary`
 * `Set`
+* `UnsafeBufferPointer`
+* `UnsafeMutableBufferPointer`
+* `UnsafeMutableRawBufferPointer`
+* `UnsafeRawBufferPointer`
+* `UTF8Span`
+* `Span`
+* `RawSpan`
 
 For each type being presented we codify important semantics in our header documentation.
 
@@ -412,27 +421,23 @@ For each type being presented we codify important semantics in our header docume
 
 ```swift
 extension String {
-  /// Returns a boolean value indicating whether this string is identical to
-  /// `other`.
+  /// Returns a boolean value indicating whether this string is identical to `other`.
   ///
-  /// Two string values are identical if there is no way to distinguish between
-  /// them.
+  /// Two string values are identical if there is no way to distinguish between them.
   /// 
   /// For any values `a`, `b`, and `c`:
   ///
-  /// - `a.isIdentical(to: a)` is always `true`. (Reflexivity)
-  /// - `a.isIdentical(to: b)` implies `b.isIdentical(to: a)`. (Symmetry)
-  /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
-  ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
-  /// - `a.isIdentical(b)` implies `a == b`
-  ///   - `a == b` does not imply `a.isIdentical(b)`
+  /// - `a.isTriviallyIdentical(to: a)` is always `true`. (Reflexivity)
+  /// - `a.isTriviallyIdentical(to: b)` implies `b.isTriviallyIdentical(to: a)`. (Symmetry)
+  /// - If `a.isTriviallyIdentical(to: b)` and `b.isTriviallyIdentical(to: c)` are both `true`, then `a.isTriviallyIdentical(to: c)` is also `true`. (Transitivity)
+  /// - `a.isTriviallyIdentical(b)` implies `a == b`
+  ///   - `a == b` does not imply `a.isTriviallyIdentical(b)`
   ///
-  /// Values produced by copying the same value, with no intervening mutations,
-  /// will compare identical:
+  /// Values produced by copying the same value, with no intervening mutations, will compare identical:
   ///
   /// ```swift
   /// let d = c
-  /// print(c.isIdentical(to: d))
+  /// print(c.isTriviallyIdentical(to: d))
   /// // Prints true
   /// ```
   ///
@@ -443,11 +448,11 @@ extension String {
   /// identical.
   ///
   /// - Performance: O(1)
-  public func isIdentical(to other: Self) -> Bool { ... }
+  public func isTriviallyIdentical(to other: Self) -> Bool { ... }
 }
 ```
 
-The following types will adopt the same semantic guarantees as `String`:
+The following types will adopt `isTriviallyIdentical(to:)` with the same semantic guarantees as `String`:
 * `String.UnicodeScalarView`
 * `String.UTF16View`
 * `String.UTF8View`
@@ -456,27 +461,23 @@ The following types will adopt the same semantic guarantees as `String`:
 
 ```swift
 extension Substring {
-  /// Returns a boolean value indicating whether this substring is identical to
-  /// `other`.
+  /// Returns a boolean value indicating whether this substring is identical to `other`.
   ///
-  /// Two substring values are identical if there is no way to distinguish
-  /// between them.
+  /// Two substring values are identical if there is no way to distinguish between them.
   /// 
   /// For any values `a`, `b`, and `c`:
   ///
-  /// - `a.isIdentical(to: a)` is always `true`. (Reflexivity)
-  /// - `a.isIdentical(to: b)` implies `b.isIdentical(to: a)`. (Symmetry)
-  /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
-  ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
-  /// - `a.isIdentical(b)` implies `a == b`
-  ///   - `a == b` does not imply `a.isIdentical(b)`
+  /// - `a.isTriviallyIdentical(to: a)` is always `true`. (Reflexivity)
+  /// - `a.isTriviallyIdentical(to: b)` implies `b.isTriviallyIdentical(to: a)`. (Symmetry)
+  /// - If `a.isTriviallyIdentical(to: b)` and `b.isTriviallyIdentical(to: c)` are both `true`, then `a.isTriviallyIdentical(to: c)` is also `true`. (Transitivity)
+  /// - `a.isTriviallyIdentical(b)` implies `a == b`
+  ///   - `a == b` does not imply `a.isTriviallyIdentical(b)`
   ///
-  /// Values produced by copying the same value, with no intervening mutations,
-  /// will compare identical:
+  /// Values produced by copying the same value, with no intervening mutations, will compare identical:
   ///
   /// ```swift
   /// let d = c
-  /// print(c.isIdentical(to: d))
+  /// print(c.isTriviallyIdentical(to: d))
   /// // Prints true
   /// ```
   ///
@@ -487,11 +488,11 @@ extension Substring {
   /// identical.
   ///
   /// - Performance: O(1)
-  public func isIdentical(to other: Self) -> Bool { ... }
+  public func isTriviallyIdentical(to other: Self) -> Bool { ... }
 }
 ```
 
-The following types will adopt the same semantic guarantees as `Substring`:
+The following types will adopt `isTriviallyIdentical(to:)` with the same semantic guarantees as `Substring`:
 * `Substring.UnicodeScalarView`
 * `Substring.UTF16View`
 * `Substring.UTF8View`
@@ -500,27 +501,23 @@ The following types will adopt the same semantic guarantees as `Substring`:
 
 ```swift
 extension Array {
-  /// Returns a boolean value indicating whether this array is identical to
-  /// `other`.
+  /// Returns a boolean value indicating whether this array is identical to `other`.
   ///
-  /// Two array values are identical if there is no way to distinguish between
-  /// them.
+  /// Two array values are identical if there is no way to distinguish between them.
   /// 
   /// For any values `a`, `b`, and `c`:
   ///
-  /// - `a.isIdentical(to: a)` is always `true`. (Reflexivity)
-  /// - `a.isIdentical(to: b)` implies `b.isIdentical(to: a)`. (Symmetry)
-  /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
-  ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
-  /// - If `a` and `b` are `Equatable`, then `a.isIdentical(b)` implies `a == b`
-  ///   - `a == b` does not imply `a.isIdentical(b)`
+  /// - `a.isTriviallyIdentical(to: a)` is always `true`. (Reflexivity)
+  /// - `a.isTriviallyIdentical(to: b)` implies `b.isTriviallyIdentical(to: a)`. (Symmetry)
+  /// - If `a.isTriviallyIdentical(to: b)` and `b.isTriviallyIdentical(to: c)` are both `true`, then `a.isTriviallyIdentical(to: c)` is also `true`. (Transitivity)
+  /// - If `a` and `b` are `Equatable`, then `a.isTriviallyIdentical(b)` implies `a == b`
+  ///   - `a == b` does not imply `a.isTriviallyIdentical(b)`
   ///
-  /// Values produced by copying the same value, with no intervening mutations,
-  /// will compare identical:
+  /// Values produced by copying the same value, with no intervening mutations, will compare identical:
   ///
   /// ```swift
   /// let d = c
-  /// print(c.isIdentical(to: d))
+  /// print(c.isTriviallyIdentical(to: d))
   /// // Prints true
   /// ```
   ///
@@ -531,113 +528,36 @@ extension Array {
   /// identical.
   ///
   /// - Performance: O(1)
-  public func isIdentical(to other: Self) -> Bool { ... }
+  public func isTriviallyIdentical(to other: Self) -> Bool { ... }
 }
 ```
 
-### `ArraySlice`
+The following types will adopt `isTriviallyIdentical(to:)` with the same semantic guarantees as `Array`:
 
-```swift
-extension ArraySlice {
-  /// Returns a boolean value indicating whether this array is identical to
-  /// `other`.
-  ///
-  /// Two array values are identical if there is no way to distinguish between
-  /// them.
-  ///
-  /// For any values `a`, `b`, and `c`:
-  ///
-  /// - `a.isIdentical(to: a)` is always `true`. (Reflexivity)
-  /// - `a.isIdentical(to: b)` implies `b.isIdentical(to: a)`. (Symmetry)
-  /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
-  ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
-  /// - If `a` and `b` are `Equatable`, then `a.isIdentical(b)` implies `a == b`
-  ///   - `a == b` does not imply `a.isIdentical(b)`
-  ///
-  /// Values produced by copying the same value, with no intervening mutations,
-  /// will compare identical:
-  ///
-  /// ```swift
-  /// let d = c
-  /// print(c.isIdentical(to: d))
-  /// // Prints true
-  /// ```
-  ///
-  /// Comparing arrays this way includes comparing (normally) hidden
-  /// implementation details such as the memory location of any underlying
-  /// array storage object. Therefore, identical arrays are guaranteed to
-  /// compare equal with `==`, but not all equal arrays are considered
-  /// identical.
-  ///
-  /// - Performance: O(1)
-  public func isIdentical(to other: Self) -> Bool { ... }
-}
-```
-
-### `ContiguousArray`
-
-```swift
-extension ContiguousArray {
-  /// Returns a boolean value indicating whether this array is identical to
-  /// `other`.
-  ///
-  /// Two array values are identical if there is no way to distinguish between
-  /// them.
-  /// 
-  /// For any values `a`, `b`, and `c`:
-  ///
-  /// - `a.isIdentical(to: a)` is always `true`. (Reflexivity)
-  /// - `a.isIdentical(to: b)` implies `b.isIdentical(to: a)`. (Symmetry)
-  /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
-  ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
-  /// - If `a` and `b` are `Equatable`, then `a.isIdentical(b)` implies `a == b`
-  ///   - `a == b` does not imply `a.isIdentical(b)`
-  ///
-  /// Values produced by copying the same value, with no intervening mutations,
-  /// will compare identical:
-  ///
-  /// ```swift
-  /// let d = c
-  /// print(c.isIdentical(to: d))
-  /// // Prints true
-  /// ```
-  ///
-  /// Comparing arrays this way includes comparing (normally) hidden
-  /// implementation details such as the memory location of any underlying
-  /// array storage object. Therefore, identical arrays are guaranteed to
-  /// compare equal with `==`, but not all equal arrays are considered
-  /// identical.
-  ///
-  /// - Performance: O(1)
-  public func isIdentical(to other: Self) -> Bool { ... }
-}
-```
+* `ArraySlice`
+* `ContiguousArray`
 
 ### `Dictionary`
 
 ```swift
 extension Dictionary {
-  /// Returns a boolean value indicating whether this dictionary is identical to
-  /// `other`.
+  /// Returns a boolean value indicating whether this dictionary is identical to `other`.
   ///
-  /// Two dictionary values are identical if there is no way to distinguish
-  /// between them.
+  /// Two dictionary values are identical if there is no way to distinguish between them.
   ///
   /// For any values `a`, `b`, and `c`:
   ///
-  /// - `a.isIdentical(to: a)` is always `true`. (Reflexivity)
-  /// - `a.isIdentical(to: b)` implies `b.isIdentical(to: a)`. (Symmetry)
-  /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
-  ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
-  /// - If `a` and `b` are `Equatable`, then `a.isIdentical(b)` implies `a == b`
-  ///   - `a == b` does not imply `a.isIdentical(b)`
+  /// - `a.isTriviallyIdentical(to: a)` is always `true`. (Reflexivity)
+  /// - `a.isTriviallyIdentical(to: b)` implies `b.isTriviallyIdentical(to: a)`. (Symmetry)
+  /// - If `a.isTriviallyIdentical(to: b)` and `b.isTriviallyIdentical(to: c)` are both `true`, then `a.isTriviallyIdentical(to: c)` is also `true`. (Transitivity)
+  /// - If `a` and `b` are `Equatable`, then `a.isTriviallyIdentical(b)` implies `a == b`
+  ///   - `a == b` does not imply `a.isTriviallyIdentical(b)`
   ///
-  /// Values produced by copying the same value, with no intervening mutations,
-  /// will compare identical:
+  /// Values produced by copying the same value, with no intervening mutations, will compare identical:
   ///
   /// ```swift
   /// let d = c
-  /// print(c.isIdentical(to: d))
+  /// print(c.isTriviallyIdentical(to: d))
   /// // Prints true
   /// ```
   /// 
@@ -648,7 +568,7 @@ extension Dictionary {
   /// considered identical.
   ///
   /// - Performance: O(1)
-  public func isIdentical(to other: Self) -> Bool { ... }
+  public func isTriviallyIdentical(to other: Self) -> Bool { ... }
 }
 ```
 
@@ -656,27 +576,23 @@ extension Dictionary {
 
 ```swift
 extension Set {
-  /// Returns a boolean value indicating whether this set is identical to
-  /// `other`.
+  /// Returns a boolean value indicating whether this set is identical to `other`.
   ///
-  /// Two set values are identical if there is no way to distinguish between
-  /// them.
+  /// Two set values are identical if there is no way to distinguish between them.
   /// 
   /// For any values `a`, `b`, and `c`:
   ///
-  /// - `a.isIdentical(to: a)` is always `true`. (Reflexivity)
-  /// - `a.isIdentical(to: b)` implies `b.isIdentical(to: a)`. (Symmetry)
-  /// - If `a.isIdentical(to: b)` and `b.isIdentical(to: c)` are both `true`,
-  ///   then `a.isIdentical(to: c)` is also `true`. (Transitivity)
-  /// - `a.isIdentical(b)` implies `a == b`
-  ///   - `a == b` does not imply `a.isIdentical(b)`
+  /// - `a.isTriviallyIdentical(to: a)` is always `true`. (Reflexivity)
+  /// - `a.isTriviallyIdentical(to: b)` implies `b.isTriviallyIdentical(to: a)`. (Symmetry)
+  /// - If `a.isTriviallyIdentical(to: b)` and `b.isTriviallyIdentical(to: c)` are both `true`, then `a.isTriviallyIdentical(to: c)` is also `true`. (Transitivity)
+  /// - `a.isTriviallyIdentical(b)` implies `a == b`
+  ///   - `a == b` does not imply `a.isTriviallyIdentical(b)`
   ///
-  /// Values produced by copying the same value, with no intervening mutations,
-  /// will compare identical:
+  /// Values produced by copying the same value, with no intervening mutations, will compare identical:
   ///
   /// ```swift
   /// let d = c
-  /// print(c.isIdentical(to: d))
+  /// print(c.isTriviallyIdentical(to: d))
   /// // Prints true
   /// ```
   ///
@@ -686,9 +602,36 @@ extension Set {
   /// with `==`, but not all equal sets are considered identical.
   ///
   /// - Performance: O(1)
-  public func isIdentical(to other: Self) -> Bool { ... }
+  public func isTriviallyIdentical(to other: Self) -> Bool { ... }
 }
 ```
+
+### `UnsafeBufferPointer`
+
+```swift
+extension UnsafeBufferPointer where Element: ~Copyable {
+  /// Returns a Boolean value indicating whether two `UnsafeBufferPointer` instances refer to the same region in memory.
+  public func isTriviallyIdentical(to other: Self) -> Bool { ... }
+}
+```
+
+The following types will adopt `isTriviallyIdentical(to:)` with the same semantic guarantees as `UnsafeBufferPointer`:
+* `UnsafeMutableBufferPointer`
+* `UnsafeMutableRawBufferPointer`
+* `UnsafeRawBufferPointer`
+
+### `UTF8Span`
+
+```swift
+extension UTF8Span where Element: ~Copyable {
+  /// Returns a Boolean value indicating whether two `UTF8Span` instances refer to the same region in memory.
+  public func isTriviallyIdentical(to other: Self) -> Bool { ... }
+```
+
+The following types will adopt `isTriviallyIdentical(to:)` with the same semantic guarantees as `UTF8Span`:
+
+* `Span`
+* `RawSpan`
 
 ## Source Compatibility
 
@@ -700,7 +643,7 @@ This proposal is additive and ABI-compatible with existing code.
 
 ## Future Directions
 
-Any Standard Library types that are copy-on-write values could be good candidates to add `isIdentical` functions. Here are some potential types to consider for a future proposal:
+Any Standard Library types that are copy-on-write values could be good candidates to add `isTriviallyIdentical(to:)` functions. Here are some potential types to consider for a future proposal:
 
 * `Character`
 * `Dictionary.Keys`
@@ -710,7 +653,7 @@ Any Standard Library types that are copy-on-write values could be good candidate
 * `StaticString`
 * `UTF8Span`
 
-This proposal focuses on what we see as the most high-impact types to support from Standard Library. This proposal *is not* meant to discourage adding `isIdentical(to:)` on any of these types at some point in the future. A follow-up “second-round” proposal could focus on these remaining types.
+This proposal focuses on what we see as the most high-impact types to support from Standard Library. This proposal *is not* meant to discourage adding `isTriviallyIdentical(to:)` on any of these types at some point in the future. A follow-up “second-round” proposal could focus on these remaining types.
 
 ## Alternatives Considered
 
@@ -724,20 +667,19 @@ There’s a lot of interesting directions to go with that idea… but we don’t
 
 Multiple different names have been suggested for these operations. Including:
 
+* `isIdentical(to:)`
 * `hasSameRepresentation(as:)`
 * `isKnownIdentical(to:)`
 
-We prefer `isIdentical(to:)`. This also has the benefit of being consistent with the years of prior art we have accumulated across the Swift ecosystem.
-
 ### Generic Contexts
 
-We proposed an “informal” protocol for library maintainers adopting `isIdentical(to:)` on new types. Could we just build a new protocol in Standard Library? Maybe. We don’t see a big need for this right now. If product engineers would want for these types to conform to some common protocol to use across generic contexts, those product engineers can define that protocol in their own packages. If these protocols “incubate” in the community and become a common practice, we can consider proposing a new protocol in Standard Library.
+We proposed an “informal” protocol for library maintainers adopting `isTriviallyIdentical(to:)` on new types. Could we just build a new protocol in Standard Library? Maybe. We don’t see a big need for this right now. If product engineers would want for these types to conform to some common protocol to use across generic contexts, those product engineers can define that protocol in their own packages. If these protocols “incubate” in the community and become a common practice, we can consider proposing a new protocol in Standard Library.
 
-Instead of a new protocol, could we somehow add `isIdentical(to:)` on `Equatable`? Maybe. This would introduce some more tricky questions. If we adopt this on *all* `Equatable` types, what do we do about types like `Int` or `Bool` that do not have an ability to perform a fast check for identity? Similar to our last idea, we prefer to focus just on concrete types for now. If product engineers want to make `isIdentical(to:)` available on generic contexts across `Equatable`, we encourage them to experiment with their own extension for that. If this pattern becomes popular in the community, we can consider a new proposal to add this on `Equatable` in Standard Library.
+Instead of a new protocol, could we somehow add `isTriviallyIdentical(to:)` on `Equatable`? Maybe. This would introduce some more tricky questions. If we adopt this on *all* `Equatable` types, what do we do about types like `Int` or `Bool` that do not have an ability to perform a fast check for identity? Similar to our last idea, we prefer to focus just on concrete types for now. If product engineers want to make `isTriviallyIdentical(to:)` available on generic contexts across `Equatable`, we encourage them to experiment with their own extension for that. If this pattern becomes popular in the community, we can consider a new proposal to add this on `Equatable` in Standard Library.
 
 ### Overload for Reference Comparison
 
-Could we “overload” the `===` operator from `AnyObject`? This proposal considers that question to be orthogonal to our goal of exposing identity equality with the `isIdentical` methods. We could choose to overload `===`, but this would be a larger “conceptual” and “philosophical” change because the `===` operator is currently meant for `AnyObject` types — not value types like `Array`.
+Could we “overload” the `===` operator from `AnyObject`? This proposal considers that question to be orthogonal to our goal of exposing identity equality with the `isTriviallyIdentical(to:)` methods. We could choose to overload `===`, but this would be a larger “conceptual” and “philosophical” change because the `===` operator is currently meant for `AnyObject` types — not value types like `Array`.
 
 ### Support for Optionals
 
@@ -745,11 +687,11 @@ We can support `Optional` values with the following extension:
 
 ```swift
 extension Optional {
-  public func isIdentical<T>(to other: Self) -> Bool
+  public func isTriviallyIdentical<T>(to other: Self) -> Bool
   where Wrapped == Array<T> {
     switch (self, other) {
     case let (value?, other?):
-      return value.isIdentical(to: other)
+      return value.isTriviallyIdentical(to: other)
     case (nil, nil):
       return true
     default:
@@ -763,7 +705,7 @@ Because this extension needs no `private` or `internal` symbols from Standard Li
 
 ### Alternative Semantics
 
-Instead of publishing an `isIdentical` method which implies two types *must* be equal, could we think of things from the opposite direction? Could we publish a `maybeDifferent` method which implies two types *might not* be equal? This then introduces some potential ambiguity for product engineers: to what extent does “maybe different” imply “probably different”? This ambiguity could be settled with extra documentation on the method, but `isIdentical` solves that ambiguity up-front. The `isIdentical` method is also consistent with the prior art in this space.
+Instead of publishing an `isTriviallyIdentical(to:)` method which implies two types *must* be equal, could we think of things from the opposite direction? Could we publish a `maybeDifferent` method which implies two types *might not* be equal? This then introduces some potential ambiguity for product engineers: to what extent does “maybe different” imply “probably different”? This ambiguity could be settled with extra documentation on the method, but `isTriviallyIdentical(to:)` solves that ambiguity up-front. The `isTriviallyIdentical(to:)` method is also consistent with the prior art in this space.
 
 In the same way this proposal exposes a way to quickly check if two values *must* be equal, product engineers might want a way to quickly check if two values *must not* be equal. This is an interesting idea, but this can exist as an independent proposal. We don’t need to block the review of this proposal on a review of `isNotIdentical` semantics.
 
@@ -774,6 +716,8 @@ Thanks to [Ben Cohen](https://forums.swift.org/t/-/78792/7) for helping to think
 Thanks to [David Nadoba](https://forums.swift.org/t/-/80496/61/) for proposing the formal equivalence relation semantics and axioms on concrete types.
 
 Thanks to [Xiaodi Wu](https://forums.swift.org/t/-/80496/67) for proposing that our equivalence relation semantics would carve-out for “exceptional” values like `Float.nan`.
+
+Thanks to [QuinceyMorris](https://forums.swift.org/t/-/82296/72) for proposing the name `isTriviallyIdentical(to:)`.
 
 [^1]: https://github.com/swiftlang/swift/blob/swift-6.1.2-RELEASE/stdlib/public/core/String.swift#L397-L415
 [^2]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/DequeModule/Deque._Storage.swift#L223-L225
