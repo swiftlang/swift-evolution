@@ -26,7 +26,7 @@ Currently, many tools that need to display symbol names to developers are forced
 
 Neither of these approaches are satisfactionary, because either we are paying a high cost for creating processes, or we're relying on unofficial APIs.
 
-This proposal introduces an official `demangle(:String) -> String?` function that offers a maintained and safe way to call the Swift demangled from a running Swift application.
+This proposal introduces an official `demangle(:String) -> String?` function that offers a maintained and safe way to call the Swift demangler from a running Swift application.
 
 ## Proposed solution
 
@@ -83,7 +83,7 @@ The demangled representation may change without any warning, during even patch r
 
 ### Customizing demangling behavior with options
 
-We intentionally do not offer customization of demangling modes in this initial revision of this API. The Swift demangler does offer various options about hot demangling should be performed, however we are not confident enough in selecting a subset of those options to offer as API at this point.
+We intentionally do not offer customization of demangling modes in this initial revision of this API. The Swift demangler does offer various options about how demangling should be performed, however we are not confident enough in selecting a subset of those options to offer as API at this point.
 
 Adding those options will be possible in future revisions, by adding an additional `options: DemanglingOptions` parameter to the demangle functions introduced in this proposal.
 
