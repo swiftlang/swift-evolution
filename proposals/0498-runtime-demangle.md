@@ -1,9 +1,9 @@
 # Expose demangle function in Runtime module
 
-* Proposal: [SE-NNNN](0496-runtime-demangle.md)
+* Proposal: [SE-0498](0498-runtime-demangle.md)
 * Authors: [Konrad'ktoso'Malawski](https://github.com/ktoso), [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: TODO
-* Status: TODO
+* Review Manager: [Steve Canon](https://github.com/stephentyrone)
+* Status: **Active Review (November 4 ..< 18)**
 * Implementation: [PR #84788](https://github.com/swiftlang/swift/pull/84788)
 * Review: 
     * Previous [pitch](https://forums.swift.org/t/demangle-function/25416/16)
@@ -34,14 +34,7 @@ A simple demangle method, returning an optional `String`:
 public func demangle(_ mangledName: String) -> String?
 ```
 
-The demangling function supports all valid Swift symbols. Valid Swift symbols begin with the following prefixes:
-
-- Swift 3, and below: `_T`
-- Swift 4: `_T0`
-- Swift 4.x: `$S`
-- Swift 5+: `$s`
-
-The demangle function will also attempt to decode mangled C++ symbols which can be identified by the the `_Z` prefix.
+The demangling function supports all valid Swift symbols. Valid Swift 5.0 and later symbols begin with `$s` (preceded by an optional platform-specific prefix).
 
 And an overload which accepts an `UTF8Span` into which the demangled string can be written:
 
