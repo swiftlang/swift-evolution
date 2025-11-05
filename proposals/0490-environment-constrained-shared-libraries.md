@@ -3,7 +3,7 @@
 * Proposal: [SE-0490](0490-environment-constrained-shared-libraries.md)
 * Authors: [tayloraswift](https://github.com/tayloraswift)
 * Review Manager: [Alastair Houghton](https://github.com/al45tair)
-* Status: **Active Review (Sep 5 - Sep 18, 2025)**
+* Status: **Active Review (September 5th...September 18th, 2025)**
 * Implementation: [swiftlang/swift-package-manager#8249](https://github.com/swiftlang/swift-package-manager/pull/8249)
 * Documentation: [How to use Environment-Constrained Shared Libraries](https://github.com/swiftlang/swift-package-manager/blob/1eaf59d2facc74c88574f38395aa49983b2badcc/Documentation/ECSLs.md)
 * Bugs: [SR-5714](https://github.com/swiftlang/swift-package-manager/issues/5714)

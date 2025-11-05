@@ -122,7 +122,7 @@ The child task begins running as soon as the `async let` is encountered. By defa
 
 The right-hand side of a `async let` expression can be thought of as an implicit `@Sendable closure`, similar to how the `Task.detached { ... }` API works, however the resulting task is a *child task* of the currently executing task. Because of this, and the need to suspend to await the results of such expression, `async let` declarations may only occur within an asynchronous context, i.e. an `async` function or closure.
 
-For single statement expressions in the `async let` initializer, the `await` and `try` keywords may be omitted. The effects they represent carry through to the introduced constant and will have to be used when waiting on the constant. In the example shown above, the veggies are declared as `async let veggies = chopVegetables()`, and even through `chopVegetables` is `async` and `throws`, the `await` and `try` keywords do not have to be used on that line of code. Once waiting on the value of that `async let` constant, the compiler will enforce that the expression where the `veggies` appear must be covered by both `await` and some form of `try`.
+For single statement expressions in the `async let` initializer, the `await` and `try` keywords may be omitted. The effects they represent carry through to the introduced constant and will have to be used when waiting on the constant. In the example shown above, the veggies are declared as `async let veggies = chopVegetables()`, and even though `chopVegetables` is `async` and `throws`, the `await` and `try` keywords do not have to be used on that line of code. Once waiting on the value of that `async let` constant, the compiler will enforce that the expression where the `veggies` appear must be covered by both `await` and some form of `try`.
 
 Because the main body of the function executes concurrently with its child tasks, it is possible that the parent task (the body of `makeDinner` in this example) will reach the point where it needs the value of a `async let` (say,`veggies`) before that value has been produced. To account for that, reading a variable defined by a `async let` is treated as a potential suspension point,
 and therefore must be marked with `await`. 
@@ -133,7 +133,7 @@ and therefore must be marked with `await`.
 
 `async let` declarations are similar to `let` declarations, however they can only appear in specific contexts.
 
-Because the asynchronous task must be able to be awaited on in the scope it is created, it is only possible to declare `async let`s in contexts where it would also be legal to write an explicit `await`, i.e. asynchronous functions:
+Because the asynchronous task must be able to be awaited on in the scope it is created in, it is only possible to declare `async let`s in contexts where it would also be legal to write an explicit `await`, i.e. asynchronous functions:
 
 ```swift
 func greet() async -> String { "hi" }
@@ -236,7 +236,7 @@ async let (l, r) = {
 
 meaning that the entire initializer of the `async let` is a single task, and if multiple asynchronous function calls are made inside it, they are performed one-by one. This is a specific application of the general rule of `async let` initializers being allowed to omit a single leading `await` keyword before their expressions. Because in this example, we invoke two asynchronous functions to form a tuple, the `await` can be moved outside the expression, and that await is what is omitted in the shorthand form of the `async let` that we've seen in the first snippet.
 
-This also means that as soon as we enter continue past the line of `await l` it is known that the `r` value also has completed successfully (and will not need to emit an "implicit await" which we'll discuss in detail below).
+This also means that as soon as we continue past the line of `await l`, it is known that the `r` value also has completed successfully (and will not need to emit an "implicit await" which we'll discuss in detail below).
 
 Another implication of these semantics is that if _any_ piece of the initializer throws, any await on such pattern declared `async let` shall be considered throwing, as they are initialized "together". To visualize this, let us consider the following:
 
@@ -288,13 +288,13 @@ _ = try await ohNo
 _ = try await ohNo
 ```
 
-This is a simple rule and allows us to bring the feature forward already. It might be possible to employ control flow based analysis to enable "only the first reference to the specific `async let` on each control flow path has to be an `await`", as technically speaking, every following await will be a no-op and will not suspend as the value is already completed, and the placeholder has been filled in.
+This is a simple rule and allows us to bring the feature forward already. It might be possible to employ control flow based analysis to enable "only the first reference to the specific `async let` on each control flow path has to be an `await`", as technically speaking, every following await will be a no-op and will not suspend as the value is already completed and the placeholder has been filled in.
 
 ### Implicit `async let` awaiting 
 
-A `async let` that was declared but never awaited on *explicitly* as the scope in which it was declared exits, will be awaited on implicitly. These semantics are put in place to uphold the Structured Concurrency guarantees provided by `async let`.
+A `async let` that was declared but never awaited on *explicitly*, as the scope in which it was declared exits, will be awaited on implicitly. These semantics are put in place to uphold the Structured Concurrency guarantees provided by `async let`.
 
-To showcase these semantics, let us have a look at this function which spawns two child tasks, `fast` and `slow` but does not await on any of them:
+To showcase these semantics, let us have a look at this function which spawns two child tasks, `fast` and `slow`, but does not await on any of them:
 
 ```swift
 func go() async { 
@@ -312,7 +312,7 @@ Assuming the execution times of `fast()` and `slow()` are as the comments next t
 
 As we return from the `go()` function without ever having awaited on the `f` or `s` values, both of them will be implicitly cancelled and awaited on before returning from the function `go()`. This is the very nature of structured concurrency, and avoiding this can _only_ be done by creating non-child tasks, e.g. by using `Task.detached` or other future APIs which would allow creation of non-child tasks.
 
-If we instead awaited on one of the values, e.g. the fast one (`f`) the emitted code would not need to implicitly cancel or await it, as this was already taken care of explicitly:
+If we instead awaited on one of the values, e.g. the fast one (`f`), the emitted code would not need to implicitly cancel or await it, as this was already taken care of explicitly:
 
 ```swift
 func go2() async {
@@ -327,7 +327,7 @@ func go2() async {
 
 The duration of the `go2()` call remains the same, it is always `time(go2) == max(time(f), time(s))`.
 
-Special attention needs to be given to the `async let _ = ...` form of declarations. This form is interesting because it creates a child-task of the right-hand-side initializer, however it actively chooses to ignore the result. Such a declaration (and the associated child-task) will run and be cancelled and awaited-on implicitly, as the scope it was declared in is about to exit — the same way as an unused `async let` declaration would be.
+Special attention needs to be given to the `async let _ = ...` form of declarations. This form is interesting because it creates a child-task from the right-hand-side initializer, however it actively chooses to ignore the result. Such a declaration (and the associated child-task) will run and be cancelled and awaited-on implicitly, as the scope it was declared in is about to exit — the same way as an unused `async let` declaration would be.
 
 ### `async let` and closures
 
@@ -368,7 +368,7 @@ await greet { await name } // error: cannot escape 'async let' value
 
 While it is legal to declare a `async let` and never explicitly `await` on it, it also implies that we do not particularly care about its result.
 
-This is the same as spawning a number of child-tasks in a task group, and not collecting their results, like so:
+This is the same as spawning a number of child-tasks in a task group and not collecting their results, like so:
 
 ```swift
 try await withThrowingTaskGroup(of: Int.self) { group in 
@@ -378,7 +378,7 @@ try await withThrowingTaskGroup(of: Int.self) { group in
 } // returns 0
 ```
 
-The above TaskGroup example will ignore the `Boom` thrown by its child task. However, it _will_ await for the task (and any other tasks it had spawned) to run to completion before the `withThrowingTaskGroup` returns. If we wanted to surface all potential throws of tasks spawned in the group, we should have written: `for try await _ in group {}` which would have re-thrown the `Boom()`.
+The above TaskGroup example will ignore the `Boom` thrown by its child task. However, it _will_ await for the task (and any other tasks it has spawned) to run to completion before the `withThrowingTaskGroup` returns. If we wanted to surface all potential throws of tasks spawned in the group, we should have written: `for try await _ in group {}` which would have re-thrown the `Boom()`.
 
 The same concept carries over to `async let`, where the scope of the group is replaced by the syntactic scope in which the `async let` was declared. For example, the following snippet is semantically equivalent to the above TaskGroup one:
 
@@ -485,11 +485,11 @@ func toyParallelMapExactly2<A, B>(_ items: [A], f: (A) async -> B) async -> [B] 
 }
 ```
 
-And while the second example reads very nicely, it cannot work in practice to implement such parallel map function, because the size of the input `items` is not known (and we'd have to implement `1...n` versions of such function).
+And while the second example reads very nicely, it cannot work in practice to implement such parallel map function, because the size of the input `items` is not known (and we'd have to implement `1...n` versions of such a function).
 
 Another API which is not implementable with `async let` and will require using a task group is anything that requires some notion of completion order. Because `async let` declarations must be awaited on it is not possible to express "whichever completes first", and a task group must be used to implement such API. 
 
-For example, the `race(left:right:)` function shown below, runs two child tasks in parallel, and returns whichever completed first. Such API is not possible to implement using async let and must be implemented using a group:
+For example, the `race(left:right:)` function shown below, runs two child tasks in parallel, and returns whichever completes first. Such API is not possible to implement using async let and must be implemented using a group:
 
 ```swift
 func race(left: () async -> Int, right: () async -> Int) async -> Int {
@@ -508,7 +508,7 @@ func race(left: () async -> Int, right: () async -> Int) async -> Int {
 
 It is worth comparing `async let` declarations with the one other API proposed so far that is able to start asynchronous tasks: `Task {}`, and `Task.detached {}`, proposed in [SE-0304: Structured Concurrency](0304-structured-concurrency.md).
 
-First off, `Task.detached` most of the time should not be used at all, because it does _not_ propagate task priority, task-local values or the execution context of the caller. Not only that but a detached task is inherently not _structured_ and thus may out-live its defining scope.
+First off, `Task.detached` most of the time should not be used at all, because it does _not_ propagate task priority, task-local values or the execution context of the caller. Not only that but a detached task is inherently not _structured_ and thus may outlive its defining scope.
 
 This immediately shows how `async let` and the general concept of child-tasks are superior to detached tasks. They automatically propagate all necessary information about scheduling and metadata necessary for execution tracing. And they can be allocated more efficiently than detached tasks.
 
@@ -583,7 +583,7 @@ func run() async {
 
 This snippet is semantically equivalent to the one before it, in that the `await alcatraz` happens before the `escapeFrom` function is able to run. 
 
-While it is only a small syntactic improvement over the second snippet in this section, it is a welcome and consistent one with prior patterns in swift, where it is possible to capture a `[weak variable]` in closures.
+While it is only a small syntactic improvement over the second snippet in this section, it is a welcome and consistent one with prior patterns in Swift, where it is possible to capture a `[weak variable]` in closures.
 
 The capture list is only necessary for `@escaping` closures, as non-escaping ones are guaranteed to not "out-live" the scope from which they are called, and thus cannot violate the structured concurrency guarantees an `async let` relies on.
 
@@ -591,7 +591,7 @@ The capture list is only necessary for `@escaping` closures, as non-escaping one
 
 It is reasonable to request that specific `async let` initializers run on specific executors. 
 
-While this usually not necessary to actor based code, because actor invocations will implicitly "hop" to the right actor as it is called, like in the example below:
+This is usually not necessary for actor based code, because actor invocations will implicitly "hop" to the right actor as it is called, like in the example below:
 
 ```swift
 actor Worker { func work() {} }
@@ -600,11 +600,11 @@ let worker: Worker = ...
 async let x = worker.work() // implicitly hops to the worker to perform the work
 ```
 
-The reasons it may be beneficial to specify an executor child-tasks should run are multiple, and the list is by no means exhaustive, but to give an idea, specifying the executor of child-tasks may:
+There are many reasons it may be beneficial to specify an executor in which child-tasks should run, and the list is by no means exhaustive, but to give an idea, specifying the executor of child-tasks may:
 
-- pro-actively fine-tune executors to completely avoid any thread and executor hopping in such tasks,
+- proactively fine-tune executors to completely avoid any thread and executor hopping in such tasks,
 - execute child-tasks concurrently however _not_ in parallel with the creating task (e.g. make child tasks run on the same serial executor as the calling actor),
-- if the child-task work is known to be heavy and blocking, it may be beneficial to delegate it to a specific "blocking executor" which would have a dedicated, small, number of threads on which it would execute the blocking work; Thanks to such separation, the main global thread-pool would not be impacted by starvation issues which such blocking tasks would otherwise cause.
+- if the child-task work is known to be heavy and blocking, it may be beneficial to delegate it to a specific "blocking executor" which would have a dedicated, small, number of threads on which it would execute the blocking work; thanks to such separation, the main global thread-pool would not be impacted by starvation issues which such blocking tasks would otherwise cause.
 - various other examples where tight control over the execution context is required...
 
 We should be able to allow such configuration based on scope, like this:
@@ -635,7 +635,7 @@ The details of the API remain to be seen, but the general ability to specify an 
 
 ### Explicit futures
 
-As discussed in the [structured concurrency proposal](0304-structured-concurrency.md#prominent-futures), we choose not to expose futures or `Task`s for child tasks in task groups, because doing so either can undermine the hierarchy of tasks, by escaping from their parent task group and being awaited on indefinitely later, or would result in there being two kinds of future, one of which dynamically asserts that it's only used within the task's scope. `async let` allows for future-like data flow from child tasks to parent, without the need for general-purpose futures to be exposed.
+As discussed in the [structured concurrency proposal](0304-structured-concurrency.md#prominent-futures), we choose not to expose futures or `Task`s for child tasks in task groups, because doing so can either undermine the hierarchy of tasks, by escaping from their parent task group and being awaited on indefinitely later, or would result in there being two kinds of future, one of which dynamically asserts that it's only used within the task's scope. `async let` allows for future-like data flow from child tasks to parent, without the need for general-purpose futures to be exposed.
 
 ### "Don't spawn tasks when in cancelled parent"
 
@@ -825,7 +825,7 @@ class AsyncLet<Wrapped: Sendable> {
 
 A property-wrapper approach is forced to create unstructured concurrency to capture the task, which is then subject to escaping (e.g.,  the synthesized backing storage property `_veggies`). Once we have unstructured concurrency, there is no way to get the structure back: the deinitializer cannot wait on completion of the task, so the task would keep running after the `@AsyncLet` property has been destroyed. The lack of structure also affects the compiler's ability to reason about (and therefore optimize) the use of this feature: as a structured concurrency primitive, `async let` can be optimized by the compiler to (e.g.) share storage of its async stack frames with its parent async task, eliminating spurious allocations, and provide more optimal access patterns for the resulting value. To address the semantic and performance issues with using property wrappers, an `@AsyncLet` property wrapper would effectively be hard-coded syntax in the compiler that is property-wrapper-like, but not actually a property wrapper.
 
-One thing that is lost with the property-wrapper approach that the definition of a property such as
+One thing that is lost with the property-wrapper approach is that the definition of a property such as
 
 ```swift
 @AsyncLet var veggies = try await chopVegetables()
@@ -841,13 +841,13 @@ await veggies
 
 ### Braces around the `async let` initializer
 
-The expression on the right-hand side of an `async let` declaration is executed in a separate, child task that is running concurrently with the function that initiates the `async let`. It has been suggested that the task should be called out more explicitly by adding a separate set of braces around the expression, e.g.,
+The expression on the right-hand side of an `async let` declaration is executed in a separate child task that is running concurrently with the function that initiates the `async let`. It has been suggested that the task should be called out more explicitly by adding a separate set of braces around the expression, e.g.,
 
 ```swift
 async let veggies = { try await chopVegetables() }
 ```
 
-The problem with requiring braces is that it breaks the equivalence between the type of the entity being declared (`veggies` is of type `[Vegetable]`) and the value it is initialized with (which now appears to be `@Sendable () async throws -> [Vegetable]`). This equivalence holds throughout nearly all of the language; the only real exception is the `if let` syntax, which which strips a level of optionality and is often considered a design mistake in Swift. For `async let`, requiring the braces would become particularly awkward if one were defining a value of closure type:
+The problem with requiring braces is that it breaks the equivalence between the type of the entity being declared (`veggies` is of type `[Vegetable]`) and the value it is initialized with (which now appears to be `@Sendable () async throws -> [Vegetable]`). This equivalence holds throughout nearly all of the language; the only real exception is the `if let` syntax, which strips a level of optionality and is often considered a design mistake in Swift. For `async let`, requiring the braces would become particularly awkward if one were defining a value of closure type:
 
 ```swift
 async let closure = { { try await getClosure() } }

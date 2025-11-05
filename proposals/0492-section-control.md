@@ -2,9 +2,9 @@
 
 * Proposal: [SE-0492](0492-section-control.md)
 * Authors: [Kuba Mracek](https://github.com/kubamracek)
-* Status: **Active review (September 22 ... October 6, 2025)**
+* Status: **Accepted**
 * Implementation: available in recent `main` snapshots under the experimental feature `SymbolLinkageMarkers` and with undercored attribute names `@_section` and `@_used`.
-* Review: [review](https://forums.swift.org/t/se-0492-section-placement-control/82289)
+* Review: [review](https://forums.swift.org/t/se-0492-section-placement-control/82289), [acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0492-section-placement-control/82701)
 * Discussion threads:
   * Pitch #1: https://forums.swift.org/t/pitch-low-level-linkage-control-attributes-used-and-section/65877
   * Pitch #2: https://forums.swift.org/t/pitch-2-low-level-linkage-control/69752
@@ -88,25 +88,18 @@ let myPlugin: PluginData = (
 
 On top of specifying a custom section name with the `@section` attribute, marking a variable as `@used` is needed to prevent otherwise unused symbols from being removed by the compiler. When using section placement to e.g. implement linker sets, such values are typically going to have no usage at compile time, and at the same time they should not be exposed in public interface of libraries (not be made public), therefore we the need the `@used` attribute.
 
-Different object file formats (ELF, Mach-O, COFF) have different restrictions and rules on what are valid section names, and cross-platform code will have to use different names for different file formats. To support that, custom section names can be specified as a string literal. The string will be used directly, without any processing, as the section name for the symbol. A new `#if objectFileFormat(...)` conditional compilation directive will be provided to support conditionalizing based on the file format:
+Different object file formats (ELF, Mach-O, COFF) have different restrictions and rules on what are valid section names, and cross-platform code will have to use different names for different file formats. To support that, custom section names can be specified as a string literal. The string will be used directly, without any processing, as the section name for the symbol. A new `#if objectFormat(...)` conditional compilation directive will be provided to support conditionalizing based on the file format:
 
 ```swift
-#if objectFileFormat(ELF)
+#if objectFormat(ELF)
 @section("mysection")
-#elseif objectFileFormat(MachO)
+#elseif objectFormat(MachO)
 @section("__DATA,mysection")
 #endif
 var global = ...
 ```
 
 For the ELF file format specifically, the compiler will also emit a “section index” into produced object files, containing an entry about each custom section used in the compilation. This is a solution to an ELF specific problem where the behavior of ELF linkers and loaders means that sections are not easily discoverable at runtime.
-
-When placing variables into a custom section, it's also allowed to use the `lazy` keyword to opt out of the mandatory static initialization and mandatory constant expression behavior, while still achieving section placement of the backing store of the data:
-
-```swift
-@section("__DATA,colocated") lazy let data1: Int = 42 // ✅
-@section("__DATA,colocated") lazy let data2: Int = Int.random(in: 0 ..< 10) // ✅
-```
 
 > Note: The intention is that the `@section` and `@used` attributes are to be used rarely and only by specific use cases; high-level application code should not need to use them directly and instead should rely on libraries, macros and other abstractions over the low-level attributes.
 
@@ -182,6 +175,8 @@ When allowed, the `@section` attribute on a variable declaration has the followi
 2. The storage symbol for the variable will be placed into a custom section with the specified name.
    - Concretely, the section name string value will be set verbatim as a section specifier for the storage symbol at the LLVM IR level of the compiler. This means that any special behavior that the optimizer, the backend, the assembler or the linker applies based on known section names (or attributes specified as suffixes on the section name) will apply.
 3. If applied to a global that is declared as part of top-level executable code (i.e. main.swift), the usual non-top-level-code initialization behavior is applied to the global. I.e. the variable is not sequentially initialized at startup.
+
+The custom section name specified in the `@section` attribute is not validated by the compiler, instead it’s passed directly as a string to the linker. 
 
 When allowed, the `@used` attribute on a variable declaration has the following effect:
 
@@ -278,20 +273,9 @@ let a = (42, foo) // "foo" is statically initialized into a
                   // linkable/relocatable pointer
 ```
 
-### Lazy variables with section placement
-
-On global and static variables that are annotated with `@section`, the compiler will now allow the `lazy` keyword (which is currently disallowed on all global and static variables). Using it will opt such variable out of the "mandatory static initialization" behavior and instead use the at-runtime lazy initialization that traditional global and static variables have. The initializer expression does not need to be a constant expression in this case. This is useful for the uncommon use case of placing variables into a custom section purely for colocation (e.g. to improve performance by increasing page/cacheline locality):
-
-```swift
-@section("__DATA,colocated") lazy let data1: Int = 42 // ✅
-@section("__DATA,colocated") lazy let data2: Int = Int.random(in: 0 ..< 10) // ✅
-```
-
-Traditional global and static variables are backed by two symbols: An init-once token and the actual storage for the variable's content. Both of these symbols are going to be placed into the custom section when using `@section` with `lazy`. This also means that any offline or in-process introspection mechanisms cannot assume a specific layout or state of such variables and their storage bytes in the sections, as the exact layout and content of the symbols of lazy variables is an implementation detail of the Swift language runtime.
-
 ### Cross-platform object file format support
 
-The custom section name specified in the `@section` attribute is not validated by the compiler, instead it’s passed directly as a string to the linker. Different platforms supported by Swift are using different object and binary file formats (Linux uses ELF, Darwin uses Mach-O, Windows uses COFF), and that implies different restrictions and rules on what are valid section names. Because of that, a multi-platform library code is expected to use `#if os(...)` to use different section names for different platforms. Because of that, it’s expected that the attributes are to be typically only used indirectly via macros that hide the low-level nature of sections and object file formats from higher-level code developers:
+Different platforms supported by Swift are using different object and binary file formats (Linux uses ELF, Darwin uses Mach-O, Windows uses COFF), and that implies different restrictions and rules on what are valid section names. Because of that, a multi-platform library code is expected to use `#if os(...)` to use different section names for different platforms. Because of that, it’s expected that the attributes are to be typically only used indirectly via macros that hide the low-level nature of sections and object file formats from higher-level code developers:
 
 ```swift
 // Example of a potential project-specific "@RegisterPlugin" macro:
@@ -311,7 +295,7 @@ let plugin = ...
 
 See [Structured section specifiers](#structured-section-specifiers) below for more rationale.
 
-In some cases, it’s not possible to differentiate on the OS to support multiple object file formats, for example when using Embedded Swift to target baremetal systems without any OS. For that, a new `#if objectFileFormat(...)` conditional compilation directive will be provided. The allowed values in this directive will match the set of supported object file formats by the Swift compiler (and expand as needed in the future). Currently, they exact values will be (case sensitive):
+In some cases, it’s not possible to differentiate on the OS to support multiple object file formats, for example when using Embedded Swift to target baremetal systems without any OS. For that, a new `#if objectFormat(...)` conditional compilation directive will be provided. The allowed values in this directive will match the set of supported object file formats by the Swift compiler (and expand as needed in the future). Currently, they exact values will be (case sensitive):
 
 * COFF
 * ELF
@@ -319,9 +303,9 @@ In some cases, it’s not possible to differentiate on the OS to support multipl
 * Wasm
 
 ```swift
-#if objectFileFormat(MachO)
+#if objectFormat(MachO)
 @section("__DATA_CONST,mysection")
-#elseif objectFileFormat(ELF)
+#elseif objectFormat(ELF)
 @section("mysection")
 #endif
 let value = ...
@@ -402,9 +386,9 @@ The notions of constant expressions and constant values is applicable to a much 
 The requirement to only use string literals as the section names could be lifted in the future, and we might allow referring to a declaration of variable with a compile-time string. This would be useful to avoid repetition when placing multiple values into the same section without needing to use macros.
 
 ```swift
-#if objectFileFormat(ELF)
+#if objectFormat(ELF)
 let mySectionName = "mysection" // required to be a compile-time value
-#elseif objectFileFormat(MachO)
+#elseif objectFormat(MachO)
 let mySectionName = "__DATA,mysection" // required to be a compile-time value
 #endif
 
@@ -486,7 +470,7 @@ Because `@const` does not affect parsing or type resolution of the expression, i
 
 In Mach-O, custom section names are written as a pair of segment (e.g. `__DATA`) + section (e.g. `mysection`). Structured section names with separate segment and section names, `@section(segment: "...", section: "...")` were considered instead, however this pattern does not generalize across object file formats, and is Mach-O specific (ELF and PE/COFF don’t have segments).
 
-Because different object file formats impose different restrictions on custom section names (length, “.” prefix), a shorthand syntax to specify different section names for different object file formats was considered: `@section(ELF: “...”, MachO: “...”, COFF: “...”)`.  This, however, has drawbacks of repeating the file format in cases where the code is only ever targeting a single format (common for example for embedded firmwares on ELF). The benefits of a shorthand syntax is marginal, given that we don’t expect normal application code to used the `@section` attribute directly but instead rely on macros or other higher-level API.
+Because different object file formats impose different restrictions on custom section names (length, “.” prefix), a shorthand syntax to specify different section names for different object file formats was considered: `@section(ELF: “...”, MachO: “...”, COFF: “...”)`.  This, however, has drawbacks of repeating the file format in cases where the code is only ever targeting a single format (common for example for embedded firmwares on ELF). The benefits of a shorthand syntax is marginal, given that we don’t expect normal application code to use the `@section` attribute directly but instead rely on macros or other higher-level API.
 
 The alternative of using conditional compilation is what is expected to be used for those cases instead.
 

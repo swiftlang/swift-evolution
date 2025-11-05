@@ -408,7 +408,8 @@ None needed.
   the various graphics libraries in use today. If we provided a larger set of
   formats that are supported on Apple's platforms, developers may run into
   difficulties porting their test code to platforms that _don't_ support those
-  additional formats.
+  additional formats. For example, Android's [image encoding API](https://developer.android.com/reference/android/graphics/Bitmap.CompressFormat)
+  only supports the PNG, JPEG, and WEBP formats. 
 
 ## Acknowledgments
 

@@ -337,7 +337,7 @@ struct S: Sendable {
 ```
 
 Only (implicitly or explicitly) `nonisolated` functions can be marked with
-`@concurrent`; it is an error to use the these attributes with
+`@concurrent`; it is an error to use this attribute with
 an isolation other than `nonisolated`, including global actors, isolated
 parameters, and `@isolated(any)`:
 
