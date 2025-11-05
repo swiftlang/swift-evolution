@@ -1,6 +1,7 @@
 # Expose demangle function in Runtime module
 
 * Proposal: [SE-0498](0498-runtime-demangle.md)
+* Previous Proposal: [SE-0262](0262-demangle.md)
 * Authors: [Konrad'ktoso'Malawski](https://github.com/ktoso), [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active Review (November 4 ..< 18)**
