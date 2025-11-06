@@ -86,7 +86,7 @@ This can present a code portability problem for Embedded Swift. The proposed att
 
 This proposal introduces a new attribute `@export` that provides the required control over the ability of clients to make use of the callable interface or the definition of a particular function (or both). The `@export` attribute takes one or both of the following arguments in parentheses:
 
-* `interface`: means that a symbol is present in the binary in a manner that can be called by clients. 
+* `interface`: means that a symbol is present in the binary in a manner that can be called by clients that can see the symbol. 
 * `implementation`: means that the function definition is available for clients to use for any purpose, including specialization, inlining, or merely analyzing the body for optimization purposes.
 
 The existing `@_alwaysEmitIntoClient` is subsumed by `@export(implementation)`, meaning that the definition is available and each client that uses it must emit their own copy of the definition, because there is no symbol. The `@_neverEmitIntoClient` attribute on `main` is subsumed by `@export(interface)`, meaning that a callable symbol is emitted but the definition is not available to callers for any reason.
@@ -94,7 +94,7 @@ The existing `@_alwaysEmitIntoClient` is subsumed by `@export(implementation)`, 
 The two attributes introduced by [SE-0193](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0193-cross-module-inlining-and-specialization.md) are partially subsumed by `@export`:
 
 * `@inlinable` for making a definition available to callers, similar to `@export(implementation)`. `@inlinable` is guaranteed to produce a symbol under Library Evolution, but there are no guarantees otherwise. In practice, non-Embedded Swift will produce a symbol, but Embedded Swift generally does not.
-* `@usableFromInline` for making a less-than-public symbol available for use in an inlinable function (per SE-0193) is akin to `@export(interface)`. As with `@inlinable`, `@usableFromInline` does not *guarantee* the presence of a symbol in the way that `@export(interface)` does: in practice, Embedded Swift may not produce a symbol, but non-Embedded Swift will.
+* `@usableFromInline` for making a less-than-public symbol available for use in an inlinable function (per SE-0193) is akin to `@export(interface)`. As with `@inlinable`, `@usableFromInline` does not *guarantee* the presence of a symbol in the way that `@export(interface)` does: in practice, Embedded Swift may not produce a symbol, but non-Embedded Swift will. Additionally, `@usableFromInline` does not prohibit the definition of the function from being made available to clients the way that `@export(interface)` does.
 
 `@export` cannot be combined with any of `@inlinable`, `@usableFromInline`, `@_alwaysEmitIntoClient`, or `@_neverEmitIntoClient`.
 
