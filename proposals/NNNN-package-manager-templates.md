@@ -372,6 +372,98 @@ Build of product 'ServerTemplate' complete! (0.42s)
 
 For more examples on ways to write a template's executable, refer to the template-example-repository.
 
+### Contract Between Templates and SwiftPM
+
+SwiftPM communicates with templates through a defined contract. This ensures that SwiftPM can discover, prompt for, and pass arguments to template generators in a consistent and automated way.
+
+When a template package is first discovered, SwiftPM invokes its executable using the `experimental-dump-help` flag.
+
+This flag allows the template generator to output all of its command-line interface help information as JSON to standard output. SwiftPM then parses this JSON to learn:
+
+* The subcommands the template provides
+* What arguments, options, and flags are supported by the template
+* Which inputs are required or optional
+* How each argument should be parsed and displayed to the user
+
+This allows for SwiftPM, IDEs and other higher-level tools to utilize the JSON metadata to generate interactive prompts and validate user input when creating projects from templates. The format can also be transmitted over wire protocols and published for broader integration.
+
+suggestion: It's not SwiftPM that can use this metadata, but also higher-level tools too, such as IDE's. The format is sendable over wire protocols and publishable too.
+
+Any argument parser wishing to support SwiftPM templates must implement the `--experimental-dump-help` flag alongside the following schema:
+
+#### Top-Level Structure
+
+|Property    |Type    |Description    |IsRequired    |
+|---    |---    |---    |---    |
+|serializationVersion    |`Integer`    |The version number of the JSON schema    |✓    |
+|command    |`CommandInfoV0`    |Command Information    |    |
+
+#### CommandInformationV0
+
+|Property    |Type    |Description    |IsRequired    |
+|---    |---    |---    |---    |
+|commandName    |`String`    |Name used to invoke the command    |✓    |
+|superCommands    |`[String]?`    |Array of parent command names in hierarchy    |    |
+|shouldDisplay    |`Bool`    |Whether the command appears in help    |✓    |
+|abstract    |`String`    |Short description of command functionality    |    |
+|discussion    |`String?`    |Extended description of command functionality    |    |
+|defaultSubcommand    |`String?`    |Name of default subcommand    |    |
+|subcommands    |`[CommandInfoV0]?`    |Array of nested subcommands    |    |
+|arguments    |`[ArgumentInfoV0?]`    |Array of supported arguments/options/flags    |    |
+
+####  Argument Information (ArgumentInfoV0)
+
+|Property    |Type    |Description    |IsRequired    |
+|---    |---    |---    |---    |
+|kind    |`KindV0`    |"positional", "option", or "flag    |✓    |
+|shouldDisplay    |`Bool`    |Whether argument appears in help    |✓    |
+|sectionTitle    |`String?`    |Custom section name for grouping    |    |
+|isOptional    |`Bool`    |Whether argument can be omitted    |✓    |
+|isRepeating    |`Bool`    |Whether argument can be specified multiple times    |✓    |
+|parsingStrategy    |`String`    |How the argument is parsed    |✓    |
+|names    |`[NameInfoV0]?`    |All names/flags for the argument    |    |
+|preferredName    |`NameInfoV0`    |Best name for help displays    |    |
+|valueName    |`String?`    |Name of argument's value in help    |    |
+|defaultValue    |`String?`    |Default value if none specified    |    |
+|allValues    |`[String]?`    |List of all valid values (for enums)    |    |
+|allValuesDescriptions    |`{String: String}?`    |Mapping of values to descriptions    |    |
+|completionKind    |`CompletionKindV0?`    |Type of shell completion    |    |
+|abstract    |`String?`    |Short description of argument    |    |
+|discussion    |`String?`    |Extended description of argument    |    |
+
+####  Name Information (NameInfoV0)
+
+|Property    |Type    |Description    |IsRequired    |
+|---    |---    |---    |---    |
+|Kind    |`KindV0`    |"long", which is a multi-character name preceded by two dashes, "short" which is a single character name preceded by a single dash, or "longWithSingleDash" which is a multi-character name preceded by a single dash.    |✓    |
+|Name    |`String`    |Single or multi-character name of the argument.    |✓    |
+
+####  Parsing Strategy Values
+
+```
+- "default" - Expect next element to be a value
+ - "scanningForValue" - Parse next value element
+ - "unconditional" - Parse next element regardless of type
+ - "upToNextOption" - Parse multiple values until next option
+ - "allRemainingInput" - Parse all remaining elements
+ - "postTerminator" - Collect elements after --
+ - "allUnrecognized" - Collect unused inputs
+```
+
+
+Once SwiftPM ingests the JSON representation, it prompts the user for any required inputs, before forming a full command-line invocation from those responses. 
+
+```
+my-template generate --name AnExample --host *8080* 
+```
+
+SwiftPM passes this command line
+
+Swift Argument Parser implements all of the above, and is the recommended and supported way for template generators to integrate with SwiftPM.
+
+
+>Note: Further details regarding the long-term vision for stabilizing the interface between SwiftPM, IDEs, and template generators are discussed in Future Directions
+
 ### Workflow of initializing a package based off a template
 
 When a user executes `swift package init` with template options, SwiftPM follows this workflow:
@@ -521,4 +613,29 @@ This is an additive feature. Existing packages will not be affected by this chan
 * Transform `--experimental-dump-help` into a stable equivalent flag. Learn more about it here: ([pitch](https://forums.swift.org/t/dropping-the-experimental-from-dump-help/82099)) ([PR](https://github.com/apple/swift-argument-parser/pull/817))
 * Support and actively contribute to the [OpenCLI](https://opencli.org/) initiative, prompting a standardize JSON format for broader parser interoperability.
 
+### Stablization and Evolution of Template Interface
 
+A big part of templates is the contract shared between packages containing templates and SwiftPM. 
+
+Currently, SwiftPM utilize the `--experimental-dump-help` flag alongside Swift Argument Parser’s `ToolInfoV0` JSON schema to input consumers about the arguments and subcommands required by templates. 
+
+The use of an experimental flag and the dependency on Swift Argument Parser’s internal schema are not ideal for long-term stability. However, there are several active directions to address these issues:
+
+
+* **Stabilization of the tool info interface**: Transform `--experimental-dump-help` into a stable equivalent flag, paired with a stable JSON schema (`ToolInfoV1`) that formally describes an executable’s command tree. Learn more about this work in [[Pitch](https://forums.swift.org/t/dropping-the-experimental-from-dump-help/82099)/[PR](https://github.com/apple/swift-argument-parser/pull/817)].
+* **Broader parser interoperability**: Support and contribute to the OpenCLI initiative, which aims to define a standardized JSON representation for command-line tool metadata across ecosystems. To support and contribute the OpenCLI initiative, please visit [OpenCLI](https://opencli.org/).
+
+#### ToolInfo Versions and Future evolution
+
+At present, there are two versions of the ToolInfo schema in play:
+
+* `ToolInfoV0`, the experimental version used by —experimental-dump-help
+* `ToolInfoV1`, the stable successor used by the new —help-dump-tool-info-v1 flag
+
+Functionally, these two versions are identical excpet for the declared serailization version, ensuring backward compatibility and providing the base for a stable interface. This alignment allows existing template generators to continue operating without modification, while offering a clear migration path to the stable `v1` API.
+
+To support multiple tool info versions over time, SwiftPM will implement a negotiation mechanism when invoking templates, relying on special flags or options that indicate the desired ToolInfo version.
+
+For example, SwiftPM may first attempt `--help-dump-tool-info-v2`. If the executable does not recognize the flag or fails to respond with a valid JSON schema, SwiftPM will gracefully fall back to an earlier version such as `--help-dump-tool-info-v1`, then `--experimental-dump-help`. SwiftPM will iterate through its list of known versions, starting from the newest until it receives a valid JSON schema. This ensures forward compatibility with future schema revisions and allows template executables to adopt new versions at their own pace while maintaining interoperability with older SwiftPM releases.
+
+Looking forward, there is also the possibility of integrating an OpenCLI-compliant version. This would extend beyond Swift-specific tooling, allowing parsers to describe a language-agnostic CLI interface. The goal is to reduce dependency on Swift Argument internals and make template discovery interoperable across different argument parsers.
