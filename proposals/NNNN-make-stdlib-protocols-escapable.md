@@ -13,6 +13,7 @@ The following protocols will be marked as refining `~Copyable` and `~Escapable`:
 - `Equatable`, `Comparable`, and `Hashable`
 - `CustomStringConvertible` and `CustomDebugStringConvertible`
 - `TextOutputStream` and `TextOutputStreamable`
+
 `LosslessStringConvertible` will be marked as refining `~Copyable`.
 
 Additionally, `Optional` and `Result` will have their `Equatable` and `Hashable` conformances updated to support `~Copyable` and `~Escapable` elements.
@@ -34,9 +35,9 @@ Use of these protocols is ubiquitous in Swift code, and this can be a major impe
 ## Proposed solution
 
 The following signatures in the standard library will be changed. None of these
-changes effect the existing semantics, just allow them to be applied to non-`Copyable`/`Escapable` types.
+changes affect the existing semantics, just allow them to be applied to non-`Copyable`/`Escapable` types.
 
-```
+```swift
 protocol Equatable: ~Copyable, ~Escapable {
   static func == (lhs: borrowing Self, rhs: borrowing Self) -> Bool
 }
@@ -80,7 +81,6 @@ protocol TextOutputStreamable: ~Copyable & ~Escapable { }
 
 protocol CustomStringConvertible: ~Copyable, ~Escapable { }
 protocol CustomDebugStringConvertible: ~Copyable, ~Escapable { }
-protocol LosslessStringConvertible: CustomStringConvertible, ~Copyable { }
 
 extension Result: Equatable where Success: Equatable & ~Copyable, Failure: Equatable {
   public static func ==(lhs: borrowing Self, rhs: borrowing Self) -> Bool
@@ -107,7 +107,7 @@ but will be updated as necessary.
 ## Source compatibility
 
 The design of `~Copyable` and `~Escapable` explicitly allows for source compatibility with
-retroactive adoption, as extensions that do not restate these restrictions assume compatability.
+retroactive adoption, as extensions that do not restate these restrictions assume compatibility.
 
 So no clients of the standard library should need to alter their existing source except
 with the goal of extending it to work with more types.
@@ -135,7 +135,7 @@ to conditionally conform to `Hashable`, as `Array` does. There is some debate to
 the semantics of `Equatable` conformance for `Span` (though probably not for `InlineArray`),
 and this should be the subject of a future proposal.
 
-Allowing more types to be `Custom*StringConvertible where Self: ~Copyable & ~Escapable`, such as `Optional`, requires further work on the `print` infrastructure to be able to hand such types, so is out of scope for this proposal.
+Allowing more types to be `Custom*StringConvertible where Self: ~Copyable & ~Escapable`, such as `Optional`, requires further work on the `print` infrastructure to be able to handle such types, so is out of scope for this proposal.
 
 ## Alternatives considered
 
