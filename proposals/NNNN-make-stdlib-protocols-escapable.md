@@ -140,7 +140,6 @@ Allowing more types to be `Custom*StringConvertible where Self: ~Copyable & ~Esc
 ## Alternatives considered
 
 It can be argued that non-`Copyable` types have identity, and therefore should not be `Equatable`
-
 in the current sense of the protocol. In particular:
 
 > Equality implies substitutability—any two instances that compare equally
