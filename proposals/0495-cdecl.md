@@ -4,7 +4,7 @@
 * Author: [Alexis Laferrière](https://github.com/xymus)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active Review (September 25th...October 9th, 2025)**
-* Implementation: On `main` with the experimental feature flags `CDecl` for `@c`, and `CImplementation` for `@c @implementation`. With the exception of the `@objc` support for global functions which is available under the name `@_cdecl`.
+* Implementation: On `6.3`. With the exception of the `@objc` support for global functions which is not yet implemented.
 * Review: ([pitch](https://forums.swift.org/t/pitch-formalize-cdecl/79557))([review](https://forums.swift.org/t/se-0495-c-compatible-functions-and-enums/82365))
 
 ## Introduction
