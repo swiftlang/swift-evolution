@@ -4,7 +4,7 @@
 * Author: [Alexis Laferrière](https://github.com/xymus)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active Review (September 25th...October 9th, 2025)**
-* Implementation: On `main` with the experimental feature flags `CDecl` for `@c`, and `CImplementation` for `@c @implementation`. With the exception of the `@objc` support for global functions which is available under the name `@_cdecl`.
+* Implementation: On `6.3`. With the exception of the `@objc` support for global functions which is not yet implemented.
 * Review: ([pitch](https://forums.swift.org/t/pitch-formalize-cdecl/79557))([review](https://forums.swift.org/t/se-0495-c-compatible-functions-and-enums/82365))
 
 ## Introduction
@@ -65,12 +65,16 @@ A `@c` enum may declare a custom C name, and must declare an integer raw type co
 ```swift
 @c
 enum CEnum: CInt {
-    case a
-    case b
+    case first
+    case second
 }
 ```
 
 The attribute `@objc` is already accepted on enums. These enums qualify as an Objective-C representable type and are usable from `@objc` global function signatures but not from `@c` functions.
+
+In the compatibility header, the `@c` enum is printed with the C name specified in the `@c` attribute or the Swift name by default. It defines a storage of the specified raw type with support for different dialects of C.
+
+Each case is printed using a name composed of the enum name with the case name attached. The first letter of the case name is capitalized automatically. For the enum above, the generated cases for C are named `CEnumFirst` and `CEnumSecond`.
 
 ### `@c @implementation` global functions
 
@@ -165,7 +169,9 @@ Existing adopters of `@_cdecl` can replace the attribute with `@objc` to preserv
 
 ## ABI compatibility
 
-Marking a global function with `@c` or `@objc` makes it use the C calling convention. Adding or removing these attributes on a function is an ABI breaking change. Updating existing `@_cdecl` to `@objc` or `@c` is ABI stable.
+The compiler emits a single symbol for `@c` and `@objc` functions, the symbol uses the C calling convention.
+
+Adding or removing the attributes `@c` and `@objc` on a function is an ABI breaking change. Changing between `@c` and `@objc` is ABI stable. Changing between `@_cdecl` and either `@c` or `@objc` is an ABI breaking change since `@_cdecl` emits two symbols and Swift clients of `@_cdecl` call the one with the Swift calling convention.
 
 Adding or removing the `@c` attribute on an enum is ABI stable, but changing its raw type is not.
 
