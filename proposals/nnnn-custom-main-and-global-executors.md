@@ -358,13 +358,14 @@ public protocol ExecutorFactory {
 
 ```
 
-along with a default implementation of `ExecutorFactory` called
-`PlatformExecutorFactory` that sets the default executors for the
-current platform.
-
 So that it is not necessary to override both properties, we will
 provide default implementations for both `mainExecutor` and
 `defaultExecutor` that return the default executors for the current
+platform.
+
+There will be an instance of `ExecutorFactory`,
+`DefaultExecutorFactory`, that relies solely on the default
+implementations, thus providing the default executors for the current
 platform.
 
 Additionally, `Task` will expose a new `currentExecutor` property, as
@@ -909,8 +910,85 @@ necessary and complicated the API without providing any significant
 additional capability.  A derived `Clock` can simply implement the
 `run` and/or `enqueue` methods instead.
 
+### Not providing `currentExecutor`
+
+There is a concern that `currentExecutor` could in future be misused
+to schedule jobs directly when using the `#isolation` feature would be
+preferable (and potentially more performant).
+
+Without `currentExecutor`, however, it is difficult to see how user
+code could call custom methods on a custom executor, or indeed how it
+might reasonably make use of the `run` or `stop` methods from
+`RunLoopExecutor`.
+
+For instance, a future Windows-based executor intended for GUI use
+might provide a `getMessage()` API on the executor itself, so that
+users could write a nested message loop, ala
+
+```swift
+let executor = Task.currentExecutor as! WindowsExecutor
+while let msg = executor.getMessage(hWnd, WM_MOUSEFIRST, WM_MOUSELAST) {
+  // Process `msg`
+}
+```
+
+to process mouse messages in response to e.g. the start of a button
+press, the benefit of this being that Swift Concurrency work would
+continue to run while we were waiting for mouse messages.
+
+Or, on Darwin, we might add a `run(mode:)` method, to permit
+things like
+
+```swift
+let executor = Task.currentExecutor as! DarwinRunLoopExecutor
+executor.run(mode: .eventTracking)
+```
+
+with a corresponding call to `executor.stop()` somewhere in an event
+handler to leave event tracking mode.
+
+### Providing `currentExecutor`, but returning a restrictive type
+
+To avoid allowing job scheduling, we thought about whether it was
+possible to have `currentExecutor` return an opaque reference type
+that could provide a way to convert itself to a specific type on
+request; something like
+
+```swift
+public struct ExecutorRef {
+  var executor: any Executor
+
+  init(_ executor: any Executor) {
+    self.executor = executor
+  }
+
+  public func get<T>(as type: T.Type) -> T? {
+    if type == Executor.self || type == SerialExecutor.self {
+      fatalError("""
+                   Please use isolation rather than trying to schedule jobs \
+                   on the executor directory.
+                   """)
+    }
+    return thing as? T
+  }
+}
+
+extension Task where Success == Never, Failure == Never {
+  ...
+  public static var currentExecutor: ExecutorRef
+  ...
+}
+```
+
+On the face of it, this might be used to prevent someone from
+enqueueing jobs using the `currentExecutor` API, however in practice
+it would be easy to work around, and it turns out that it's easy
+enough to re-implement `currentExecutor` using the `#isolation`
+feature, so in terms of preventing misuse we haven't really achieved
+much other than complicating the code.
+
 ## Acknowledgments
 
 Thanks to Cory Benfield, Franz Busch, David Greenaway, Rokhini Prabhu,
-Rauhul Varma, Johannes Weiss, and Matt Wright for their input on this
-proposal.
+Rauhul Varma, Johannes Weiss, Matt Wright and John McCall for their
+input on this proposal.
