@@ -6,11 +6,7 @@
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active Review (November 4 ..< 18)**
 * Implementation: [PR #84788](https://github.com/swiftlang/swift/pull/84788)
-* Review: 
-    * Previous [pitch](https://forums.swift.org/t/demangle-function/25416/16)
-    * [(pitch)](https://forums.swift.org/t/pitch-expose-demangle-function-in-runtime-module/82605)
-      [(review)](https://forums.swift.org/t/se-0498-expose-demangle-function-in-runtime-module/83032)
-
+* Review: ([first pitch](https://forums.swift.org/t/demangle-function/25416/16)) ([second pitch](https://forums.swift.org/t/pitch-expose-demangle-function-in-runtime-module/82605)) ([review](https://forums.swift.org/t/se-0498-expose-demangle-function-in-runtime-module/83032))
 
 ## Introduction
 
