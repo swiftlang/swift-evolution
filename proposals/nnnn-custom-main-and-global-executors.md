@@ -368,45 +368,17 @@ There will be an instance of `ExecutorFactory`,
 implementations, thus providing the default executors for the current
 platform.
 
-Additionally, `Task` will expose a new `currentExecutor` property, as
-well as properties for the `preferredExecutor` and the
-`currentSchedulingExecutor`:
+Additionally, `Task` will expose a new `preferredExecutor` property:
 
 ```swift
 extension Task {
-  /// Get the current executor; this is the executor that the currently
-  /// executing task is executing on.
-  ///
-  /// This will return, in order of preference:
-  ///
-  ///   1. The custom executor associated with an `Actor` on which we are
-  ///      currently running, or
-  ///   2. The preferred executor for the currently executing `Task`, or
-  ///   3. The task executor for the current thread
-  ///   4. The default executor.
-  public static var currentExecutor: any Executor { get }
-
   /// Get the preferred executor for the current `Task`, if any.
   public static var preferredExecutor: (any TaskExecutor)? { get }
-
-  /// Get the current *scheduling* executor, if any.
-  ///
-  /// This follows the same logic as `currentExecutor`, except that it ignores
-  /// any executor that isn't a `SchedulingExecutor`, and as such it may
-  /// eventually return `nil`.
-  public static var currentSchedulingExecutor: (any SchedulingExecutor)? { get }
 }
 ```
 
-These are not intended to replace use of Swift's isolation keywords
-(see [SE-0420 Inheritance of actor
-isolation](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0420-inheritance-of-actor-isolation.md)
-and [SE-0431 `isolated(any)` Function
-Types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0431-isolated-any-functions.md)),
-but may be useful for debugging purposes or in combination with task
-executor preference support.  If what you want to do can be
-accomplished with `isolation` or `@isolated(any)`, you should prefer
-that approach to any direct use of these executor properties.
+This is useful sometimes to allow code to propagate a preferred executor
+where it would otherwise not be picked up.
 
 We will also need to expose the executor storage fields on
 `ExecutorJob`, so that they are accessible to Swift implementations of
@@ -910,44 +882,13 @@ necessary and complicated the API without providing any significant
 additional capability.  A derived `Clock` can simply implement the
 `run` and/or `enqueue` methods instead.
 
-### Not providing `currentExecutor`
+### Providing `Task.currentExecutor`
 
 There is a concern that `currentExecutor` could in future be misused
 to schedule jobs directly when using the `#isolation` feature would be
 preferable (and potentially more performant).
 
-Without `currentExecutor`, however, it is difficult to see how user
-code could call custom methods on a custom executor, or indeed how it
-might reasonably make use of the `run` or `stop` methods from
-`RunLoopExecutor`.
-
-For instance, a future Windows-based executor intended for GUI use
-might provide a `getMessage()` API on the executor itself, so that
-users could write a nested message loop, ala
-
-```swift
-let executor = Task.currentExecutor as! WindowsExecutor
-while let msg = executor.getMessage(hWnd, WM_MOUSEFIRST, WM_MOUSELAST) {
-  // Process `msg`
-}
-```
-
-to process mouse messages in response to e.g. the start of a button
-press, the benefit of this being that Swift Concurrency work would
-continue to run while we were waiting for mouse messages.
-
-Or, on Darwin, we might add a `run(mode:)` method, to permit
-things like
-
-```swift
-let executor = Task.currentExecutor as! DarwinRunLoopExecutor
-executor.run(mode: .eventTracking)
-```
-
-with a corresponding call to `executor.stop()` somewhere in an event
-handler to leave event tracking mode.
-
-### Providing `currentExecutor`, but returning a restrictive type
+### Providing `Task.currentExecutor`, but returning a restrictive type
 
 To avoid allowing job scheduling, we thought about whether it was
 possible to have `currentExecutor` return an opaque reference type
