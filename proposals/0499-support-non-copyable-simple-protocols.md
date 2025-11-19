@@ -1,10 +1,11 @@
 # Support ~Copyable, ~Escapable in simple standard library protocols
 
-* Proposal: [SE-NNNN](NNNN-make-stdlib-protocols-escapable.md)
+* Proposal: [SE-0499](NNNN-make-stdlib-protocols-escapable.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
-* Status: **Awaiting Review**
+* Review Manager: [Holly Borla](https://github.com/hborla)
+* Status: **Active Review (November 18 - December 2, 2025)**
 * Implementation: [swiftlang/swift#85079](https://github.com/swiftlang/swift/pull/85079)
+* Review: ([pitch](https://forums.swift.org/t/support-copyable-escapable-in-simple-standard-library-protocols/83083))
 
 ## Introduction
 
