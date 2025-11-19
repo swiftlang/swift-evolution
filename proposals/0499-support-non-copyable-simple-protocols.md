@@ -1,6 +1,6 @@
 # Support ~Copyable, ~Escapable in simple standard library protocols
 
-* Proposal: [SE-0499](NNNN-make-stdlib-protocols-escapable.md)
+* Proposal: [SE-0499](0499-support-non-copyable-simple-protocols.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (November 18 - December 2, 2025)**
