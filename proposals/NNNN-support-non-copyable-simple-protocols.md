@@ -108,7 +108,9 @@ extension DefaultStringInterpolation
 
 `LosslessStringConvertible` explicitly does not conform to `~Escapable` since this
 would require a lifetime for the created value, something that requires
-further language features to express.
+further language features to express. It is useful to make it `~Copyable` though,
+since this allows for non-reference-counted arbitrary precision numeric types
+to be created from strings.
 
 Note that underscored protocol requirements and methods in extensions are omitted
 but will be updated as necessary.
