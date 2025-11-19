@@ -30,7 +30,16 @@ into a `Hasher`;
 need to borrow their operand to turn it into a string (as `CustomStringConvertible.description`
 does), or can create a non-`Copyable` values (as `LosslessStringConvertible.init?` could).
 
-Use of these protocols is ubiquitous in Swift code, and this can be a major impediment to introducing non-`Copyable` types into a codebase. For example, it might be desirable to drop in a [`UniqueArray`](https://swiftpackageindex.com/apple/swift-collections/1.3.0/documentation/basiccontainers/uniquearray) to replace an `Array` in some code where the copy-on-write checks are proving prohibitively expensive. But this cannot be done if that code is relying on that array type being `Hashable`.
+Use of these protocols is ubiquitous in Swift code, and this can be a major impediment to introducing non-`Copyable` 
+types into a codebase. For example, it might be desirable to drop in a 
+[`UniqueArray`](https://swiftpackageindex.com/apple/swift-collections/1.3.0/documentation/basiccontainers/uniquearray) 
+to replace an `Array` in some code where the copy-on-write checks are proving prohibitively expensive. But this 
+cannot be done if that code is relying on that array type being `Hashable`.
+
+Noncopyability can be useful for a variety of uses. In some cases, it is used for correctness to avoid 
+accidental sharing of a value that should not be. But it can also be used to build efficient non-reference-counted 
+alternatives to heap-allocating data structures such as `String` or arbitrary-precision numeric types. In these cases, 
+the ability to equate or compare such values to each other is highly useful.
 
 ## Proposed solution
 
@@ -125,7 +134,9 @@ deployment target on ABI-stable platforms.
 
 There are many other protocols that would benefit from this approach that are not included.
 
-Most of these are due to the presence of associated types (for example,  `RangeExpression.Bound`), which is not yet supported. Once that is a supported feature, these protocols can be similarly refined with a follow-on proposal.
+Most of these are due to the presence of associated types (for example,  `RangeExpression.Bound`), 
+which is not yet supported. Once that is a supported feature, these protocols can be similarly 
+refined with a follow-on proposal.
 
 `Codable` and `Decodable` do not have associated types – but their implementation is heavily
 generic, may not generalize to noncopyable types, and is out of scope for this proposal.
@@ -135,7 +146,9 @@ to conditionally conform to `Hashable`, as `Array` does. There is some debate to
 the semantics of `Equatable` conformance for `Span` (though probably not for `InlineArray`),
 and this should be the subject of a future proposal.
 
-Allowing more types to be `Custom*StringConvertible where Self: ~Copyable & ~Escapable`, such as `Optional`, requires further work on the `print` infrastructure to be able to handle such types, so is out of scope for this proposal.
+Allowing more types to be `Custom*StringConvertible where Self: ~Copyable & ~Escapable`, such as `Optional`, 
+requires further work on the `print` infrastructure to be able to handle such types, so is out of scope for
+this proposal.
 
 ## Alternatives considered
 
@@ -153,5 +166,9 @@ However, the definition also states:
 > **Equality is Separate From Identity.** The identity of a class instance is not part of an
 > instance's value.
 
-Authors of non-`Copyable` types will need to decide for themselves whether their type should
-be `Equatable` and what it means. The standard library should allow it to be possible, though.
+As noted in the motivation, one use case for noncopyable types is to replicate standard types
+that would naturally be equated, such as strings or numbers.
+
+Authors of non-`Copyable` types will need to decide for themselves whether their noncopyable
+type should be `Equatable` and what it means. The standard library should allow it to be possible, 
+though.
