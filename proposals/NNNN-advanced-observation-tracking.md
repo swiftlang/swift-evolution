@@ -108,7 +108,7 @@ withObservationTracking(options: [.willSet]) {
 myObject.bar += 1
 ```
 
-The sample above is expected to print out that it "got a change of bar". The matching of events happen for either willSet or didSet events, but will not match any cases of deinit events.
+The sample above is expected to print out that it "got a change of bar" once since it only was registered with the options of willSet. The matching of events happen for either willSet or didSet events, but will not match any cases of deinit events.
 
 The deinit event happens when an object being observed is deinitialized. The following example will trigger a deinit.
 
