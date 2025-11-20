@@ -237,7 +237,7 @@ Package manager proposals use full evolution review.
 Proposals are pitched in the [Evolution > Pitches][forums-pitches] section of the Swift forums and reviewed in the [Evolution > Proposal Reviews][forums-reviews] section.
 
 Package manager proposal documents should be based on the [package manager proposal template](proposal-templates/0000-swiftpm-template.md).
-For historical reasons, they also use the "SE" prefix and can be bound in the [`proposals` directory](proposals/) of the Swift evolution repository.
+For historical reasons, they also use the "SE" prefix and can be found in the [`proposals` directory](proposals/) of the Swift evolution repository.
 
 ### Testing evolution
 
