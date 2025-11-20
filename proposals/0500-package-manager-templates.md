@@ -1,11 +1,11 @@
 # Improving package creation with custom templates: SwiftPM Template Initialization
 
-* Proposal: [SE-NNNN]()
+* Proposal: [SE-500](0500-package-manager-templates.md)
 * Authors: [John Bute](https://github.com/johnbute)
-* Review Manager: TBD
-* Status: Awaiting implementation
+* Review Manager: [Franz Busch](https://github.com/FranzBusch)
+* Status: **Active Review (November 20 - December 4, 2025)**
 * Implementation: [apple/swift-package-manager#04956](https://github.com/swiftlang/swift-package-manager/pull/9211)
-* Review: ( [pitch](https://forums.swift.org/t/pitch-improving-package-creation-with-custom-templates-swiftpm-template-initialization/81525/1) ) ( [review](LINK TO SWIFT FORUMS POST HERE) )
+* Review: ([pitch](https://forums.swift.org/t/pitch-improving-package-creation-with-custom-templates-swiftpm-template-initialization/81525) ) ([review](https://forums.swift.org/t/se-0500-improving-package-creation-with-custom-templates/83321))
 
 ## Introduction
 
