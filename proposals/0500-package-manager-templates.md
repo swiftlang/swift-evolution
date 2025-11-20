@@ -1,6 +1,6 @@
 # Improving package creation with custom templates: SwiftPM Template Initialization
 
-* Proposal: [SE-500](0500-package-manager-templates.md)
+* Proposal: [SE-0500](0500-package-manager-templates.md)
 * Authors: [John Bute](https://github.com/johnbute)
 * Review Manager: [Franz Busch](https://github.com/FranzBusch)
 * Status: **Active Review (November 20 - December 4, 2025)**
