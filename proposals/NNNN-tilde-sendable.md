@@ -130,7 +130,7 @@ func test<T: ~Sendable>(_: T) {} // error: conformance to 'Sendable' can only be
 ```
 
 
-Attempting to explicitly conform (both conditionally and unconditionally) to both `Sendable` and `~Sendable` results in a compile-time error:
+Attempting to unconditionally conform to both `Sendable` and `~Sendable` results in a compile-time error:
 
 ```swift
 struct Container<T>: ~Sendable {
@@ -138,7 +138,12 @@ struct Container<T>: ~Sendable {
 }
 
 extension Container: Sendable {} // error: cannot both conform to and suppress conformance to 'Sendable'
-extension Container: Sendable where T: Sendable {} // error: cannot both conform to and suppress conformance to 'Sendable'
+```
+
+But conditional conformances are allowed similarly to i.e. `Copyable`:
+
+```swift
+extension Container: Sendable where T: Sendable {} // Ok!
 ```
 
 The Swift compiler provides a way to audit Sendability of public types. The current way to do this is by enabling the `-require-explicit-sendable` flag to produce a warning for every public type without explicit `Sendable` conformance (or an unavailable extension). This flag now supports `~Sendable` and has been turned into a diagnostic group that is disabled by default - `ExplicitSendable`, and can be enabled by `-Wwarning ExplicitSendable`.
