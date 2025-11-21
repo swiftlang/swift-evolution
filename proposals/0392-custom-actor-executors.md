@@ -645,7 +645,7 @@ func check(values: MainActorValues) /* synchronous! */ {
 }
 
 actor Friend {
-  var unownedExecutor: UnownedSerialExecutor { 
+  nonisolated var unownedExecutor: UnownedSerialExecutor { 
     MainActor.sharedUnownedExecutor
   }
   
