@@ -14,7 +14,7 @@ This proposal introduces a new mechanism to temporarily "ignore" task cancellati
 
 This can be used to ensure certain pieces of code will execute regardless of the task's cancelled status. A common situation where this is useful is running clean-up code, which must execute regardless of a task's cancellation status.
 
-This proposal dovetails nicely with asynchronous defer statements which were recently introduced in [SE-0493](Support `async` calls in `defer` bodies), which are frequently used to express such resource clean-up functionality.
+This proposal dovetails nicely with asynchronous defer statements which were recently introduced in [SE-0493: Support `async` calls in `defer` bodies](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0493-defer-async.md), which are frequently used to express such resource clean-up functionality.
 
 ## Motivation
 
