@@ -14,6 +14,9 @@
 
 ## Introduction
 
+(This proposal no longer includes the support for delayed enqueuing,
+which has been moved to a separate proposal.)
+
 Currently the built-in executor implementations are provided directly
 by the Swift Concurrency runtime, and are built on top of Dispatch.
 While developers can currently provide custom executors, it is not
@@ -485,126 +488,6 @@ data alongside jobs that they currently have queued up.  It is worth
 re-emphasising that the data needs to be released, in reverse order
 of allocation, prior to execution of the job to which it is attached.
 
-We will also add a `SchedulingExecutor` protocol as well as a way to
-get it efficiently from an `Executor`; this is required to let us
-build `Task.sleep()` on top of the new custom executor infrastructure:
-
-```swift
-protocol Executor {
-  ...
-  /// Return this executable as a SchedulingExecutor, or nil if that is
-  /// unsupported.
-  ///
-  /// Executors can implement this method explicitly to avoid the use of
-  /// a potentially expensive runtime cast.
-  @available(SwiftStdlib 6.2, *)
-  var asSchedulingExecutor: (any SchedulingExecutor)? { get }
-  ...
-}
-
-protocol SchedulingExecutor: Executor {
-  ...
-  /// Enqueue a job to run after a specified delay.
-  ///
-  /// You need only implement one of the two enqueue functions here;
-  /// the default implementation for the other will then call the one
-  /// you have implemented.
-  ///
-  /// Parameters:
-  ///
-  /// - job:       The job to schedule.
-  /// - after:     A `Duration` specifying the time after which the job
-  ///              is to run.  The job will not be executed before this
-  ///              time has elapsed.
-  /// - tolerance: The maximum additional delay permissible before the
-  ///              job is executed.  `nil` means no limit.
-  /// - clock:     The clock used for the delay.
-  func enqueue<C: Clock>(_ job: consuming ExecutorJob,
-                         after delay: C.Duration,
-                         tolerance: C.Duration?,
-                         clock: C)
-
-  /// Enqueue a job to run at a specified time.
-  ///
-  /// You need only implement one of the two enqueue functions here;
-  /// the default implementation for the other will then call the one
-  /// you have implemented.
-  ///
-  /// Parameters:
-  ///
-  /// - job:       The job to schedule.
-  /// - at:        The `Instant` at which the job should run.  The job
-  ///              will not be executed before this time.
-  /// - tolerance: The maximum additional delay permissible before the
-  ///              job is executed.  `nil` means no limit.
-  /// - clock:     The clock used for the delay..
-  func enqueue<C: Clock>(_ job: consuming ExecutorJob,
-                         at instant: C.Instant,
-                         tolerance: C.Duration?,
-                         clock: C)
-  ...
-}
-```
-
-As an implementer, you will only need to implement _one_ of the two
-APIs to get both of them working; there is a default implementation
-that will do the necessary mathematics for you to implement the other
-one.
-
-The new `enqueue` APIs in `SchedulingExecutor` are used by the
-implementation of `Task.sleep()`.
-
-To support these `Clock`-based APIs, we will add to the `Clock`
-protocol as follows:
-
-```swift
-protocol Clock {
-  ...
-  /// Run the given job on an unspecified executor at some point
-  /// after the given instant.
-  ///
-  /// Parameters:
-  ///
-  /// - job:         The job we wish to run
-  /// - at instant:  The time at which we would like it to run.
-  /// - tolerance:   The ideal maximum delay we are willing to tolerate.
-  ///
-  func run(_ job: consuming ExecutorJob,
-           at instant: Instant, tolerance: Duration?)
-
-  /// Enqueue the given job on the specified executor at some point after the
-  /// given instant.
-  ///
-  /// The default implementation uses the `run` method to trigger a job that
-  /// does `executor.enqueue(job)`.  If a particular `Clock` knows that the
-  /// executor it has been asked to use is the same one that it will run jobs
-  /// on, it can short-circuit this behaviour and directly use `run` with
-  /// the original job.
-  ///
-  /// Parameters:
-  ///
-  /// - job:         The job we wish to run
-  /// - on executor: The executor on which we would like it to run.
-  /// - at instant:  The time at which we would like it to run.
-  /// - tolerance:   The ideal maximum delay we are willing to tolerate.
-  ///
-  func enqueue(_ job: consuming ExecutorJob,
-               on executor: some Executor,
-               at instant: Instant, tolerance: Duration?)
-  ...
-}
-```
-
-There is a default implementation of the `enqueue` method on `Clock`,
-which calls the `run` method; if you attempt to use a `Clock` with an
-executor that does not understand it, and that `Clock` does not
-implement the `run` method, you will get a fatal error at runtime.
-
-Executors that do not specifically recognise a particular clock may
-choose instead to have their `enqueue(..., clock:)` methods call the
-clock's `enqueue()` method; this will allow the clock to make an
-appropriate decision as to how to proceed.
-
 We will also add a way to test if an executor is the main executor:
 
 ```swift
@@ -656,10 +539,6 @@ As we are not proposing to remove the existing "hook function" API
 from Concurrency at this point, it will still be possible to implement
 an executor for Embedded Swift by implementing the `Impl` functions in
 C/C++.
-
-We will not be able to support the new `Clock`-based `enqueue` APIs on
-Embedded Swift at present because it does not allow protocols to
-contain generic functions.
 
 ### Overriding the main and default executors
 
@@ -844,43 +723,6 @@ knowledge of those libraries.
 
 While a good idea, it was decided that this would be better dealt with
 as a separate proposal.
-
-### Adding conversion functions and traits for `Clock`s
-
-An alternative approach to the `clock.run()` and `clock.enqueue()`
-APIs was explored in an earlier revision of this proposal; the idea
-was that `Clock` would provide API to convert its `Instant` and
-`Duration` types to those provided by some other `Clock`, and then
-each `Clock` would expose a `traits` property that specified features
-of the clock that could be matched against the support a given
-executor might have for time-based execution.
-
-The benefit of this is that it allows any executor to use any `Clock`,
-albeit on a best-effort basis.  The downside is that clock conversions
-will necessarily be lossy in nature, and also would only work on the
-assumption that `Clock` types were actually measuring time in a
-similar manner (i.e. one second in `Clock` A is equal to one second in
-`Clock` B).  It might also result in unusual behaviour in some cases,
-e.g. where an executor did not pay attention to some clock trait that
-ordinarily would affect behaviour.
-
-We decided after some discussion that it was better instead for
-executors to know which `Clock` types they directly support, and in
-cases where they are handed an unknown `Clock`, have the `Clock`
-itself take responsibility for appropriately scheduling a job.
-
-### Adding special support for canonicalizing `Clock`s
-
-There are situations where you might create a derived `Clock`, that is
-implemented under the covers by reference to some other clock.  One
-way to support that might be to add a `canonicalClock` property that
-you can fetch to obtain the underlying clock, then provide conversion
-functions to convert `Instant` and `Duration` values as appropriate.
-
-After implementing this, it became apparent that it wasn't really
-necessary and complicated the API without providing any significant
-additional capability.  A derived `Clock` can simply implement the
-`run` and/or `enqueue` methods instead.
 
 ### Providing `Task.currentExecutor`
 
