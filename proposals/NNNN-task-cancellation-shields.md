@@ -18,7 +18,7 @@ This proposal dovetails nicely with asynchronous defer statements which were rec
 
 ## Motivation
 
-Task cancellation is _final_ and can not be ignored or undone. Once a task has been cancelled, it remains cancelled for the rest of its existance. 
+Task cancellation is _final_ and can not be ignored or undone. Once a task has been cancelled, it remains cancelled for the rest of its existence. 
 
 Child tasks are also affected by task cancellation, and cancellation propagates throughout the entire task tree, allowing for efficient and holistic cancelling of entire hierarchies of work, represented as a tree of child tasks.
 
