@@ -73,15 +73,15 @@ Task cancellation shields directly resolve these problems.
 We propose the introduction of a `withTaskCancellationShield` method which temporarily prevents code from **observing** the cancellation status, and thus allowing code to execute as-if the surrounding task was not cancelled:
 
 ```swift
-public func withTaskCancellationShield<T, E>(
-  _ operation: () throws(E) -> T,
+public func withTaskCancellationShield<Value, Failure>(
+  _ operation: () throws(Failure) -> Value,
   file: String = #fileID, line: Int = #line
-) throws(E) -> T
+) throws(Failure) -> Value
 
-public nonisolated(nonsending) func withTaskCancellationShield<T, E>(
-  _ operation: nonisolated(nonsending) () async throws(E) -> T, // FIXME: order of attrs
+public nonisolated(nonsending) func withTaskCancellationShield<Value, E>(
+  _ operation: nonisolated(nonsending) () async throws(Failure) -> Value,
   file: String = #fileID, line: Int = #line
-) async throws(E) -> T
+) async throws(Failure) -> T
 ```
 
 Shields also prevent the automatic propagation of cancellation into child tasks, including `async let` and task groups. 
@@ -124,7 +124,7 @@ Task {
 }
 ```
 
-However if a child task were to be cancelled explicitly the shield of the parent, has no effect on the child itself becoming cancelled:
+However if a child task (or entire task group) were to be cancelled explicitly, the shield of the parent task has no effect, as it only shields from "incoming" cancellation from the outer scope and not the child task's own status.
 
 ```swift
 await withTaskCancellationShield {
@@ -152,11 +152,13 @@ await withDiscardingTaskGroup { group in
 }
 ```
 
+All examples shown using `isCancelled` behave exactly the same for `Task.checkCancellation`, i.e. whenever `isCancelled` would be true, the `checkCancelled` API would throw a `CancellationError`.
+
 ### Cancellation Shields and Cancellation Handlers
 
 Swift concurrency offers task cancellation handlers which are invoked immediately when a task is cancelled. This allows you to dynamically react to cancellation happening without explicitly checking the `isCancelled` property of a task. 
 
-Task cancellation shields also prevent cancellation handlers from firing if the handler wasn't stored while a shield was active. Again, this does not extend to child tasks, but only to the current task that is being shielded. 
+Task cancellation shields also prevent cancellation handlers from firing if the handler was stored while a shield was active. Again, this does not extend to child tasks, but only to the current task that is being shielded. 
 
 For example, the task cancellation shield installed around the `slowOperation` in the snippet below, would effectively prevent the cancellation handler inside the `slowOperation` function from ever triggering:
 
@@ -171,10 +173,41 @@ func slowOperation() -> ComputationResult {
 
 func cleanup() {
   withTaskCancellationShield {
-    
+    slowOperation()
   }
 }
 ```
+
+### Cancellation Shields and Task handles
+
+Unstructured tasks, as well as the use of `withUnsafeCurrentTask`, offer a way to obtain a task handle which may be interacted with outside of the task.
+
+For example, you may obtain a task handle a an unstructured task, which then immediately enters a task cancellation shield scope:
+
+```swift
+let task = Task { 
+  Task.isCancelled // true
+  withTaskCancellationShield { 
+    Task.isCancelled // false
+  }
+  Task.isCancelled // true
+}
+
+task.cancel()
+print(task.isCancelled) // _always_ true
+```
+
+The **instance method** `task.isCancelled` queried from the outside of the task will return the _actual_ cancelled state, regardless if the task is right no executing a section of code under a cancellation shield or not. This is because from the outside it would be racy to query the cancellation state and rely on wether or not the task is currently executing a section of code under a shield. This could lead to confusing behavior where querying the same `task.isCancelled` could be flip flopping between cancelled and not cancelled.
+
+The **static method** `Task.isCancelled` always reports the cancelled status of "this context" and thus respects the structure of the program with regards to nesting in `withTaskCancellationShield { ... }` blocks. Therefore the static `Task.isCancelled` method is always returning the actual cancellation status (regardless of installed shields).
+
+The static method was, and remains, the primary way tasks interact with cancellation.
+
+We believe these semantics are the right, understandable, and consistent choice of behavior:
+
+- **instance methods** on `Task` (and `UnsafeCurrentTask` discussed next) observe cancellation observe the "actual" cancellation state, since they may be queried from any context.
+- **static methods** observe the cancellation status "in this context", and thus, respect task cancellation shields,
+  - This includes the: `Task.isCancelled`, `Task.checkCancellation` and `withTaskCancellationHandler` methods.
 
 ### Debugging and Observing Task Cancellation Shields
 
@@ -190,33 +223,75 @@ withTaskCancellationShield {
 
 While this code pattern is not really often encountered in real-world code, it could confuse developers unaware of task cancellation shields, especially in deep call hierarchies.
 
-In order to aid understanding and debuggability of cancellation in such systems, we also introduce two new query functions: 
+In order to aid understanding and debuggability of cancellation in such systems, we also introduce a new property to query for a cancellation shield being active in a specific task.
 
-First, the `isTaskCancellationShielded` static property, which can be used to determine if a cancellation shield is active. Primarily this can be used for debugging "why isn't my task getting cancelled?" kinds of issues.
+This API is not intended to be used in "normal" code, and should only be used during debugging issues with cancellation, to check if a shield is active in a given task. This API are _only_ available on `UnsafeCurrentTask`, in order to dissuade from their use in normal code.
+
+The `hasActiveTaskCancellationShield` static property, which can be used to determine if a cancellation shield is active. Primarily this can be used for debugging "why isn't my task getting cancelled?" kinds of issues.
 
 ```swift
-extension Task where Success == Never, Failure == Never {
-  public static var isTaskCancellationShielded: Bool { get }
-  // TODO: or hasActiveTaskCancellationShield ???
-}
-
-extension UnsafeCurrentTask where Success == Never, Failure == Never {
-  public var isTaskCancellationShielded: Bool { get }
+extension UnsafeCurrentTask {
+  public static var hasActiveTaskCancellationShield: Bool { get }
 }
 ```
 
-As well as, a version of `isCancelled()` which allows ignoring the cancellation shield:
+Here is an example, how `UnsafeCurrentTask`'s  `isCancelled` as well as the new `hasActiveTaskCancellationShield` behave inside inside of a cancelled, but shielded task. The instance method `UnsafeCurrentTask.isCancelled` behaves the same way as the `Task.isCancelled` method, which was discussed above. However, using the unsafe task handle, we are able to react to task cancellation shields if necessary:
 
 ```swift
-extension Task where Success == Never, Failure == Never {
-  public static func isCancelled(ignoringCancellationShield: Bool) -> Bool
+let task = Task { 
+  Task.isCancelled // true
+  
+  withTaskCancellationShield { 
+    Task.isCancelled // false
+    
+    withUnsafeCurrentTask { unsafeTask in 
+      unsafeTask.isCancelled // true
+      unsafeTask.hasTaskCancellationShield // true
+                           
+      // can replicate respecting shield if necessary (racy by definition, if this was queried from outside)
+      let isCancelledRespectingShield = 
+        if unsafeTask.hasTaskCancellationShield { false }
+        else { unsafeTask.isCancelled }
+    }
+  }
 }
-extension UnsafeCurrentTask where Success == Never, Failure == Never {
-  public func isCancelled(ignoringCancellationShield: Bool) -> Bool
-}
+
+task.cancel()
+print(task.isCancelled) // true
 ```
 
-This overload should not really be used by normal code trying to act on cancellation, and we believe the long name should indicate as much, as will the documentation on those methods. However, we believe offering it is may be beneficial for certain code paths which can benefit from seeing the whole picture, and/or software logging and reporting statuses of tasks etc.
+### Modifying the `isCancelled` behavior contract
+
+Previously, the static `Task.isCancelled` property declared on Task was documented as:
+
+```swift
+  /// After the value of this property becomes `true`, it remains `true` indefinitely.
+  /// There is no way to uncancel a task.
+```
+
+With cancellation shields, this wording may be slightly confusing. It is true that cancellation is terminal and cannot be "undone", however this proposal does allow an `isCancelled` on a task that previously returned `true` to return `false`, if and only if, that task has now entered a task cancellation shield scope:
+
+```swift
+Task.isCancelled // true
+withTaskCancellationShield { 
+    Task.isCancelled // false
+}
+Task.isCancelled // true
+```
+
+Therefore the API documentation will be changed to reflect this change:
+
+```swift
+/// ... 
+/// A task's cancellation is final and cannot be undone.
+/// However, is possible to cause the `isCancelled` property to return `false` even 
+/// if the task was previously cancelled by entering a ``withTaskCancellationShield(_:)`` scope.
+/// ...
+public var isCancelled: Bool {
+
+```
+
+The instance method `task.isCancelled` retains its existing behavior.
 
 ### Compatibility with defer
 
@@ -251,6 +326,14 @@ Since this feature requires a number of runtime changes, it will not be availabl
 Doing nothing is always an option, and we suggest developers have to keep using the unstructured task workaround. 
 
 This doesn't seem viable though as the problem indeed is real, and the workaround is problematic scheduling wise, and may not even be usable in certain situations.
+
+### Naming the feature "ignore cancellation" or similar
+
+During the pitch a variety of name alternatives for this feature were proposed. Among them were "`ignoringCancellation { ... }`", or "`suppressingCancellation{ ... }`".
+
+We discussed these and believe it is _more_ confusing to introduce a descriptive name for this feature because the descriptions never _quite_ capture the actual feature's behavior, and would give a false sense of understanding without looking up API docs and/or extended documentation explaining the behavior.
+
+Specifically, this feature does _not_ ignore cancellation, it only prevents observing it while within the scope of a shield within a task.
 
 ## Acknowledgments
 
