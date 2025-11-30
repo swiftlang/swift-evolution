@@ -182,7 +182,7 @@ func cleanup() {
 
 Unstructured tasks, as well as the use of `withUnsafeCurrentTask`, offer a way to obtain a task handle which may be interacted with outside of the task.
 
-For example, you may obtain a task handle a an unstructured task, which then immediately enters a task cancellation shield scope:
+For example, you may obtain a task handle for an unstructured task, which then immediately enters a task cancellation shield scope:
 
 ```swift
 let task = Task { 
@@ -197,15 +197,15 @@ task.cancel()
 print(task.isCancelled) // _always_ true
 ```
 
-The **instance method** `task.isCancelled` queried from the outside of the task will return the _actual_ cancelled state, regardless if the task is right no executing a section of code under a cancellation shield or not. This is because from the outside it would be racy to query the cancellation state and rely on wether or not the task is currently executing a section of code under a shield. This could lead to confusing behavior where querying the same `task.isCancelled` could be flip flopping between cancelled and not cancelled.
+The instance method `task.isCancelled` queried from the outside of the task will return the _actual_ cancelled state, regardless if the task is right no executing a section of code under a cancellation shield or not. This is because from the outside it would be racy to query the cancellation state and rely on wether or not the task is currently executing a section of code under a shield. This could lead to confusing behavior where querying the same `task.isCancelled` could be flip flopping between cancelled and not cancelled.
 
-The **static method** `Task.isCancelled` always reports the cancelled status of "this context" and thus respects the structure of the program with regards to nesting in `withTaskCancellationShield { ... }` blocks. Therefore the static `Task.isCancelled` method is always returning the actual cancellation status (regardless of installed shields).
+The static method `Task.isCancelled` always reports the cancelled status of "this context" and thus respects the structure of the program with regards to nesting in `withTaskCancellationShield { ... }` blocks. This static method was, and remains, the primary way tasks interact with cancellation.
 
 The static method was, and remains, the primary way tasks interact with cancellation.
 
 We believe these semantics are the right, understandable, and consistent choice of behavior:
 
-- **instance methods** on `Task` (and `UnsafeCurrentTask` discussed next) observe cancellation observe the "actual" cancellation state, since they may be queried from any context.
+- **instance methods** on `Task` (and `UnsafeCurrentTask` discussed next) observe the "actual" cancellation state, since they may be queried from any context.
 - **static methods** observe the cancellation status "in this context", and thus, respect task cancellation shields,
   - This includes the: `Task.isCancelled`, `Task.checkCancellation` and `withTaskCancellationHandler` methods.
 
@@ -227,7 +227,7 @@ In order to aid understanding and debuggability of cancellation in such systems,
 
 This API is not intended to be used in "normal" code, and should only be used during debugging issues with cancellation, to check if a shield is active in a given task. This API are _only_ available on `UnsafeCurrentTask`, in order to dissuade from their use in normal code.
 
-The `hasActiveTaskCancellationShield` static property, which can be used to determine if a cancellation shield is active. Primarily this can be used for debugging "why isn't my task getting cancelled?" kinds of issues.
+The `hasActiveTaskCancellationShield` property, which can be used to determine if a cancellation shield is active. Primarily this can be used for debugging "why isn't my task getting cancelled?" kinds of issues.
 
 ```swift
 extension UnsafeCurrentTask {
