@@ -156,7 +156,7 @@ await withDiscardingTaskGroup { group in
 
 Swift concurrency offers task cancellation handlers which are invoked immediately when a task is cancelled. This allows you to dynamically react to cancellation happening without explicitly checking the `isCancelled` property of a task. 
 
-Task cancellation shields also prevent cancellation handlers from firing if the handler wasn't stored while a shield was active. Again, this does not extend to child tasks, but only to the current task that is being shielded. 
+Task cancellation shields also prevent cancellation handlers from firing if the handler was stored while a shield was active. Again, this does not extend to child tasks, but only to the current task that is being shielded. 
 
 For example, the task cancellation shield installed around the `slowOperation` in the snippet below, would effectively prevent the cancellation handler inside the `slowOperation` function from ever triggering:
 
