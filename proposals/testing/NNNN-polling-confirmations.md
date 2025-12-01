@@ -548,6 +548,43 @@ For this initial implementation, I wanted to keep this simple. As such, while
 a curve is promising, I think it is better considered on its own as a separate
 proposal.
 
+### Use Task execution time to determine how long to poll
+
+As currently proposed, polling confirmations do not take into account how long
+it takes to run the given task.
+`confirmation(until: .stopsPassing, within: .seconds(1))`, in the success case,
+will spend 1 second just waiting between polling attempts. The time spent
+setting up polling and the time spent running the closure is not accounted for
+whatsoever. On average, this means that test authors can expect the wall-clock
+time spent running the polling confirmation for the full iteration count to be
+around twice as long as the timeout duration specified.
+
+As part of discussing this, the testing workgroup has started exploring
+[adding the ability to track Task execution time](
+https://forums.swift.org/t/possible-feature-inspect-task-execution-time/83396).
+This would allow the testing library to directly track how long a polling
+confirmation has ran for, allowing it to incorporate how long it has spent
+polling as part of testing. This would noticeably improve the speed of polling
+confirmations, without any of the reliability issues noted in discussion around
+why timeouts aren't directly used.
+
+Additionally, tracking task execution time would enable the testing library
+to add a watchdog timer to catch stalled polling closures, and even improve the
+current watchdog timer for stalled tests. A watchdog timer for polling
+confirmations is not included in this proposal because of the issues surrounding
+parallel test execution. Instead, test authors will have to rely on the much
+coarser-grained watchdog timer for the overall test.
+
+Furthermore, tracking task execution time would also enable for other forms of
+`confirmation` to use a time-based tracking method, instead of just the lifespan
+of the running function. Similar to XCTest's XCTestExpectation API.
+
+Tracking Task execution time is not included with this proposal because such a
+feature is a major feature request in and of itself, and the testing workgroup
+feels there is benefit to offering polling confirmations without tracking task
+execution time. In the future, we might reimplement polling confirmations to use
+task execution time if it becomes available.
+
 ## Alternatives considered
 
 ### Use separate functions instead of the `PollingStopCondition` enum
@@ -585,10 +622,10 @@ tests are executed serially, the concurrent test runner the testing library uses
 means that timeouts are inherently unreliable. Importantly, timeouts become more
 unreliable the more tests in the test suite.
 
-### Use polling iterations
+### Directly use polling iterations
 
-Another option considered was using polling iterations, either solely or
-combined with the interval value.
+Another option considered was directly using polling iterations, either solely
+or combined with the interval value.
 
 While this works and is resistant to many of the issues timeouts face
 in concurrent testing environments - which is why polling is implemented using
@@ -600,7 +637,7 @@ iteration count from a duration value anyway.
 
 ### Take in a `Clock` instance
 
-Polling confirmations could take in and use an custom Clock by test authors.
+Polling confirmations could take in and use a custom Clock by test authors.
 This is not supported because Polling is often used to wait out other delays,
 which may or may not use the specified Clock. By staying with the default
 continuous clock, Polling confirmations will continue to work even if a test
