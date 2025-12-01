@@ -3,12 +3,12 @@
 * Proposal: [SE-0478](0478-default-isolation-typealias.md)
 * Authors: [Holly Borla](https://github.com/hborla)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active Review (April 21 ... May 5, 2025)**
+* Status: **Returned for revision**
 * Vision: [Improving the approachability of data-race safety](/visions/approachable-concurrency.md)
 * Implementation: [swiftlang/swift#80572](https://github.com/swiftlang/swift/pull/80572)
 * Experimental Feature Flag: `DefaultIsolationTypealias`
 * Previous Proposal: [SE-0466: Control default actor isolation inference][SE-0466]
-* Review: ([pitch](https://forums.swift.org/t/pitch-a-typealias-for-per-file-default-actor-isolation/79150))([review](https://forums.swift.org/t/se-0478-default-actor-isolation-typealias/79436))
+* Review: ([pitch](https://forums.swift.org/t/pitch-a-typealias-for-per-file-default-actor-isolation/79150))([review](https://forums.swift.org/t/se-0478-default-actor-isolation-typealias/79436))([return for revision](https://forums.swift.org/t/returned-for-revision-se-0478-default-actor-isolation-typealias/80253))
 
 ## Introduction
 
