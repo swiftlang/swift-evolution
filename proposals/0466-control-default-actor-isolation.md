@@ -3,7 +3,7 @@
 * Proposal: [SE-0466](0466-control-default-actor-isolation.md)
 * Authors: [Holly Borla](https://github.com/hborla), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active review (July 8...15, 2025)**
+* Status: **Implemented (Swift 6.2)**
 * Vision: [Improving the approachability of data-race safety](/visions/approachable-concurrency.md)
 * Review: ([pitch](https://forums.swift.org/t/pitch-control-default-actor-isolation-inference/77482))([review](https://forums.swift.org/t/se-0466-control-default-actor-isolation-inference/78321))([acceptance](https://forums.swift.org/t/accepted-se-0466-control-default-actor-isolation-inference/78926))([amendment pitch](https://forums.swift.org/t/pitch-amend-se-0466-se-0470-to-improve-isolation-inference/79854))([amendment review](https://forums.swift.org/t/amendment-se-0466-control-default-actor-isolation-inference/80994))
 
