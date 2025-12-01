@@ -140,6 +140,7 @@ We propose supporting the following Swift Testing APIs in XCTest:
 - [`#expect` and `#require`][Swift Testing expectations]
   - Includes [`#expect(throws:)`][testing for errors]
   - Includes [exit testing][]
+  - Includes directly recording an issue with [`Issue.record()`][issues]
 - `withKnownIssue`: marking an XCTest issue in this way will generate a runtime
   warning issue. In strict interop mode, this becomes a `fatalError`.
 - [Test cancellation][] (currently pitched)
@@ -318,6 +319,7 @@ the proposal.
 [Swift Testing expectations]: https://developer.apple.com/documentation/testing/expectations
 [Testing for errors]: https://developer.apple.com/documentation/testing/testing-for-errors-in-swift-code
 [exit testing]: https://developer.apple.com/documentation/testing/exit-testing
+[issues]: https://developer.apple.com/documentation/testing/issue
 [issue handling traits]: https://developer.apple.com/documentation/testing/issuehandlingtrait
 [traits]: https://developer.apple.com/documentation/testing/traits
 [confirmations]: https://developer.apple.com/documentation/testing/confirmation
