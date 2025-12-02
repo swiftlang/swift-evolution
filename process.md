@@ -10,13 +10,15 @@ The Swift evolution process applies to all design changes to specific aspects of
 This includes the Swift language, its standard library and certain other core libraries, and the interfaces of core tools such as the Swift package manager.
 The complete list is given [below](#evolution-areas).
 
-The evolution process applies only to the design of features, not their implementation.
-Implementation work in the Swift project is generally open-source and subject to the normal code review process; see [Contributing to Swift](https://www.swift.org/contributing/).
+The evolution process applies only to the design of features.
+Neither the implementation of the feature nor the user documentation for it require evolution review.
+Implementation and documentation work in the Swift project is open-source and subject to the normal code review process; see [Contributing to Swift](https://www.swift.org/contributing/).
 Changes such as bug fixes, optimizations, and diagnostic improvements can be contributed at any time.
 Implementation review is generally completely independent from the design review performed by the Swift evolution process.
 However, there is one important exception: patches that would change a design covered by the evolution process should not be merged without the approval of the appropriate evolution workgroup.
 This may include fixing bugs, if the bug allows additional things to be expressed or changes the user-visible behavior of a feature.
-Bugs in features that have not yet been officially released can be freely fixed. Implementors should check with the appropriate evolution workgroup if they're uncertain what to do.
+Bugs in features that have not yet been officially released can be freely fixed.
+Implementors should check with the appropriate evolution workgroup if they're uncertain what to do.
 
 The evolution process does not cover the design of experimental features, which can be added, changed, or removed at any time using the normal code review process.
 Implementations should take steps to prevent the accidental use of experimental features, such as by enabling them only when an explicitly experimental command line flag is passed to the tool.
