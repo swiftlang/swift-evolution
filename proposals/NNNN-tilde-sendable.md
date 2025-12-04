@@ -36,7 +36,6 @@ extension Base: Sendable {
 
 
 Like all other conformances, an unavailable conformance to `Sendable` is inherited by subclasses. An unavailable conformance means that the type never conforms to `Sendable`, including all subclasses. Attempting to declare a thread-safe subclass `ThreadSafe`:
-Attempting to declare a thread-safe subclass `ThreadSafe`:
 
 
 ```swift
@@ -133,11 +132,32 @@ func test<T: ~Sendable>(_: T) {} // error: conformance to 'Sendable' can only be
 Attempting to unconditionally conform to both `Sendable` and `~Sendable` results in a compile-time error:
 
 ```swift
+// Actors are always `Sendable`.
+actor A: ~Sendable { // error: cannot both conform to and suppress conformance to 'Sendable'
+}
+
 struct Container<T>: ~Sendable {
     let value: T
 }
 
 extension Container: Sendable {} // error: cannot both conform to and suppress conformance to 'Sendable'
+```
+
+This rule also applies to explicit and derived `Sendable` conformances inherited from superclasses and protocols:
+
+```swift
+protocol IsolatedProtocol: Sendable {
+}
+
+struct Test: IsolatedProtocol, ~Sendable { // error: cannot both conform to and suppress conformance to 'Sendable'
+}
+
+@MainActor
+class IsolatedBase { // global actor isolated types are `Sendable`.
+}
+
+class Refined: IsolatedBase, ~Sendable { // error: cannot both conform to and suppress conformance to 'Sendable'
+}
 ```
 
 But conditional conformances are allowed similarly to i.e. `Copyable`:
