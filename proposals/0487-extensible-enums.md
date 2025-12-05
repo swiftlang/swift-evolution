@@ -311,7 +311,7 @@ enumerations to achieve the same effect.
 
 ## Alternatives considered
 
-### Different names for the attribute
+### Different names for the attribute
 
 We considered different names for the attribute such as `@nonFrozen` or
 `@extensible`; however, we felt that `@nonexhaustive` communicates the idea of
