@@ -496,6 +496,23 @@ duration specified. If the test author specifies the polling duration to be
 10 minutes, then the test will poll for approximately that long, so long as the
 polling body keeps returning true.
 
+Additionally, polling should not be used to wait out long delays in
+implementation code. If there is a 0.5 second delay in the implementation code,
+then a 1-second polling confirmation will exhaust at least half of its polling
+attempts just waiting out that long delay. In high-load environments such as
+CI systems or systems running in virtual machines, that 0.5 second delay can
+often last longer than the amount of time spent polling, resulting in
+unstable tests.  
+To address this, developers should either write the implementation code to use
+an injected clock, allowing for the test to inject a clock where the delay can
+be noted but otherwise skipped. Polling can then be attempted to wait for any
+minor delays in task or runloop scheduling. Alternatively, if injecting a clock
+is infeasible, then the test itself should wait at least as long as the delay
+before starting polling. Using an injected clock will
+entirely mitigate this concern and is the approach developers should prefer,
+while adding delays to the test will only reduce the rate of instability to a
+manageable level, but may not entirely eliminate it.
+
 Despite all this, we think that polling is an extremely valuable tool, and is
 worth adding to the Testing library.
 
@@ -563,10 +580,10 @@ As part of discussing this, the testing workgroup has started exploring
 [adding the ability to track Task execution time](
 https://forums.swift.org/t/possible-feature-inspect-task-execution-time/83396).
 This would allow the testing library to directly track how long a polling
-confirmation has ran for, allowing it to incorporate how long it has spent
-polling as part of testing. This would noticeably improve the speed of polling
-confirmations, without any of the reliability issues noted in discussion around
-why timeouts aren't directly used.
+confirmation has ran for, without any of the time spent waiting between polling
+attempts. This would allow polling confirmations to directly use timeouts,
+without any of the reliability issues noted in discussion around why timeout
+aren't directly used.
 
 Additionally, tracking task execution time would enable the testing library
 to add a watchdog timer to catch stalled polling closures, and even improve the
