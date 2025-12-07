@@ -83,7 +83,7 @@ the entire test suite.
 ## Proposed solution
 
 This proposal introduces new members of the `confirmation` family of functions:
-`confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)`. These
+`confirmation(_:until:within:pollingEvery:sourceLocation:_:)`. These
 functions take in a closure to be repeatedly evaluated until the specific
 condition passes, waiting at least some amount of time - specified by
 `pollingEvery`/`interval` and defaulting to 1 millisecond - before evaluating
@@ -158,7 +158,6 @@ testing library:
 ///     If no such trait has been added, then polling will wait at least
 ///     1 millisecond between polling attempts.
 ///     `interval` must be greater than 0.
-///   - isolation: The actor to which `body` is isolated, if any.
 ///   - sourceLocation: The location in source where the confirmation was called.
 ///   - body: The function to invoke. The expression is considered to pass if
 ///     the `body` returns true. Similarly, the expression is considered to fail
@@ -177,9 +176,8 @@ public func confirmation(
   until stopCondition: PollingStopCondition,
   within duration: Duration? = nil,
   pollingEvery interval: Duration? = nil,
-  isolation: isolated (any Actor)? = #isolation,
   sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: @escaping () async throws -> Bool
+  _ body: nonisolated(nonsending) @escaping () async throws -> Bool
 ) async throws
 
 /// Confirm that some expression eventually returns a non-nil value
@@ -204,7 +202,6 @@ public func confirmation(
 ///     If no such trait has been added, then polling will wait at least
 ///     1 millisecond between polling attempts.
 ///     `interval` must be greater than 0.
-///   - isolation: The actor to which `body` is isolated, if any.
 ///   - sourceLocation: The location in source where the confirmation was called.
 ///   - body: The function to invoke. The expression is considered to pass if
 ///     the `body` returns a non-nil value. Similarly, the expression is
@@ -226,9 +223,8 @@ public func confirmation<R>(
   until stopCondition: PollingStopCondition,
   within duration: Duration? = nil,
   pollingEvery interval: Duration? = nil,
-  isolation: isolated (any Actor)? = #isolation,
   sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: @escaping () async throws -> sending R?
+  _ body: nonisolated(nonsending) @escaping () async throws -> sending R?
 ) async throws -> R
 ```
 
@@ -302,9 +298,10 @@ public struct Issue {
     ///   - reason: The ``PollingFailureReason`` behind why the polling
     ///     confirmation failed.
     ///
-    /// This issue can occur when calling ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-455gr``
-    /// or
-    /// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-5tnlk``
+    /// This issue can occur when calling
+    /// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)->_``
+    /// and
+    /// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)->()``
     /// whenever the polling fails, as described in ``PollingStopCondition``.
     case pollingConfirmationFailed(reason: PollingFailureReason)
 
@@ -325,9 +322,9 @@ are separate traits for configuring defaults for these functions.
 
 ```swift
 /// A trait to provide a default polling configuration to all usages of
-/// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-455gr``
+/// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)->_``
 /// and
-/// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-5tnlk``
+/// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)->()``
 /// within a test or suite using the specified stop condition.
 ///
 /// To add this trait to a test, use the ``Trait/pollingConfirmationDefaults``
