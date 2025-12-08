@@ -5,7 +5,10 @@
 * Review Manager: [David Cummings](https://github.com/daveyc123)
 * Status: **Active Review (December 7 - December 22, 2025)**
 * Implementation: [swiftlang/swift-package-manager#9076](https://github.com/swiftlang/swift-package-manager/pull/9076)
-* Review: [Pitch](https://forums.swift.org/t/pitch-adding-html-coverage-support/82358)
+* Review: 
+    * [Pitch](https://forums.swift.org/t/pitch-adding-html-coverage-support/82358)
+    * [Review](https://forums.swift.org/t/se-0501-html-coverage-report/83601/1)
+
 
 ## Introduction
 
