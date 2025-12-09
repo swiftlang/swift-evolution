@@ -7,13 +7,13 @@
 
 ## Introduction
 
-Observation has one primary public entry point for observing the changes to `@Observable` types. This proposal adds two new versions that allow more fine-grained control and advanced behaviors.
+Observation has one primary public entry point for observing the changes to `@Observable` types. This proposal adds two new versions that allow more fine-grained control and advanced behaviors. In particular, it is not intended to be a natural progression for all users of Observation, but instead a set of specialized tools for advanced use cases such as developing middleware infrastructure or the underpinnings to widgeting systems. Most developers using Observation will still be best served by using the `@Observable` macro and possibly in conjunction with the `Observations` type for iterating transactional values. However, in the advanced use cases where it is needed, this proposal fills a much needed gap.
 
 ## Motivation
 
 Asynchronous observation serves a majority of use cases. However, when interfacing with synchronous systems, there are two major behaviors that the current `Observations` and `withObservationTracking` do not service.
 
-The existing `withObservationTracking` API can only inform observers of events that will occur and may coalesce events that arrive in quick succession. Yet, some typical use cases require immediate and non-coalesced events, such as when two data models need to be synchronized together after a value has been set. The existing sychronization may also need to know when models are no longer available due to deinitialization.
+The existing `withObservationTracking` API can only inform observers of events that will occur and may coalesce events that arrive in quick succession. Yet, some typical use cases require immediate and non-coalesced events, such as when two data models need to be synchronized together after a value has been set. The existing synchronization may also need to know when models are no longer available due to deinitialization.
 
 Additionally, some use cases do not have a modern replacement for continuous events without an asynchronous context. This often occurs in more-established, existing UI systems. 
 
@@ -25,7 +25,7 @@ Two new mechanisms will be added: 1) an addendum to the existing `withObservatio
 
 Some of these behaviors have been existing and under evaluation by SwiftUI itself, and the API shapes exposed here apply lessons learned from that usage.
 
-The two major, top-level interfaces added are a new `withObservationTracking` method that takes an `options` parameter and a `withContinuousObservation` that provides a callback with behavior similar to the `Observations` API. 
+The two major, top-level interfaces added are a new `withObservationTracking` method that takes an `options` parameter and a `withContinuousObservationTracking` that provides a callback with behavior similar to the `Observations` API. 
 
 ```swift
 public func withObservationTracking<Result: ~Copyable, Failure: Error>(
@@ -34,13 +34,13 @@ public func withObservationTracking<Result: ~Copyable, Failure: Error>(
   onChange: @escaping @Sendable (borrowing ObservationTracking.Event) -> Void
 ) throws(Failure) -> Result
 
-public func withContinuousObservation(
+public func withContinuousObservationTracking(
   options: ObservationTracking.Options,
   @_inheritActorContext apply: @isolated(any) @Sendable @escaping (borrowing ObservationTracking.Event) -> Void
 ) -> ObservationTracking.Token
 ```
 
-The new types are nested in a `ObservationTracking` namespace which prevents potential name conflicts. This is an existing structure used for the internal mecahnisms for observation tracking today; it will be (as a type and no existing methods) promoted from SPI to API.
+The new types are nested in a `ObservationTracking` namespace which prevents potential name conflicts. This is an existing structure used for the internal mechanisms for observation tracking today; it will be (as a type and no existing methods) promoted from SPI to API.
 
 ```swift
 public struct ObservationTracking { }
@@ -67,7 +67,7 @@ extension ObservationTracking.Options: Sendable { }
 
 Note: `ObservationTracking.Options` is a near miss of `OptionSet`; since its internals are a private detail, `SetAlgebra` was chosen instead. Altering this would potentially expose implementation details that may not be ABI stable or sustainable for API design.
 
-When an observation closure is invoked there are four potential events that can occur: a `.willSet` or `.didSet` when a property is changed, an `.initial` when the continuous events are setup, or a `.deinit` when an `@Observable` type is deallocated.
+When an observation closure is invoked there are four potential events that can occur: a `.willSet` or `.didSet` when a property is changed, an `.initial` when the continuous events are setup, or a `.deinit` when an `@Observable` type is deallocated. These are derived by the existing language level property observers and behaviors around observation. 
 
 Beyond the kind of event, the event can also be matched to a given known key path. This allows for detecting which property changed without violating the access control of types.
 
@@ -172,7 +172,7 @@ an Observable instance deallocated
 
 While any weak reference to the object will be `nil` when a `.deinit` event is received, the object may or may not have been deinitialized yet.
 
-The continuous version works similarly except that it has one major behavioral difference: the closure will be invoked after the event at the next suspension point of the isolating calling context. That means that if `withContinuousObservation` is called in a `@MainActor` isolation, then the closure will always be called on the main actor.
+The continuous version works similarly except that it has one major behavioral difference: the closure will be invoked after the event at the next suspension point of the isolating calling context. That means that if `withContinuousObservationTracking` is called in a `@MainActor` isolation, then the closure will always be called on the main actor.
 
 ```
 @MainActor
@@ -182,7 +182,7 @@ final class Controller {
   let synchronization: ObservationTracking.Token
 
   init(view: MyView, model: MyObservable) {
-    synchronization = withContinuousObservation(options: [.willSet]) { [view, model] event in
+    synchronization = withContinuousObservationTracking(options: [.willSet]) { [view, model] event in
       view.label.text = model.someStringValue
     }
   }
@@ -198,19 +198,21 @@ The new methods are clear overloads given new types or entirely new names so the
 
 ## ABI compatibility
 
-The only note per ABI impact is the `ObservationTracking.Options`; the internal strucural type of the backing value is subject to change and must be maintained as `SetAlgebra` insted of `OptionSet`.
+The only note per ABI impact is the `ObservationTracking.Options`; the internal structural type of the backing value is subject to change and must be maintained as `SetAlgebra` instead of `OptionSet`.
 
 ## Implications on adoption
 
-The primary implications of adoption of this is reduction in code when it comes to the usages of existing systems.
+The primary implications of adoption of this is reduction in code when it comes to the usages of existing systems; initial experimentation has shown that projects can use these tools to safely migrate from pre-concurrency frameworks that required synchronous callback behaviors around values over time to a concurrency safe environment improving both safety and reducing a considerable amount of boiler plate. 
 
 ## Future directions
 
-None at this time.
+The `ObservationTracking.Options` type reflects the interactions of properties for their mutation characteristics by the language. If at such time there are additional modifications to that system it should be strongly considered as part of the expected interactions from Observation and should be added as a new option. For example if a new `modified` property observer were to be added and the `@Observable` macro adopts that then the options should be considered if an addition is needed.
 
 ## Alternatives considered
 
-The `withContinuousObservation` could have a default parameter of `.willSet` to mimic the quasi default behavior of `withObservationTracking` - in that the existing non-options version of that function acts in the same manner as the new version passing `.willSet` and no other options (excluding the closure signature being different). Since the closure makes that signature only a near miss this default beahvior was dismissed and the users of the `withContiuousObservation` API then should pass the explicit options as needed.
+The `withContinuousObservationTracking` could have a default parameter of `.willSet` to mimic the quasi default behavior of `withObservationTracking` - in that the existing non-options version of that function acts in the same manner as the new version passing `.willSet` and no other options (excluding the closure signature being different). Since the closure makes that signature only a near miss this default behavior was dismissed and the users of the `withContiuousObservation` API then should pass the explicit options as needed.
+
+It was initially considered to promote the existing SPI to API and call it a day, this was dismissed since it is missing the flexibility of being able to extend via the options parameter (for example to the `deinit`). Also doing so poses potential confusion around the suggested paths of progressive disclosure around transactions, willSet and didSet semantics. Since specifying an option is definitely a more specific design requirement that is a considerably more favored public exposition.
 
 ## Acknowledgments
 
