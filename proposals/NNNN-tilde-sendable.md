@@ -202,6 +202,9 @@ struct MyType {
 
 Protocol conformance is more ergonomic considering the inverse case, and it follows the existing convention of conformance suppression to other marker protocols.
 
+## Future Directions
+
+This proposal is focusing excusively on `Sendable` protocol but other implicitly inferred protocol conformances - `Equatable`, `Hashable`, `RawRepresentable` - could also be suppressed using the `~` spelling, and would likewise benefit from being suppressible (for example, when the author of an enum wants to rely on the synthesized implementation of `==` that comes from `Equatable` instead of `RawRepresentable`). Each case like this has their nuances and might require a dedicated proposal.
 
 ## Acknowledgements
 
