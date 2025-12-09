@@ -4,6 +4,7 @@
 * Authors: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: TBD
 * Status: **Awaiting review**
+* Review: ([pitch](https://forums.swift.org/t/pitch-advanced-observation-tracking/83521))
 
 ## Introduction
 
