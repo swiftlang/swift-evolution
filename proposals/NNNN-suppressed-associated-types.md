@@ -393,9 +393,9 @@ protocol Source<Element>: ~Copyable {
 }
 ```
 
-Existentials such as `any P` work similarly to a generic signature reified as
-a value, where the single generic parameter `T` has a conformance requirement
-`T: P`,
+Existentials such as `any P` work similarly to the case of a single generic 
+parameter `T`  has a conformance requirement `T: P`. The expansion of
+defaults happens here as well,
 
 ```swift
 func ex1(_ s: any Source) {
@@ -404,13 +404,12 @@ func ex1(_ s: any Source) {
 }
 ```
 
-> TODO: the following is not yet implemented!
-
-It is possible to suppress the default requirement on an associated type using
-a new syntax `any Protocol<some Constraint>`:
+It's possible to constrain the existential using a generic type parameter,
+which will suppress the defaults expansion for the primary associated type of
+`Source`,
 
 ```swift
-func ex1(_ s: any Source<some ~Copyable>) {
+func ex2<R: ~Copyable>(_ s: any Source<R>) {
   let e = s.element()   // <- NOT Copyable
   let g = s.generator() // <- NOT Copyable
 }
@@ -638,6 +637,26 @@ The ABI of existing code is not affected by this proposal.
 On the other hand, changing an associated type declaration in an library
 to suppress conformance is an ABI-breaking change, for similar reasons
 to those described above.
+
+## Future Directions
+
+It's possible to imagine additional functionality that could one day be 
+supported, but is not part of this proposal.
+
+### Constrained Existentials via `some`
+
+There is some support for constrained existentials, such as
+
+```swift
+func f<T: Hashable>(_ e: any P<T>) {}
+```
+
+It might be a generally useful feature if there were support for a syntax such as
+`any P<some Hashable>` to permit the constrained existential to carry with it the
+constraint that its primary associated type conforms to Hashable. 
+That syntax could then be extended to allow suppression of defaults in the
+constrained existential via `any Q<some ~Copyable>`.
+
 
 ## Alternatives Considered
 
