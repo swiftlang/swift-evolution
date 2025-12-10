@@ -10,9 +10,9 @@
 
 ## Introduction
 
-Today, it is not possible to declare an associated type that does not require its
-_type witnesses_ to be `Copyable` or `Escapable`. For example, consider the `Element`
-associated type of `Queue` below:
+An associated type defines a generic type in a protocol. 
+You use them to help define the protocol's requirements. 
+This Queue has two associated types, Element and Allocator: 
 ```swift
 /// Queue has no reason to require Element to be Copyable.
 protocol Queue<Element>: ~Copyable {
@@ -22,20 +22,31 @@ protocol Queue<Element>: ~Copyable {
   init()
   init(alloc: Allocator)
 
-  mutating func push(_: Self.Element)
-  mutating func pop() -> Self.Element
+  mutating func push(_: Element)
+  mutating func pop() -> Element
+  // ...
 }
 ```
+The first associated type Element represents the type of value that by which
+`push` and `pop` must be defined.
+
+Any type conforming to Queue must define a nested type Element that satisfies 
+the protocol's requirements, of which there are no _explicit_ requirements.
 While the conforming type is itself permitted to be noncopyable, its `Element`
-type witness has to be `Copyable`:
+type has to be `Copyable`:
 ```swift
 /// error: LinkedList does not conform to Queue
+/// note: Element is required to be Copyable
 struct LinkedList<Element: ~Copyable>: ~Copyable, Queue {
   ...
 }
 ```
-This is an expressivity limitation in practice, and there is no workaround
-possible today.
+This is because in [SE-427: Noncopyable Generics](0427-noncopyable-generics.md),
+an implicit requirement that `Queue.Element: Copyable & Escapable` is inferred,
+with no way to suppress it in that protocol.
+This is expressivity limitation in practice, as it prevents Swift programmers 
+from defining protocols that work with noncopyable or nonescapable associated
+types.
 
 ## Proposed Solution
 
@@ -56,8 +67,8 @@ protocol Queue<Element>: ~Copyable {
 }
 ```
 
-Now, `LinkedList` can conform to `Queue`, as its witness for 
-`Queue.Element` is not required to be `Copyable`.
+Now, `LinkedList` can conform to `Queue`, as its `Element` is not required to be 
+`Copyable`.
 Similarly, stating `~Escapable` is allowed, to suppress the default 
 conformance requirement for `Escapable`. 
 Unless otherwise noted, any discussion of `~Copyable` types applies equivalently 
