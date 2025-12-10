@@ -30,8 +30,10 @@ protocol Queue<Element>: ~Copyable {
 The first associated type Element represents the type of value that by which
 `push` and `pop` must be defined.
 
-Any type conforming to Queue must define a nested type Element that satisfies 
-the protocol's requirements, of which there are no _explicit_ requirements.
+Any type conforming to Queue must define a nested type Element that satisfies
+(or _witnesses_) the protocol's requirements for its Element.
+This nested type could be a generic parameter named Element, a typealias named 
+Element, and so on.
 While the conforming type is itself permitted to be noncopyable, its `Element`
 type has to be `Copyable`:
 ```swift
