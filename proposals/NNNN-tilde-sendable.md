@@ -69,8 +69,7 @@ struct MyType: ~Sendable {
 }
 ```
 
-This syntax is only applicable to types because other declarations like generic parameters are already effectively `~Sendable` by default until they have an explicit `Sendable` requirement.
-
+This syntax is only applicable to types because other declarations like generic parameters are already effectively `~Sendable` by default unless they have an explicit `Sendable` requirement.
 
 ## Detailed Design
 
@@ -93,7 +92,21 @@ class MyClass: ~Sendable {
 }
 ```
 
-Just like with unavailable extensions, types with `~Sendable` conformances cannot satisfy `Sendable` requirements:
+Suppression must be declared on the struct, enum or class type declaration itself, not on an extension, because otherwise there is a risk of changing the meaning of the existing code:
+
+```swift
+extension Test: ~Sendable {} // Error!
+```
+
+Attempting to suppress 'Sendable' conformance on generic parameters or protocol declarations would be rejected because they are always non-Sendable unless explicitly stated otherwise via `Sendable` requirement:
+
+```swift
+protocol P: ~Sendable {} // Error!
+struct Test<T: ~Sendable> {} // Error!
+extension Array where Element: ~Sendable {} // Error!
+```
+
+Just like with unavailable `Sendable` extensions, types with `~Sendable` conformances cannot satisfy `Sendable` requirements:
 
 ```swift
 func processData<T: Sendable>(_ data: T) { }
@@ -104,7 +117,6 @@ struct NotSendable: ~Sendable {
 
 processData(NotSendable(value: 42)) // error: type 'NotSendable' does not conform to the 'Sendable' protocol
 ```
-
 
 But, unlike unavailable extensions, `~Sendable` conformances do not affect subclasses:
 
@@ -160,11 +172,13 @@ class Refined: IsolatedBase, ~Sendable { // error: cannot both conform to and su
 }
 ```
 
-But conditional conformances are allowed similarly to i.e. `Copyable`:
+Conditional conformances to `Sendable` protocol are still allowed:
 
 ```swift
 extension Container: Sendable where T: Sendable {} // Ok!
 ```
+
+Due to `Sendable` inference on types, it is still helpful to allow conditional `Sendable` conformances on `~Sendable` types when an API author would like to express that the type is only `Sendable` conditionally when `Sendable` conformance could otherwise be inferred e.g. by checking type's storage or isolation. `~Sendable` is not required in other cases even for auditing purposes (with `ExplicitSendable`, please see below) because the type would be non-Sendable unless explicitly stated otherwise on a primary declaration or in a conditional `Sendable` conformance extension.
 
 The Swift compiler provides a way to audit Sendability of public types. The current way to do this is by enabling the `-require-explicit-sendable` flag to produce a warning for every public type without explicit `Sendable` conformance (or an unavailable extension). This flag now supports `~Sendable` and has been turned into a diagnostic group that is disabled by default - `ExplicitSendable`, and can be enabled by `-Wwarning ExplicitSendable`.
 
