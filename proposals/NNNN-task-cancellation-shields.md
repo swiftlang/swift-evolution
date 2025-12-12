@@ -260,6 +260,18 @@ task.cancel()
 print(task.isCancelled) // true
 ```
 
+It is also important to remember that a task cancellation shield does _not_ interract with querying cancellation through an instance method like this:
+
+```swift
+let task = Task { }
+
+task.cancel()
+task.isCancelled // true
+withTaskCancellationShield { 
+  task.isCancelled // true, the shield has no interaction with other tasks, just the "current" one
+}
+```
+
 ### Modifying the `isCancelled` behavior contract
 
 Previously, the static `Task.isCancelled` property declared on Task was documented as:
