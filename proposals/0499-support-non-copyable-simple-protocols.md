@@ -72,11 +72,17 @@ extension Comparable where Self: ~Copyable & ~Escapable {
 protocol Hashable: Equatable & ~Copyable & ~Escapable { }
 
 struct Hasher {
-  mutating func combine<H: Hashable & ~Copyable & ~Escapable>(_ value: borrowing H)
+  mutating func combine<
+    H: Hashable & ~Copyable & ~Escapable
+  >(_ value: borrowing H)
 }
 
-extension Optional: Equatable where Wrapped: Equatable & ~Copyable & ~Escapable {
-  public static func ==(lhs: borrowing Wrapped?, rhs: borrowing Wrapped?) -> Bool {
+extension Optional: Equatable
+  where Wrapped: Equatable & ~Copyable & ~Escapable
+{
+  public static func ==(
+    lhs: borrowing Wrapped?, rhs: borrowing Wrapped?
+  ) -> Bool
 }
 
 extension Optional: Hashable where Wrapped: Hashable & ~Copyable & ~Escapable {
@@ -92,9 +98,24 @@ protocol TextOutputStreamable: ~Copyable & ~Escapable { }
 protocol CustomStringConvertible: ~Copyable, ~Escapable { }
 protocol CustomDebugStringConvertible: ~Copyable, ~Escapable { }
 
-extension Result: Equatable where Success: Equatable & ~Copyable, Failure: Equatable {
+extension String {
+  public init<
+    Subject: CustomStringConvertible & ~Copyable & ~Escapable
+  >(describing instance: borrowing Subject)
+
+  public init<
+    Subject: TextOutputStreamable & ~Copyable & ~Escapable
+  >(describing instance: borrowing Subject)
+}
+
+extension Result: Equatable
+  where Success: Equatable & ~Copyable, Failure: Equatable
+{
   public static func ==(lhs: borrowing Self, rhs: borrowing Self) -> Bool
 }
+
+extension Result: Hashable
+  where Success: Hashable & ~Copyable & ~Escapable, Failure: Hashable { }
 
 extension DefaultStringInterpolation
   mutating func appendInterpolation<T>(
