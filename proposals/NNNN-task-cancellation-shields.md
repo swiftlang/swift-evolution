@@ -260,7 +260,7 @@ task.cancel()
 print(task.isCancelled) // true
 ```
 
-It is also important to remember that a task cancellation shield does _not_ interract with querying cancellation through an instance method like this:
+It is also important to remember that a task cancellation shield does _not_ interract with any other task than the current one, so e.g. querying cancellation of a task handle, while executing in a task shield block has no effect on that query:
 
 ```swift
 let task = Task { }
