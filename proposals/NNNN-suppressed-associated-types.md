@@ -787,6 +787,11 @@ protocol Container: ~Copyable, ~Escapable {
 
     default Element: Copyable, Element: Escapable
 }
+
+// defaults to 'where Element: Copyable & Escapable' only.
+//
+// Self and Self.BorrowingIterator remain ~Copyable & ~Escapable
+extension Container {}
 ```
 
 This might also serve as a way for a protocol to opt generic parameters *out*
@@ -816,9 +821,11 @@ extension Container without Escaping {}
 
 extension Container without Copying, Escaping {} // fully unconstrained in -version
 
-// For generic signatures in other positions, we could have syntax 
-// that allows you to refer to constraintsets like a member:
-func f<T: Container, V: Container>() without T: Container.Copying {}
+func f<T: Container>() without T: Container.Copying {}
+
+// We could have syntax that allows you to refer to constraintsets like a member,
+// to opt out a generic type parameter from multiple constrainsets:
+func g<T: Container & P>() without T: Container.Copying or T: P.Copying {}
 ```
 
 This functionality might also be used for future evolution. Let’s say we add a third suppressable protocol Runcible in the future, and we want to generalize Container to allow for `~Runcible` elements. We can suppress the Runcible requirement on Self and `Self.Element` along with a new default constraint set that reinstates the requirements for existing code. Existing code would continue to apply all of the default sets, and doesn’t know about the new constraint set yet, so would not suppress the newly lifted requirements:
