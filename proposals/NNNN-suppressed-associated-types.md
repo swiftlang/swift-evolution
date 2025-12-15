@@ -28,7 +28,7 @@
   - [Future Directions](#future-directions)
     - [Constrained Existentials via `some`](#constrained-existentials-via-some)
   - [Alternatives Considered](#alternatives-considered)
-    - [No recursion](#no-recursion)
+    - [No defaulting](#no-defaulting)
     - [Definition-driven associated type defaults](#definition-driven-associated-type-defaults)
       - [Protocol-defined default requirements](#protocol-defined-default-requirements)
       - [Default constraint sets](#default-constraint-sets)
@@ -746,7 +746,7 @@ constrained existential via `any Q<some ~Copyable>`.
 
 Through the development of this proposal, various alternate formulations were considered.
 
-### No recursion
+### No defaulting
 
 A prior version of this proposal [was pitched](https://forums.swift.org/t/pitch-suppressed-default-conformances-on-associated-types/81880) that was absent of any defaulting behavior for associated types. The primary fault was that it
 provided an inconsistent behavior when compared with generic types like S:
