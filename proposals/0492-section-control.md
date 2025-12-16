@@ -194,11 +194,12 @@ This proposal defines a **constant expression** as being one of:
 - a floating-point literal of type Float or Double
 - a boolean literal of type Bool
 - a direct reference to a non-generic function using its name (the function itself is not generic, and also it must not be defined in a generic context)
+- a closure literal with no captures and not in a generic context
 - a direct reference to a non-generic metatype using the type name directly (the type itself is not generic, and also it must not be defined in a generic context), where the type is non-resilient
 - a tuple composed of only other constant expressions
 - an array literal of type InlineArray composed of only other constant expressions
 
-Explicitly, this definition currently does **not allow** any operators, using any user-defined named types, any other standard type (e.g. strings, dictionaries, sets), using closures, or referencing any variables by name. See below for examples of valid and invalid constant expressions:
+Explicitly, this definition currently does **not allow** any operators, using any user-defined named types, any other standard type (e.g. strings, dictionaries, sets), using closures with captures, or referencing any variables by name. See below for examples of valid and invalid constant expressions:
 
 ```swift
 @section("...") let a = 42 // ✅
@@ -222,7 +223,15 @@ func foo() -> Int { return 42 }
 @section("...") let func4 = Bool.self.random // ❌ not a direct reference
 @section("...") let func5 = (Bool.self as Bool.Type).random // ❌ not a direct reference
 @section("...") let func6 = [Int].randomElement // ❌ generic
-@section("...") let func7 = { } // ❌ not using name
+@section("...") let func7 = { } // ✅
+@section("...") let func8 = { (x: Int) in print(x) } // ✅
+struct Generic<T> {
+  @section("...") static let func9 = { print("1") } // ❌ generic context
+}
+struct NonGeneric {
+  static var member: Int = 42
+  @section("...") static let func10 = { print(member) } // ❌ capture
+}
 
 struct S { }
 @section("...") let metatype1 = S.self // ✅
