@@ -6,6 +6,7 @@
 * Status: **Returned for revision**
 * Implementation: [apple/swift#25314](https://github.com/apple/swift/pull/25314)
 * Decision Notes: [Returned for revision](https://forums.swift.org/t/returned-for-revision-se-0262-demangle-function/28186)
+* Replaced by: [SE-0498: Runtime demangle function](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0498-runtime-demangle.md)
 
 ## Introduction
 
