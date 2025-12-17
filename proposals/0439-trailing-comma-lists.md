@@ -155,11 +155,11 @@ This proposal adds support for trailing commas in symmetrically delimited comma-
         T3,
     > { }
 
-    let s: S<
+    let s = S<
         T1,
         T2,
         T3,
-    > = .init()
+    >()
     ```
 
 - String interpolation.
