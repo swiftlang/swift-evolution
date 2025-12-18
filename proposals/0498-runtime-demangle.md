@@ -55,7 +55,7 @@ The span accepting API is necessary for performance sensitive use-cases, which a
 
 The output from this API is an `OutputSpan` of `UTF8.CodeUnit`s, and it may not necessarily be well-formed UTF8, because of the potential of truncation happening between two code units which would render the UTF8 invalid.
 
-If the demangled representation does not fit the preallocated buffer, the demangle method will return `truncated(requiredSize)` such that developers can determine by how much the buffer might need to be increased to handle the complete demangling. When `.truncated` is returned, the `OutputSpan` will contain a _partial result_, of however many characters were able to fit into it before truncation ocurred. If truncation ocurrs, the returned string will contain only valid UTF8, i.e. the result will never be truncated in the middle of a unicode scalar.
+If the demangled representation does not fit the preallocated buffer, the demangle method will return `truncated(required: size)` such that developers can determine by how much the buffer might need to be increased to handle the complete demangling. When `.truncated` is returned, the `OutputSpan` will contain a _partial result_, of however many Unicode scalars were able to fit into it before truncation occurred. If truncation occurs, the returned string will contain only valid UTF8, i.e. the result will never be truncated in the middle of a Unicode scalar.
 
 Converting the outputSpan to a `String`, which is guarateed to be valid UTF8, follows the below pattern, where creating an `UTF8Span` _will_ perform validation of the UTF8 String contents, and fail if the output wasn't correct. 
 
