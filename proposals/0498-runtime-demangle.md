@@ -31,7 +31,7 @@ We propose to introduce two `demangle` functions in the `Runtime` module:
 A simple demangle method, returning an optional `String`:
 
 ```swift
-public func demangle(_ mangledName: String) -> String?
+public func demangle(_ mangledName: String) throws(DemanglingError) -> String
 ```
 
 The demangling function supports all valid Swift symbols. Valid Swift 5.0 and later symbols begin with `$s` (preceded by an optional platform-specific prefix).
@@ -42,12 +42,16 @@ And an overload which accepts an `UTF8Span` into which the demangled string can 
 public func demangle(
   _ mangledName: borrowing UTF8Span,
   into output: inout OutputSpan<UTF8.CodeUnit>
-) -> DemanglingResult
+) throws(DemanglingError)
 
-public enum DemanglingResult: Equatable {
-  case success
-  case failed
-  case truncated(required: Int)
+/// Error thrown to indicate failure to demangle a Swift symbol.
+public enum DemanglingError: Error {
+  /// Demangling resulted in truncating the result. The payload value is the
+  /// number of bytes necessary for a full demangle.
+  case truncated(requiredBufferSize: Int)
+
+  /// The passed Swift mangled symbol was invalid.
+  case invalidSymbol
 }
 ```
 
@@ -55,17 +59,22 @@ The span accepting API is necessary for performance sensitive use-cases, which a
 
 The output from this API is an `OutputSpan` of `UTF8.CodeUnit`s, and it may not necessarily be well-formed UTF8, because of the potential of truncation happening between two code units which would render the UTF8 invalid.
 
-If the demangled representation does not fit the preallocated buffer, the demangle method will return `truncated(required: size)` such that developers can determine by how much the buffer might need to be increased to handle the complete demangling. When `.truncated` is returned, the `OutputSpan` will contain a _partial result_, of however many Unicode scalars were able to fit into it before truncation occurred. If truncation occurs, the returned string will contain only valid UTF8, i.e. the result will never be truncated in the middle of a Unicode scalar.
+If the demangled representation does not fit the preallocated buffer, the demangle method will throw `DemanglingError.truncated(requiredBufferSize: Int)` such that developers can determine by how much the buffer might need to be increased to handle the complete demangling. When `.truncated` is thrown, the `OutputSpan` will contain a _partial result_, of however many Unicode scalars were able to fit into it before truncation occurred. If truncation occurs, the returned string will contain only valid UTF8, i.e. the result will never be truncated in the middle of a Unicode scalar.
 
 Converting the outputSpan to a `String`, which is guarateed to be valid UTF8, follows the below pattern, where creating an `UTF8Span` _will_ perform validation of the UTF8 String contents, and fail if the output wasn't correct. 
 
 ```swift
 var demangledOutputSpan: OutputSpan<UTF8.CodeUnit> = ...
 
-if demangle("$sSG", into: &demangledOutputSpan) == .success {
+do {
+  try demangle("$sSG", into: &demangledOutputSpan)
   let utf8 = try UTF8Span(validating: demangledOutputSpan.span)
   let demangledString = String(copying: utf8)
   print(demangledString) // Swift.RandomNumberGenerator
+} catch DemanglingError.truncated(let requiredBufferSize) {
+  // Handle truncation - need a buffer of size requiredBufferSize
+} catch {
+  // Handle invalid symbol
 }
 ```
 
