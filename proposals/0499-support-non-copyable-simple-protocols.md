@@ -3,9 +3,9 @@
 * Proposal: [SE-0499](0499-support-non-copyable-simple-protocols.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Active Review (November 18 - December 2, 2025)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#85079](https://github.com/swiftlang/swift/pull/85079)
-* Review: ([pitch](https://forums.swift.org/t/support-copyable-escapable-in-simple-standard-library-protocols/83083))
+* Review: ([pitch](https://forums.swift.org/t/support-copyable-escapable-in-simple-standard-library-protocols/83083)) ([review](https://forums.swift.org/t/se-0499-support-copyable-escapable-in-simple-standard-library-protocols/83297)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0499-support-copyable-escapable-in-simple-standard-library-protocols/83754))
 
 ## Introduction
 
@@ -72,11 +72,17 @@ extension Comparable where Self: ~Copyable & ~Escapable {
 protocol Hashable: Equatable & ~Copyable & ~Escapable { }
 
 struct Hasher {
-  mutating func combine<H: Hashable & ~Copyable & ~Escapable>(_ value: borrowing H)
+  mutating func combine<
+    H: Hashable & ~Copyable & ~Escapable
+  >(_ value: borrowing H)
 }
 
-extension Optional: Equatable where Wrapped: Equatable & ~Copyable & ~Escapable {
-  public static func ==(lhs: borrowing Wrapped?, rhs: borrowing Wrapped?) -> Bool {
+extension Optional: Equatable
+  where Wrapped: Equatable & ~Copyable & ~Escapable
+{
+  public static func ==(
+    lhs: borrowing Wrapped?, rhs: borrowing Wrapped?
+  ) -> Bool
 }
 
 extension Optional: Hashable where Wrapped: Hashable & ~Copyable & ~Escapable {
@@ -92,9 +98,24 @@ protocol TextOutputStreamable: ~Copyable & ~Escapable { }
 protocol CustomStringConvertible: ~Copyable, ~Escapable { }
 protocol CustomDebugStringConvertible: ~Copyable, ~Escapable { }
 
-extension Result: Equatable where Success: Equatable & ~Copyable, Failure: Equatable {
+extension String {
+  public init<
+    Subject: CustomStringConvertible & ~Copyable & ~Escapable
+  >(describing instance: borrowing Subject)
+
+  public init<
+    Subject: TextOutputStreamable & ~Copyable & ~Escapable
+  >(describing instance: borrowing Subject)
+}
+
+extension Result: Equatable
+  where Success: Equatable & ~Copyable, Failure: Equatable
+{
   public static func ==(lhs: borrowing Self, rhs: borrowing Self) -> Bool
 }
+
+extension Result: Hashable
+  where Success: Hashable & ~Copyable & ~Escapable, Failure: Hashable { }
 
 extension DefaultStringInterpolation
   mutating func appendInterpolation<T>(
