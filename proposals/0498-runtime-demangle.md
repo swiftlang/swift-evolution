@@ -28,9 +28,20 @@ This proposal introduces an official `demangle(_: String) -> String?` function t
 
 We propose to introduce two `demangle` functions in the `Runtime` module:
 
-A simple demangle method, returning an optional `String`:
+A simple demangle method, returning a `String`:
 
 ```swift
+/// Given a mangled Swift symbol, demangle it into a human readable format.
+///
+/// If the provided string is not a valid mangled swift identifier this function will throw.
+/// If mangling succeeds the returned string will contain a demangled human-readable representation of the identifier.
+///
+/// - Parameters:
+///   - mangledName: A mangled Swift symbol.
+/// - Returns: A human readable demangled Swift symbol.
+/// - Throws: When the demangling fails for any reason.
+/// - Warning: The demangled output is lossy is not not guaranteed to be stable across Swift versions.
+///            Future versions of Swift may choose to print more (or less) information in the demangled format.
 public func demangle(_ mangledName: String) throws(DemanglingError) -> String
 ```
 
@@ -39,6 +50,23 @@ The demangling function supports all valid Swift symbols. Valid Swift 5.0 and la
 And an overload which accepts an `UTF8Span` into which the demangled string can be written:
 
 ```swift
+/// Given a mangled Swift symbol, demangle it into a human readable format into the prepared output span.
+///
+/// If the provided bytes are not a valid mangled swift name, the output span will be initialized with zero elements.
+/// If mangling succeeds the output span will contain the resulting demangled string.
+/// A successfully demangled string is _not_ null terminated, and its length is communicated by the `initializedCount`
+/// of the output span.
+///
+/// The demangled output may be _truncated_ if the output span's capacity is insufficient for the
+/// demangled output string! You can detect this situation by inspecting the returned ``DemanglingResult``,
+/// for the ``DemanglingResult/truncated`` case.
+///
+/// - Parameters:
+///   - mangledName: A mangled Swift symbol.
+///   - output: A pre-allocated span to demangle the Swift symbol into.
+/// - Throws: When the demangling failed entirely, and the output span will not have been written to.
+/// - Warning: The demangled output is lossy is not not guaranteed to be stable across Swift versions.
+///            Future versions of Swift may choose to print more (or less) information in the demangled format.
 public func demangle(
   _ mangledName: borrowing UTF8Span,
   into output: inout OutputSpan<UTF8.CodeUnit>
