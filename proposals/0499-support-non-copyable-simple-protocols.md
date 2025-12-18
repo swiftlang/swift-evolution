@@ -3,9 +3,9 @@
 * Proposal: [SE-0499](0499-support-non-copyable-simple-protocols.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Active Review (November 18 - December 2, 2025)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#85079](https://github.com/swiftlang/swift/pull/85079)
-* Review: ([pitch](https://forums.swift.org/t/support-copyable-escapable-in-simple-standard-library-protocols/83083))
+* Review: ([pitch](https://forums.swift.org/t/support-copyable-escapable-in-simple-standard-library-protocols/83083)) ([review](https://forums.swift.org/t/se-0499-support-copyable-escapable-in-simple-standard-library-protocols/83297)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0499-support-copyable-escapable-in-simple-standard-library-protocols/83754))
 
 ## Introduction
 
