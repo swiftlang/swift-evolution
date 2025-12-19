@@ -88,7 +88,7 @@ extension Span {
 }
 ```
 
-The supported element types will be `UInt8`, `Int8`, `UInt16`, `Int16`, `UInt32`, `Int32`, `UInt64`, `Int64`, `UInt`, `Int`, `Float32` (aka `Float`) and `Float64` (aka `Double`). On platforms that support them, initializing `Span` instances with `Float16`, `Float80`, `UInt128`, and `Int128` elements will also be implemented.
+The supported element types will be `UInt8`, `Int8`, `UInt16`, `Int16`, `UInt32`, `Int32`, `UInt64`, `Int64`, `UInt`, `Int`, `Float32` (aka `Float`) and `Float64` (aka `Double`). On platforms that support them, initializing `Span` instances with `Float16`, `Float80`, `UInt128`, and `Int128` elements will also be implemented.
 
 The conversions from `RawSpan` to `Span` only support well-aligned views with the native endianness. The [swift-binary-parsing][swift-binary-parsing] package provides a more fully-featured `ParserSpan` type.
 
@@ -158,7 +158,7 @@ extension MutableRawSpan {
   ///
   /// The range of bytes required to store an `UInt16` starting at `offset`
   /// must be completely within the span.
-	///
+  ///
   /// - Parameters:
   ///   - value: The value to store as raw bytes.
   ///   - offset: The offset in bytes into the buffer pointer's memory to begin
@@ -240,14 +240,14 @@ extension MutableRawSpan {
   )
 }
 ```
-Note: the new `storeBytes(of:as:endianness:)` functions do not need a defaulted `Endianness` parameter, since the existing `storeBytes(of:as:)` effectively fulfills that purpose.
+> **Note:** the new `storeBytes(of:as:endianness:)` functions do not need a defaulted `Endianness` parameter, since the existing `storeBytes(of:as:)` effectively fulfills that purpose.
 
 ```swift
 extension OutputRawSpan {
   /// Appends a value's bytes to the span's memory.
   ///
   /// There must be at least `MemoryLayout<UInt16>.size` bytes available in the span.
-	///
+  ///
   /// - Parameters:
   ///   - value: The value to store as raw bytes.
   ///   - type: The type of the instance to create.
@@ -313,7 +313,7 @@ extension OutputRawSpan {
   )
 }
 ```
-Note: the new `append(_:as:endianness:)` functions do not need a defaulted `Endianness` parameter, since the existing `append(_:as:)` effectively fulfills that purpose.
+> **Note:** the new `append(_:as:endianness:)` functions do not need a defaulted `Endianness` parameter, since the existing `append(_:as:)` effectively fulfills that purpose.
 
 ```swift
 extension Span {
@@ -378,7 +378,7 @@ extension Span {
   public init(viewing bytes: borrowing RawSpan) where Element == Int128
 }
 ```
-Note: we are not proposing mutable versions of these initializers for `MutableSpan`.
+>  **Note:** we are not proposing mutable versions of these initializers for `MutableSpan`.
 
 ## Source compatibility
 
@@ -401,11 +401,11 @@ This document proposes functions to load numeric values only. The salient proper
 
 #### Loading homogeneous aggregates
 
-Homogeneous aggregates of safely loadable types should also be loadable. For example, an `InlineArray` such as `[5 of Int16]` should be as safe to load as a single `Int16`. This consideration also includes single-value wrappers, such as swift-system's `FileDescriptor`, which wraps a single `Int32` value.
+Homogeneous aggregates of safely loadable types should also be loadable. For example, an `InlineArray` such as `[5 of Int16]` should be as safe to load as a single `Int16`. This consideration also includes single-value wrappers, such as swift-system's `FileDescriptor`, which wraps a single `Int32` value.
 
 #### Utilities to examine the alignment of a `RawSpan`
 
-The `Span` initializers require a correctly-aligned `RawSpan`; there should be a safe way to find out.
+The `Span` initializers require a correctly-aligned `RawSpan`; there should be a safe way to find out.
 
 ## Alternatives considered
 
@@ -427,7 +427,7 @@ These are not sufficient constraints, since they do not mandate that their confo
 
 #### Omitting the `Endianness` parameters
 
-The standard library's `FixedWidthInteger` protocol includes computed properties `var .bigEndian: Self` and `var .littleEndian: Self`. These could be used to modify the arguments of `storeBytes()`, or to modify the return values from `load()`. Unfortunately these properties are not clear, because they return `Self`. This proposal applies the consideration of endianness to the operation it belongs to: serialization.
+The standard library's `FixedWidthInteger` protocol includes computed properties `var .bigEndian: Self` and `var .littleEndian: Self`. These could be used to modify the arguments of `storeBytes()`, or to modify the return values from `load()`. Unfortunately these properties are not clear, because they return `Self`. This proposal applies the consideration of endianness to the operation it belongs to: serialization.
 
 ## Acknowledgments
 
