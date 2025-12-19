@@ -113,6 +113,7 @@ extension RawSpan {
   /// - Returns: A new value of type `UInt8`, read from `offset`.
   func load(fromByteOffset: Int = 0, as: UInt8.Type) -> UInt8
 
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: Int8.Type) -> Int8
 
   /// Returns a value constructed from the raw memory at the specified offset.
@@ -129,24 +130,49 @@ extension RawSpan {
   ///     or the native runtime endianness if `nil`.
   /// - Returns: A new value of type `UInt16`, read from `offset`.
   func load(fromByteOffset: Int = 0, as: UInt16.Type, endianness: Endianness? = nil) -> UInt16
+
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: Int16.Type, endianness: Endianness? = nil) -> Int16
+
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: UInt32.Type, endianness: Endianness? = nil) -> UInt32
+
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: Int32.Type, endianness: Endianness? = nil) -> Int32
+
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: UInt64.Type, endianness: Endianness? = nil) -> UInt64
+
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: Int64.Type, endianness: Endianness? = nil) -> Int64
+
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: UInt.Type, endianness: Endianness? = nil) -> UInt
+
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: Int.Type, endianness: Endianness? = nil) -> Int
 
+
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: Float32.Type, endianness: Endianness? = nil) -> Float32
+
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: Float64.Type, endianness: Endianness? = nil) -> Float64
 
   // available on platforms that support `Float16`
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: Float16.Type, endianness: Endianness? = nil) -> Float16
+
   // available on platforms that support `Float80`
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: Float80.Type, endianness: Endianness? = nil) -> Float80
+
   // available on platforms that support `UInt128`
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: UInt128.Type, endianness: Endianness? = nil) -> UInt128
+
   // available on platforms that support `Int128`
+  /// Returns a value constructed from the raw memory at the specified offset.
   func load(fromByteOffset: Int = 0, as: Int128.Type, endianness: Endianness? = nil) -> Int128
 }
 ```
@@ -170,70 +196,83 @@ extension MutableRawSpan {
     as type: UInt16.Type, endianness: Endianness
   )
 
+  /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Int16, toByteOffset offset: Int = 0,
     as type: Int16.Type, endianness: Endianness
   )
 
+  /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: UInt32, toByteOffset offset: Int = 0,
     as type: UInt32.Type, endianness: Endianness
   )
 
+  /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Int32, toByteOffset offset: Int = 0,
     as type: Int32.Type, endianness: Endianness
   )
 
+  /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: UInt64, toByteOffset offset: Int = 0,
     as type: UInt64.Type, endianness: Endianness
   )
 
+  /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Int64, toByteOffset offset: Int = 0,
     as type: Int64.Type, endianness: Endianness
   )
 
+  /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: UInt, toByteOffset offset: Int = 0,
     as type: UInt.Type, endianness: Endianness
   )
 
+  /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Int, toByteOffset offset: Int = 0,
     as type: Int.Type, endianness: Endianness
   )
 
+  /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Float32, toByteOffset offset: Int = 0,
     as type: Float32.Type, endianness: Endianness
   )
 
+  /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Float64, toByteOffset offset: Int = 0,
     as type: Float64.Type, endianness: Endianness
   )
 
   // available on platforms that support `Float16`
+  /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Float16, toByteOffset offset: Int = 0,
     as type: Float16.Type, endianness: Endianness
   )
 
   // available on platforms that support `Float80`
+  /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Float80, toByteOffset offset: Int = 0,
     as type: Float80.Type, endianness: Endianness
   )
 
   // available on platforms that support `UInt128`
+  /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: UInt128, toByteOffset offset: Int = 0,
     as type: UInt128.Type, endianness: Endianness
   )
 
   // available on platforms that support `Int128`
+  /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Int128, toByteOffset offset: Int = 0,
     as type: Int128.Type, endianness: Endianness
@@ -256,58 +295,71 @@ extension OutputRawSpan {
     _ value: UInt16, as type: UInt16.Type, endianness: Endianness
   )
 
+  /// Appends a value's bytes to the span's memory.
   mutating func append(
     _ value: Int16, as type: Int16.Type, endianness: Endianness
   )
 
+  /// Appends a value's bytes to the span's memory.
   mutating func append(
     _ value: UInt32, as type: UInt32.Type, endianness: Endianness
   )
 
+  /// Appends a value's bytes to the span's memory.
   mutating func append(
     _ value: Int32, as type: Int32.Type, endianness: Endianness
   )
 
+  /// Appends a value's bytes to the span's memory.
   mutating func append(
     _ value: UInt64, as type: UInt64.Type, endianness: Endianness
   )
 
+  /// Appends a value's bytes to the span's memory.
   mutating func append(
     _ value: Int64, as type: Int64.Type, endianness: Endianness
   )
 
+  /// Appends a value's bytes to the span's memory.
   mutating func append(
     _ value: UInt, as type: UInt.Type, endianness: Endianness
   )
 
+  /// Appends a value's bytes to the span's memory.
   mutating func append(
     _ value: Int, as type: Int.Type, endianness: Endianness
   )
 
+  /// Appends a value's bytes to the span's memory.
   mutating func append(
     _ value: Float32, as type: Float32.Type, endianness: Endianness
   )
 
+  /// Appends a value's bytes to the span's memory.
   mutating func append(
     _ value: Float64, as type: Float64.Type, endianness: Endianness
   )
 
   // available on platforms that support `Float16`
+  /// Appends a value's bytes to the span's memory.
   mutating func append(
     _ value: Float16, as type: Float16.Type, endianness: Endianness
   )
 
   // available on platforms that support `Float80`
+  /// Appends a value's bytes to the span's memory.
   mutating func append(
     _ value: Float80, as type: Float80.Type, endianness: Endianness
   )
 
   // available on platforms that support `UInt128`
+  /// Appends a value's bytes to the span's memory.
   mutating func append(
     _ value: UInt128, as type: UInt128.Type, endianness: Endianness
   )
 
   // available on platforms that support `Int128`
+  /// Appends a value's bytes to the span's memory.
   mutating func append(
     _ value: Int128, as type: Int128.Type, endianness: Endianness
   )
@@ -317,63 +369,81 @@ extension OutputRawSpan {
 
 ```swift
 extension Span {
+  /// View initialized memory as a span of integers.
+  ///
+  /// - Parameters:
+  ///   - bytes: a buffer to initialized memory.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == UInt8
 
+  /// View initialized memory as a span of integers.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == Int8
 
-  /// View initialized memory as a span of 16-bit integers.
+  /// View initialized memory as a span of integers.
   ///
   /// `bytes` must be correctly aligned for accessing
   /// an element of type `UInt16`, and its length in bytes
   /// must be an exact multiple of `UInt16`'s stride.
   ///
   /// - Parameters:
-  ///   - bytes: a buffer to initialized elements.
+  ///   - bytes: a buffer to initialized memory.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == UInt16
 
+  /// View initialized memory as a span of integers.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == Int16
 
+  /// View initialized memory as a span of integers.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == UInt32
 
+  /// View initialized memory as a span of integers.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == Int32
 
+  /// View initialized memory as a span of integers.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == UInt64
 
+  /// View initialized memory as a span of integers.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == Int64
 
+  /// View initialized memory as a span of integers.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == UInt
 
+  /// View initialized memory as a span of integers.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == Int
 
+  /// View initialized memory as a span of floating-point values.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == Float32
 
+  /// View initialized memory as a span of floating-point values.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == Float64
 
   // available on platforms that support `Float16`
+  /// View initialized memory as a span of floating-point values.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == Float16
 
   // available on platforms that support `Float80`
+  /// View initialized memory as a span of floating-point values.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == Float80
 
   // available on platforms that support `UInt128`
+  /// View initialized memory as a span of integers.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == UInt128
 
   // available on platforms that support `Int128`
+  /// View initialized memory as a span of integers.
   @_lifetime(borrow bytes)
   public init(viewing bytes: borrowing RawSpan) where Element == Int128
 }
