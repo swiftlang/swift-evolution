@@ -23,7 +23,9 @@ In [SE-0447][SE-0447], we introduced `RawSpan` along with some unsafe functions 
 
 ##### `RawSpan`
 
-`RawSpan` will gain a series of concretely typed `load(fromByteOffset:as:)` functions to obtain numeric values from the underlying memory. These will be bounds-checked and, since they always return values from fully-inhabited types, are fully safe. They have no alignment requirement. For example,
+`RawSpan` will gain a series of concretely typed `load(as:)` functions to obtain numeric values from the underlying memory, with no alignment requirement. These `load(as:)` functions can be safe because they return values from fully-inhabited types, meaning that these types have a valid value for every bit pattern of their underlying bytes.
+
+The `load(as:)` functions will be bounds-checked, being a safe `RawSpan` API. For example,
 
 ```swift
 extension RawSpan {
@@ -98,8 +100,7 @@ public enum Endianness: Equatable, Hashable, Sendable {
   case big, little
 }
 ```
-
-
+Question: Would we prefer `Endianness` to not be a top-level type?
 
 ```swift
 extension RawSpan {
@@ -149,7 +150,7 @@ extension RawSpan {
   func load(fromByteOffset: Int = 0, as: Int128.Type, endianness: Endianness? = nil) -> Int128
 }
 ```
-Note: the `load()` functions should also be available as extensions to `MutableRawSpan` and `OutputRawSpan`.
+Note: the `load()` functions will also be available on `MutableRawSpan` and `OutputRawSpan`.
 
 ```swift
 extension MutableRawSpan {
@@ -394,7 +395,7 @@ These functions require the existence of `Span`, so have a minimum deployment ta
 
 ## Future directions
 
-#### A "fully inhabited" layout constraint or marker protocol
+#### <a name="constraint"></a>A "fully inhabited" layout constraint or marker protocol
 
 This document proposes functions to load numeric values only. The salient property they share is that no possible bit pattern loaded into them is invalid. We could try to encode this property in a "fully inhabited" layout constraint, or in a more limited way in a marker protocol. We note that loading an aggregate that contains padding bytes is not inherently unsafe. However, attempting to load a value that has invalid bit patterns is inherently unsafe. Enums generally fall into the second category.
 
@@ -418,11 +419,11 @@ We could have distinct `load(fromByteOffset:as:)` and `load(fromByteOffset:as:en
 
 #### Waiting for a "fully inhabited" layout constraint
 
-The need for this functionality is urgent and can be achieved with standard library additions. The fully-inhabited layout constraint would also require significant compiler work, and we believe that it is not worth waiting for it. The layout constraint might also not be a sound approach.
+The need for the functionality in this proposal is urgent and can be achieved with standard library additions. The fully-inhabited layout constraint would also require significant compiler work, and we believe that it is not worth waiting for it. It is also unclear whether the layout constraint might is a sound approach.
 
-#### Making these additions generic over `BinaryInteger & FixedWidthInteger` and `BinaryFloatingPoint`
+#### Making these additions generic over `FixedWidthInteger & BitwiseCopyable` and `BinaryFloatingPoint & BitwiseCopyable`
 
-These are not sufficient constraints. This approach would also require extremely defensive implementations to account for the existence of conformers from outside of the standard library.
+These are not sufficient constraints, since they do not mandate that their conformers must be fully inhabited. This approach would also require extremely defensive implementations to account for the existence of conformers from outside of the standard library. It would be possible to make the additions generic over a new protocol, which would have to be public. Two new issues arise from creating a new protocol: backdeployment and the possibility of unsafety due to future defective conformers from outside the standard library. A [layout constraint](#constraint) would achieve a similar outcome while being less risky.
 
 #### Omitting the `Endianness` parameters
 
