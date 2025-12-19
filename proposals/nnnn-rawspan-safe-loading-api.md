@@ -23,7 +23,7 @@ In [SE-0447][SE-0447], we introduced `RawSpan` along with some unsafe functions 
 
 ##### `RawSpan`
 
-`RawSpan` will gain a series of concretely typed `load(fromByteOffset:as:)` functions to obtain numeric values from the underlying memory. These will be bounds-checked and, since they always return values from fully-inhabited types, are fully safe. For example,
+`RawSpan` will gain a series of concretely typed `load(fromByteOffset:as:)` functions to obtain numeric values from the underlying memory. These will be bounds-checked and, since they always return values from fully-inhabited types, are fully safe. They have no alignment requirement. For example,
 
 ```swift
 extension RawSpan {
@@ -36,7 +36,7 @@ extension RawSpan {
 
 @frozen
 enum Endianness: Equatable, Hashable, Sendable {
-  case .bigEndian, .littleEndian
+  case .big, .little
 }
 ```
 
@@ -82,7 +82,7 @@ The concrete `storeBytes(of:as:)` functions will not have an equivalent with unc
 ```swift
 extension Span {
   @_lifetime(borrow span)
-  init(viewing bytes: consuming RawSpan) where Element == UInt32
+  init(viewing bytes: borrowing RawSpan) where Element == UInt32
 }
 ```
 
@@ -95,7 +95,7 @@ The conversions from `RawSpan` to `Span` only support well-aligned views with th
 ```swift
 @frozen
 enum Endianness: Equatable, Hashable, Sendable {  
-  case .bigEndian, .littleEndian
+  case .big, .little
 }
 ```
 
@@ -117,7 +117,8 @@ extension RawSpan {
   /// Returns a value constructed from the raw memory at the specified offset.
   ///
   /// The range of bytes required to construct an `UInt16` starting at `offset`
-  /// must be completely within the span.
+  /// must be completely within the span. `offset` is not required to be aligned
+  /// for `UInt16`.
   ///
   /// - Parameters:
   ///   - offset: The offset from the beginning of this span, in bytes.
@@ -315,11 +316,11 @@ Note: the new `append(_:as:endianness:)` functions do not need a defaulted `Endi
 
 ```swift
 extension Span {
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == UInt8
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == UInt8
 
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == Int8
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == Int8
 
   /// View initialized memory as a span of 16-bit integers.
   ///
@@ -329,51 +330,51 @@ extension Span {
   ///
   /// - Parameters:
   ///   - bytes: a buffer to initialized elements.
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == UInt16
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == UInt16
 
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == Int16
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == Int16
 
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == UInt32
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == UInt32
 
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == Int32
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == Int32
 
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == UInt64
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == UInt64
 
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == Int64
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == Int64
 
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == UInt
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == UInt
 
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == Int
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == Int
 
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == Float32
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == Float32
 
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == Float64
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == Float64
 
   // available on platforms that support `Float16`
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == Float16
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == Float16
 
   // available on platforms that support `Float80`
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == Float80
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == Float80
 
   // available on platforms that support `UInt128`
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == UInt128
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == UInt128
 
   // available on platforms that support `Int128`
-  @lifetime(copy rawSpan)
-  public init(viewing bytes: consuming RawSpan) where Element == Int128
+  @_lifetime(borrow bytes)
+  public init(viewing bytes: borrowing RawSpan) where Element == Int128
 }
 ```
 Note: we are not proposing mutable versions of these initializers for `MutableSpan`.
@@ -422,6 +423,10 @@ The need for this functionality is urgent and can be achieved with standard libr
 #### Making these additions generic over `BinaryInteger & FixedWidthInteger` and `BinaryFloatingPoint`
 
 These are not sufficient constraints. This approach would also require extremely defensive implementations to account for the existence of conformers from outside of the standard library.
+
+#### Omitting the `Endianness` parameters
+
+The standard library's `FixedWidthInteger` protocol includes computed properties `var .bigEndian: Self` and `var .littleEndian: Self`. These could be used to modify the arguments of `storeBytes()`, or to modify the return values from `load()`. Unfortunately these properties are not clear, because they return `Self`. This proposal applies the consideration of endianness to the operation it belongs to: serialization.
 
 ## Acknowledgments
 
