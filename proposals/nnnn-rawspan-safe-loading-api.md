@@ -35,12 +35,12 @@ extension RawSpan {
 }
 
 @frozen
-enum Endianness: Equatable, Hashable, Sendable {
-  case .big, .little
+public enum Endianness: Equatable, Hashable, Sendable {
+  case big, little
 }
 ```
 
-The loadable types will be `UInt8`, `Int8`, `UInt16`, `Int16`, `UInt32`, `Int32`, `UInt64`, `Int64`, `UInt`, `Int`, `Float32` and `Float64`. On platforms that support them, loading `Float16`, `Float80`, `UInt128`, and `Int128`  values will also be supported. These are not atomic operations.
+The loadable types will be `UInt8`, `Int8`, `UInt16`, `Int16`, `UInt32`, `Int32`, `UInt64`, `Int64`, `UInt`, `Int`, `Float32` (aka `Float`) and `Float64` (aka `Double`). On platforms that support them, loading `Float16`, `Float80`, `UInt128`, and `Int128`  values will also be supported. These are not atomic operations.
 
 The concrete `load(as:)` functions will not have equivalents with unchecked byte offset. If that functionality is needed, the generic `unsafeLoad(fromUncheckedByteOffset:as:)` is already available.
 
@@ -71,7 +71,7 @@ extension OutputRawSpan {
 
 These functions do not have a default value for their `endianness` argument, as the existing generic `MutableSpan.storeBytes(of:toByteOffset:as:)` and `OutputRawSpan.append(_:as:)` functions use the native endianness, addressing this need.
 
-These concrete implementations will support `UInt16`, `Int16`, `UInt32`, `Int32`, `UInt64`, `Int64`, `UInt`, `Int`, `Float32` and `Float64`. On platforms that support them, `Float16`, `Float80`, `UInt128`, and `Int128`  values will also be supported. These are not atomic operations.
+These concrete implementations will support `UInt16`, `Int16`, `UInt32`, `Int32`, `UInt64`, `Int64`, `UInt`, `Int`, `Float32` (aka `Float`) and `Float64` (aka `Double`). On platforms that support them, `Float16`, `Float80`, `UInt128`, and `Int128`  values will also be supported. These are not atomic operations.
 
 The concrete `storeBytes(of:as:)` functions will not have an equivalent with unchecked byte offset. If that functionality is needed, the generic `storeBytes(of:toUncheckedByteOffset:as:)` is already available.
 
@@ -86,7 +86,7 @@ extension Span {
 }
 ```
 
-The supported element types will be `UInt8`, `Int8`, `UInt16`, `Int16`, `UInt32`, `Int32`, `UInt64`, `Int64`, `UInt`, `Int`, `Float32` and `Float64`. On platforms that support them, initializing `Span` instances with `Float16`, `Float80`, `UInt128`, and `Int128` elements will also be implemented.
+The supported element types will be `UInt8`, `Int8`, `UInt16`, `Int16`, `UInt32`, `Int32`, `UInt64`, `Int64`, `UInt`, `Int`, `Float32` (aka `Float`) and `Float64` (aka `Double`). On platforms that support them, initializing `Span` instances with `Float16`, `Float80`, `UInt128`, and `Int128` elements will also be implemented.
 
 The conversions from `RawSpan` to `Span` only support well-aligned views with the native endianness. The [swift-binary-parsing][swift-binary-parsing] package provides a more fully-featured `ParserSpan` type.
 
@@ -94,8 +94,8 @@ The conversions from `RawSpan` to `Span` only support well-aligned views with th
 
 ```swift
 @frozen
-enum Endianness: Equatable, Hashable, Sendable {  
-  case .big, .little
+public enum Endianness: Equatable, Hashable, Sendable {
+  case big, little
 }
 ```
 
