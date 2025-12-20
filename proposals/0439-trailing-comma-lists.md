@@ -146,7 +146,7 @@ This proposal adds support for trailing commas in symmetrically delimited comma-
     }
     ```
 
-- Generic parameters.
+- Generic parameter lists and generic argument lists.
 
     ```swift
     struct S<
@@ -154,6 +154,12 @@ This proposal adds support for trailing commas in symmetrically delimited comma-
         T2,
         T3,
     > { }
+
+    let s = S<
+        T1,
+        T2,
+        T3,
+    >()
     ```
 
 - String interpolation.
@@ -165,6 +171,8 @@ This proposal adds support for trailing commas in symmetrically delimited comma-
 ## Detailed Design
 
 Trailing commas will be supported in comma-separated lists when symmetric delimiters (including `(...)`, `[...]`, and `<...>`) enable unambiguous parsing.
+
+Note that the requirement for a comma-separated list means that `let x: [Int,] ❌` will not be supported, since a list of types is never supported in that context. Likewise, built-in attributes that don't parse their arguments as a comma-separated list will not support trailing comma, such as `@inline(never,) ❌`.
 
 Note that the requirement for symmetric delimiters means that the following cases will not support trailing comma:
 
