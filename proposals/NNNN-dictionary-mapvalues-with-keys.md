@@ -4,7 +4,7 @@
 * Authors: [Diana Ma](https://github.com/tayloraswift) (tayloraswift)
 * Review Manager: unassigned
 * Status: **Pitch**
-* Implementation: [#86268](https://github.com/swiftlang/swift/pull/86268)
+* Implementation: [`#86268`](https://github.com/swiftlang/swift/pull/86268), [`swift-collections:#556`](https://github.com/apple/swift-collections/pull/556)
 * Review: ([pitch](https://forums.swift.org/t/giving-dictionary-mapvalues-access-to-the-associated-key/83904)) 
 
 ## Introduction
