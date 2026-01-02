@@ -76,11 +76,7 @@ On Apple platforms, `Dictionary` may be backed by a Cocoa dictionary. This does 
 
 The performance gain for `OrderedDictionary` could be even more significant. `OrderedDictionary` maintains a standard `Array` for keys and values, plus a sidecar hash table for lookups.
 
-The current workaround (`reduce` or `init`) forces the reconstruction of the entire hash table and an eager copy of the keys array. We could instead:
-
-1. use zipped iteration to map the underlying `_keys` and `_values` arrays to a new array of values,
-1. copy the `_keys` array, which is an O(1) copy-on-write if not mutated, or O(*n*) on later mutation, and
-1. copy the `_hashTable` buffer directly, which is also a lazy copy-on-write operation.
+The current workaround (`reduce` or `init`) forces the reconstruction of the entire hash table and an eager copy of the keys array. We could instead use zipped iteration to map the underlying `_keys` and `_values` arrays to a new array of values, and then copy the `_keys` table – which includes the hash table `__storage` – and is an O(1) copy-on-write if not mutated, or O(*n*) on later mutation.
 
 ## Source compatibility
 
