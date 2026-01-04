@@ -1,12 +1,12 @@
-# Borrow Accessors
+# Borrowing Accessors
 
-* Proposal: [SE-NNNN](https://github.com/swiftlang/swift-evolution/blob/main/proposals/NNNN-borrow-accessors.md)
+* Proposal: [SE-NNNN](NNNN-borrow-accessors.md)
 * Authors: [Meghana Gupta](https://github.com/meg-gupta), [Tim Kientzle](https://github.com/tbkka)
 * Review Manager: TBD
-* Status: Implemented behind feature flag
+* Status: **Awaiting review**
 * Vision: [[Prospective Vision] Accessors](https://forums.swift.org/t/prospective-vision-accessors/76707)
-* Upcoming Feature Flag: `BorrowAndMutateAccessors`
-* Review: ([pitch](https://forums.swift.org/...))
+* Implementation: On `main` gated behind `-enable-experimental-feature BorrowAndMutateAccessors`
+* Review: ([pitch](https://forums.swift.org/t/pitch-borrowing-accessors/83933))
 
 ## Introduction
 
@@ -106,7 +106,7 @@ struct InvalidExamples {
     var temporary: [Int]? {
         borrow {
             // This would require creating a temporary local
-            // optional value from `_element`.
+            // optional array from `_element`.
             // 🛑 ERROR: Cannot return temporary value from borrow accessor
             return array
         }
