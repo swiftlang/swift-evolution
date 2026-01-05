@@ -602,7 +602,7 @@ be stored more efficiently.)
 The task-creation APIs in the standard library have been implemented
 in a way that allows their signatures to be changed without ABI
 considerations.  Direct enqueuing on the isolated actor does require
-runtime support, but fortunately that support has present in the
+runtime support, but fortunately that support has been present in the
 concurrency runtime since the first release.  Therefore, there should
 not be any back-deployment problems supporting the proposed changes.
 
