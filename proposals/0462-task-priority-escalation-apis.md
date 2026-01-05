@@ -95,7 +95,7 @@ await withTaskPriorityEscalationHandler {
     if let newPriority {
         Task.escalatePriority(of: task, to: newPriority)
     }
-  } onPriorityEscalated: { newPriority in
+  } onPriorityEscalated: { oldPriority, newPriority in
     state.withLock { state in
       switch state {
       case .initialized, .priority:
@@ -123,12 +123,12 @@ We propose the addition of a task priority escalation handler, similar to task c
 ```swift
 public func withTaskPriorityEscalationHandler<T, E>(
   operation: () async throws(E) -> T,
-  onPriorityEscalated handler: @Sendable (TaskPriority) -> Void,
+  onPriorityEscalated handler: @Sendable (TaskPriority, TaskPriority) -> Void,
   isolation: isolated (any Actor)? = #isolation
 ) async throws(E) -> T
 ```
 
-The shape of this API is similar to the `withTaskCancellationHandler` API present since initial Swift Concurrency release, however–unlike a cancellation handler–the `onPriorityEscalated` callback may be triggered multiple times. The `TaskPriority` passed to the handler is the "new priority" the surrounding task was escalated to.
+The shape of this API is similar to the `withTaskCancellationHandler` API present since initial Swift Concurrency release, however–unlike a cancellation handler–the `onPriorityEscalated` callback may be triggered multiple times. There are two `TaskPriority` arguments passed to the handler. The first argument is the "old" priority, from before the task priority was escalated, and the second argument is the new escalated-to task priority.
 
 It is guaranteed that priority is ever only increasing, as Swift Concurrency does not allow for a task priority to ever be lowered after it has been escalated. If attempts are made to escalate the task priority from multiple other threads to the same priority, the handler will only trigger once. However if priority is escalated to a high and then even higher priority, the handler may be invoked twice.
 
@@ -139,7 +139,7 @@ Task escalation handlers are inherently racy, and may sometimes miss an escalati
 // priority: high!
 await withTaskPriorityEscalationHandler {
   await work()
-} onPriorityEscalated: { newPriority in // may not be triggered if ->high escalation happened before handler was installed
+} onPriorityEscalated: { oldPriority, newPriority in // may not be triggered if ->high escalation happened before handler was installed
   // do something
 }
 ```
@@ -155,10 +155,10 @@ let t = Task {
       group.addTask { 
         await withTaskPriorityEscalationHandler {
           try? await Task.sleep(for: .seconds(1))
-        } onPriorityEscalated: { newPriority in print("inner: \(newPriority)") }
+        } onPriorityEscalated: { oldPriority, newPriority in print("inner: \(newPriority)") }
       }
     }
-  } onPriorityEscalated: { newPriority in print("outer: \(newPriority)") }
+  } onPriorityEscalated: { oldPriority, newPriority in print("outer: \(newPriority)") }
 }
 
 // escalate t -> high
