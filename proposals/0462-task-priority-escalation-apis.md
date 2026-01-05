@@ -123,7 +123,7 @@ We propose the addition of a task priority escalation handler, similar to task c
 ```swift
 public func withTaskPriorityEscalationHandler<T, E>(
   operation: () async throws(E) -> T,
-  onPriorityEscalated handler: @Sendable (TaskPrioritym, TaskPriority) -> Void,
+  onPriorityEscalated handler: @Sendable (TaskPriority, TaskPriority) -> Void,
   isolation: isolated (any Actor)? = #isolation
 ) async throws(E) -> T
 ```
