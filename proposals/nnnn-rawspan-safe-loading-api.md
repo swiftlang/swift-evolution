@@ -17,7 +17,7 @@ We propose the introduction of a set of safe API to load values of numeric types
 
 ## Motivation
 
-In [SE-0447][SE-0447], we introduced `RawSpan` along with some unsafe functions to load values of arbitrary types. This proposal adds the ability to load values more ergonomically, without the doubt introduced by unsafe functions.
+In [SE-0447][SE-0447], we introduced `RawSpan` along with some unsafe functions to load values of arbitrary types. While it is safe to load any of the native integer types with those functions, the `unsafe` annotation introduces an element of doubt for users of the standard library. Furthermore, controlling the endiannness for the loading operation is not available at the point of serialization, introducing further confusion. This proposal adds the ability to safely load integer values with ergonomic endianness control, without the doubt introduced by unsafe functions.
 
 ## Proposed solution
 
