@@ -3,7 +3,7 @@
 * Proposal: [SE-0494](0494-add-is-identical-methods.md)
 * Authors: [Rick van Voorden](https://github.com/vanvoorden), [Karoy Lorentey](https://github.com/lorentey)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Implemented (Swift 6.4)**
+* Status: **Implemented (Swift Next)**
 * Implementation: ([String, Substring](https://github.com/swiftlang/swift/pull/82055)), ([Array, ArraySlice, ContiguousArray](https://github.com/swiftlang/swift/pull/82438)), ([Dictionary, Set](https://github.com/swiftlang/swift/pull/82439)), ([Memory Regions](https://github.com/swiftlang/swift/pull/84998))
 * Review: ([prepitch](https://forums.swift.org/t/-/78792)) ([first pitch](https://forums.swift.org/t/-/79145)) ([second pitch](https://forums.swift.org/t/-/80496)) ([review](https://forums.swift.org/t/se-0494-add-isidentical-to-methods-for-quick-comparisons-to-concrete-types/82296)) ([revision](https://forums.swift.org/t/se-0494-add-isidentical-to-methods-for-quick-comparisons-to-concrete-types/82296/142)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0494-add-isidentical-to-methods-for-quick-comparison-to-concrete-types/82695))
 
