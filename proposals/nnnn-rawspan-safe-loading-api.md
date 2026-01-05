@@ -50,7 +50,7 @@ The `load(as:)` functions will also be available for `MutableRawSpan` and `Outpu
 
 ##### `MutableRawSpan` and `OutputRawSpan`
 
-`MutableRawSpan` will gain a series of concretely typed `storeBytes()` functions that accept an endianness parameter:
+`MutableRawSpan` will gain a series of concretely typed `storeBytes()` functions that accept an endianness parameter, while `OutputRawSpan` will have matching `append()` functions:
 
 ```swift
 extension MutableRawSpan {
