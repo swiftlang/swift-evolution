@@ -176,7 +176,7 @@ extension RawSpan {
   func load(fromByteOffset: Int = 0, as: Int128.Type, endianness: Endianness? = nil) -> Int128
 }
 ```
-Note: the `load()` functions will also be available on `MutableRawSpan` and `OutputRawSpan`.
+> **Note:** the `load()` functions will also be available on `MutableRawSpan` and `OutputRawSpan`.
 
 ```swift
 extension MutableRawSpan {
@@ -448,7 +448,7 @@ extension Span {
   public init(viewing bytes: borrowing RawSpan) where Element == Int128
 }
 ```
->  **Note:** we are not proposing mutable versions of these initializers for `MutableSpan`.
+> **Note:** we are not proposing mutable versions of these initializers for `MutableSpan`.
 
 ## Source compatibility
 
