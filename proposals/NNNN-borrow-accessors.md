@@ -261,16 +261,19 @@ This is a new feature that has no impact on existing ABI.
 
 ## Implications on adoption
 
-**TODO:** If a property already has X, you can add/replace it with Y in these conditions.
+Changing an existing non-borrowing accessor to a borrowing accessor or vice-versa is generally ABI-breaking.
 
-**TODO**: Explain how call sites select a particular accessor?
+However, the ABI of existential types is preserved when concrete conformers change their accessors, as long as the compiler is able to continue synthesizing a conforming accessor.
+
+Changing an existing non-borrowing accessor to a borrowing accessor or vice-versa can be source-breaking for clients.
+In particular, changing a `get` to a `borrow` creates new restrictions on clients regarding the relative lifetimes of different values.
+This can cause previously working code to no longer compile.
 
 ## Future directions
 
 ### Borrow returns
 
-It is also useful for functions to be able to return borrowed values.  This can be supported when the function has access to a value that is known to be stored in memory.  It is particularly useful to extend the borrow semantics:
-
+It is also useful for functions to be able to return borrowed values. As with borrowing accessors, this requires the value to have a guaranteed lifetime. It is particularly useful to extend the borrow semantics:
 ```
 struct S<Value> {
   subscript(_ index: Int) -> Value {
