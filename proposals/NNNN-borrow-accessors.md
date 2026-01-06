@@ -170,7 +170,28 @@ If you provide a `borrow` accessor:
 
 #### Ownership variations
 
-**TODO:** explain combinations such as `nonmutating mutate` or `mutating borrow`
+By default, any `borrow` accessor is considered to not mutate the containing
+value, and any `mutate` accessor is assumed to act as a mutation of the
+containing struct.
+
+This can be explicitly overridden by using a `mutating` or `nonmutating` modifier,
+similarly to `mutating get` or `nonmutating set`.
+For example:
+```
+struct S1 {
+  private cachedValue: Foo
+  var foo : Foo {
+    mutating borrow {
+      if !cachedValue.available {
+        // Update `cachedValue`
+        // Compiler allows such update
+        // because this is `mutating`
+      }
+      return cachedValue
+    }
+  }
+}
+```
 
 #### `borrow` and `mutate` as protocol requirements
 
