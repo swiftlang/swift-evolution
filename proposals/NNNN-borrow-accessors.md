@@ -235,7 +235,7 @@ Borrowing accessors can also be used to implement subscript operations:
 struct ArrayLikeType {
   subscript(index: Int) -> Element {
     borrow { .... }
-	mutate { .... }
+    mutate { .... }
   }
 }
 ```
