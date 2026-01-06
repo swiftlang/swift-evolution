@@ -18,7 +18,7 @@ To briefly summarize the discussion in that document, borrowing accessors have a
 * Unlike `get` accessors, borrowing accessors can expose a stored value without copying it
 * Unlike `yielding borrow` and `yielding mutate` accessors, borrowing accessors do not require the overhead of a coroutine, making them more performant when they cannot be fully inlined.
 
-Note that borrowing accessors do not replace all uses of the existing accessor variants.  In particular, `get`, `yielding mutate`, and `yielding borrow` can all provide access to constructed temporary values.  This makes `yielding mutate` and `yielding borrow` the most flexible options for general-purpose protocols whose conformers may need to expose temporary values.  In contrast, borrowing accessors can only expose values that are already represented in memory.
+Note that borrowing accessors do not replace all uses of the existing accessor variants.  In particular, `get`, `yielding mutate`, and `yielding borrow` can all provide access to constructed temporary values.  This makes `yielding mutate` and `yielding borrow` the most flexible options for general-purpose protocols whose conformers may need to expose temporary values.  In contrast, borrowing accessors can only expose values whose storage is guaranteed to be valid until the next mutation of the containing value.
 
 ## Motivation
 
