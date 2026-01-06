@@ -126,7 +126,7 @@ var owner = Wrapper(value)
 doSomething(with: owner.element)
 
 func doSomething(with value: borrowing Element) {
-    // `value` is borrowed, so this invokes a
+    // `value` is borrowed, so this invokes
     // the method "in-place"
     value.someMethod() 
 
