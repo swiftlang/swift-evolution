@@ -93,7 +93,7 @@ The above example shows how `borrow` and `mutate` accessors can be defined.  Not
 
 ```
 struct InvalidExamples {
-    var array : [Int]
+    var _array : [Int]
     
     var local: [Int] {
         borrow {
@@ -106,9 +106,9 @@ struct InvalidExamples {
     var temporary: [Int]? {
         borrow {
             // This would require creating a temporary local
-            // optional array from `_element`.
+            // optional array from `_array`.
             // 🛑 ERROR: Cannot return temporary value from borrow accessor
-            return array
+            return _array
         }
     }
 }
