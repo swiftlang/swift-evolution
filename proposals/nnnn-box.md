@@ -1,10 +1,10 @@
 # Box
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](nnnn-box.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-* Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN)
+* Implementation: [swiftlang/swift#86336](https://github.com/swiftlang/swift/pull/86336)
 * Review: ([pitch](https://forums.swift.org/...))
 
 ## Introduction
