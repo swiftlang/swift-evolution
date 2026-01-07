@@ -173,7 +173,7 @@ the version of Swift that introduced this type.
 Following C++'s `std::unique_ptr`, a natural name for this type could be
 `Unique`. However, there's a strong precedent of Swift developers reaching for
 the `Box` name to manually put something on the heap. While C++ uses
-`std::shared_ptr`, Rust does name their unique smart pointer type `Box`, so
+`std::unique_ptr`, Rust does name their unique smart pointer type `Box`, so
 there is prior art for both potential names. This proposal suggests `Box` as the
 succinct and simple name.
 
