@@ -99,7 +99,11 @@ The conversions from `RawSpan` to `Span` only support well-aligned views with th
 ```swift
 @frozen
 public enum ByteOrder: Equatable, Hashable, Sendable {
-  case big, little
+  /// Bytes are ordered with the most significant bits at the lowest memory address
+  case bigEndian
+  
+  /// Bytes are ordered with the least significant bits at the lowest memory address
+  case littleEndian
 
   /// The native byte order of the runtime target.
   static var native: Self { get }
