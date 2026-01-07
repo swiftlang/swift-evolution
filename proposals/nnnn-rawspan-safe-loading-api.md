@@ -32,13 +32,15 @@ extension RawSpan {
   func load(fromByteOffset: Int = 0, as: UInt8.Type) -> UInt8
 
   func load(
-    fromByteOffset: Int = 0, as: UInt16.Type, endianness: Endianness? = nil
+    fromByteOffset: Int = 0, as: UInt16.Type, endianness: ByteOrder = .native
   ) -> UInt16
 }
 
 @frozen
-public enum Endianness: Equatable, Hashable, Sendable {
-  case big, little
+public enum ByteOrder: Equatable, Hashable, Sendable {
+  case bigEndian, littleEndian
+  
+  static var native: Self { get }
 }
 ```
 
@@ -58,7 +60,7 @@ extension MutableRawSpan {
     of value: UInt16,
     toByteOffset offset: Int = 0,
     as type: UInt16.Type,
-    endianness: Endianness
+    endianness: ByteOrder
   )
 }
 
@@ -66,7 +68,7 @@ extension OutputRawSpan {
   mutating func append(
     _ value: UInt16,
     as type: UInt16.Type,
-    endianness: Endianness
+    endianness: ByteOrder
   )
 }
 ```
@@ -96,11 +98,11 @@ The conversions from `RawSpan` to `Span` only support well-aligned views with th
 
 ```swift
 @frozen
-public enum Endianness: Equatable, Hashable, Sendable {
+public enum ByteOrder: Equatable, Hashable, Sendable {
   case big, little
 }
 ```
-Question: Would we prefer `Endianness` to not be a top-level type?
+Question: Would we prefer `ByteOrder` to not be a top-level type?
 
 ```swift
 extension RawSpan {
@@ -129,51 +131,51 @@ extension RawSpan {
   ///   - endianness: The order in which the bytes will be decoded from the span,
   ///     or the native runtime endianness if `nil`.
   /// - Returns: A new value of type `UInt16`, read from `offset`.
-  func load(fromByteOffset: Int = 0, as: UInt16.Type, endianness: Endianness? = nil) -> UInt16
+  func load(fromByteOffset: Int = 0, as: UInt16.Type, endianness: ByteOrder = .native) -> UInt16
 
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Int16.Type, endianness: Endianness? = nil) -> Int16
+  func load(fromByteOffset: Int = 0, as: Int16.Type, endianness: ByteOrder = .native) -> Int16
 
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: UInt32.Type, endianness: Endianness? = nil) -> UInt32
+  func load(fromByteOffset: Int = 0, as: UInt32.Type, endianness: ByteOrder = .native) -> UInt32
 
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Int32.Type, endianness: Endianness? = nil) -> Int32
+  func load(fromByteOffset: Int = 0, as: Int32.Type, endianness: ByteOrder = .native) -> Int32
 
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: UInt64.Type, endianness: Endianness? = nil) -> UInt64
+  func load(fromByteOffset: Int = 0, as: UInt64.Type, endianness: ByteOrder = .native) -> UInt64
 
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Int64.Type, endianness: Endianness? = nil) -> Int64
+  func load(fromByteOffset: Int = 0, as: Int64.Type, endianness: ByteOrder = .native) -> Int64
 
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: UInt.Type, endianness: Endianness? = nil) -> UInt
+  func load(fromByteOffset: Int = 0, as: UInt.Type, endianness: ByteOrder = .native) -> UInt
 
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Int.Type, endianness: Endianness? = nil) -> Int
+  func load(fromByteOffset: Int = 0, as: Int.Type, endianness: ByteOrder = .native) -> Int
 
 
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Float32.Type, endianness: Endianness? = nil) -> Float32
+  func load(fromByteOffset: Int = 0, as: Float32.Type, endianness: ByteOrder = .native) -> Float32
 
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Float64.Type, endianness: Endianness? = nil) -> Float64
+  func load(fromByteOffset: Int = 0, as: Float64.Type, endianness: ByteOrder = .native) -> Float64
 
   // available on platforms that support `Float16`
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Float16.Type, endianness: Endianness? = nil) -> Float16
+  func load(fromByteOffset: Int = 0, as: Float16.Type, endianness: ByteOrder = .native) -> Float16
 
   // available on platforms that support `Float80`
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Float80.Type, endianness: Endianness? = nil) -> Float80
+  func load(fromByteOffset: Int = 0, as: Float80.Type, endianness: ByteOrder = .native) -> Float80
 
   // available on platforms that support `UInt128`
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: UInt128.Type, endianness: Endianness? = nil) -> UInt128
+  func load(fromByteOffset: Int = 0, as: UInt128.Type, endianness: ByteOrder = .native) -> UInt128
 
   // available on platforms that support `Int128`
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Int128.Type, endianness: Endianness? = nil) -> Int128
+  func load(fromByteOffset: Int = 0, as: Int128.Type, endianness: ByteOrder = .native) -> Int128
 }
 ```
 > **Note:** the `load()` functions will also be available on `MutableRawSpan` and `OutputRawSpan`.
@@ -193,93 +195,93 @@ extension MutableRawSpan {
   ///   - endianness: The order in which the bytes will be encoded to the span.
   mutating func storeBytes(
     of value: UInt16, toByteOffset offset: Int = 0,
-    as type: UInt16.Type, endianness: Endianness
+    as type: UInt16.Type, endianness: ByteOrder
   )
 
   /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Int16, toByteOffset offset: Int = 0,
-    as type: Int16.Type, endianness: Endianness
+    as type: Int16.Type, endianness: ByteOrder
   )
 
   /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: UInt32, toByteOffset offset: Int = 0,
-    as type: UInt32.Type, endianness: Endianness
+    as type: UInt32.Type, endianness: ByteOrder
   )
 
   /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Int32, toByteOffset offset: Int = 0,
-    as type: Int32.Type, endianness: Endianness
+    as type: Int32.Type, endianness: ByteOrder
   )
 
   /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: UInt64, toByteOffset offset: Int = 0,
-    as type: UInt64.Type, endianness: Endianness
+    as type: UInt64.Type, endianness: ByteOrder
   )
 
   /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Int64, toByteOffset offset: Int = 0,
-    as type: Int64.Type, endianness: Endianness
+    as type: Int64.Type, endianness: ByteOrder
   )
 
   /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: UInt, toByteOffset offset: Int = 0,
-    as type: UInt.Type, endianness: Endianness
+    as type: UInt.Type, endianness: ByteOrder
   )
 
   /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Int, toByteOffset offset: Int = 0,
-    as type: Int.Type, endianness: Endianness
+    as type: Int.Type, endianness: ByteOrder
   )
 
   /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Float32, toByteOffset offset: Int = 0,
-    as type: Float32.Type, endianness: Endianness
+    as type: Float32.Type, endianness: ByteOrder
   )
 
   /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Float64, toByteOffset offset: Int = 0,
-    as type: Float64.Type, endianness: Endianness
+    as type: Float64.Type, endianness: ByteOrder
   )
 
   // available on platforms that support `Float16`
   /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Float16, toByteOffset offset: Int = 0,
-    as type: Float16.Type, endianness: Endianness
+    as type: Float16.Type, endianness: ByteOrder
   )
 
   // available on platforms that support `Float80`
   /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Float80, toByteOffset offset: Int = 0,
-    as type: Float80.Type, endianness: Endianness
+    as type: Float80.Type, endianness: ByteOrder
   )
 
   // available on platforms that support `UInt128`
   /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: UInt128, toByteOffset offset: Int = 0,
-    as type: UInt128.Type, endianness: Endianness
+    as type: UInt128.Type, endianness: ByteOrder
   )
 
   // available on platforms that support `Int128`
   /// Stores a value's bytes into the span's memory at the specified byte offset.
   mutating func storeBytes(
     of value: Int128, toByteOffset offset: Int = 0,
-    as type: Int128.Type, endianness: Endianness
+    as type: Int128.Type, endianness: ByteOrder
   )
 }
 ```
-> **Note:** the new `storeBytes(of:as:endianness:)` functions do not need a defaulted `Endianness` parameter, since the existing `storeBytes(of:as:)` effectively fulfills that purpose.
+> **Note:** the new `storeBytes(of:as:endianness:)` functions do not need a defaulted `ByteOrder` parameter, since the existing `storeBytes(of:as:)` effectively fulfills that purpose.
 
 ```swift
 extension OutputRawSpan {
@@ -292,80 +294,80 @@ extension OutputRawSpan {
   ///   - type: The type of the instance to create.
   ///   - endianness: The order in which the bytes will be encoded to the span.
   mutating func append(
-    _ value: UInt16, as type: UInt16.Type, endianness: Endianness
+    _ value: UInt16, as type: UInt16.Type, endianness: ByteOrder
   )
 
   /// Appends a value's bytes to the span's memory.
   mutating func append(
-    _ value: Int16, as type: Int16.Type, endianness: Endianness
+    _ value: Int16, as type: Int16.Type, endianness: ByteOrder
   )
 
   /// Appends a value's bytes to the span's memory.
   mutating func append(
-    _ value: UInt32, as type: UInt32.Type, endianness: Endianness
+    _ value: UInt32, as type: UInt32.Type, endianness: ByteOrder
   )
 
   /// Appends a value's bytes to the span's memory.
   mutating func append(
-    _ value: Int32, as type: Int32.Type, endianness: Endianness
+    _ value: Int32, as type: Int32.Type, endianness: ByteOrder
   )
 
   /// Appends a value's bytes to the span's memory.
   mutating func append(
-    _ value: UInt64, as type: UInt64.Type, endianness: Endianness
+    _ value: UInt64, as type: UInt64.Type, endianness: ByteOrder
   )
 
   /// Appends a value's bytes to the span's memory.
   mutating func append(
-    _ value: Int64, as type: Int64.Type, endianness: Endianness
+    _ value: Int64, as type: Int64.Type, endianness: ByteOrder
   )
 
   /// Appends a value's bytes to the span's memory.
   mutating func append(
-    _ value: UInt, as type: UInt.Type, endianness: Endianness
+    _ value: UInt, as type: UInt.Type, endianness: ByteOrder
   )
 
   /// Appends a value's bytes to the span's memory.
   mutating func append(
-    _ value: Int, as type: Int.Type, endianness: Endianness
+    _ value: Int, as type: Int.Type, endianness: ByteOrder
   )
 
   /// Appends a value's bytes to the span's memory.
   mutating func append(
-    _ value: Float32, as type: Float32.Type, endianness: Endianness
+    _ value: Float32, as type: Float32.Type, endianness: ByteOrder
   )
 
   /// Appends a value's bytes to the span's memory.
   mutating func append(
-    _ value: Float64, as type: Float64.Type, endianness: Endianness
+    _ value: Float64, as type: Float64.Type, endianness: ByteOrder
   )
 
   // available on platforms that support `Float16`
   /// Appends a value's bytes to the span's memory.
   mutating func append(
-    _ value: Float16, as type: Float16.Type, endianness: Endianness
+    _ value: Float16, as type: Float16.Type, endianness: ByteOrder
   )
 
   // available on platforms that support `Float80`
   /// Appends a value's bytes to the span's memory.
   mutating func append(
-    _ value: Float80, as type: Float80.Type, endianness: Endianness
+    _ value: Float80, as type: Float80.Type, endianness: ByteOrder
   )
 
   // available on platforms that support `UInt128`
   /// Appends a value's bytes to the span's memory.
   mutating func append(
-    _ value: UInt128, as type: UInt128.Type, endianness: Endianness
+    _ value: UInt128, as type: UInt128.Type, endianness: ByteOrder
   )
 
   // available on platforms that support `Int128`
   /// Appends a value's bytes to the span's memory.
   mutating func append(
-    _ value: Int128, as type: Int128.Type, endianness: Endianness
+    _ value: Int128, as type: Int128.Type, endianness: ByteOrder
   )
 }
 ```
-> **Note:** the new `append(_:as:endianness:)` functions do not need a defaulted `Endianness` parameter, since the existing `append(_:as:)` effectively fulfills that purpose.
+> **Note:** the new `append(_:as:endianness:)` functions do not need a defaulted `ByteOrder` parameter, since the existing `append(_:as:)` effectively fulfills that purpose.
 
 ```swift
 extension Span {
@@ -485,7 +487,7 @@ Having a series of functions such as `loadInt32(fromByteOffset:endianness:)` and
 
 #### Having sets of `load(as:)` functions with and without the `endianness:` parameter
 
-We could have distinct `load(fromByteOffset:as:)` and `load(fromByteOffset:as:endianness:)` with no defaulted endianness argument. This achieves the same shape as the proposed `Optional<Endianness>` parameter, but it is possible the generated code might be better in one form than the other.
+We could have distinct `load(fromByteOffset:as:)` and `load(fromByteOffset:as:endianness:)` with no defaulted endianness argument. This achieves the same shape as the proposed `Optional<ByteOrder>` parameter, but it is possible the generated code might be better in one form than the other.
 
 #### Waiting for a "fully inhabited" layout constraint
 
@@ -495,7 +497,7 @@ The need for the functionality in this proposal is urgent and can be achieved wi
 
 These are not sufficient constraints, since they do not mandate that their conformers must be fully inhabited. This approach would also require extremely defensive implementations to account for the existence of conformers from outside of the standard library. It would be possible to make the additions generic over a new protocol, which would have to be public. Two new issues arise from creating a new protocol: backdeployment and the possibility of unsafety due to future defective conformers from outside the standard library. A [layout constraint](#constraint) would achieve a similar outcome while being less risky.
 
-#### Omitting the `Endianness` parameters
+#### Omitting the `ByteOrder` parameters
 
 The standard library's `FixedWidthInteger` protocol includes computed properties `var .bigEndian: Self` and `var .littleEndian: Self`. These could be used to modify the arguments of `storeBytes()`, or to modify the return values from `load()`. Unfortunately these properties are not clear, because they return `Self`. This proposal applies the consideration of endianness to the operation it belongs to: serialization.
 
