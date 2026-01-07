@@ -502,3 +502,4 @@ The standard library's `FixedWidthInteger` protocol includes computed properties
 ## Acknowledgments
 
 Thanks to Karoy Lorentey and Nate Cook for discussions of this design space.
+Enums to represent the byte order have previously been pitched by Michael Ilseman ([Unicode Processing APIs](https://forums.swift.org/t/69294)) and by (YOCKOW)[https://gist.github.com/YOCKOW] ((ByteOrder type)[https://forums.swift.org/t/74027)]
