@@ -504,6 +504,10 @@ We could have distinct `load(fromByteOffset:as:)` and `load(fromByteOffset:as:_:
 
 The standard library's `FixedWidthInteger` protocol includes computed properties `var .bigEndian: Self` and `var .littleEndian: Self`. These could be used to modify the arguments of `storeBytes()`, or to modify the return values from `load()`. Unfortunately these properties are not clear, because they return `Self`. This proposal applies the consideration of _ byteOrder: to the operation where it belongs: serialization.
 
+#### Having `load()` functions default to aligned operations
+
+`UnsafeRawPointer`'s original `load()` function requires correct alignment, and the less restrictive  `loadUnaligned()` was added later. We have long considered this unfortunate, and this proposal seeks to improve on the status quo by making our new safe `load()` functions perform unaligned operations.
+
 ## Acknowledgments
 
 Thanks to Karoy Lorentey and Nate Cook for taking the time to discuss this topic.
