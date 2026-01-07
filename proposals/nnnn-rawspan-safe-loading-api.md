@@ -99,10 +99,12 @@ The conversions from `RawSpan` to `Span` only support well-aligned views with th
 ```swift
 @frozen
 public enum ByteOrder: Equatable, Hashable, Sendable {
-  /// Bytes are ordered with the most significant bits at the lowest memory address
+  /// Bytes are ordered with the most significant bits
+  /// starting at the lowest memory address
   case bigEndian
   
-  /// Bytes are ordered with the least significant bits at the lowest memory address
+  /// Bytes are ordered with the least significant bits
+  /// starting at the lowest memory address
   case littleEndian
 
   /// The native byte order of the runtime target.
@@ -294,7 +296,8 @@ extension MutableRawSpan {
 extension OutputRawSpan {
   /// Appends a value's bytes to the span's memory.
   ///
-  /// There must be at least `MemoryLayout<UInt16>.size` bytes available in the span.
+  /// There must be at least `MemoryLayout<UInt16>.size` bytes available
+  /// in the span.
   ///
   /// - Parameters:
   ///   - value: The value to store as raw bytes.
