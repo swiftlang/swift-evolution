@@ -70,31 +70,6 @@ make use of LLVM's tools and construct the proper command line arguments to the
 
 The proposted command line changes are as follows:
 
-### Consolidate coverage option to use same argument "style"
-
-Prior to this feature, there are 2 coverage options
-
-```
-  --show-codecov-path, --show-code-coverage-path, --show-coverage-path
-                          Print the path of the exported code coverage JSON
-  --enable-code-coverage/--disable-code-coverage
-                          Enable code coverage. (default:
-                          --disable-code-coverage)
-```
-
-There are 3 ways to show the coverage path.  This proposal recommends to modify all
-coverage command line option to be a single, more useful option
-
-```
-  --show-coverage-path
-                          Print the path of the exported code coverage JSON
-  --enable-coverage/--disable-coverage
-                          Enable code coverage. (default:
-                          --disable-coverage)
-```
-
-This requires gracefully phasing out the previous option in favour of the new one.
-
 ### Format Selection
 
 The `swift test` command line will have an option named `--coverage-format`,
@@ -114,45 +89,47 @@ The command line option will be similar to:
 
 ### Coverage Report configuration
 
-`llvm-cov show` has several report configurability options. In order to
-prevent a "command line arguments" explosion to `swift test`, the configuration
-options will be read from a response file.  The optional response file will be
-located in `<repo>/.swiftpm/configuration/coverage.html.report.args.txt`, which
-is the same location used by other SwiftPM features, such as registration and
-mirros configuration files.  The response file will be supported.
+`llvm-cov show` has several report configurability options. In order to allow
+for HTML coverage report customization, and to prevent a "command linearguments"
+explosion to `swift test`, a `-Xcov` command line option will be added.  These
+argument will be passed directly to the underlying `llvm-cov` executable in the
+order they appear.
 
-The user can include `--format=text`, or a variation thereof, in the response
-file. In order to ensure SwiftPM will always generate an HTML report, SwiftPM
-will add `--format=html` after the response file argument to ensure `llvm-cov`
-will generate an HTML report.
+Since multiple coverage report can be specified in a single `swift test` invocation,
+we must provide a way to ensure which argument is passed to one format, and not the other.
 
+Take this example
 
-SwiftPM will not perform any validation on the response file contents, except
-to determine the output location.
+```
+swift test --enable-coverage --coverage-format html --coverage-format json -Xcov --title -Xcov "My title"
+```
+
+The `-Xcov` arguments are ony supported when generating the HTML report.  The value of `-Xcov` will have the following syntax
+
+```
+-Xcov [<coverage-format>=]<value>
+```
+
+Here are some examples:
+
+- `-Xcov html=--title`: argument `--title` is only sent to the HTML coverage report generation
+- `-Xcov json=myarg`: argument `myarg` is only sent to the JSON coverage report
+- `-Xcov commonArg`: the argument `commonArg` is sent to all coverage format reports.
+- `-Xcov notASupportedFormat=value`: the argument `notASupportedFormat=value` is sent to all coverage format reports.
+
 
 ### Coverage report location
 
 By default, the HTML report will be created in location under the scratch path
-(ie: the build directory).  However, this can be overridden using the response file.
+(ie: the build directory).  However, this can be overridden using `-Xcov` argument.
 
 Some CI system, such as [Jenkins](https://www.jenkins.io), only allow archiving
 contents files/directories that belong in a "sandbox" location.  It can be a safe
 assumption that the CI system will have a copy of the repository in the "sandbox"
 location, allowing this system to upload the HTML report.
 
-```
-  --show-coverage-path  [mode]
-                          Print the path of the exported code coverage files.  The mode specifies how to
-                          display the paths of the selected code coverage file formats. (default: text)
-        json              - Display the output in JSON format.
-        text              - Display the output as plain text.
-   --enable-coverage/--disable-coverage
-                          Enable code coverage. (default: --disable-codecov)
-  --coverage-format <format>
-                          Format of the code coverage output. Can be specified multiple times. (values: json, html; default: Produces a JSON coverage report.)
-```
-
 ### Show coverage path
+
 Prior to this proposal `swift test --show-coverage-path` would display a single
 absolute path location to the JSON coverage report.
 
@@ -167,6 +144,15 @@ if `--coverage-format` is specified multiple times, the output must reflect this
 The `--show-coverage-path` command line argument will be modified to be an optional
 with a default value.  The supported values are `json` or `text`, with the default
 being `text` to preverse existing behaviour.
+
+The help test of the `--show-coverage-path` default as flage optional is:
+```
+  --show-coverage-path  [<mode>]
+                          Print the path of the exported code coverage files.  The mode specifies how to
+                          display the paths of the selected code coverage file formats. (default: text)
+        json              - Display the output in JSON format.
+        text              - Display the output as plain text.
+```
 
 A value of `json` will output a JSON object with the key representing the format,
 and the value representing the output location of said format.
@@ -201,6 +187,50 @@ Build of product 'swift-test' complete! (0.40s)
 }
 ```
 
+### Consolidate coverage option to use same argument "style"
+
+Prior to this feature, there are 2 coverage options
+
+```
+  --show-codecov-path, --show-code-coverage-path, --show-coverage-path
+                          Print the path of the exported code coverage JSON
+  --enable-code-coverage/--disable-code-coverage
+                          Enable code coverage. (default:
+                          --disable-code-coverage)
+```
+
+There are 3 ways to show the coverage path.  This proposal recommends to modify all
+coverage command line option to be a single, more useful option
+
+```
+  --show-coverage-path  [<mode>]
+                          Print the path of the exported code coverage files.  The mode specifies how to
+                          display the paths of the selected code coverage file formats. (default: text)
+        json              - Display the output in JSON format.
+        text              - Display the output as plain text.
+  --enable-coverage/--disable-coverage
+                          Enable code coverage. (default: --disable-coverage)
+```
+
+This requires gracefully phasing out the previous option in favour of the new one.
+
+### Coverage command line options
+
+TODO: update this command line options.
+```
+COVERAGE OPTIONS:
+  --show-coverage-path  [<mode>]
+                          Print the path of the exported code coverage files.  The mode specifies how to
+                          display the paths of the selected code coverage file formats. (default: text)
+        json              - Display the output in JSON format.
+        text              - Display the output as plain text.
+  --enable-coverage/--disable-coverage
+                          Enable code coverage. (default: --disable-coverage)
+  --coverage-format <format>
+                          Format of the code coverage output. Can be specified multiple times. (values: json, html; default: Produces a JSON coverage report.)
+  -Xcov <Xcov>            Pass flag through to the underlying coverage report tool.  Syntax is `[<format>=]<value>`
+```
+
 ## Security
 
 Since SwiftPM will use `llvm-cov show`, there may be security implications from
@@ -216,7 +246,7 @@ No impact is expected.
 ## Alternatives considered
 
 
-### Using `-Xcov`-style argument
+<!-- ### Using `-Xcov`-style argument
 
 In addition to the response file, the coverage report generation can support
 a command line argument similar to `-Xlinker`, `-Xcc` and others, which will
@@ -239,7 +269,7 @@ As a result, it was decided to only support a response file, where said response
 file is in a given location relative to the repository root.
 
 Support for `-Xcov` (or similar) is to be made in a subsequent proposal.
-
+ -->
 ### `--show-coverage-path` alternative
 
 Instead of having a `--show-coverage-path` as a tri-state, we could preserve
