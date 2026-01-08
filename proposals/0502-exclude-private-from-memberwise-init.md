@@ -6,7 +6,7 @@
 * Status: **Active Review (January 8–22, 2026)**
 * Implementation: [swiftlang/swift#84514](https://github.com/swiftlang/swift/pull/84514)
 * Experimental Feature Flag: `ExcludePrivateFromMemberwiseInit`
-* Review: ([pitch](https://forums.swift.org/t/pitch-exclude-private-initialized-properties-from-memberwise-initializer/83348))
+* Review: ([pitch](https://forums.swift.org/t/pitch-exclude-private-initialized-properties-from-memberwise-initializer/83348)) ([review](https://forums.swift.org/t/se-0502-exclude-private-initialized-properties-from-memberwise-initializer/84022))
 
 ## Introduction
 
