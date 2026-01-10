@@ -6,7 +6,7 @@
 * Status: **Active Review (January 9-19, 2026)**
 * Bug: [rdar://138921461](rdar://138921461)
 * Implementation: [swiftlang/swift-testing#1319](https://github.com/swiftlang/swift-testing/pull/1319)
-* Review: ([pitch](https://forums.swift.org/t/pitch-conditionally-saving-attachments-aka-attachment-lifetimes/82541))
+* Review: ([pitch](https://forums.swift.org/t/pitch-conditionally-saving-attachments-aka-attachment-lifetimes/82541)) ([review](https://forums.swift.org/t/st-0018-conditionally-saving-attachments/84051))
 
 ## Introduction
 
