@@ -127,6 +127,7 @@ However if a child task (or entire task group) were to be cancelled explicitly, 
 
 ```swift
 await withTaskCancellationShield {
+  async let a = compute() // when exiting scope, un-awaited async lets will still be cancelled and awaited
   await withDiscardingTaskGroup { group in 
     group.addTask { ... }
     group.cancelAll() // cancels all tasks within the group, as expected
