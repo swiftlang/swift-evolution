@@ -44,7 +44,7 @@ extension SomeSystem {
 }
 ```
 
-In the above example, while we may have implemented the resource clean-up correctly, we may be unaware of the system only performing actions while the task it is executing in is not cancelled. In order to ensure certain actions execute regardless if called from a cancelled or not cancelled task, we're going to have to "shield" the cleanup code from observing the cancellation status of the calling task.
+In the above example, while the resource clean-up may be implemented correctly, the caller could be unaware that such code may short-circuit if the current task is cancelled. In order for the caller to influence this behavior, it must somehow be able to "shield" the cleanup code from observing the current task's cancellation state.
 
 Today, developers work around this problem by creating unstructured tasks, which creates unnecessary scheduling and may have a performance and even correctness impact on such cleanup code:
 
@@ -52,18 +52,17 @@ Today, developers work around this problem by creating unstructured tasks, which
 // WORKAROUND, before cancellation shields were introduced
 func example() async {
   let resource = makeResource()
-  
-  assert(Task.isCancelled())
+
   await Task {
-    assert(!Task.isCancelled())
-    await resource.cleanup() 
-  }.value // break out of task tree, in order to ignore cancellation
+    assert(!Task.isCancelled)
+    await resource.cleanup()
+  }.value // break out of task tree, in order to prevent cleanup from observing cancellation
 }
 ```
 
 This is sub-optimal for a few reasons:
 
-- We are introducing an unstructured task which needs to be scheduled to execute, and therefore delaying the timing when a cleanup may be executed,
+- We are introducing an unstructured task which needs to be scheduled to execute, and therefore delaying the timing when a cleanup may be executed.
 - It is not possible to use this pattern in a synchronous function, as we need to await the unstructured task.
 
 Task cancellation shields directly resolve these problems.
@@ -100,7 +99,7 @@ assert(Task.isCancelled) // 🛑
 
 Cancellation shielding also prevents the automatic propagation of the cancellation through the task tree. 
 
-Specifically, if a structured child task is created within a task cancellation shield block and the outer task is canceled, the outer task will be canceled. However, we will not observe this flag change until we exit the cancellation shield. At the same time, the child tasks which are running within the task cancellation shield will not become canceled automatically, as would be otherwise the case:
+Specifically, if a structured child task is created within a task cancellation shield block and the outer task is cancelled, the outer task will be cancelled. However, we will not observe this flag change until we exit the cancellation shield. At the same time, the child tasks which are running within the task cancellation shield will not become cancelled automatically, as would be otherwise the case:
 
 ```swift
 Task {
@@ -135,7 +134,7 @@ await withTaskCancellationShield {
 }
 ```
 
-It is meaningless to try to shield the `addTask` operation of a task group as it does not enclose the lifetime or any part of the child tasks execution. Instead you should shield the child task within the `addTask` function if shielding a specific task is your goal:
+It is meaningless to try to shield the `addTask` operation of a task group as it does not enclose the lifetime or any part of the child task's execution. Instead you should shield the child task within the `addTask` function if shielding a specific task is your goal:
 
 ```swift
 await withDiscardingTaskGroup { group in 
