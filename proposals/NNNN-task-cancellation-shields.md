@@ -88,11 +88,11 @@ Shields also prevent the automatic propagation of cancellation into child tasks,
 They do not prevent a task from being cancelled, however, they affect the observation of the cancelled status while executing in a "shielded" piece of code. This is best explained with an example:
 
 ```swift 
-assert(Task.isCancelled) // 🛑
+print(Task.isCancelled) // true
 withTaskCancellationShield { 
-  assert(Task.isCancelled == false) // 🟢
+  print(Task.isCancelled) // false
 }
-assert(Task.isCancelled) // 🛑
+print(Task.isCancelled) // true
 ```
 
 ### Cancellation Shields and Child Tasks
@@ -201,13 +201,13 @@ The instance method `task.isCancelled` queried from the outside of the task will
 
 The static method `Task.isCancelled` always reports the cancelled status of "this context" and thus respects the structure of the program with regards to nesting in `withTaskCancellationShield { ... }` blocks. This static method was, and remains, the primary way tasks interact with cancellation.
 
-The static method was, and remains, the primary way tasks interact with cancellation.
-
 We believe these semantics are the right, understandable, and consistent choice of behavior:
 
-- **instance methods** on `Task` (and `UnsafeCurrentTask` discussed next) observe the "actual" cancellation state, since they may be queried from any context.
 - **static methods** observe the cancellation status "in this context", and thus, respect task cancellation shields,
   - This includes the: `Task.isCancelled`, `Task.checkCancellation` and `withTaskCancellationHandler` methods.
+- **instance methods** on `Task` (and `UnsafeCurrentTask` discussed next) observe the actual cancellation state, ignoring any task cancellation shields because they are not called "in a scope" but just called on a specific task handle.
+  - These methods are called rarely, and are only accessible on the "current" task through APIs on the `UnsafeCurrentTask`.
+
 
 ### Debugging and Observing Task Cancellation Shields
 
@@ -235,7 +235,7 @@ extension UnsafeCurrentTask {
 }
 ```
 
-Here is an example, how `UnsafeCurrentTask`'s  `isCancelled` as well as the new `hasActiveTaskCancellationShield` behave inside inside of a cancelled, but shielded task. The instance method `UnsafeCurrentTask.isCancelled` behaves the same way as the `Task.isCancelled` method, which was discussed above. However, using the unsafe task handle, we are able to react to task cancellation shields if necessary:
+Here is an example, how `UnsafeCurrentTask`'s  `isCancelled` as well as the new `hasActiveTaskCancellationShield` behave inside inside of a cancelled, but shielded task. The instance method `UnsafeCurrentTask/isCancelled` behaves the same way as the `Task/isCancelled` method, which was discussed above. However, using the unsafe task handle, we are able to react to task cancellation shields if necessary:
 
 ```swift
 let task = Task { 
