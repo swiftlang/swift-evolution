@@ -1,9 +1,9 @@
 # Conditionally saving attachments
 
-* Proposal: [ST-NNNN](NNNN-conditionally-saving-attachments.md)
+* Proposal: [ST-0018](0018-conditionally-saving-attachments.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Brian Croom](https://github.com/briancroom)
+* Status: **Active Review (January 9-19, 2026)**
 * Bug: [rdar://138921461](rdar://138921461)
 * Implementation: [swiftlang/swift-testing#1319](https://github.com/swiftlang/swift-testing/pull/1319)
 * Review: ([pitch](https://forums.swift.org/t/pitch-conditionally-saving-attachments-aka-attachment-lifetimes/82541))
