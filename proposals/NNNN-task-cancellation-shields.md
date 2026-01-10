@@ -225,7 +225,7 @@ While this code pattern is not really often encountered in real-world code, it c
 
 In order to aid understanding and debuggability of cancellation in such systems, we also introduce a new property to query for a cancellation shield being active in a specific task.
 
-This API is not intended to be used in "normal" code, and should only be used during debugging issues with cancellation, to check if a shield is active in a given task. This API are _only_ available on `UnsafeCurrentTask`, in order to dissuade from their use in normal code.
+This API is not intended to be used in "normal" code, and should only be used during debugging issues with cancellation, to check if a shield is active in a given task. This API is _only_ available on `UnsafeCurrentTask`, in order to dissuade from its use in normal code.
 
 The `hasActiveTaskCancellationShield` property, which can be used to determine if a cancellation shield is active. Primarily this can be used for debugging "why isn't my task getting cancelled?" kinds of issues.
 
