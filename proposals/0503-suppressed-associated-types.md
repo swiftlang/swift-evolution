@@ -1,9 +1,9 @@
 # Suppressed Default Conformances on Associated Types With Defaults
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0503](0503-suppressed-associated-types.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (Jan 11-25, 2026)**
 * Implementation: on `main` using `-enable-experimental-feature SuppressedAssociatedTypesWithDefaults`
 * Previous Proposals: [SE-427: Noncopyable Generics](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md), [SE-446: Nonescapable Types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md)
 * Review: TBD
