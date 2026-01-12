@@ -271,7 +271,7 @@ This can cause previously working code to no longer compile.
 
 ## Future directions
 
-### Borrow returns
+### Borrowing returns
 
 It is also useful for functions to be able to return borrowed values. As with borrowing accessors, this requires the value to have a guaranteed lifetime. It is particularly useful to extend the borrow semantics:
 ```
@@ -285,6 +285,35 @@ struct S<Value> {
   }
 }
 ```
+
+### Borrowing via unsafe pointers
+
+Low-level data structures are often built using unsafe pointers.
+Unsafe pointers by their nature prevent the compiler from accurately diagnosing
+lifetimes, which means that it must generally reject code like the following:
+```
+var _storage: UnsafeMutableBufferPointer<Element>
+
+var first: Element {
+  borrow {
+    // ERROR: Cannot prove value will live long enough to be safely returned
+    return _storage.baseAddress.unsafelyUnwrapped.pointee
+  }
+}
+```
+
+Supporting cases like this will require some way to annotate the return expression.
+For example, we might provide a function-like marker:
+```
+var first: Element {
+  borrow {
+    return unsafeResultDependsOnSelf(_storage.baseAddress.unsafelyUnwrapped.pointee)
+  }
+}
+```
+
+This would assert that the result of the expression is valid at least
+until the next mutating operation on `self`.
 
 ## Alternatives considered
 
