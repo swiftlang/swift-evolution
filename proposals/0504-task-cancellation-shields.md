@@ -1,12 +1,11 @@
 # Task Cancellation Shields
 
-* Proposal: [SE-NNNN](NNNN-task-cancellation-shields.md)
-* Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
-* Review Manager: TODO
-* Status: TODO
+* Proposal: [SE-0504](0504-task-cancellation-shields.md)
+* Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (January 12...26, 2026)**
 * Implementation: [PR #85637](https://github.com/swiftlang/swift/pull/85637)
-* Review: 
-  * TODO
+* Review: ([pitch](https://forums.swift.org/t/pitch-task-cancellation-shields/83379))
 
 ## Introduction
 
