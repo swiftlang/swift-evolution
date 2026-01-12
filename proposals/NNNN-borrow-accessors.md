@@ -292,12 +292,13 @@ Low-level data structures are often built using unsafe pointers.
 Unsafe pointers by their nature prevent the compiler from accurately diagnosing
 lifetimes, which means that it must generally reject code like the following:
 ```
-var _storage: UnsafeMutableBufferPointer<Element>
+var _storage: UnsafePointer<Element>
 
 var first: Element {
   borrow {
-    // ERROR: Cannot prove value will live long enough to be safely returned
-    return _storage.baseAddress.unsafelyUnwrapped.pointee
+    // ERROR: borrow accessors can only return literals, stored
+    // properties, or computed properties that have borrow accessors
+    return _storage.pointee
   }
 }
 ```
@@ -307,7 +308,7 @@ For example, we might provide a function-like marker:
 ```
 var first: Element {
   borrow {
-    return unsafeResultDependsOnSelf(_storage.baseAddress.unsafelyUnwrapped.pointee)
+    return unsafeResultDependsOnSelf(_storage.pointee)
   }
 }
 ```
