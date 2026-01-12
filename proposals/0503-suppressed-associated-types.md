@@ -3,10 +3,10 @@
 * Proposal: [SE-0503](0503-suppressed-associated-types.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (Jan 11-25, 2026)**
+* Status: **Active Review (January 11-25, 2026)**
 * Implementation: on `main` using `-enable-experimental-feature SuppressedAssociatedTypesWithDefaults`
-* Previous Proposals: [SE-427: Noncopyable Generics](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md), [SE-446: Nonescapable Types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md)
-* Review: TBD
+* Previous Proposals: [SE-0427: Noncopyable Generics](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md), [SE-0446: Nonescapable Types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md)
+* Review: ([pitch](https://forums.swift.org/t/pitch-suppressed-associated-types-with-defaults/83663)) ([review](https://forums.swift.org/t/se-0503-suppressed-default-conformances-on-associated-types-with-defaults/84070))
 
 **Table of Contents**
 - [Suppressed Default Conformances on Associated Types With Defaults](#suppressed-default-conformances-on-associated-types-with-defaults)
