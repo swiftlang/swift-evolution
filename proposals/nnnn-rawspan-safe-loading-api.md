@@ -5,35 +5,64 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Previous Proposal: follows [SE-0447][SE-0447]
-* Previous Revision: *none*
-* Review: ([pitch](https://forums.swift.org/...))
+* Previous Revision: [pitch 1](https://github.com/glessard/swift-evolution/blob/fdd9b855befea7071c43b774330a02b9cc173174/proposals/nnnn-rawspan-safe-loading-api.md)
+* Review: ([pitch 1](https://forums.swift.org/t/83966)), ([pitch 2](https://forums.swift.org/...))
 
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
 [swift-binary-parsing]: https://github.com/apple/swift-binary-parsing
 
 ## Introduction
 
-We propose the introduction of a set of safe API to load values of numeric types from the memory represented by `RawSpan` instances, as well as safe conversions from `RawSpan` to `Span` for the same numeric types.
+We propose the introduction of a set of safe API to load values of certain safe types from the memory represented by `RawSpan` instances, as well as safe conversions from `RawSpan` to `Span` for the same types.
 
 ## Motivation
 
-In [SE-0447][SE-0447], we introduced `RawSpan` along with some unsafe functions to load values of arbitrary types. While it is safe to load any of the native integer types with those functions, the `unsafe` annotation introduces an element of doubt for users of the standard library. Furthermore, since byte ordering is dependent on context, it is desirable to control the byte order of a loading operation. This proposal adds the ability to safely load integer values with ergonomic byte order control, without the doubt introduced by unsafe functions.
+In [SE-0447][SE-0447], we introduced `RawSpan` along with some unsafe functions to load values of arbitrary types. While it is safe to load any of the native integer types with those functions, the `unsafe` annotation introduces an element of doubt for users of the standard library. This proposal aims to provide clarity for safe uses of byte-loading operations.
 
 ## Proposed solution
 
-##### `RawSpan`
+##### `FullyInhabited`
 
-`RawSpan` will gain a series of concretely typed `load(as:)` functions to obtain numeric values from the underlying memory, with no alignment requirement. These `load(as:)` functions can be safe because they return values from fully-inhabited types, meaning that these types have a valid value for every bit pattern of their underlying bytes.
+We propose a new layout constraint, `FullyInhabited`, to refine `BitwiseCopyable`. A `FullyInhabited` type is a safe type with a valid value for every bit pattern that can fit in its representation.
 
-The `load(as:)` functions will be bounds-checked, being a safe `RawSpan` API. For example,
+By conforming to `FullyInhabited`, a type declares that it has the following characteristics:
+
+- Its stored properties all themselves conform to `FullyInhabited`.
+- It is frozen if its containing module is resilient.
+- There are no semantic constraints on the values of its stored properties.
+
+The standard library's `FixedWidthInteger` and `BinaryFloatingPoint` types will conform to `FullyInhabited`, as well as `Never`.
+
+For example, a type representing two-dimensional Cartesian coordinates, such as `struct Point { var x, y: Int }` could conform to `FullyInhabited`. Its stored properties are `Int`, which is `FullyInhabited`. There are no semantic constraints between the `x` and `y` properties: any combination of `Int` values can represent a valid `Point`.
+
+In contrast, `Range<Int>` could not conform to `FullyInhabited`, even though on the surface it has the same composition as `Point`. There is a semantic constraint between two two stored properties of `Range`: `lowerBound` must be less than or equal to `upperBound`. This makes it unable to conform to `FullyInhabited`.
+
+Other examples of types that cannot conform to `FullyInhabited` are `UnicodeScalar` (some bit patterns are invalid), a hypothetical UTF8-encoded `SmallString` (the sequencing of the constituent bytes matters,) and `UnsafeRawPointer` (it is marked with `@unsafe`.)
+
+In the initial release of `FullyInhabited`, the compiler will not validate conformances to it. Validation will be implemented in a later version of Swift.
+
+##### `RawSpan` and `MutableRawSpan`
+
+`RawSpan` and `MutableRawSpan` will have a new, generic `load(as:)` function that return `FullyInhabited` values read from the underlying memory, with no pointer-alignment restriction. Because the returned values are `FullyInhabited` and the request is bounds-checked, this `load(as:)` function is safe.
 
 ```swift
 extension RawSpan {
-  func load(fromByteOffset: Int = 0, as: UInt8.Type) -> UInt8
+  func load<T: FullyInhabited>(
+    fromByteOffset: Int = 0,
+    as: T.Type = T.self
+  ) -> T
+}
+```
 
-  func load(
-    fromByteOffset: Int = 0, as: UInt16.Type, _ byteOrder: ByteOrder = .native
-  ) -> UInt16
+Additionally, a special version of `load()` will have an additional argument to control the byte order of the value being loaded, for values of types conforming to both `FullyInhabited` and `FixedWidthInteger`:
+
+```swift
+extension RawSpan {
+  func load<T: FullyInhabited & FixedWidthInteger>(
+    fromByteOffset: Int = 0,
+    as: T.Type = T.self,
+    _ byteOrder: ByteOrder
+  ) -> T
 }
 
 @frozen
@@ -44,57 +73,55 @@ public enum ByteOrder: Equatable, Hashable, Sendable {
 }
 ```
 
-The loadable types will be `UInt8`, `Int8`, `UInt16`, `Int16`, `UInt32`, `Int32`, `UInt64`, `Int64`, `UInt`, `Int`, `Float32` (aka `Float`) and `Float64` (aka `Double`). On platforms that support them, loading `Float16`, `Float80`, `UInt128`, and `Int128`  values will also be supported. These are not atomic operations.
+The list of standard library types to conform to `FullyInhabited & FixedWidthInteger` is `UInt8`, `Int8`, `UInt16`, `Int16`, `UInt32`, `Int32`, `UInt64`, `Int64`, `UInt`, `Int`, `UInt128`, and `Int128`.
+
+The `load()` functions are not atomic operations.
 
 The concrete `load(as:)` functions will not have equivalents with unchecked byte offset. If that functionality is needed, the generic `unsafeLoad(fromUncheckedByteOffset:as:)` is already available.
 
-The `load(as:)` functions will also be available for `MutableRawSpan` and `OutputRawSpan`.
-
 ##### `MutableRawSpan` and `OutputRawSpan`
 
-`MutableRawSpan` will gain a series of concretely typed `storeBytes()` functions that accept a byte order parameter, while `OutputRawSpan` will have matching `append()` functions:
+`MutableRawSpan` will gain a `storeBytes()` function that accept a byte order parameter:
 
 ```swift
 extension MutableRawSpan {
-  mutating func storeBytes(
-    of value: UInt16,
+  mutating func storeBytes<T: FullyInhabited & FixedWidthInteger>(
+    of value: T,
     toByteOffset offset: Int = 0,
-    as type: UInt16.Type,
+    as type: T.Type,
     _ byteOrder: ByteOrder
   )
 }
-
+```
+`OutputRawSpan` will have a matching `append()` function:
+```swift
 extension OutputRawSpan {
-  mutating func append(
-    _ value: UInt16,
-    as type: UInt16.Type,
+  mutating func append<T: FullyInhabited & FixedWidthInteger>(
+    _ value: T,
+    as type: T.Type,
     _ byteOrder: ByteOrder
   )
 }
 ```
 
-These functions do not have a default value for their `byteOrder` parameter, as the existing generic `MutableSpan.storeBytes(of:toByteOffset:as:)` and `OutputRawSpan.append(_:as:)` functions use the native byte order, and address this need.
-
-These concrete implementations will support `UInt16`, `Int16`, `UInt32`, `Int32`, `UInt64`, `Int64`, `UInt`, `Int`, `Float32` (aka `Float`) and `Float64` (aka `Double`). On platforms that support them, `Float16`, `Float80`, `UInt128`, and `Int128`  values will also be supported. These are not atomic operations.
-
-The concrete `storeBytes(of:as:)` functions will not have an equivalent with unchecked byte offset. If that functionality is needed, the generic `storeBytes(of:toUncheckedByteOffset:as:)` is already available.
+These functions do not need a default value for their `byteOrder` parameter, as the existing generic `MutableSpan.storeBytes(of:toByteOffset:as:)` and `OutputRawSpan.append(_:as:)` functions use the native byte order.
 
 ##### `Span`
 
-`Span` will gain a series of concrete initializers `init(viewing: RawSpan)` to allow viewing a range of untyped memory as a typed `Span`, when `Span.Element` is a numeric type. These conversions will check for alignment and bounds. For example,
+`Span` will have a new initializer `init(viewing: RawSpan)` to allow viewing a range of untyped memory as a typed `Span`, when `Span.Element` `FullyInhabited`. These conversions will check for alignment and bounds.
 
 ```swift
-extension Span {
+extension Span where Element: FullyInhabited {
   @_lifetime(borrow span)
   init(viewing bytes: borrowing RawSpan) where Element == UInt32
 }
 ```
 
-The supported element types will be `UInt8`, `Int8`, `UInt16`, `Int16`, `UInt32`, `Int32`, `UInt64`, `Int64`, `UInt`, `Int`, `Float32` (aka `Float`) and `Float64` (aka `Double`). On platforms that support them, initializing `Span` instances with `Float16`, `Float80`, `UInt128`, and `Int128` elements will also be implemented.
-
-The conversions from `RawSpan` to `Span` only support well-aligned views with the native byte order. The [swift-binary-parsing][swift-binary-parsing] package provides a more fully-featured `ParserSpan` type.
+The conversions from `RawSpan` to `Span` only support well-aligned views with the native byte order. The [swift-binary-parsing][swift-binary-parsing] package provides a more fully-featured `ParserSpan` type for use cases beyond reinterpreting memory in-place.
 
 ## Detailed design
+
+##### `ByteOrder`
 
 ```swift
 @frozen
@@ -113,88 +140,53 @@ public enum ByteOrder: Equatable, Hashable, Sendable {
 ```
 Question: Would we prefer `ByteOrder` to not be a top-level type?
 
+##### `RawSpan`
+
 ```swift
 extension RawSpan {
   /// Returns a value constructed from the raw memory at the specified offset.
   ///
-  /// - Parameters:
-  ///   - offset: The offset from the beginning of this span, in bytes.
-  ///     `offset` must be nonnegative. The default is zero.
-  ///   - type: The type of the instance to create.
-  /// - Returns: A new value of type `UInt8`, read from `offset`.
-  func load(fromByteOffset: Int = 0, as: UInt8.Type) -> UInt8
-
-  /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Int8.Type) -> Int8
-
-  /// Returns a value constructed from the raw memory at the specified offset.
-  ///
-  /// The range of bytes required to construct an `UInt16` starting at `offset`
-  /// must be completely within the span. `offset` is not required to be aligned
-  /// for `UInt16`.
+  /// The range of bytes required to construct a value of type `T` starting at
+  /// `offset` must be completely within the span.
+  /// `offset` is not required to be aligned for `T`.
   ///
   /// - Parameters:
   ///   - offset: The offset from the beginning of this span, in bytes.
   ///     `offset` must be nonnegative. The default is zero.
   ///   - type: The type of the instance to create.
-  ///   - byteOrder: The order in which the bytes will be decoded from the
-  ///       span, or the native byte order.
-  /// - Returns: A new value of type `UInt16`, read from `offset`.
-  func load(fromByteOffset: Int = 0, as: UInt16.Type, _ byteOrder: ByteOrder = .native) -> UInt16
+  /// - Returns: A new value of type `T`, read from `offset`.
+  func load<T: FullyInhabited>(
+    fromByteOffset offset: Int = 0,
+    as: T.Type = T.self
+  ) -> T
 
   /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Int16.Type, _ byteOrder: ByteOrder = .native) -> Int16
-
-  /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: UInt32.Type, _ byteOrder: ByteOrder = .native) -> UInt32
-
-  /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Int32.Type, _ byteOrder: ByteOrder = .native) -> Int32
-
-  /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: UInt64.Type, _ byteOrder: ByteOrder = .native) -> UInt64
-
-  /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Int64.Type, _ byteOrder: ByteOrder = .native) -> Int64
-
-  /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: UInt.Type, _ byteOrder: ByteOrder = .native) -> UInt
-
-  /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Int.Type, _ byteOrder: ByteOrder = .native) -> Int
-
-
-  /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Float32.Type, _ byteOrder: ByteOrder = .native) -> Float32
-
-  /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Float64.Type, _ byteOrder: ByteOrder = .native) -> Float64
-
-  // available on platforms that support `Float16`
-  /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Float16.Type, _ byteOrder: ByteOrder = .native) -> Float16
-
-  // available on platforms that support `Float80`
-  /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Float80.Type, _ byteOrder: ByteOrder = .native) -> Float80
-
-  // available on platforms that support `UInt128`
-  /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: UInt128.Type, _ byteOrder: ByteOrder = .native) -> UInt128
-
-  // available on platforms that support `Int128`
-  /// Returns a value constructed from the raw memory at the specified offset.
-  func load(fromByteOffset: Int = 0, as: Int128.Type, _ byteOrder: ByteOrder = .native) -> Int128
+  ///
+  /// The range of bytes required to construct a value of type `T` starting at
+  /// `offset` must be completely within the span.
+  /// `offset` is not required to be aligned for `T`.
+  ///
+  /// - Parameters:
+  ///   - offset: The offset from the beginning of this span, in bytes.
+  ///     `offset` must be nonnegative. The default is zero.
+  ///   - type: The type of the instance to create.
+  ///   - byteOrder: The order in which the bytes should be decoded.
+  /// - Returns: A new value of type `T`, read from `offset`.
+  func load<T: FullyInhabited & FixedWidthInteger>(
+    fromByteOffset offset: Int = 0,
+    as: T.Type = T.self,
+    _ byteOrder: ByteOrder
+  ) -> T
 }
 ```
-> **Note:** the `load()` functions will also be available on `MutableRawSpan` and `OutputRawSpan`.
+##### `MutableRawSpan`
 
 ```swift
 extension MutableRawSpan {
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
+  /// Stores a value's bytes to the specified offset into the span's memory.
   ///
-  /// The range of bytes required to store an `UInt16` starting at `offset`
-  /// must be completely within the span.
+  /// The range of bytes required to store a value of `T` starting at
+  /// byte offset `offset` must be completely within the span.
   ///
   /// - Parameters:
   ///   - value: The value to store as raw bytes.
@@ -202,96 +194,50 @@ extension MutableRawSpan {
   ///     writing bytes from the value. The default is zero.
   ///   - type: The type of the instance to create.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
-  mutating func storeBytes(
-    of value: UInt16, toByteOffset offset: Int = 0,
-    as type: UInt16.Type, _ byteOrder: ByteOrder
+  mutating func storeBytes<T: FullyInhabited & FixedWidthInteger>(
+    of value: T,
+    toByteOffset offset: Int = 0,
+    as type: T.Type,
+    _ byteOrder: ByteOrder
   )
 
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
-  mutating func storeBytes(
-    of value: Int16, toByteOffset offset: Int = 0,
-    as type: Int16.Type, _ byteOrder: ByteOrder
-  )
+  /// Returns a value constructed from the raw memory at the specified offset.
+  ///
+  /// The range of bytes required to construct a value of type `T` starting at
+  /// `offset` must be completely within the span.
+  /// `offset` is not required to be aligned for `T`.
+  ///
+  /// - Parameters:
+  ///   - offset: The offset from the beginning of this span, in bytes.
+  ///     `offset` must be nonnegative. The default is zero.
+  ///   - type: The type of the instance to create.
+  /// - Returns: A new value of type `T`, read from `offset`.
+  func load<T: FullyInhabited>(
+    fromByteOffset offset: Int = 0,
+    as: T.Type = T.self
+  ) -> T
 
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
-  mutating func storeBytes(
-    of value: UInt32, toByteOffset offset: Int = 0,
-    as type: UInt32.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
-  mutating func storeBytes(
-    of value: Int32, toByteOffset offset: Int = 0,
-    as type: Int32.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
-  mutating func storeBytes(
-    of value: UInt64, toByteOffset offset: Int = 0,
-    as type: UInt64.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
-  mutating func storeBytes(
-    of value: Int64, toByteOffset offset: Int = 0,
-    as type: Int64.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
-  mutating func storeBytes(
-    of value: UInt, toByteOffset offset: Int = 0,
-    as type: UInt.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
-  mutating func storeBytes(
-    of value: Int, toByteOffset offset: Int = 0,
-    as type: Int.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
-  mutating func storeBytes(
-    of value: Float32, toByteOffset offset: Int = 0,
-    as type: Float32.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
-  mutating func storeBytes(
-    of value: Float64, toByteOffset offset: Int = 0,
-    as type: Float64.Type, _ byteOrder: ByteOrder
-  )
-
-  // available on platforms that support `Float16`
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
-  mutating func storeBytes(
-    of value: Float16, toByteOffset offset: Int = 0,
-    as type: Float16.Type, _ byteOrder: ByteOrder
-  )
-
-  // available on platforms that support `Float80`
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
-  mutating func storeBytes(
-    of value: Float80, toByteOffset offset: Int = 0,
-    as type: Float80.Type, _ byteOrder: ByteOrder
-  )
-
-  // available on platforms that support `UInt128`
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
-  mutating func storeBytes(
-    of value: UInt128, toByteOffset offset: Int = 0,
-    as type: UInt128.Type, _ byteOrder: ByteOrder
-  )
-
-  // available on platforms that support `Int128`
-  /// Stores a value's bytes into the span's memory at the specified byte offset.
-  mutating func storeBytes(
-    of value: Int128, toByteOffset offset: Int = 0,
-    as type: Int128.Type, _ byteOrder: ByteOrder
-  )
+  /// Returns a value constructed from the raw memory at the specified offset.
+  ///
+  /// The range of bytes required to construct a value of type `T` starting at
+  /// `offset` must be completely within the span.
+  /// `offset` is not required to be aligned for `T`.
+  ///
+  /// - Parameters:
+  ///   - offset: The offset from the beginning of this span, in bytes.
+  ///     `offset` must be nonnegative. The default is zero.
+  ///   - type: The type of the instance to create.
+  ///   - byteOrder: The order in which the bytes should be decoded.
+  /// - Returns: A new value of type `T`, read from `offset`.
+  func load<T: FullyInhabited & FixedWidthInteger>(
+    fromByteOffset offset: Int = 0,
+    as: T.Type = T.self,
+    _ byteOrder: ByteOrder
+  ) -> T
 }
 ```
-> **Note:** the new `storeBytes(of:as:_ byteOrder:)` functions do not need a defaulted `ByteOrder` parameter, since the existing `storeBytes(of:as:)` effectively fulfills that purpose.
 
+##### `OutputRawSpan`
 ```swift
 extension OutputRawSpan {
   /// Appends a value's bytes to the span's memory.
@@ -303,164 +249,64 @@ extension OutputRawSpan {
   ///   - value: The value to store as raw bytes.
   ///   - type: The type of the instance to create.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
-  mutating func append(
-    _ value: UInt16, as type: UInt16.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Appends a value's bytes to the span's memory.
-  mutating func append(
-    _ value: Int16, as type: Int16.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Appends a value's bytes to the span's memory.
-  mutating func append(
-    _ value: UInt32, as type: UInt32.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Appends a value's bytes to the span's memory.
-  mutating func append(
-    _ value: Int32, as type: Int32.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Appends a value's bytes to the span's memory.
-  mutating func append(
-    _ value: UInt64, as type: UInt64.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Appends a value's bytes to the span's memory.
-  mutating func append(
-    _ value: Int64, as type: Int64.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Appends a value's bytes to the span's memory.
-  mutating func append(
-    _ value: UInt, as type: UInt.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Appends a value's bytes to the span's memory.
-  mutating func append(
-    _ value: Int, as type: Int.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Appends a value's bytes to the span's memory.
-  mutating func append(
-    _ value: Float32, as type: Float32.Type, _ byteOrder: ByteOrder
-  )
-
-  /// Appends a value's bytes to the span's memory.
-  mutating func append(
-    _ value: Float64, as type: Float64.Type, _ byteOrder: ByteOrder
-  )
-
-  // available on platforms that support `Float16`
-  /// Appends a value's bytes to the span's memory.
-  mutating func append(
-    _ value: Float16, as type: Float16.Type, _ byteOrder: ByteOrder
-  )
-
-  // available on platforms that support `Float80`
-  /// Appends a value's bytes to the span's memory.
-  mutating func append(
-    _ value: Float80, as type: Float80.Type, _ byteOrder: ByteOrder
-  )
-
-  // available on platforms that support `UInt128`
-  /// Appends a value's bytes to the span's memory.
-  mutating func append(
-    _ value: UInt128, as type: UInt128.Type, _ byteOrder: ByteOrder
-  )
-
-  // available on platforms that support `Int128`
-  /// Appends a value's bytes to the span's memory.
-  mutating func append(
-    _ value: Int128, as type: Int128.Type, _ byteOrder: ByteOrder
+  mutating func append<T: FullyInhabited & FixedWidthInteger>(
+    _ value: T,
+    as type: T.Type,
+    _ byteOrder: ByteOrder
   )
 }
 ```
-> **Note:** the new `append(_:as:_ byteOrder:)` functions do not need a defaulted `ByteOrder` parameter, since the existing `append(_:as:)` effectively fulfills that purpose.
 
+##### `Span`
 ```swift
 extension Span {
-  /// View initialized memory as a span of integers.
+  /// View initialized raw memory as a typed span.
   ///
   /// - Parameters:
   ///   - bytes: a buffer to initialized memory.
   @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == UInt8
-
-  /// View initialized memory as a span of integers.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == Int8
-
-  /// View initialized memory as a span of integers.
-  ///
-  /// `bytes` must be correctly aligned for accessing
-  /// an element of type `UInt16`, and its length in bytes
-  /// must be an exact multiple of `UInt16`'s stride.
-  ///
-  /// - Parameters:
-  ///   - bytes: a buffer to initialized memory.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == UInt16
-
-  /// View initialized memory as a span of integers.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == Int16
-
-  /// View initialized memory as a span of integers.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == UInt32
-
-  /// View initialized memory as a span of integers.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == Int32
-
-  /// View initialized memory as a span of integers.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == UInt64
-
-  /// View initialized memory as a span of integers.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == Int64
-
-  /// View initialized memory as a span of integers.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == UInt
-
-  /// View initialized memory as a span of integers.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == Int
-
-  /// View initialized memory as a span of floating-point values.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == Float32
-
-  /// View initialized memory as a span of floating-point values.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == Float64
-
-  // available on platforms that support `Float16`
-  /// View initialized memory as a span of floating-point values.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == Float16
-
-  // available on platforms that support `Float80`
-  /// View initialized memory as a span of floating-point values.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == Float80
-
-  // available on platforms that support `UInt128`
-  /// View initialized memory as a span of integers.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == UInt128
-
-  // available on platforms that support `Int128`
-  /// View initialized memory as a span of integers.
-  @_lifetime(borrow bytes)
-  public init(viewing bytes: borrowing RawSpan) where Element == Int128
+  public init(viewing bytes: borrowing RawSpan) where Element: FullyInhabited
 }
 ```
 > **Note:** we are not proposing mutable versions of these initializers for `MutableSpan`.
+
+##### `FullyInhabited` and conformances in the standard library
+
+A `FullyInhabited` type either has no stored properties, or all its stored properties are values of  `FullyInhabited` types. If the type's module is resilient, i.e. compiled with the option `-enable-library-evolution`, then the type must be declared as frozen (`@frozen`). There must be no semantic constraints for any of the conforming type's stored properties.
+
+```swift
+protocol FullyInhabited: BitwiseCopyable {}
+```
+
+Note that `FullyInhabited` does not disallow internal padding bytes. Padding bytes are ignored when determining the value. Types that do not fully use a byte, such as `Bool`, are disallowed. Undefined behaviour can result when an invalid bit pattern is loaded into such values.
+
+The following conformances will be implemented in the standard library, depending on the platform availability of the base types:
+
+```swift
+extension UInt8:   FullyInhabited {}
+extension Int8:    FullyInhabited {}
+extension UInt16:  FullyInhabited {}
+extension Int16:   FullyInhabited {}
+extension UInt32:  FullyInhabited {}
+extension Int32:   FullyInhabited {}
+extension UInt64:  FullyInhabited {}
+extension Int64:   FullyInhabited {}
+extension UInt128: FullyInhabited {}
+extension Int128:  FullyInhabited {}
+extension UInt:    FullyInhabited {}
+extension Int:     FullyInhabited {}
+
+extension Float16: FullyInhabited {}
+extension Float32: FullyInhabited {} // `Float`
+extension Float64: FullyInhabited {} // `Double`
+extension Float80: FullyInhabited {}
+
+extension Never:   FullyInhabited {}
+
+extension InlineArray: FullyInhabited where Element: FullyInhabited {}
+extension CollectionOfOne: FullyInhabited where Element: FullyInhabited {}
+```
+> Can we make SIMD types conform?
 
 ## Source compatibility
 
@@ -471,45 +317,41 @@ Adding overloads is risky, and it is possible these additions might affect some 
 
 The functions in this proposal will be implemented in such a way as to avoid creating additional ABI.
 
-These functions require the existence of `Span`, so have a minimum deployment target on Darwin-based platforms where the Swift standard library is distributed with the operating system.
+These functions require the existence of `Span`, and have a minimum deployment target on Darwin-based platforms, where the Swift standard library is distributed with the operating system.
 
 ## Implications on adoption
 
 ## Future directions
 
-#### <a name="constraint"></a>A "fully inhabited" layout constraint or marker protocol
+#### Validation for the `FullyInhabited` layout constraint
 
-This document proposes functions to load numeric values only. The salient property they share is that no possible bit pattern loaded into them is invalid. We could try to encode this property in a "fully inhabited" layout constraint, or in a more limited way in a marker protocol. We note that loading an aggregate that contains padding bytes is not inherently unsafe. However, attempting to load a value that has invalid bit patterns is inherently unsafe. Enums generally fall into the second category.
+`FullyInhabited` conformances will undergo additional validation by the compiler at a later time. The only characteristic of a `FullyInhabited` type that cannot be validated by the compiler is the absence of semantic constraints on the values of its stored properties.
 
-#### Loading homogeneous aggregates
+#### Tuples as `FullyInhabited`
 
-Homogeneous aggregates of safely loadable types should also be loadable. For example, an `InlineArray` such as `[5 of Int16]` should be as safe to load as a single `Int16`. This consideration also includes single-value wrappers, such as swift-system's `FileDescriptor`, which wraps a single `Int32` value.
+Tuples composed of `FullyInhabited` types should themselves be `FullyInhabited`.
 
 #### Utilities to examine the alignment of a `RawSpan`
 
-The `Span` initializers require a correctly-aligned `RawSpan`; there should be a safe way to find out.
+The `Span` initializers require a correctly-aligned `RawSpan`; there should be be utilities to identify the offsets that are well-aligned for a given type.
 
 ## Alternatives considered
 
 #### Encoding the name of the type being loaded into the function names
 
-Having a series of functions such as `loadInt32(fromByteOffset:_:)` and `storeBytes(int32:toByteOffset:as:_:)` would be easier on the type checker, by avoiding the problem of overloaded symbols.
+Having a series of concrete functions such as `loadInt32(fromByteOffset:_:)` and `storeBytes(int32:toByteOffset:as:_:)` would be easier on the type checker, by avoiding the problem of overloaded symbols.
 
-#### Waiting for a "fully inhabited" layout constraint
+#### Waiting for a compiler-validated `FullyInhabited` layout constraint
 
-The need for the functionality in this proposal is urgent and can be achieved with standard library additions. The fully-inhabited layout constraint would also require significant compiler work, and we believe that it is not worth waiting for it. It is also unclear whether the layout constraint might is a sound approach.
+The need for the functionality in this proposal is urgent and can be achieved with standard library additions. Validation of the `FullyInhabited` layout constraint will require significant compiler work, and we believe that the API as proposed in this document will provide significant value on its own.
 
 #### Making these additions generic over `FixedWidthInteger & BitwiseCopyable` and `BinaryFloatingPoint & BitwiseCopyable`
 
-These are not sufficient constraints, since they do not mandate that their conformers must be fully inhabited. This approach would also require extremely defensive implementations to account for the existence of conformers from outside of the standard library. It would be possible to make the additions generic over a new protocol, which would have to be public. Two new issues arise from creating a new protocol: backdeployment and the possibility of unsafety due to future defective conformers from outside the standard library. A [layout constraint](#constraint) would achieve a similar outcome while being less risky.
-
-#### Having sets of `load(as:)` functions with and without a `ByteOrder` parameter
-
-We could have distinct `load(fromByteOffset:as:)` and `load(fromByteOffset:as:_:)` with no defaulted byte order argument. This achieves the same shape as the proposed defaulted `ByteOrder` parameter. It is possible the generated code might be better in one form than the other, and that will inform the final proposal.
+These are not sufficient constraints, since they do not mandate that their conformers must be fully inhabited.
 
 #### Omitting the `ByteOrder` parameters
 
-The standard library's `FixedWidthInteger` protocol includes computed properties `var .bigEndian: Self` and `var .littleEndian: Self`. These could be used to modify the arguments of `storeBytes()`, or to modify the return values from `load()`. Unfortunately these properties are not clear, because they return `Self`. This proposal applies the consideration of _ byteOrder: to the operation where it belongs: serialization.
+The standard library's `FixedWidthInteger` protocol includes computed properties `var .bigEndian: Self` and `var .littleEndian: Self`. These could be used to modify the arguments of `storeBytes(_:as:)`, or to modify the return values from `load(as:)`. Unfortunately these properties are not clear, because they return `Self`, conflating byte ordering with otherwise valid values. This proposal applies the consideration of byte ordering to the operation where it belongs: serialization.
 
 #### Having `load()` functions default to aligned operations
 
@@ -518,4 +360,4 @@ The standard library's `FixedWidthInteger` protocol includes computed properties
 ## Acknowledgments
 
 Thanks to Karoy Lorentey and Nate Cook for taking the time to discuss this topic.
-Enums to represent the byte order have previously been pitched by Michael Ilseman ([Unicode Processing APIs](https://forums.swift.org/t/69294)) and by (YOCKOW)[https://gist.github.com/YOCKOW] ((ByteOrder type)[https://forums.swift.org/t/74027)].
+Enums to represent the byte order have previously been pitched by Michael Ilseman ([Unicode Processing APIs](https://forums.swift.org/t/69294)) and by [YOCKOW]([https://gist.github.com/YOCKOW) ([ByteOrder type](https://forums.swift.org/t/74027)).
