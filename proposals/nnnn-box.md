@@ -15,13 +15,16 @@ simple smart pointer type that uniquely owns a value on the heap.
 ## Motivation
 
 Sometimes in Swift it's necessary to manually put something on the heap when it
-normally wouldn't be located there. Types such as `Int`, `InlineArray`, or
-custom struct types are stored on the stack or in registers.
+normally wouldn't be located there. Types such as `InlineArray` or a custom
+struct with lots of fields are stored on the stack or in registers which can
+lead to a code size increase if they're being passed around frequently.
+Indirecting these values through an allocation may be more performant in some
+cases.
 
 A common way of doing something like this today is by using pointers directly:
 
 ```swift
-let ptr = unsafe UnsafeMutablePointer<Int>.allocate(capacity: 1)
+let ptr = unsafe UnsafeMutablePointer<[512 of Int]>.allocate(capacity: 1)
 
 // Make sure to perform cleanup at the end of the scope!
 defer {
@@ -31,10 +34,10 @@ defer {
 
 
 // Must initialize the pointer the first
-unsafe ptr.initialize(to: 123)
+unsafe ptr.initialize(to: [...])
 
-// Now we can access 'pointee' and read/write to our 'Int'
-unsafe ptr.pointee += 321
+// Now we can access 'pointee' and read/write to our '[512 of Int]'
+unsafe ptr.pointee[15] += 123
 
 ...
 
@@ -72,11 +75,11 @@ pointer that uniquely owns some instance on the heap.
 // Storing an inline array on the heap
 var box = Box<[3 of _]>([1, 2, 3])
 
-print(box[]) // [1, 2, 3]
+print(box.value) // [1, 2, 3]
 
-box[].swapAt(0, 2)
+box.value.swapAt(0, 2)
 
-print(box[]) // [3, 2, 1]
+print(box.value) // [3, 2, 1]
 ```
 
 It's smart because it will automatically clean up the heap allocation when the
@@ -96,7 +99,7 @@ struct Foo: ~Copyable {
 func main() {
   let box = Box(Foo())
 
-  box[].bar() // "bar"
+  box.value.bar() // "bar"
 
   print("baz") // "baz"
 
@@ -116,13 +119,16 @@ public struct Box<Value: ~Copyable>: ~Copyable {
 } 
 
 extension Box where Value: ~Copyable {
+  /// Dereferences the box allowing for in-place reads and writes to the stored
+  /// `Value`.
+  public var value: Value {
+    borrow
+    mutate
+  }
+
   /// Consumes the box and returns the instance of `Value` that was within the
   /// box.
   public consuming func consume() -> Value
-
-  /// Dereferences the box allowing for in-place reads and writes to the stored
-  /// `Value`.
-  public subscript() -> Value
 }
 
 extension Box where Value: ~Copyable {
@@ -177,75 +183,28 @@ the `Box` name to manually put something on the heap. While C++ uses
 there is prior art for both potential names. This proposal suggests `Box` as the
 succinct and simple name.
 
-### Use a named property for dereferencing instead of an empty subscript
+### Use an empty subscript for dereferencing instead of a named property
 
 ```swift
 var box = Box<[3 of _]>([1, 2, 3])
-box[].swapAt(0, 2) // [3, 2, 1]
-```
-
-The use of the empty subscript is unprecedented in the standard library or quite
-frankly in Swift in general. We could instead follow in `UnsafePointer`'s
-footsteps with `pointee` or something similar like `value` so that the example
-above becomes:
-
-```swift
-box.pointee.swapAt(0, 2) // [3, 2, 1]
-
-// or
-
 box.value.swapAt(0, 2) // [3, 2, 1]
 ```
 
-We propose the empty subscript because alternatives introduce too much ceremony
-around the box itself. `Box` should simply be just a vehicle with which you can
-manually manage where a value lives versus being this cumbersome wrapper type
-you have to plumb through to access the inner value.
+An earlier version of this proposal suggested using an empty subscript instead
+of a named property to access the underlying value:
 
-Consider uses of `std::unique_ptr`:
-
-```cpp
-class A {
-public:
-  void foo() const {
-    std::println("Foo");
-  }
-};
-
-int main() {
-  auto a = std::make_unique<A>();
-
-  a->foo();
-}
+```swift
+box[].swapAt(0, 2)
 ```
 
-All members of the boxed instance can be referenced through C++'s usual arrow
-operator `->` behaving exactly like some `A*`. C++ is able to do this via their
-operator overloading of `->`.
+The use of the empty subscript is unprecedented in the standard library or quite
+frankly in Swift in general which led us to drop this approach. It is worth
+noting however that one can currently dereference pointers in Swift with an
+indexed subscript:
 
-Taking a look at Rust too:
-
-```rust
-struct A {}
-
-impl A {
-  fn foo() {
-    println!("foo");
-  }
-}
-
-fn main() {
-  let a = Box::new(A {});
-
-  a.foo();
-}
+```swift
+pointer[0].swapAt(0, 2)
 ```
-
-there's no ceremony at all and all members of `A` are immediately accessible
-from the box itself.
-
-Rust achieves this with a special `Deref` trait (or protocol in Swift terms)
-that I'll discuss as a potential future direction.
 
 ### Rename `consume` to `take` or `move`
 
@@ -294,11 +253,65 @@ public protocol Copyable: Clonable {}
 where conforming to `Copyable` allows the compiler to implicitly add copies
 where needed.
 
+We are not suggesting that we make all `Copyable` types inherit from a
+`Clonable` in the future, but simply demonstrating another language's approach
+to how they handle explicit copyability and implicit copyability.
+
 ### Implement something similar to Rust's `Deref` trait
 
-`Deref` is a trait (protocol) in Rust that allows types to access members of
-another unrelated type if it's able to produce a borrow (or a safe pointer) of
-said unrelated type. Here's what `Deref` looks like in Rust:
+While this proposal is suggesting `value` as the named property to access the
+underlying value, there is a potential future direction that could help
+eliminate the need for this entirely. `Box` should simply be just a vehicle
+with which you can manually manage where a value lives versus being this
+cumbersome wrapper type you have to plumb through to access the inner value.
+
+Consider uses of `std::unique_ptr`:
+
+```cpp
+class A {
+public:
+  void foo() const {
+    std::println("Foo");
+  }
+};
+
+int main() {
+  auto a = std::make_unique<A>();
+
+  a->foo();
+}
+```
+
+All members of the boxed instance can be referenced through C++'s usual arrow
+operator `->` behaving exactly like some `A*`. C++ is able to do this via their
+operator overloading of `->`.
+
+Taking a look at Rust too:
+
+```rust
+struct A {}
+
+impl A {
+  fn foo() {
+    println!("foo");
+  }
+}
+
+fn main() {
+  let a = Box::new(A {});
+
+  a.foo();
+}
+```
+
+there's no ceremony at all and all members of `A` are immediately accessible
+from the box itself.
+
+Rust achieves this with a special `Deref` trait (or protocol in Swift terms).
+
+This trait allows types to access members of another unrelated type if it's able
+to produce a borrow (or a safe pointer) of said unrelated type. Here's what
+`Deref` looks like in Rust:
 
 ```rust
 pub trait Deref {
