@@ -262,6 +262,22 @@ necessary and complicated the API without providing any significant
 additional capability.  A derived `Clock` can simply implement the
 `run` and/or `enqueue` methods instead.
 
+### Adding the delayed-enqueuing methods to `Executor` directly
+
+While `SchedulingExecutor` does have default implementations for both
+of the `enqueue` methods, they are really present so that an executor
+implementation only need implement _one_ of the two methods.
+
+Using a separate protocol allows us to also test whether a given
+executor supports scheduling of future jobs; some existing executor
+implementations do not, and in that case code will need to fall back
+to some other strategy.
+
+That being the case, if we were to add these methods to `Executor`, we
+would additionally need to add a `Bool` property to let us test
+whether or not the executor supported scheduling of future work.
+Using a separate protocol seems more idiomatic in Swift.
+
 ## Acknowledgements
 
 Thanks to Cory Benfield, Franz Busch, David Greenaway, Rokhini Prabhu,
