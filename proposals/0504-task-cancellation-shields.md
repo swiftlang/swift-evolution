@@ -76,7 +76,7 @@ public func withTaskCancellationShield<Value, Failure>(
   file: String = #fileID, line: Int = #line
 ) throws(Failure) -> Value
 
-public nonisolated(nonsending) func withTaskCancellationShield<Value, E>(
+public nonisolated(nonsending) func withTaskCancellationShield<Value, Failure>(
   _ operation: nonisolated(nonsending) () async throws(Failure) -> Value,
   file: String = #fileID, line: Int = #line
 ) async throws(Failure) -> T
