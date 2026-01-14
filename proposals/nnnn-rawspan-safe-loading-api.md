@@ -77,7 +77,7 @@ The list of standard library types to conform to `FullyInhabited & FixedWidthInt
 
 The `load()` functions are not atomic operations.
 
-The concrete `load(as:)` functions will not have equivalents with unchecked byte offset. If that functionality is needed, the generic `unsafeLoad(fromUncheckedByteOffset:as:)` is already available.
+The `load(as:)` functions will not have equivalents with unchecked byte offset. If that functionality is needed, the `unsafeLoad(fromUncheckedByteOffset:as:)` is already available.
 
 ##### `MutableRawSpan` and `OutputRawSpan`
 
