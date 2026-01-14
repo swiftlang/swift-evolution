@@ -3,9 +3,9 @@
 * Proposal: [SE-0500](0500-package-manager-templates.md)
 * Authors: [John Bute](https://github.com/johnbute)
 * Review Manager: [Franz Busch](https://github.com/FranzBusch)
-* Status: **Active Review (November 20 - December 4, 2025)**
+* Status: **Accepted**
 * Implementation: [apple/swift-package-manager#04956](https://github.com/swiftlang/swift-package-manager/pull/9211)
-* Review: ([pitch](https://forums.swift.org/t/pitch-improving-package-creation-with-custom-templates-swiftpm-template-initialization/81525) ) ([review](https://forums.swift.org/t/se-0500-improving-package-creation-with-custom-templates/83321))
+* Review: ([pitch](https://forums.swift.org/t/pitch-improving-package-creation-with-custom-templates-swiftpm-template-initialization/81525) ) ([review](https://forums.swift.org/t/se-0500-improving-package-creation-with-custom-templates/83321)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0500-improving-package-creation-with-custom-templates/84129))
 
 ## Introduction
 
