@@ -50,7 +50,7 @@ Functions that are isolated to a global actor will not have completion handlers 
 
 ### Opting out of `@Sendable` completion handlers
 
-If a completion handler does not cross an isolation boundary before it's called, the parameter can be annotated in the header with the `@nonSendable` attribute using `__attribute__((swift_attr(“@nonSendable”)))`. The `@nonSendable` attribute is only for Clang header annotations; it is not meant to be used from Swift code. 
+If a completion handler does not cross an isolation boundary before it's called, the parameter can be annotated in the header with the `@nonSendable` attribute using `__attribute__((swift_attr("@nonSendable")))`. The `@nonSendable` attribute is only for Clang header annotations; it is not meant to be used from Swift code. 
 
 ## Source compatibility
 
