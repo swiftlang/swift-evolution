@@ -3,7 +3,7 @@
 * Proposal: [SE-0505](0505-delayed-enqueuing.md)
 * Authors: [Alastair Houghton](https://github.com/al45tair)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Status: ** Active review (January 15...27, 2026)**
+* Status: **Active review (January 15...27, 2026)**
 * Implementation: On main branch
 * Review: ([first
   pitch](https://forums.swift.org/t/pitch-custom-main-and-global-executors/77247))
