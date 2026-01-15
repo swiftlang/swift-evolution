@@ -9,6 +9,7 @@
   pitch](https://forums.swift.org/t/pitch-custom-main-and-global-executors/77247))
   ([second pitch](https://forums.swift.org/t/pitch-2-custom-main-and-global-executors/78437))
   ([third pitch](https://forums.swift.org/t/pitch-3-custom-main-and-global-executors/80638))
+  ([review](https://forums.swift.org/t/se-0505-delayed-enqueuing-for-executors/84157))
 
 ## Introduction
 
