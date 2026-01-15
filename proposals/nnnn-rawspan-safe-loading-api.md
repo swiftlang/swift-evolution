@@ -6,7 +6,7 @@
 * Status: **Awaiting implementation**
 * Previous Proposal: follows [SE-0447][SE-0447]
 * Previous Revision: [pitch 1](https://github.com/glessard/swift-evolution/blob/fdd9b855befea7071c43b774330a02b9cc173174/proposals/nnnn-rawspan-safe-loading-api.md)
-* Review: ([pitch 1](https://forums.swift.org/t/83966)), ([pitch 2](https://forums.swift.org/...))
+* Review: ([pitch 1](https://forums.swift.org/t/83966)), ([pitch 2](https://forums.swift.org/t/84144))
 
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
 [swift-binary-parsing]: https://github.com/apple/swift-binary-parsing
