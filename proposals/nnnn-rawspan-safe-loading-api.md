@@ -77,7 +77,7 @@ The list of standard library types to conform to `FullyInhabited & FixedWidthInt
 
 The `load()` functions are not atomic operations.
 
-The `load(as:)` functions will not have equivalents with unchecked byte offset. If that functionality is needed, the `unsafeLoad(fromUncheckedByteOffset:as:)` is already available.
+The `load(as:)` functions will not have equivalents with unchecked byte offset. If that functionality is needed, the `unsafeLoad(fromUncheckedByteOffset:as:)`function is already available.
 
 ##### `MutableRawSpan` and `OutputRawSpan`
 
@@ -104,7 +104,7 @@ extension OutputRawSpan {
 }
 ```
 
-These functions do not need a default value for their `byteOrder` parameter, as the existing generic `MutableSpan.storeBytes(of:toByteOffset:as:)` and `OutputRawSpan.append(_:as:)` functions use the native byte order.
+These functions do not need a default value for their `byteOrder` parameter, as the existing `MutableSpan.storeBytes(of:toByteOffset:as:)` and `OutputRawSpan.append(_:as:)` functions use the native byte order.
 
 ##### `Span`
 
