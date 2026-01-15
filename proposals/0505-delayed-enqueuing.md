@@ -1,6 +1,6 @@
 # Delayed Enqueuing for Executors
 
-* Proposal: [SE-0505](0505-scheduling-executor.md)
+* Proposal: [SE-0505](0505-delayed-enqueuing.md)
 * Authors: [Alastair Houghton](https://github.com/al45tair)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
 * Status: ** Active review (January 15...27, 2026)**
