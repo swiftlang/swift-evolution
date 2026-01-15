@@ -3,7 +3,7 @@
 * Proposal: [SE-0501](0501-swiftpm-html-coverage-report.md)
 * Authors: [Sam Khouri](https://github.com/bkhouri)
 * Review Manager: [David Cummings](https://github.com/daveyc123)
-* Status: **Active Review (December 7 - December 22, 2025)**
+* Status: **Active Review (December 7, 2025 - January 30th, 2026)**
 * Implementation: [swiftlang/swift-package-manager#9076](https://github.com/swiftlang/swift-package-manager/pull/9076)
 * Review: 
     * [Pitch](https://forums.swift.org/t/pitch-adding-html-coverage-support/82358)
