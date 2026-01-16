@@ -89,12 +89,12 @@ in chronological order.  Use these standardized link names: `pitch`
 `review` `revision` `acceptance` `rejection`.  If there are multiple
 such threads, spell the ordinal out: `first pitch` `second review` etc.
 
-## Summary of change
+## Summary of changes
 
 Briefly describe what this proposal would change about Swift so that readers
 can decide whether it's relevant to them. **Use no more than 50 words (the
-length of this paragraph).** This text may be shown in proposal lists, so it
-doesn't need to flow into the rest of the document.
+length of this paragraph).** This text should be appropriate for out-of-context
+display in proposal lists; it doesn't need to flow into the next section.
 
 Example (based on SE-0228):
 
