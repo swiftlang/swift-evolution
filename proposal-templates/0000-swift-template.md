@@ -89,11 +89,18 @@ in chronological order.  Use these standardized link names: `pitch`
 `review` `revision` `acceptance` `rejection`.  If there are multiple
 such threads, spell the ordinal out: `first pitch` `second review` etc.
 
-## Introduction
+## Summary of changes
 
-A short description of what the feature is. Try to keep it to a
-single-paragraph "elevator pitch" so the reader understands what
-problem this proposal is addressing.
+Briefly describe what this proposal would change about Swift so that readers
+can decide whether it's relevant to them. **Use no more than 50 words (the
+length of this paragraph).** This text should be appropriate for out-of-context
+display in proposal lists; it doesn't need to flow into the next section.
+
+Example (based on SE-0228):
+
+> Redesigns the `ExpressibleByStringInterpolation` protocol to improve its
+> performance and clarity, and to allow custom string interpolations to use
+> stricter types, multiple arguments, and argument labels. 
 
 ## Motivation
 
@@ -103,6 +110,10 @@ how one can currently get a similar effect and describe its
 drawbacks. If it's completely new functionality that cannot be
 emulated, motivate why this new functionality would help Swift
 developers create better Swift code.
+
+If you need to provide technical background, summarize past work in this area,
+justify the seriousness of the problem, or just generally clear your throat
+before getting into the thick of things, this is usually the place to do it.
 
 ## Proposed solution
 
