@@ -23,23 +23,25 @@ In [SE-0447][SE-0447], we introduced `RawSpan` along with some unsafe functions 
 
 ##### `FullyInhabited`
 
-We propose a new layout constraint, `FullyInhabited`, to refine `BitwiseCopyable`. A `FullyInhabited` type is a safe type with a valid value for every bit pattern that can fit in its representation.
+We propose a new layout constraint, `FullyInhabited`, to refine `BitwiseCopyable`. A `FullyInhabited` type is a safe type with a valid value for every bit pattern that can fit in its stride. This means that a `FullyInhabited` type's size equals its stride, and has no internal padding bytes.
 
 By conforming to `FullyInhabited`, a type declares that it has the following characteristics:
 
-- Its stored properties all themselves conform to `FullyInhabited`.
+- It has one or more stored properties.
+- The types of its stored properties all themselves conform to `FullyInhabited`.
+- Its stored properties are stored contiguously in memory, with no padding.
 - It is frozen if its containing module is resilient.
 - There are no semantic constraints on the values of its stored properties.
 
-The standard library's `FixedWidthInteger` and `BinaryFloatingPoint` types will conform to `FullyInhabited`, as well as `Never`.
+The standard library's `FixedWidthInteger` and `BinaryFloatingPoint` types will conform to `FullyInhabited`.
 
 For example, a type representing two-dimensional Cartesian coordinates, such as `struct Point { var x, y: Int }` could conform to `FullyInhabited`. Its stored properties are `Int`, which is `FullyInhabited`. There are no semantic constraints between the `x` and `y` properties: any combination of `Int` values can represent a valid `Point`.
 
 In contrast, `Range<Int>` could not conform to `FullyInhabited`, even though on the surface it has the same composition as `Point`. There is a semantic constraint between two two stored properties of `Range`: `lowerBound` must be less than or equal to `upperBound`. This makes it unable to conform to `FullyInhabited`.
 
-Other examples of types that cannot conform to `FullyInhabited` are `UnicodeScalar` (some bit patterns are invalid), a hypothetical UTF8-encoded `SmallString` (the sequencing of the constituent bytes matters,) and `UnsafeRawPointer` (it is marked with `@unsafe`.)
+Other examples of types that cannot conform to `FullyInhabited` are `UnicodeScalar` (some bit patterns are invalid,) a hypothetical UTF8-encoded `SmallString` (the sequencing of the constituent bytes matters for validity,) and `UnsafeRawPointer` (it is marked with `@unsafe`.) `UnsafeRawPointer` is also an example of a type where semantic validity is unknown until runtime, since the runtime environment determines the actual range of valid values.
 
-In the initial release of `FullyInhabited`, the compiler will not validate conformances to it. Validation will be implemented in a later version of Swift.
+In the initial release of `FullyInhabited`, the compiler will not validate conformances to it. Validation of `FullyInhabited`s non-semantic requirements will be implemented in a later version of Swift.
 
 ##### `RawSpan` and `MutableRawSpan`
 
@@ -81,7 +83,7 @@ The `load(as:)` functions will not have equivalents with unchecked byte offset. 
 
 ##### `MutableRawSpan` and `OutputRawSpan`
 
-`MutableRawSpan` will gain a `storeBytes()` function that accept a byte order parameter:
+`MutableRawSpan` will gain a `storeBytes()` function that accepts a byte order parameter:
 
 ```swift
 extension MutableRawSpan {
@@ -106,14 +108,19 @@ extension OutputRawSpan {
 
 These functions do not need a default value for their `byteOrder` parameter, as the existing `MutableSpan.storeBytes(of:toByteOffset:as:)` and `OutputRawSpan.append(_:as:)` functions use the native byte order.
 
-##### `Span`
+##### Loading and storing in-memory types
+
+The memory layout of many of the types eligible for `FullyInhabited` is not guaranteed to be stable across compiler and library versions. This is not an issue for the use case envisioned for these API, where data is sent among running processes, or stored for later use in the same process. For more elaborate needs such as serializing for network communications or file system storage, the API propesd here can only be considered as a building block.
+
+##### `Span` and `MutableSpan`
 
 `Span` will have a new initializer `init(viewing: RawSpan)` to allow viewing a range of untyped memory as a typed `Span`, when `Span.Element` `FullyInhabited`. These conversions will check for alignment and bounds.
 
 ```swift
 extension Span where Element: FullyInhabited {
-  @_lifetime(borrow span)
-  init(viewing bytes: borrowing RawSpan) where Element == UInt32
+  @_lifetime(borrow bytes)
+  init(viewing bytes: borrowing RawSpan)
+}
 }
 ```
 
@@ -272,13 +279,17 @@ extension Span {
 
 ##### `FullyInhabited` and conformances in the standard library
 
-A `FullyInhabited` type either has no stored properties, or all its stored properties are values of  `FullyInhabited` types. If the type's module is resilient, i.e. compiled with the option `-enable-library-evolution`, then the type must be declared as frozen (`@frozen`). There must be no semantic constraints for any of the conforming type's stored properties.
+A `FullyInhabited` type has at least one stored property, and all its stored properties are values of  `FullyInhabited` types. Types that do not fully use a byte, such as `Bool`, are disallowed. Undefined behaviour can result when an invalid bit pattern is loaded into such values.
+
+The memory representation of a `FullyInhabited` type must include no padding. For example, `struct A { var v: [3 of Int8]; var n: Int64 }` has two `FullyInhabited` stored properties, with five bytes of padding.<!-- `MemoryLayout<A>.stride - (MemoryLayout<[3 of Int8]>.stride + MemoryLayout<Int64>.stride)` equals 5 -->
+
+If a `FullyInhabited` type's module is resilient, i.e. compiled with the option `-enable-library-evolution`, a `FullyInhabited` type must be declared as frozen (`@frozen`).
+
+There must be no semantic constraints for any of a `FullyInhabited` type's stored properties.
 
 ```swift
 protocol FullyInhabited: BitwiseCopyable {}
 ```
-
-Note that `FullyInhabited` does not disallow internal padding bytes. Padding bytes are ignored when determining the value. Types that do not fully use a byte, such as `Bool`, are disallowed. Undefined behaviour can result when an invalid bit pattern is loaded into such values.
 
 The following conformances will be implemented in the standard library, depending on the platform availability of the base types:
 
@@ -301,7 +312,7 @@ extension Float32: FullyInhabited {} // `Float`
 extension Float64: FullyInhabited {} // `Double`
 extension Float80: FullyInhabited {}
 
-extension Never:   FullyInhabited {}
+extension Duration: FullyInhabited {}
 
 extension InlineArray: FullyInhabited where Element: FullyInhabited {}
 extension CollectionOfOne: FullyInhabited where Element: FullyInhabited {}
@@ -331,6 +342,10 @@ These functions require the existence of `Span`, and have a minimum deployment t
 
 Tuples composed of `FullyInhabited` types should themselves be `FullyInhabited`.
 
+#### Layout constraint to model "no padding bytes"
+
+The true constraint for safe variants of `storeBytes(of:)` is to have no padding bytes in the source type's memory representation. This layout constraint is weaker than `FullyInhabited`, and should be automated in a manner similar to `BitwiseCopyable`. We could consider introducing it when validation of `FullyInhabited` is implemented.
+
 #### Utilities to examine the alignment of a `RawSpan`
 
 The `Span` initializers require a correctly-aligned `RawSpan`; there should be be utilities to identify the offsets that are well-aligned for a given type.
@@ -353,7 +368,7 @@ These are not sufficient constraints, since they do not mandate that their confo
 
 The standard library's `FixedWidthInteger` protocol includes computed properties `var .bigEndian: Self` and `var .littleEndian: Self`. These could be used to modify the arguments of `storeBytes(_:as:)`, or to modify the return values from `load(as:)`. Unfortunately these properties are not clear, because they return `Self`, conflating byte ordering with otherwise valid values. This proposal applies the consideration of byte ordering to the operation where it belongs: serialization.
 
-#### Having `load()` functions default to aligned operations
+#### Defaulting to aligned operations for the safe `load()` functions
 
 `UnsafeRawPointer`'s original `load()` function requires correct alignment, and the less restrictive  `loadUnaligned()` was added later. We have long considered this unfortunate, and this proposal seeks to improve on the status quo by making our new safe `load()` functions perform unaligned operations.
 
