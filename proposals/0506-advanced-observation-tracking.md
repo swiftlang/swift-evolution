@@ -1,9 +1,9 @@
 # Advanced Observation Tracking
 
-* Proposal: [SE-NNNN](NNNN-advanced-observation-tracking.md)
+* Proposal: [SE-0506](NNNN-advanced-observation-tracking.md)
 * Authors: [Philippe Hausler](https://github.com/phausler)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Steve Canon](https://github.com/stephentyrone)
+* Status: **Active Review (Jan 20-Feb 3, 2026)**
 * Review: ([pitch](https://forums.swift.org/t/pitch-advanced-observation-tracking/83521))
 
 ## Introduction
