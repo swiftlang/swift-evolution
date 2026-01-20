@@ -310,7 +310,6 @@ extension Int:     FullyInhabited {}
 extension Float16: FullyInhabited {}
 extension Float32: FullyInhabited {} // `Float`
 extension Float64: FullyInhabited {} // `Double`
-extension Float80: FullyInhabited {}
 
 extension Duration: FullyInhabited {}
 
