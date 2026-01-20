@@ -32,7 +32,7 @@ extension Resource {
 
 extension SomeSystem { 
   func performAction(_ action: some SomeAction) { 
-    guard Task.isCancelled else {
+    guard !Task.isCancelled else {
       // oh no! 
       // If Resource.cleanup calls this while being in a cancelled task,
       // the action would never be performed!
@@ -234,7 +234,7 @@ extension UnsafeCurrentTask {
 }
 ```
 
-Here is an example, how `UnsafeCurrentTask`'s  `isCancelled` as well as the new `hasActiveTaskCancellationShield` behave inside inside of a cancelled, but shielded task. The instance method `UnsafeCurrentTask/isCancelled` behaves the same way as the `Task/isCancelled` method, which was discussed above. However, using the unsafe task handle, we are able to react to task cancellation shields if necessary:
+Here is an example, how `UnsafeCurrentTask`'s  `isCancelled` as well as the new `hasActiveTaskCancellationShield` behave inside of a cancelled, but shielded task. The instance method `UnsafeCurrentTask/isCancelled` behaves the same way as the `Task/isCancelled` method, which was discussed above. However, using the unsafe task handle, we are able to react to task cancellation shields if necessary:
 
 ```swift
 let task = Task { 
