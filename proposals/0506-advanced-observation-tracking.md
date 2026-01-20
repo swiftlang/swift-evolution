@@ -5,6 +5,7 @@
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active Review (Jan 20-Feb 3, 2026)**
 * Review: ([pitch](https://forums.swift.org/t/pitch-advanced-observation-tracking/83521))
+  ([review](https://forums.swift.org/t/se-0506-advanced-observation-tracking/84246))
 
 ## Introduction
 
