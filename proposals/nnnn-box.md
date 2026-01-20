@@ -1,4 +1,4 @@
-# Box
+# UniqueBox
 
 * Proposal: [SE-NNNN](nnnn-box.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy)
@@ -9,7 +9,7 @@
 
 ## Introduction
 
-We propose to introduce a new type in the standard library `Box` which is a
+We propose to introduce a new type in the standard library `UniqueBox` which is a
 simple smart pointer type that uniquely owns a value on the heap.
 
 ## Motivation
@@ -68,12 +68,12 @@ performance than using pointers directly.
 
 ## Proposed solution
 
-The standard library will add a new noncopyable type `Box` which is a safe smart
-pointer that uniquely owns some instance on the heap.
+The standard library will add a new noncopyable type `UniqueBox` which is a safe
+smart pointer that uniquely owns some instance on the heap.
 
 ```swift
 // Storing an inline array on the heap
-var box = Box<[3 of _]>([1, 2, 3])
+var box = UniqueBox<[3 of _]>([1, 2, 3])
 
 print(box.value) // [1, 2, 3]
 
@@ -97,7 +97,7 @@ struct Foo: ~Copyable {
 }
 
 func main() {
-  let box = Box(Foo())
+  let box = UniqueBox(Foo())
 
   box.value.bar() // "bar"
 
@@ -111,14 +111,14 @@ func main() {
 
 ```swift
 /// A smart pointer type that uniquely owns an instance of `Value` on the heap.
-public struct Box<Value: ~Copyable>: ~Copyable {
+public struct UniqueBox<Value: ~Copyable>: ~Copyable {
   /// Initializes a value of this box with the given initial value.
   ///
   /// - Parameter initialValue: The initial value to initialize the box with.
   public init(_ initialValue: consuming Value)
 } 
 
-extension Box where Value: ~Copyable {
+extension UniqueBox where Value: ~Copyable {
   /// Dereferences the box allowing for in-place reads and writes to the stored
   /// `Value`.
   public var value: Value {
@@ -131,7 +131,7 @@ extension Box where Value: ~Copyable {
   public consuming func consume() -> Value
 }
 
-extension Box where Value: ~Copyable {
+extension UniqueBox where Value: ~Copyable {
   /// Returns a single element span reference to the instance of `Value` stored
   /// within this box.
   public var span: Span<Value> {
@@ -145,22 +145,16 @@ extension Box where Value: ~Copyable {
   }
 }
 
-extension Box where Value: Copyable {
+extension UniqueBox where Value: Copyable {
   /// Copies the value within the box and returns it in a new box instance.
-  public func clone() -> Box<Value>
+  public func clone() -> UniqueBox<Value>
 }
 ```
 
 ## Source compatibility
 
-`Box` is a brand new type in the standard library, so source should still be
-compatible.
-
-Given the name of this type however, we foresee this shadowing with existing user
-defined types named `Box`. This isn't a particular issue though because the
-standard library has special shadowing rules which prefer user defined types by
-default. Which means in user code with a custom `Box` type, that type will
-always be preferred over the standard library's `Swift.Box`.
+`UniqueBox` is a brand new type in the standard library, so source should still
+be compatible.
 
 ## ABI compatibility
 
@@ -169,10 +163,17 @@ ABI; thus existing ABI is compatible.
 
 ## Implications on adoption
 
-`Box` is a new type within the standard library, so adopters must use at least
-the version of Swift that introduced this type.
+`UniqueBox` is a new type within the standard library, so adopters must use at
+least the version of Swift that introduced this type.
 
 ## Alternatives considered
+
+### Name this type `Box`
+
+An earlier version of this proposal proposed `Box` as the name for this type,
+but unfortunately that name is very common in the Swift ecosystem and is being
+used for a similar but different construct (something more akin to
+`std::shared_ptr` than what is being proposed which is akin to `std::unique_ptr`).
 
 ### Name this type `Unique`
 
@@ -186,7 +187,7 @@ succinct and simple name.
 ### Use an empty subscript for dereferencing instead of a named property
 
 ```swift
-var box = Box<[3 of _]>([1, 2, 3])
+var box = UniqueBox<[3 of _]>([1, 2, 3])
 box.value.swapAt(0, 2) // [3, 2, 1]
 ```
 
@@ -211,8 +212,8 @@ pointer[0].swapAt(0, 2)
 There a plenty of good names that could be used here like `take` or `move`.
 `take` comes from `Optional.take()` and `move` from `UnsafeMutablePointer.move()`.
 Both of those methods don't actually consume the parent instance they are called
-on however unlike `consume`. Calling `consume` ends the lifetime of `Box` and it
-is immediately deallocated after returning the instance stored within.
+on however unlike `consume`. Calling `consume` ends the lifetime of `UniqueBox`
+and it is immediately deallocated after returning the instance stored within.
 
 ## Future directions
 
@@ -227,18 +228,18 @@ copyable ones by keeping track of a reference count similar to classes in Swift.
 ### Introduce a `Clonable` protocol
 
 `Box` comes with a `clone` method that will effectively copy the box and its
-contents entirely returning a new instance of it. We can't make `Box` a copyable
-type because we need to be able to customize deinitialization and for
+contents entirely returning a new instance of it. We can't make `UniqueBox` a
+copyable type because we need to be able to customize deinitialization and for
 performance reasons wouldn't want the compiler to implicitly add copies of it
-either. So `Box` is a noncopyable type, but when its contents are copyable we
-can add explicit ways to copy the box into a new allocation.
+either. So `UniqueBox` is a noncopyable type, but when its contents are copyable
+we can add explicit ways to copy the box into a new allocation.
 
-`Box.clone()` is only available when the underlying `Value` is `Copyable`, but
-there is a theoretical other protocol that this is relying on which is
-`Clonable`. `Box` itself can conform to `Clonable` by providing the explicit
+`UniqueBox.clone()` is only available when the underlying `Value` is `Copyable`,
+but there is a theoretical other protocol that this is relying on which is
+`Clonable`. `UniqueBox` itself can conform to `Clonable` by providing the explicit
 `clone()` operation, but itself not being `Copyable`. If this method were
 conditional on `Value: Clonable`, then you could call `clone()` on a box of a
-box (`Box<Box<T>>`).
+box (`UniqueBox<UniqueBox<T>>`).
 
 Rust has a hierarchy very similar to this:
 
@@ -261,7 +262,7 @@ to how they handle explicit copyability and implicit copyability.
 
 While this proposal is suggesting `value` as the named property to access the
 underlying value, there is a potential future direction that could help
-eliminate the need for this entirely. `Box` should simply be just a vehicle
+eliminate the need for this entirely. `UniqueBox` should simply be just a vehicle
 with which you can manually manage where a value lives versus being this
 cumbersome wrapper type you have to plumb through to access the inner value.
 
@@ -341,23 +342,27 @@ directly. Rust does this because their span type is spelt `&[T]` while the `[T]`
 is an unsized (hence the `?Sized` for `Target`), so returning a borrow of `[T]`
 naturally leads them to returning `&[T]` (span) directly.
 
-It could look something like the following in Swift for `Box`:
+It could look something like the following in Swift for `UniqueBox`:
 
 ```swift
 public protocol Deref {
   associatedtype Target
 
-  subscript() -> Target { ... }
+  var value: Target { borrow }
 }
 
-extension Box: Deref where Value: ~Copyable {
-  subscript() -> Target { ... }
+extension UniqueBox: Deref where Value: ~Copyable {
+  var value: Target {
+    borrow {
+      ...
+    }
+  }
 }
 ```
 
 which could allow for call sites to look like the following:
 
 ```swift
-var box = Box<[3 of _]>([1, 2, 3])
+var box = UniqueBox<[3 of _]>([1, 2, 3])
 box.swapAt(0, 2) // [3, 2, 1]
 ```
