@@ -69,13 +69,21 @@ swift package add-target-plugin MyPlugin MyTarget
 
 ### Command-line interface
 
-The command accepts the following arguments and options:
+```bash
+$ swift package add-target-plugin --help
+OVERVIEW: Add a plugin to an existing target in the manifest
 
-| Argument/Option | Description |
-|-----------------|-------------|
-| `<plugin-name>` | The name of the plugin to add (required) |
-| `<target-name>` | The name of the target to modify (required) |
-| `--package <package>` | The package containing the plugin (optional; omit for internal plugins) |
+USAGE: swift package add-target-plugin <plugin-name> <target-name> [--package <package>]
+
+ARGUMENTS:
+  <plugin-name>           The name of the new plugin
+  <target-name>           The name of the target to update
+
+OPTIONS:
+  --package <package>     The package in which the plugin resides
+  --version               Show the version.
+  -h, -help, --help       Show help information.
+```
 
 ### Behavior
 
