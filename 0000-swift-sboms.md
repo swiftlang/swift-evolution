@@ -4,6 +4,8 @@
 * Authors: [Ev Cheng](https://github.com/echeng3805)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
+* Discussion thread(s):
+  * Pitch: https://forums.swift.org/t/pitch-software-bill-of-materials-sbom-generation-for-swift-package-manager/83499
 
 *During the review process, add the following fields as needed:*
 
