@@ -363,6 +363,21 @@ The need for the functionality in this proposal is urgent and can be achieved wi
 
 These are not sufficient constraints, since they do not mandate that their conformers must be fully inhabited.
 
+#### Separating the `FullyInhabited` protocol into separate `ConvertibleToRawBytes` and `ConvertibleFromRawBytes` protocols.
+
+As described, `FullyInhabited` is a stronger constraint than is needed to prevent uninitialized bytes when initializing memory. The minimal constraint would simply be the absence of padding; this could be called `ConvertibleToRawBytes`. Similarly, `FullyInhabited` is a stronger constraint than is needed to exclude unsafety when loading bytes from a `RawSpan` instance. The minimal constraint would be similar to `FullyInhabited`, but would allow for padding bytes; this could be called `ConvertibleFromRawBytes`. Types that conform to both would meet the requirements of `FullyInhabited` as described here.
+
+```swift
+typealias FullyInhabited = ConvertibleToRawBytes & ConvertibleFromRawBytes
+```
+
+Separating `FullyInhabited` in this manner would make the system more flexible, at the cost of some simplicity. It would allow us to define a safe bitcast operation:
+
+```swift
+func bitCast<A,B>(_ original: consuming A, to: B.self) -> B
+  where A: ConvertibleToRawBytes, B: ConvertibleFromRawBytes
+```
+
 #### Omitting the `ByteOrder` parameters
 
 The standard library's `FixedWidthInteger` protocol includes computed properties `var .bigEndian: Self` and `var .littleEndian: Self`. These could be used to modify the arguments of `storeBytes(_:as:)`, or to modify the return values from `load(as:)`. Unfortunately these properties are not clear, because they return `Self`, conflating byte ordering with otherwise valid values. This proposal applies the consideration of byte ordering to the operation where it belongs: serialization.
