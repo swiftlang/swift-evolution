@@ -110,7 +110,7 @@ These functions do not need a default value for their `byteOrder` parameter, as 
 
 ##### Loading and storing in-memory types
 
-The memory layout of many of the types eligible for `FullyInhabited` is not guaranteed to be stable across compiler and library versions. This is not an issue for the use case envisioned for these API, where data is sent among running processes, or stored for later use in the same process. For more elaborate needs such as serializing for network communications or file system storage, the API propesd here can only be considered as a building block.
+The memory layout of many of the types eligible for `FullyInhabited` is not guaranteed to be stable across compiler and library versions. This is not an issue for the use case envisioned for these API, where data is sent among running processes, or stored for later use in the same process. For more elaborate needs such as serializing for network communications or file system storage, the API propesd here can only be considered as a building block.
 
 ##### `Span` and `MutableSpan`
 
@@ -343,7 +343,7 @@ Tuples composed of `FullyInhabited` types should themselves be `FullyInhabited`.
 
 #### Layout constraint to model "no padding bytes"
 
-The true constraint for safe variants of `storeBytes(of:)` is to have no padding bytes in the source type's memory representation. This layout constraint is weaker than `FullyInhabited`, and should be automated in a manner similar to `BitwiseCopyable`. We could consider introducing it when validation of `FullyInhabited` is implemented.
+The true constraint for safe variants of `storeBytes(of:)` is to have no padding bytes in the source type's memory representation. This layout constraint is weaker than `FullyInhabited`, and should be automated in a manner similar to `BitwiseCopyable`. We could consider introducing it when validation of `FullyInhabited` is implemented.
 
 #### Utilities to examine the alignment of a `RawSpan`
 
