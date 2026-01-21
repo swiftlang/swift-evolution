@@ -257,6 +257,15 @@ struct ArrayLikeType {
 }
 ```
 
+Like any `borrow` or `mutate` operation, the above subscript implicitly accesses the entire struct for the duration of the property access.
+In particular, the following is illegal because it creates two
+mutating accesses of `x` for the duration of the function call:
+
+```
+var x: ArrayLikeType
+swap(&x[0], &x[1])
+```
+
 ## Source compatibility
 
 This could potentially change the interpretation of an existing accessor that uses a function called `borrow` or `mutate` that takes a trailing closure parameter:
