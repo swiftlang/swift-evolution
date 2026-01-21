@@ -210,8 +210,6 @@ struct S1 {
 
 #### `borrow` and `mutate` as protocol requirements
 
-**NOTE:**  Support for `borrow` and `mutate` as protocol requirements is not yet implemented (as of January 7, 2026)
-
 Borrowing accessors can also appear as protocol requirements
 
 ```
