@@ -1,9 +1,9 @@
 # Borrow and Mutate Accessors
 
-* Proposal: [SE-NNNN](NNNN-borrow-accessors.md)
+* Proposal: [SE-0507](0507-borrow-accessors.md)
 * Authors: [Meghana Gupta](https://github.com/meg-gupta), [Tim Kientzle](https://github.com/tbkka)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor/)
+* Status: **Upcoming review (January 22...February 5, 2026)**
 * Vision: [[Prospective Vision] Accessors](https://forums.swift.org/t/prospective-vision-accessors/76707)
 * Implementation: On `main` gated behind `-enable-experimental-feature BorrowAndMutateAccessors`
 * Review: ([pitch](https://forums.swift.org/t/pitch-borrowing-accessors/83933))
