@@ -202,7 +202,7 @@ As a result, the property can only be accessed in a context
 that allows mutation:
 ```
 struct S1 {
-  private cachedValue: Foo
+  private var cachedValue: Foo
   var foo : Foo {
     mutating borrow {
       if !cachedValue.available {
