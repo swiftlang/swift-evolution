@@ -185,13 +185,21 @@ creates confusion in the caller as to which one will ultimately be used.[^2]
 
 #### Ownership variations
 
-By default, any `borrow` accessor is considered to not mutate the containing
-value, and any `mutate` accessor is assumed to act as a mutation of the
+By default, a `borrow` accessor is considered to not mutate the containing
+value,
+and a `mutate` accessor is assumed to act as a mutation of the
 containing value.
 
 This can be explicitly overridden by using a `mutating` or `nonmutating` modifier,
 similarly to `mutating get` or `nonmutating set`.
-For example:
+In these combinations, the `mutating` or `nonmutating` prefix indicates
+whether the operation is considered to mutate the containing value.
+
+For example, a `mutating borrow` indicates that even though the
+caller can only use this to read the property,
+there can be side-effects that alter the containing value in other ways.
+As a result, the property can only be accessed in a context
+that allows mutation:
 ```
 struct S1 {
   private cachedValue: Foo
@@ -206,7 +214,28 @@ struct S1 {
     }
   }
 }
+
+let s1: S1 // Note: Immutable value
+s1.foo // 🛑 Cannot use mutating accessor on immutable value
 ```
+
+Similarly, a `nonmutating mutate` would provide mutable borrow access to some value,
+but a mutation of that value is _not_ a mutation of the parent value.
+For example, this might be true if the accessor is providing access to a value
+that is stored outside of the parent value:
+```
+struct Outer {
+  var inner: InnerType {
+    borrow {
+      return some_value_stored_elsewhere
+    }
+    nonmutating mutate {
+      return &some_value_stored_elsewhere
+    }
+  }
+}
+```
+In this example, `inner` can be mutated, but such mutation is not considered to be a mutation of `Outer` for purposes of exclusivity and ownership diagnostics.
 
 #### `borrow` and `mutate` as protocol requirements
 
