@@ -1,4 +1,4 @@
-# Borrowing Accessors
+# Borrow and Mutate Accessors
 
 * Proposal: [SE-NNNN](NNNN-borrow-accessors.md)
 * Authors: [Meghana Gupta](https://github.com/meg-gupta), [Tim Kientzle](https://github.com/tbkka)
@@ -85,7 +85,8 @@ struct RigidWrapper<Element: ~Copyable>: ~Copyable {
 }
 ```
 
-Note:  We’ve included an explicit `return` keyword in the above examples to clarify the distinction with `yielding borrow` and `yielding mutate` which use a `yield` keyword.  As with other return values in Swift, the `return` keyword is optional.
+Note:  We’ve included an explicit `return` keyword in the above examples to clarify the distinction with `yielding borrow` and `yielding mutate` which use a `yield` keyword.
+As with other return values in Swift, the `return` keyword is optional when the body is a single expression.
 
 ## Detailed design
 
@@ -164,15 +165,29 @@ If you provide a `mutate` accessor:
 * You must also provide a `borrow` accessor.
 * You cannot have a `yielding mutate` or `yielding borrow`
 
+These follow from two considerations:
+First, Swift generally disallows write-only properties.
+For example, Swift does not allow a property to only include a `set` accessor.
+Secondly, we want to ensure compatible access scopes for read and write operations.
+This not only ensures consistent behavior to clients of the property,
+it also potentially allows the compiler to optimize a mix of read and write operations with a single unified `mutate` access.
+
 If you provide a `borrow` accessor:
 
-* You cannot also define a `get` or `yielding borrow` 
+* You cannot also define a `get` or `yielding borrow`
+
+This point is partly motivated by the same considerations as above.
+In addition, we prohibit multiple read accessors (such as `borrow` and `get`) or
+multiple write accessors (such as `mutate` and `yielding mutate`) because it
+creates confusion in the caller as to which one will ultimately be used.[^2]
+
+[^2]: In many cases, the compiler will synthesize multiple read or multiple write accessors in order to preserve ABI guarantees over time.  In every such case, the ABI considerations dictate which accessors will actually get used in a particular situation.
 
 #### Ownership variations
 
 By default, any `borrow` accessor is considered to not mutate the containing
 value, and any `mutate` accessor is assumed to act as a mutation of the
-containing struct.
+containing value.
 
 This can be explicitly overridden by using a `mutating` or `nonmutating` modifier,
 similarly to `mutating get` or `nonmutating set`.
@@ -223,9 +238,11 @@ If the protocol requires a `mutate` accessor, the conforming type must provide b
 
 No combinations other than those specified above are supported.
 
-#### Cannot use for properties of classes
+#### Cannot use for properties of classes or actors
 
-Classes require runtime exclusivity checks to run both before and after each property access.  Since borrowing accessors do not provide a way for the provider to run code after the access, they cannot be used for properties of classes.
+Classes require runtime exclusivity checks to run both before and after each property access.  Since borrowing accessors do not provide a way for the provider to run code after the access, they cannot be used for properties of classes.[^1]
+
+[^1]: `yielding borrow` and `yielding mutate` accessors can be used for properties of classes.
 
 #### Use for subscripts
 
