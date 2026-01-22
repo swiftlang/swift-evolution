@@ -66,7 +66,7 @@ $ swift build --build-system swiftbuild --sbom-spec cyclonedx --sbom-spec spdx -
 
 ### Optional Flags
 
-`--sbom-spec` will trigger SBOM generation when a build is run. Either `cyclonedx` or `spdx` or both can be passed to indicate what kind of SBOMs to generate.
+`--sbom-spec` will trigger SBOM generation when a build is run. Either `cyclonedx` or `spdx` or both (passing `--sbom-spec` flag twice in the same build command) can be passed to indicate what kind of SBOMs to generate.
 
 `--sbom-spec` can only be used with one of the following:
 
