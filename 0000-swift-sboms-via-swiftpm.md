@@ -75,7 +75,7 @@ $ swift build --build-system swiftbuild --sbom-spec cyclonedx --sbom-spec spdx -
 
 The build will error if `--sbom-spec` is used with the `--target` flag.
 
-If `--build-system swiftbuild` is not specified, a warning will be emitted that only the package graph is being used for SBOM generation. (The build dependency graph is only available through SwiftBuild.)
+If `--build-system swiftbuild` is not specified, a warning will be emitted that only the package graph is being used for SBOM generation. (The build dependency graph is only available through SwiftBuild.) The warning will be emitted as the last line of the command.
 
 `cyclonedx` and `spdx` flags will always point to the most recently SwiftPM-supported major versions, but users have the option to specify the major version they'd like.
 
@@ -129,7 +129,7 @@ SBOM generation will also be added as a separate subcommand `swift package gener
 
 This subcommand is to address use cases where an SBOM might need to be created after a build (for example, in a CICD pipeline or using a different version of the toolchain), but calling `swift build` again is undesirable or impossible.
 
-The subcommand will always emit a warning that the SBOM may not be fully accurate because it only uses the package graph.
+The subcommand will always emit a warning that the SBOM may not be fully accurate because it only uses the package graph. This warning will be emitted as the last line in the command.
 
 ```
 warning: "`generate-sbom` subcommand creates SBOM(s) based on modules graph only"
