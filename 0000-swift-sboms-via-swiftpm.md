@@ -5,24 +5,14 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Discussion thread(s):
-  * Pitch: https://forums.swift.org/t/pitch-software-bill-of-materials-sbom-generation-for-swift-package-manager/83499
-
-*During the review process, add the following fields as needed:*
-
-* Implementation: [swiftlang/swift-package-manager#NNNNN](https://github.com/swiftlang/swift-package-manager/pull/NNNNN)
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/swiftlang/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
+  * [Pitch](https://forums.swift.org/t/pitch-software-bill-of-materials-sbom-generation-for-swift-package-manager/83499)
+* Implementation: [swiftlang/swift-package-manager#9633](https://github.com/swiftlang/swift-package-manager/pull/9633)
 
 ## Introduction
 
 An SBOM (Software Bill of Materials) provides a detailed inventory of software components included in an artifact. SBOMs allow developers to improve and analyze the software supply chain security profile for their Swift projects (for example, determining whether a dependency that's being used has a vulnerability). Also, some companies, governments, and other regulatory bodies require SBOMs to be produced for auditing purposes.
 
 There are two common formats for SBOMs: [CycloneDX](https://cyclonedx.org) and [SPDX](https://spdx.dev).
-
-Swift-evolution thread: [Discussion thread topic for that
-proposal](https://forums.swift.org/t/pitch-software-bill-of-materials-sbom-generation-for-swift-package-manager/83499)
 
 ## Motivation
 
@@ -118,7 +108,7 @@ The filter implementation uses a strategy pattern with three concrete strategies
 
 #### Configuration
 
-Environment variables can be used for SBOM generation configuration in the short-term.
+Environment variables can be used for SBOM generation configuration.
 
 An issue in Github will be raised and linked in the code to address changing SBOM environment variables to a configuration file.
 
