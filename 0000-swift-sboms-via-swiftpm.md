@@ -105,16 +105,15 @@ Additionally, users can specify the following optional flags (which must appear 
 
 SBOM filters address the following use cases:
 
-- **All packages and products**: This is an exhaustive inventory of packages and products for a root product or root package. Developers who need to know what products are used and what packages the products come from can use these SBOMs, since they provide more information.
+- **All packages and products**: This is an exhaustive inventory of packages and products for a root product or root package. Developers who need to know what products are used and also what packages the products come from can use these SBOMs, since they provide more information. This provides some provenance information for products.
 - **Package-only**: Some CVE vulnerabilities are disclosed at a package-level. For developers who are trying to remediate vulnerabilities, the package-only SBOM is advantageous because it's less noisy. Also, packages are the unit that are updated, so SBOMs can help developers plan which packages need to be updated. 
 - **Product-only**: Product-only SBOMs help developers understand what products an application depends on at runtime; they can see which specific products from dependent packages are built and shipped with their own applications. 
 
 #### Configuration
 
-Environment variables can be used for SBOM generation configuration.
+Sometimes the developers cannot change the `swift build` command to trigger SBOM generation. For example, infrastructure or security developers who own their organizations' CI systems might want to create SBOMs for all Swift projects, but cannot modify other teams' `swift build` commands.
 
-An issue in Github will be raised and linked in the code to address changing SBOM environment variables to a configuration file. (Configuration files are out of scope for this feature.)
-
+In these cases, environment variables can be used instead to trigger SBOM generation.
 
 * `SWIFTPM_BUILD_SBOM_DIRECTORY`: specifies which directory the SBOMs should be generated in. If `--sbom-dir` is passed to swift build, `--sbom-dir` will take precedence.
 * `SWIFTPM_BUILD_SBOM_FILTER` (default: `all`): specifies which filter to apply, defaults to all. If `--sbom-filter` is passed to `swift build`, `--sbom-filter` will take precedence.
@@ -677,4 +676,3 @@ Some future features that can be added include:
 * **Package.resolved generation**: Generate a `Package.resolved` file based on an SBOM in order to reproduce a dependency graph (e.g., for debugging)
 * **SBOM signing**: Sign the SBOM cryptographically to link it to an artifact
 * **Hashes**: Add hashes to the SBOM
-* **Configuration file**: Allow SBOM generation options to be specified from a configuration file, like `.swiftrc`
