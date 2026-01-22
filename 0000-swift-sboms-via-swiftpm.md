@@ -101,10 +101,13 @@ Additionally, users can specify the following optional flags (which must appear 
 --sbom-warning-only <bool> Whether to ignore SBOM generation errors and emit a warning instead (default: false)
 ```
 
-The filter implementation uses a strategy pattern with three concrete strategies:
-- `AllFilterStrategy`: Includes all components and dependencies
-- `ProductFilterStrategy`: Includes only products and product-to-product dependencies (plus root package if primary component is a package)
-- `PackageFilterStrategy`: Includes only packages and package-to-package dependencies (plus root product if primary component is a product)
+#### SBOM Filters
+
+SBOM filters address the following use cases:
+
+- **All packages and products**: This is an exhaustive inventory of packages and products for a root product or root package. Developers who need to know what products are used and what packages the products come from can use these SBOMs, since they provide more information.
+- **Package-only**: Some CVE vulnerabilities are disclosed at a package-level. For developers who are trying to remediate vulnerabilities, the package-only SBOM is advantageous because it's less noisy. Also, packages are the unit that are updated, so SBOMs can help developers plan which packages need to be updated. 
+- **Product-only**: Product-only SBOMs help developers understand what products an application depends on at runtime; they can see which specific products from dependent packages are built and shipped with their own applications. 
 
 #### Configuration
 
