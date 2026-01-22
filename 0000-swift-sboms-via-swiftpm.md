@@ -110,7 +110,7 @@ The filter implementation uses a strategy pattern with three concrete strategies
 
 Environment variables can be used for SBOM generation configuration.
 
-An issue in Github will be raised and linked in the code to address changing SBOM environment variables to a configuration file.
+An issue in Github will be raised and linked in the code to address changing SBOM environment variables to a configuration file. (Configuration files are out of scope for this feature.)
 
 
 * `SWIFTPM_BUILD_SBOM_DIRECTORY`: specifies which directory the SBOMs should be generated in. If `--sbom-dir` is passed to swift build, `--sbom-dir` will take precedence.
@@ -674,3 +674,4 @@ Some future features that can be added include:
 * **Package.resolved generation**: Generate a `Package.resolved` file based on an SBOM in order to reproduce a dependency graph (e.g., for debugging)
 * **SBOM signing**: Sign the SBOM cryptographically to link it to an artifact
 * **Hashes**: Add hashes to the SBOM
+* **Configuration file**: Allow SBOM generation options to be specified from a configuration file, like `.swiftrc`
