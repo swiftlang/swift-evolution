@@ -61,7 +61,7 @@ $ swift build --build-system swiftbuild --product MyProduct1 --sbom-spec cyclone
 $ swift build --build-system swiftbuild --product MyProduct2 --sbom-spec spdx
 
 # To generate SBOM files into a specific directory
-$ swift build --build-system swiftbuild --sbom-spec cyclonedx --sbom-spec spdx --sbom-dir /MyDirectory
+$ swift build --build-system swiftbuild --sbom-spec cyclonedx --sbom-spec spdx --sbom-output-dir /MyDirectory
 ```
 
 ### Optional Flags
@@ -93,7 +93,7 @@ OPTIONS:
 Additionally, users can specify the following optional flags (which must appear with `--sbom-spec`):
 
 ```
---sbom-dir <sbom-dir>  The absolute or relative directory path to generate the SBOM(s) in.
+--sbom-output-dir <sbom-output-dir>  The absolute or relative directory path to generate the SBOM(s) in.
 --sbom-filter <filter> Filter the SBOM components and dependencies by products and/or packages.
         all               - Include all entities in the SBOM (default)
         package           - Only include package information and package dependencies
@@ -115,7 +115,7 @@ Sometimes the developers cannot change the `swift build` command to trigger SBOM
 
 In these cases, environment variables can be used instead to trigger SBOM generation.
 
-* `SWIFTPM_BUILD_SBOM_DIRECTORY`: specifies which directory the SBOMs should be generated in. If `--sbom-dir` is passed to swift build, `--sbom-dir` will take precedence.
+* `SWIFTPM_BUILD_SBOM_OUTPUT_DIR`: specifies which directory the SBOMs should be generated in. If `--sbom-output-dir` is passed to swift build, `--sbom-output-dir` will take precedence.
 * `SWIFTPM_BUILD_SBOM_FILTER` (default: `all`): specifies which filter to apply, defaults to all. If `--sbom-filter` is passed to `swift build`, `--sbom-filter` will take precedence.
 * `SWIFTPM_BUILD_SBOM_SPEC`: builds SBOMs automatically for CycloneDX and SPDX specs (can take values `spdx`, `cyclonedx` or `cyclonedx,spdx`). If `--sbom-spec` is passed to `swift build`, `--sbom-spec` takes precedence.
 * `SWIFTPM_BUILD_SBOM_WARNING_ONLY` (default: `false`): if SBOM build fails, emit a warning only. If `--sbom-warning-only` is passed, `--sbom-warning-only` takes precedence.
@@ -158,7 +158,7 @@ $ swift package generate-sbom --product MyProduct1 --sbom-spec cyclonedx
 $ swift package generate-sbom --product MyProduct2 --sbom-spec spdx
 
 # To generate SBOM files into a specific directory
-$ swift package generate-sbom --sbom-spec cyclonedx --sbom-spec spdx --sbom-dir /MyDirectory
+$ swift package generate-sbom --sbom-spec cyclonedx --sbom-spec spdx --sbom-output-dir /MyDirectory
 ```
 
 ## Detailed design
