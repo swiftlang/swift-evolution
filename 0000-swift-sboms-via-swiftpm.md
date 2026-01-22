@@ -103,9 +103,9 @@ Additionally, users can specify the following optional flags (which must appear 
 
 #### SBOM Filters
 
-SBOM filters address the following use cases:
+SBOM filters help address the following use cases:
 
-- **All packages and products**: This is an exhaustive inventory of packages and products for a root product or root package. Developers who need to know what products are used and also what packages the products come from can use these SBOMs, since they provide more information. This provides some provenance information for products.
+- **All packages and products**: The SBOM is an exhaustive inventory of packages and products for a root product or root package. Developers who need to know what products are used and also what packages the products come from (e.g., provenance information) can use these comprehesive SBOMs, since they provide more information.
 - **Package-only**: Some CVE vulnerabilities are disclosed at a package-level. For developers who are trying to remediate vulnerabilities, the package-only SBOM is advantageous because it's less noisy. Also, packages are the unit that are updated, so SBOMs can help developers plan which packages need to be updated. 
 - **Product-only**: Product-only SBOMs help developers understand what products an application depends on at runtime; they can see which specific products from dependent packages are built and shipped with their own applications. 
 
@@ -137,7 +137,7 @@ warning: "`generate-sbom` subcommand creates SBOM(s) based on modules graph only
 
 The user will have the option to pass `--disable-automatic-resolution` to force SBOM generation to fail if the `Package.resolved` is not up-to-date.
  
-Note: Using the package subcommand can result in dependency resolution timing issues. There is an edge case where an artifact is built, the dependency graph changes, and then the SBOM is generated. In that case, the SBOM will not accurately reflect the built artifact’s components and dependencies.
+Note: Using the package subcommand without `--disable-automatic-resolution` can result in dependency resolution timing issues. There is an edge case where an artifact is built, the dependency graph changes, and then the SBOM is generated. In that case, the SBOM will not accurately reflect the built artifact’s components and dependencies. 
 
 #### CLI Examples
 
@@ -163,148 +163,21 @@ $ swift package generate-sbom --sbom-spec cyclonedx --sbom-spec spdx --sbom-outp
 
 ## Detailed design
 
-
 The SBOM generation will have three layers:
 
-1. **Extractor Layer** (`SBOMExtractor`): Reads information from the package graph (modules graph) and optionally the build dependency graph, storing it in internal data structures (`SBOMDocument`, `SBOMComponent`, `SBOMDependencies`, etc.)
+1. **Extractor Layer** (`SBOMExtractor`): Reads information from the package graph (modules graph) and optionally the build dependency graph, storing it in internal data structures
 2. **Converter Layer** (`CycloneDXConverter`, `SPDXConverter`): Converts internal data structures into spec-specific formats (CycloneDX 1.7 JSON, SPDX 3.0.1 JSON)
 3. **Validator Layer** (`SBOMValidator`): Validates generated SBOMs against embedded JSON schemas
 
-The extractor layer is where most of the processing happens. The converter layer does minimal processing (just enough to convert internal data structures into CycloneDX-specific or SPDX-specific data structures). The validator reads a schema and does some optimized checks of the generated SBOM against the schemas.
+### SBOM Content
 
-### `SBOMExtractor`
+#### Specs
 
-The `SBOMExtractor` is the main entry point for extracting SBOM data from SwiftPM's package graph and optionally SwiftBuild's dependency graph.
-
-#### Caching System
-
-The extractor uses three actor-based caches to avoid redundant work:
-- **`SBOMGitCache`**: Caches Git information (commits, versions) per package identity
-- **`SBOMComponentCache`**: Caches extracted components (packages and products)
-- **`SBOMTargetNameCache`**: Maps module IDs in the package graph to build graph target names in the build dependency graph
-
-These caches are necessary for performance. Without the caches, SBOM generation can take up to 1 minute. With the caches, SBOM generation is usually under 5 seconds.
-
-#### Component Extraction
-
-Packages and products are both treated as components in the SBOM.
-
-**Packages:**
-- Extracts category (application vs library based on product types - if there is at least one product that is an executable, the package is considered an application; else, it is a library)
-- Extracts scope (if all products are test products, then the scope is test)
-- Gets version/commit info from Git (for root package) or resolved store (for dependencies)
-- Generates PURL (Package URL) for unique identification
-- Recursively extracts all products within the package
-
-**Products:**
-- Similar extraction but at product level
-- Determines if product is an application (corresponds to executable) or library (defaults to library)
-- Extract scope (if all modules are test modules, then the scope is test)
-- Inherits version/commit info from the package
-
-#### Dependency Extraction
-
-The extractor can cross-reference two different sources (the resolved modules graph and the SwiftBuild build dependency graph) for dependency information:
-
-**Algorithm:**
-
-The dependency extraction follows a breadth-first traversal pattern with the following steps:
-
-1. Initialize tracking structures:
-   - `components`: Set of all discovered components
-   - `relationships`: Map of parent components to their child components
-   - `processedProducts`: Set to avoid reprocessing products
-   - `productsToProcess`: Queue of products to analyze
-
-Then, for either the specified product, or for all products in the root package:
-
-1. **Track root package → product relationship**
-   - Add relationship: root package depends the target product
-
-2. **Process product dependencies**:
-   - While `productsToProcess` is not empty:
-     - Remove product from queue and add to `processedProducts`. This is the `currentlyProcessedProduct`.
-     - Add relationship: root package depends on `currentlyProcessedProduct`'s package (if it's not the root package -- products within the same root package shouldn't depend on each other)
-     - Get `currentlyProcessedProduct`'s dependencies based on the SwiftBuild build graph. If the build graph isn't available, fall back to the resolved modules graph. 
-     - For each dependency:
-       - **If it's a product `dependentProduct`**: If not in `processedProducts`, then add `dependentProduct` to `productsToProcess` (so its own dependencies can be processed). Also:
-          - Add relationship:`currentlyProcessedProduct` → `dependentProduct` (if from different packages)
-          - Add relationship: `currentlyProcessedProduct`'s package → `dependentProduct`'s package
-          - Add relationship: `dependentProduct`'s package → `dependentProduct`
-       - **If it's a module `dependentModule`**:
-          - Initialize module processing queue `modulesToProcess` with `dependentModule`
-          - While `modulesToProcess` isn't empty:
-              - Remove module and mark as processed
-              - Get module's dependencies from either the build graph or modules graph (if build graph isn't available)
-              - For each module dependency:
-                  - If product, add to `productsToProcess`
-                  - If module, add to `modulesToProcess`
-           - Return list of discovered products added to `productsToProcess`
-
-**Note about circular dependencies:** Products in the same root package that share modules can create cycles if they depend on each other. So product-to-product dependencies within the same root package are not tracked, only product-to-product dependencies from outside the root package are tracked.
-
-These are the relationships that are included in the final SBOM:
-
-- Root package depends on each product it produces.
-- Root package depends on other packages.
-- A package depends on other packages.
-- A package depends on each product it produces.
-- A product depends on other products from other packages.
-
-(A package can depend on a package or a product it produces. A product can only depend on another product, not on a package. This maintains cleanliness in the SBOM and prevents circular dependencies in the SBOM.)
-
-### `SBOMValidator` and Versioning
-
-The `SBOMValidator` handles validation of generated SBOMs against schemas.
-
-Only the most recent minor version of each major version will be supported. Currently, that means CycloneDX 1.7 (minor version 1.7 of v1) and SPDX 3.0 (minor version 3.0 of v3). CycloneDX 2 and SPDX 4 are yet to be released.
+Only the most recent minor version of each major version SBOM spec will be supported, starting from CycloneDX 1 and SPDX 3. Currently, that means CycloneDX 1.7 (minor version 1.7 of v1) and SPDX 3.0 (minor version 3.0 of v3). CycloneDX 2 and SPDX 4 are yet to be released.
 
 When minor versions are released of CycloneDX or SPDX, the previous minor version is no longer supported. For example, when CycloneDX 1.8 or SPDX 3.1 are released, CycloneDX 1.7 and SPDX 3.0 will no longer be supported. This is to keep maintenance of the SBOM feature feasible and scoped.
 
-`SBOMSpec` is the internal structure that describes SBOM specifications. It consists of an enum `ConcreteSpec`, either `.cyclonedx1` or `.spdx3`.
-
-When there is a major version update, the enum and any switch statements associated with the enum should be updated to add `.cyclonedx2` or `.spdx4`.
-
-`SBOMVersionRegistry` is the registry where current minor versions are listed for each major version. Given an `SBOMSpec`, it returns the latest version for the spec. When there is a minor version update, the version strings should be updated.
-
-#### Major Updates
-
-- Extend the `Spec` enum. This is the enum that the users pass on the CLI.
-- Extend the `SBOMSpec.ConcreteSpec` enum. This is the enum used internally for processing. 
-- Create new constants in `CycloneDXConstants.swift` and `SPDXConstants.swift` that point to the new major version's schema files.
-- New schemas used for validation should be added. Schemas for previous major versions should not be updated. 
-- Update associated all switch statements in the code. These switch statements are comprehensive, so missing one should cause compilation to fail.
-
-#### Minor Updates
-
-- Update `SBOMVersionRegistry.swift` strings.
-- New schemas used for validation should be added. Schemas for previous minor versions should be deleted. 
-- `CycloneDXConstants.swift` and `SPDXConstants.swift` might need to be updated.
-- Tests in `SBOMValidation.swift` might need to be updated.
-
-#### Breaking Changes
-
-Breaking changes will need to be handled at the `Converter` layer. This is the layer that translates SBOM information from internal Swift structures to specific structures that slign with CycloneDX and SPDX specifications.
-
-Depending on the degree of the breaking change, `switch` statements can be used to handle small differences or should be used to initialize new versions of `SPDXConverter` or `CycloneDXConverter`. These new versions don't exist yet, and need to be written based on the breaking changes. 
-
-#### Schemas
-
-`SBOMSchema` handles schema loading and validation. It uses a bundle-based approach. If the bundle isn't found, validation of the SBOM is automatically skipped.
-
-It avoids using `Bundle.module` because if the bundle is not found (like on a custom toolchain), there is fatal error. It also avoids using `Bundle.allBundles` because on Linux, `Bundle.allBundles` is not thread-safe. Instead, it searches for and tries to load bundles on disk at `Bundle.main.resourceURL`, `Bundle.main.bundleURL`, and `Bundle.main.executableURL`.
-
-To update the schema,
-
-- Replace or add a schema file in the `Resources` directory.
-- Update the schema filename constant in `CycloneDXConstants.swift` and `SPDXConstants.swift`.
-- Run `SBOMValidationTests`.
-
-### SBOM Content
-
-This feature will support the most recent minor versions of major versions starting with CycloneDX 1 and SPDX 3.
-
-Only JSON files will be generated. JSON is a common file format supported by both CycloneDX and SPDX. JSON is the preferred format for CycloneDX and becoming more common in SPDX.
+SwiftPM will only support SBOMs in JSON format. JSON is a common file format supported by both CycloneDX and SPDX. JSON is the preferred format for CycloneDX and becoming more common in SPDX.
 
 Generated SBOMs will include:
 
@@ -312,10 +185,18 @@ Generated SBOMs will include:
 
 If `SwiftBuild` is specified and the build dependency graph is used, then only used components will be included. Otherwise, all components in the resolved package graph will be included.
 
-* Component CycloneDX type or package SPDX purpose; name; and version
+**Components**
+* Component CycloneDX type or package SPDX purpose (application or library)
+  * For a Swift package, if there is at least one product that is an executable, the package is considered an SBOM `application` component; else it is an SBOM `library` component. Test products are not considered.
+  * For a Swift product, if it is a Swift executable product, it will be considered an SBOM `application` component; else the product is an SBOM `library` component. 
+* Name
+* Version, either a version tag or SHA
 * Package URL (PURL) for unique identification
-* Source repository information
+* Source repository information (commit SHA and repo URL if available)
 * Entity type (Swift package or product)
+* Scope (whether an SBOM component is a test component)
+  * For a Swift package, if all products are test products, then the SBOM component scope is `test`; else it is `required`.
+  * For a Swift product, if all modules are test modules, then the SBOM component scope is `test`; else it is `required`.
 
 **CycloneDX:**
 
@@ -381,12 +262,25 @@ If `SwiftBuild` is specified and the build dependency graph is used, then only u
 
 #### Dependencies
 
+SBOM generation cross-references two different sources (the resolved modules graph and the SwiftBuild build dependency graph) for dependency information.
+
 If `SwiftBuild` is specified and the build dependency graph is used, then only used dependencies will be included. Otherwise, all dependencies in the resolved package graph will be included.
 
-* Direct and transitive relationships
+The SBOM will contain information about:
+
 * Package-to-package dependencies
-* Package-to-product dependencies (i.e., a package depends on its own products; package-to-product relationships will not include dependencies between a package and a product the package doesn't produce)
+  * Root package depends on other packages.
+  * A package depends on other packages.
+* Package-to-product dependencies ("dependencies" isn't exactly accurate, but the relationship is treated as a deepndency in the SBOM in order to create a complete graph)
+  * A package produces products.
 * Product-to-product dependencies
+  * A product depends on products from other packages.
+
+So a package can depend on a package or product, whereas a product can only depend on products. This maintains cleanliness and prevents cycles in the SBOM.
+
+**Note about products in the same package:** Products in the same root package that share targets can create cycles if they depend on each other. So product-to-product dependencies within the same root package are not tracked, only product-to-product dependencies from outside the root package are tracked.
+
+For further information, see [Appendix](#appendix).
 
 **CycloneDX:**
 
@@ -648,6 +542,10 @@ If `SwiftBuild` is specified and the build dependency graph is used, then only u
 },
 ```
 
+### Performance
+
+Performance of SBOM generation depends on the machine that's generating the SBOM and how large the project is. In general, a repo that is the size of `swift-package-manager` (approx 60 components and 350 dependencies) will take less than 5 seconds to generate both CycloneDX and SPDX SBOMs.
+
 ## Security
 
 This will strengthen Swift’s supply chain security profile by providing a basic inventory for packages and products.
@@ -676,3 +574,40 @@ Some future features that can be added include:
 * **Package.resolved generation**: Generate a `Package.resolved` file based on an SBOM in order to reproduce a dependency graph (e.g., for debugging)
 * **SBOM signing**: Sign the SBOM cryptographically to link it to an artifact
 * **Hashes**: Add hashes to the SBOM
+
+## Appendix
+
+### Dependencies Extraction Algorithm
+
+The dependency extraction follows a breadth-first traversal pattern with the following steps:
+
+1. Initialize tracking structures:
+   - `components`: Set of all discovered components
+   - `relationships`: Map of parent components to their child components
+   - `processedProducts`: Set to avoid reprocessing products
+   - `productsToProcess`: Queue of products to analyze
+
+Then, for either the specified product, or for all products in the root package:
+
+1. **Track root package → product relationship**
+   - Add relationship: root package depends the target product
+
+2. **Process product dependencies**:
+   - While `productsToProcess` is not empty:
+     - Remove product from queue and add to `processedProducts`. This is the `currentlyProcessedProduct`.
+     - Add relationship: root package depends on `currentlyProcessedProduct`'s package (if it's not the root package -- products within the same root package shouldn't depend on each other)
+     - Get `currentlyProcessedProduct`'s dependencies based on the SwiftBuild build graph. If the build graph isn't available, fall back to the resolved modules graph. 
+     - For each dependency:
+       - **If it's a product `dependentProduct`**: If not in `processedProducts`, then add `dependentProduct` to `productsToProcess` (so its own dependencies can be processed). Also:
+          - Add relationship:`currentlyProcessedProduct` → `dependentProduct` (if from different packages)
+          - Add relationship: `currentlyProcessedProduct`'s package → `dependentProduct`'s package
+          - Add relationship: `dependentProduct`'s package → `dependentProduct`
+       - **If it's a module `dependentModule`**:
+          - Initialize module processing queue `modulesToProcess` with `dependentModule`
+          - While `modulesToProcess` isn't empty:
+              - Remove module and mark as processed
+              - Get module's dependencies from either the build graph or modules graph (if build graph isn't available)
+              - For each module dependency:
+                  - If product, add to `productsToProcess`
+                  - If module, add to `modulesToProcess`
+           - Return list of discovered products added to `productsToProcess`
