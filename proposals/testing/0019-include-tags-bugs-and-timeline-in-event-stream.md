@@ -1,9 +1,9 @@
 # Include metadata for tags, bugs, and time limit traits in event stream
 
-* Proposal: [ST-NNNN](NNNN-augment-event-json-abi.md)
-* Authors: [Sam Khouri](https://github.com/bkhouri),
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Proposal: [ST-0019](0019-include-tags-bugs-and-timeline-in-event-stream)
+* Authors: [Sam Khouri](https://github.com/bkhouri)
+* Review Manager: [Paul LeMarquand](https://github.com/plemarquand)
+* Status: **In Review**
 * Implementation: [swiftlang/swift-testing#1429](https://github.com/swiftlang/swift-testing/pull/1429)
 * Review: [pitch](https://forums.swift.org/t/adding-additional-information-to-the-abi-json/83426)
 
@@ -40,8 +40,8 @@ the described traits.
 ## Detailed design
 
 We propose adding `"tags"`, `"bugs"`, and `"timeLimit"` fields to the existing
-`<test-suite>` and `<test-function>` structures in Swift Testings JSON event
-stream schedming starting with version `"6.4"`.  This enhancement builds upon the
+`<test-suite>` and `<test-function>` structures in Swift Testing's JSON event
+stream schema starting with version `"6.4"`. This enhancement builds upon the
 existing test metadata infrastructure already used internally by Swift Testing. The
 implementation reuses established data structures, ensuring consistency and
 minimizing complexity.
@@ -83,7 +83,7 @@ index e4ff24a4..edcd4481 100644
 Given the following test case:
 
 ```swift
-extention Tag {
+extension Tag {
   @Tag public static var blue: Self
 
   /// A tag representing the color red.
@@ -107,7 +107,7 @@ extention Tag {
 func example {}
 ```
 
-The proposed JSON containing the new fields would looks like
+The proposed JSON containing the new fields would look like
 
 ```json
 {
@@ -165,7 +165,7 @@ fixed.
 - **`timeLimitInSeconds` vs `timeLimit`**: We chose the shorter `timeLimit` name for
   consistency with Swift Testing's existing API, with the time unit documented in the
   schema specification.  The naming convention was discussed with the Testing Workgroup
-  and it was decided that a seperate proposal should be made on how to represent
+  and it was decided that a separate proposal should be made on how to represent
   the time units in the name/value.
 - **Additional Metadata**: Other test traits could be exposed as the ecosystem evolves
 
@@ -182,5 +182,5 @@ fixed.
 Thanks to [Jonathan Grynspan](https://github.com/grynspan) for suggesting to me
 I write this proposal and for providing feedback.
 
-Thanks to [Paul LeMarqaund](https://github.com/plemarquand) for providing proposal
+Thanks to [Paul LeMarquand](https://github.com/plemarquand) for providing proposal
 feedback before it was posted.
