@@ -98,7 +98,7 @@ Additionally, users can specify the following optional flags (which must appear 
         all               - Include all entities in the SBOM (default)
         package           - Only include package information and package dependencies
         product           - Only include product information and product dependencies
---sbom-warning-only <bool> Whether to ignore SBOM generation errors and emit a warning instead (default: false)
+--sbom-warning-only  When set, SBOM generation failure will emit a warning instead of failing the build
 ```
 
 #### SBOM Filters
