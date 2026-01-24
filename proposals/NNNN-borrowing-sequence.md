@@ -8,7 +8,7 @@
 * Upcoming Feature Flag: TBD
 * Review: ([pitch](https://forums.swift.org/...))
 
-## Introduction
+## Summary of changes
 
 We propose a new protocol for iteration, `BorrowingSequence`, which 
 will work with noncopyable types and provide more efficient iteration
