@@ -350,7 +350,7 @@ will trivially make use of the `BorrowingIteratorAdaptor` shown above:
 extension UnfoldSequence: BorrowingSequence { }
 ```
 
-### Supressed conformance of the `BorrowingIterator` associated type
+### Suppressed conformance of the `BorrowingIterator` associated type
 
 Proposal [SE-0503](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0503-suppressed-associated-types.md)
 allows the supression of `Copyable` and `Escapable` on associated types.
