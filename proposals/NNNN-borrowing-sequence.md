@@ -353,7 +353,7 @@ extension UnfoldSequence: BorrowingSequence { }
 ### Suppressed conformance of the `BorrowingIterator` associated type
 
 Proposal [SE-0503](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0503-suppressed-associated-types.md)
-allows the supression of `Copyable` and `Escapable` on associated types.
+allows the suppression of `Copyable` and `Escapable` on associated types.
 
 Since `Element` is a _primary_ associated type, users will be able to extend 
 `BorrowingSequence` with algorithms that require copyability. For example, 
