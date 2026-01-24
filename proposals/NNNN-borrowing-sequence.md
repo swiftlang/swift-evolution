@@ -327,7 +327,7 @@ public struct BorrowingIteratorAdapter<Iterator: IteratorProtocol>: BorrowingIte
     currentValue = iterator.next()
 	// note Optional._span is a private method in the standard library
 	// that creates an empty or 1-element span of the optional
-    return curValue._span
+    return currentValue._span
   }
 }
 
