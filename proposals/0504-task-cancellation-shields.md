@@ -295,7 +295,7 @@ Therefore the API documentation will be changed to reflect this change:
 ```swift
 /// ... 
 /// A task's cancellation is final and cannot be undone.
-/// However, is is possible to cause the `isCancelled` property to return `false` even 
+/// However, it is possible to cause the `isCancelled` property to return `false` even 
 /// if the task was previously cancelled by entering a ``withTaskCancellationShield(_:)`` scope.
 /// ...
 public var isCancelled: Bool {
