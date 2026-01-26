@@ -6,7 +6,7 @@
 * Status: **Active review (January 26...February 9, 2026)**
 * Vision: [[Prospective Vision] Accessors](https://forums.swift.org/t/prospective-vision-accessors/76707)
 * Implementation: On `main` gated behind `-enable-experimental-feature BorrowAndMutateAccessors`
-* Review: ([pitch](https://forums.swift.org/t/pitch-borrowing-accessors/83933))
+* Review: ([review](https://forums.swift.org/t/se-0507-borrow-and-mutate-accessors/84376))([pitch](https://forums.swift.org/t/pitch-borrowing-accessors/83933))
 
 ## Introduction
 
