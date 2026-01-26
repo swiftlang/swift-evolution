@@ -1,12 +1,12 @@
 # Add a `filePath` property to `SourceLocation`
 
-* Proposal: [ST-NNNN](NNNN-sourcelocation-filepath.md)
+* Proposal: [ST-0020](0020-sourcelocation-filepath.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Rachel Brindle](https://github.com/younata)
+* Status: **Active Review (01-26...02-09, 2026)**
 * Bug: rdar://152999195
 * Implementation: [swiftlang/swift-testing#1334](https://github.com/swiftlang/swift-testing/pull/1334), [swiftlang/swift-testing#1472](https://github.com/swiftlang/swift-testing/pull/1472)
-* Review: ([pitch](https://forums.swift.org/t/pitch-add-a-filepath-property-to-sourcelocation-in-swift-testing/83995))
+* Review: ([pitch](https://forums.swift.org/t/pitch-add-a-filepath-property-to-sourcelocation-in-swift-testing/83995)) ([review]())
 
 ## Introduction
 
