@@ -196,7 +196,7 @@ task.cancel()
 print(task.isCancelled) // _always_ true
 ```
 
-The instance method `task.isCancelled` queried from the outside of the task will return the _actual_ cancelled state, regardless if the task is right no executing a section of code under a cancellation shield or not. This is because from the outside it would be racy to query the cancellation state and rely on wether or not the task is currently executing a section of code under a shield. This could lead to confusing behavior where querying the same `task.isCancelled` could be flip flopping between cancelled and not cancelled.
+The instance method `task.isCancelled` queried from the outside of the task will return the _actual_ cancelled state, regardless if the task is right now executing a section of code under a cancellation shield or not. This is because from the outside it would be racy to query the cancellation state and rely on wether or not the task is currently executing a section of code under a shield. This could lead to confusing behavior where querying the same `task.isCancelled` could be flip flopping between cancelled and not cancelled.
 
 The static method `Task.isCancelled` always reports the cancelled status of "this context" and thus respects the structure of the program with regards to nesting in `withTaskCancellationShield { ... }` blocks. This static method was, and remains, the primary way tasks interact with cancellation.
 
@@ -295,7 +295,7 @@ Therefore the API documentation will be changed to reflect this change:
 ```swift
 /// ... 
 /// A task's cancellation is final and cannot be undone.
-/// However, is possible to cause the `isCancelled` property to return `false` even 
+/// However, it is possible to cause the `isCancelled` property to return `false` even 
 /// if the task was previously cancelled by entering a ``withTaskCancellationShield(_:)`` scope.
 /// ...
 public var isCancelled: Bool {
