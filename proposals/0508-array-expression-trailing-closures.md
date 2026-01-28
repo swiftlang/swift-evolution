@@ -4,12 +4,12 @@
 * Authors: [Cal Stephens](https://github.com/calda)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Active review (January 30...February 12, 2026)**
-* Implementation: [#86244](https://github.com/swiftlang/swift/pull/86244)
-* Pitch: [1](https://forums.swift.org/t/support-trailing-closure-syntax-for-single-argument-array-and-dictionary-initializers/83900)
+* Implementation: [swiftlang/swift#86244](https://github.com/swiftlang/swift/pull/86244)
+* Review: ([pitch](https://forums.swift.org/t/support-trailing-closure-syntax-for-single-argument-array-and-dictionary-initializers/83900))
 
-## Introduction
+## Summary of changes
 
-We should add support for using trailing closures following array types in expressions.
+We add support for using trailing closures following array types in expressions.
 
 ## Motivation
 
