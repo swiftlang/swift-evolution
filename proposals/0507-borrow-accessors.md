@@ -349,8 +349,8 @@ var _storage: UnsafePointer<Element>
 
 var first: Element {
   borrow {
-    // ERROR: borrow accessors can only return literals, stored
-    // properties, or computed properties that have borrow accessors
+    // ERROR: borrow accessors can only return stored properties
+    // or computed properties that have borrow accessors
     return _storage.pointee
   }
 }
