@@ -1,10 +1,10 @@
 # Array expression trailing closures
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0508](0508-array-expression-trailing-closures.md)
 * Authors: [Cal Stephens](https://github.com/calda)
-* Review Manager: TBD
-* Status: **Awaiting review**
-* Implementation: [#86244](https://github.com/swiftlang/swift/pull/86244) ([toolchain](https://ci.swift.org/job/swift-PR-toolchain-macos/2171/))
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Active review (January 30...February 12, 2026)**
+* Implementation: [#86244](https://github.com/swiftlang/swift/pull/86244)
 * Pitch: [1](https://forums.swift.org/t/support-trailing-closure-syntax-for-single-argument-array-and-dictionary-initializers/83900)
 
 ## Introduction
