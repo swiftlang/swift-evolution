@@ -46,7 +46,7 @@ let value = [String] {
   "a"
 }
 
-// error: error: variable with getter/setter cannot have an initial value
+// error: variable with getter/setter cannot have an initial value
 var value = [String] {
   "a"
 }
