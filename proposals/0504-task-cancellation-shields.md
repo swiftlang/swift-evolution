@@ -224,17 +224,24 @@ While this code pattern is not really often encountered in real-world code, it c
 
 In order to aid understanding and debuggability of cancellation in such systems, we also introduce a new property to query for a cancellation shield being active in a specific task.
 
-This API is not intended to be used in "normal" code, and should only be used during debugging issues with cancellation, to check if a shield is active in a given task. This API is _only_ available on `UnsafeCurrentTask`, in order to dissuade from its use in normal code.
-
-The `hasActiveTaskCancellationShield` property, which can be used to determine if a cancellation shield is active. Primarily this can be used for debugging "why isn't my task getting cancelled?" kinds of issues.
+The `hasActiveTaskCancellationShield` property can be used to determine if a cancellation shield is active in a task. The property is available both as a static property on `Task` (which checks the current task), and as instance properties on `Task` and `UnsafeCurrentTask` instances:
 
 ```swift
-extension UnsafeCurrentTask {
+extension Task {
+  /// Checks if the current task has an active cancellation shield.
+  /// When not running inside a Task, this property will be false.
   public static var hasActiveTaskCancellationShield: Bool { get }
+  
+  /// Checks if this specific task has an active cancellation shield.
+  public var hasActiveTaskCancellationShield: Bool { get }
+}
+  
+extension UnsafeCurrentTask {
+  public var hasActiveTaskCancellationShield: Bool { get }
 }
 ```
 
-Here is an example, how `UnsafeCurrentTask`'s  `isCancelled` as well as the new `hasActiveTaskCancellationShield` behave inside of a cancelled, but shielded task. The instance method `UnsafeCurrentTask/isCancelled` behaves the same way as the `Task/isCancelled` method, which was discussed above. However, using the unsafe task handle, we are able to react to task cancellation shields if necessary:
+Here is an example, how a task's `isCancelled` as well as the new `hasActiveTaskCancellationShield` behave inside of a cancelled, but shielded task. The instance method `UnsafeCurrentTask/isCancelled` behaves the same way as the `Task/isCancelled` method, which was discussed above. However, using the unsafe task handle, we are able to react to task cancellation shields if necessary:
 
 ```swift
 let task = Task { 
@@ -245,17 +252,20 @@ let task = Task {
     
     withUnsafeCurrentTask { unsafeTask in 
       unsafeTask.isCancelled // true
-      unsafeTask.hasTaskCancellationShield // true
+      unsafeTask.hasActiveTaskCancellationShield // true
                            
       // can replicate respecting shield if necessary (racy by definition, if this was queried from outside)
       let isCancelledRespectingShield = 
-        if unsafeTask.hasTaskCancellationShield { false }
+        if unsafeTask.hasActiveTaskCancellationShield { false }
         else { unsafeTask.isCancelled }
     }
   }
 }
 
 task.cancel()
+task.hasActiveTaskCancellationShield // true/false, timing sensitive (!)
+// depending on if the query is executed while the Task is executing code 
+// inside a withTaskCancellationShield block or not.
 print(task.isCancelled) // true
 ```
 
@@ -312,7 +322,7 @@ While there isn't anything special with regards to defer blocks and cancellation
 let resource = makeResource()
 
 defer { 
-  await withCancellationShield { // ensure that cleanup always runs, regardless of cancellation
+  await withTaskCancellationShield { // ensure that cleanup always runs, regardless of cancellation
     await resource.cleanup()
   }
 }
