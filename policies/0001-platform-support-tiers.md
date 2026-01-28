@@ -1,9 +1,17 @@
-# Swift Platform Support: A Vision for Evolution
+# Swift Platform Support Tiers
+
+* Policy: [POL-0001](0001-platform-support-tiers.md)
+* Authors: [Platform Steering Group](https://forums.swift.org/g/platform-steering-group)
+* Review Manager: TBD
+* Status: **Request for Comments**
+* Review: ([rfc](https://forums.swift.org/...))
+
+## Introduction
 
 The Swift programming language has evolved into a versatile and powerful tool
 for developers across a wide range of platforms. As the ecosystem continues to
-grow, it is essential to establish a clear and forward-looking vision for
-platform support. This vision has two main goals:
+grow, it is essential to establish a clear and forward-looking policy for
+platform support. This policy has two main goals:
 
 1. To establish common terminology and definitions for platform support.
 
