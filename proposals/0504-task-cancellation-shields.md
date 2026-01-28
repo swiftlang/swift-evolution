@@ -204,8 +204,7 @@ We believe these semantics are the right, understandable, and consistent choice 
 
 - **static methods** observe the cancellation status "in this context", and thus, respect task cancellation shields,
   - This includes the: `Task.isCancelled`, `Task.checkCancellation` and `withTaskCancellationHandler` methods.
-- **instance methods** on `Task` (and `UnsafeCurrentTask` discussed next) observe the actual cancellation state, ignoring any task cancellation shields because they are not called "in a scope" but just called on a specific task handle.
-  - These methods are called rarely, and are only accessible on the "current" task through APIs on the `UnsafeCurrentTask`.
+- **instance methods** on `UnsafeCurrentTask` observe the actual cancellation state, ignoring any task cancellation shields because they are not called "in a scope" but just called on a specific task handle.
 
 
 ### Debugging and Observing Task Cancellation Shields
@@ -224,24 +223,21 @@ While this code pattern is not really often encountered in real-world code, it c
 
 In order to aid understanding and debuggability of cancellation in such systems, we also introduce a new property to query for a cancellation shield being active in a specific task.
 
-The `hasActiveTaskCancellationShield` property can be used to determine if a cancellation shield is active in a task. The property is available both as a static property on `Task` (which checks the current task), and as instance properties on `Task` and `UnsafeCurrentTask` instances:
+The `hasActiveTaskCancellationShield` property can be used to determine if a cancellation shield is active. The property is available both as a static property on `Task` (which checks the current task), and as instance property on `UnsafeCurrentTask`:
 
 ```swift
 extension Task {
   /// Checks if the current task has an active cancellation shield.
   /// When not running inside a Task, this property will be false.
   public static var hasActiveTaskCancellationShield: Bool { get }
-  
-  /// Checks if this specific task has an active cancellation shield.
-  public var hasActiveTaskCancellationShield: Bool { get }
 }
-  
+
 extension UnsafeCurrentTask {
   public var hasActiveTaskCancellationShield: Bool { get }
 }
 ```
 
-Here is an example, how a task's `isCancelled` as well as the new `hasActiveTaskCancellationShield` behave inside of a cancelled, but shielded task. The instance method `UnsafeCurrentTask/isCancelled` behaves the same way as the `Task/isCancelled` method, which was discussed above. However, using the unsafe task handle, we are able to react to task cancellation shields if necessary:
+Here is an example, how `isCancelled` and `hasActiveTaskCancellationShield` behave inside of a cancelled but shielded task:
 
 ```swift
 let task = Task { 
@@ -263,9 +259,6 @@ let task = Task {
 }
 
 task.cancel()
-task.hasActiveTaskCancellationShield // true/false, timing sensitive (!)
-// depending on if the query is executed while the Task is executing code 
-// inside a withTaskCancellationShield block or not.
 print(task.isCancelled) // true
 ```
 
