@@ -205,7 +205,7 @@ We believe these semantics are the right, understandable, and consistent choice 
 - **static methods** observe the cancellation status "in this context", and thus, respect task cancellation shields,
   - This includes the: `Task.isCancelled`, `Task.checkCancellation` and `withTaskCancellationHandler` methods.
 - **instance methods** on `Task` (and `UnsafeCurrentTask` discussed next) observe the actual cancellation state, ignoring any task cancellation shields because they are not called "in a scope" but just called on a specific task handle.
-- These methods are called rarely, and are only accessible on the "current" task through APIs on the `UnsafeCurrentTask`.
+  - These methods are called rarely, and are only accessible on the "current" task through APIs on the `UnsafeCurrentTask`.
 
 
 ### Debugging and Observing Task Cancellation Shields
