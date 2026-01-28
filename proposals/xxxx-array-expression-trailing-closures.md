@@ -51,12 +51,9 @@ var value = [String] {
   "a"
 }
 
-[String] { // error: closure expression is unused
-  "a"
-}
-
+// error: closure expression is unused
 let value = [String]
-{ // error: closure expression is unused
+{
   "a"
 }
 ```
