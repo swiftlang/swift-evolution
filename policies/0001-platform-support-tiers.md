@@ -114,8 +114,8 @@ Platforms that are in Tier 1 should:
     - [ ] Swift Testing Frameworks (if applicable)
 
      (See [the Swift Runtime Libraries
-     document](https://github.com/swiftlang/swift/blob/main/Runtimes/Readme.md)
-     in [the Swift repository](https://github.com/swiftlang/swift).)
+     document](https://github.com/swiftlang/swift/blob/main/Runtimes/Readme.md#layering)
+     in [the Swift repository](https://github.com/swiftlang/swift) for the list of definitions.)
 
 - [ ] Maintain a three-version window of support, including:
 
@@ -202,8 +202,8 @@ Platforms in this tier should:
     - [ ] Swift Testing Frameworks (if applicable)
 
      (See [the Swift Runtime Libraries
-     document](https://github.com/swiftlang/swift/blob/main/Runtimes/Readme.md)
-     in [the Swift repository](https://github.com/swiftlang/swift).)
+     document](https://github.com/swiftlang/swift/blob/main/Runtimes/Readme.md#layering)
+     in [the Swift repository](https://github.com/swiftlang/swift) for the list of definitions.)
 
 - [ ] Maintain at least a two-version window of support, including
 
