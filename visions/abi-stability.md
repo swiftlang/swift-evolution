@@ -99,8 +99,11 @@ based on system versions.
 Like Apple platforms, Windows is ABI stable at the API layer; SPIs are
 not officially ABI stable (though in practice they may be), and
 neither is the system call interface itself.  Note, though, that there
-is a wrinkle here---the C/C++ runtime is _not_ part of the Windows
-API, and does not form part of the ABI boundary.
+is a wrinkle here---the C/C++ runtime historically was not part of the
+Windows API, and did not form part of the ABI boundary.  This is
+changing slightly with the "universal CRT", which is now a component
+of Windows itself, but unlike other platforms it is still very much an
+optional component.
 
 Windows has a platform-wide exception handling mechanism (Structured
 Exception Handling or SEH), which means that the operating system
@@ -108,14 +111,13 @@ specifies in detail how stack unwinding must take place.  Unlike other
 platforms we care about, Windows does not use DWARF for exception
 unwinding, but instead relies on knowledge of the standard function
 prologue and epilogue.  This creates problems for tail call
-optimization, which is also needed for Swift Concurrency.  While we
-have *a* solution in place, we need to be convinced that it's the
-*right* solution before declaring ABI stability on Windows.  Also
-unlike other systems, SEH unwinding can be triggered by *asynchronous*
-exceptions, which can occur during the prologue or epilogue, which
-means we can't simply declare that e.g. async functions don't need to
-follow the standard ABI here (since we aren't in charge of when these
-might happen).
+optimization, which is also needed for Swift Concurrency.
+
+Also unlike other systems, SEH unwinding can be triggered by
+*asynchronous* exceptions, which can occur during the prologue or
+epilogue, which means we can't simply declare that e.g. async
+functions don't need to follow the standard ABI here (since we aren't
+in charge of when these might happen).
 
 Windows DLLs also have some interesting design features that need to
 be borne in mind here.  In particular, symbols exported from DLLs can
@@ -268,7 +270,18 @@ become officially ABI stable:
 
   - It is already ABI stable on Apple platforms.
 
-  - It makes a great deal of sense for it to be ABI stable on Windows.
+  - On Windows, ABI stability of the runtime may not be necessary,
+    as we can instead use Windows' "side-by-side" (SxS) install
+    mechanism to allow software to select an appropriate runtime.
+
+    That said, without ABI stable runtimes, situations where Swift
+    is used to develop plug-in components (such as application
+    plug-ins, COM objects and the like) will be much more difficult,
+    as every module loaded into a process would have to use the same
+    Swift runtime version or risk problems.
+
+    It therefore seems as if we should aim for ABI stability on
+    Windows also.
 
   - On other UNIX/UNIX-like platforms, we should aim for it to be ABI
     stable when dynamically linked, even if underlying libraries (like
