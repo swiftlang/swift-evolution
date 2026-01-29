@@ -1,6 +1,6 @@
 # Unique
 
-* Proposal: [SE-NNNN](nnnn-box.md)
+* Proposal: [SE-NNNN](nnnn-unique.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
@@ -10,7 +10,7 @@
 ## Introduction
 
 We propose to introduce a new type in the standard library `Unique` which is a
-simple smart pointer type that uniquely owns a value on the heap.
+smart pointer type that uniquely owns a value on the heap.
 
 ## Motivation
 
@@ -83,7 +83,7 @@ print(box.value) // [3, 2, 1]
 ```
 
 It's smart because it will automatically clean up the heap allocation when the
-box is no longer being used:
+unique box is no longer being used:
 
 ```swift
 struct Foo: ~Copyable {
@@ -112,44 +112,54 @@ func main() {
 ```swift
 /// A smart pointer type that uniquely owns an instance of `Value` on the heap.
 public struct Unique<Value: ~Copyable>: ~Copyable {
-  /// Initializes a value of this box with the given initial value.
+  /// Initializes a value of this unique box with the given initial value.
   ///
-  /// - Parameter initialValue: The initial value to initialize the box with.
+  /// - Parameter initialValue: The initial value to initialize the unique box
+  ///                           with.
   public init(_ initialValue: consuming Value)
 } 
 
+extension Unique: Sendable where Value: Sendable & ~Copyable {}
+
 extension Unique where Value: ~Copyable {
-  /// Dereferences the box allowing for in-place reads and writes to the stored
-  /// `Value`.
+  /// Dereferences the unique box allowing for in-place reads and writes to the
+  /// stored `Value`.
   public var value: Value {
     borrow
     mutate
   }
 
-  /// Consumes the box and returns the instance of `Value` that was within the
-  /// box.
+  /// Consumes the unqiue box and returns the instance of `Value` that was
+  /// within the box.
   public consuming func consume() -> Value
 }
 
 extension Unique where Value: ~Copyable {
   /// Returns a single element span reference to the instance of `Value` stored
-  /// within this box.
+  /// within this unique box.
   public var span: Span<Value> {
     get
   }
 
   /// Returns a single element mutable span reference to the instance of `Value`
-  /// stored within this box.
+  /// stored within this unique box.
   public var mutableSpan: MutableSpan<Value> {
     mutating get
   }
 }
 
 extension Unique where Value: Copyable {
-  /// Copies the value within the box and returns it in a new box instance.
+  /// Copies the value within the unique box and returns it in a new unique
+  /// instance.
   public func clone() -> Unique<Value>
 }
 ```
+
+`Unique` provides a stable address to the value allocated on the heap. While
+a value of this type can still be freely moved by the compiler, a move of an
+instance of it does not move the value it allocated; the physical address of the
+pointer remains stable. This proposal does not introduce an API to get this
+pointer from a `Unique` instance as we leave that for a future direction.
 
 ## Source compatibility
 
@@ -228,19 +238,19 @@ copyable ones by keeping track of a reference count similar to classes in Swift.
 
 ### Introduce a `Clonable` protocol
 
-`Box` comes with a `clone` method that will effectively copy the box and its
-contents entirely returning a new instance of it. We can't make `Unique` a
-copyable type because we need to be able to customize deinitialization and for
+`Unique` comes with a `clone` method that will effectively copy the unique box
+and its contents entirely returning a new instance of it. We can't make `Unique`
+a copyable type because we need to be able to customize deinitialization and for
 performance reasons wouldn't want the compiler to implicitly add copies of it
 either. So `Unique` is a noncopyable type, but when its contents are copyable
-we can add explicit ways to copy the box into a new allocation.
+we can add explicit ways to copy the instance into a new allocation.
 
 `Unique.clone()` is only available when the underlying `Value` is `Copyable`,
 but there is a theoretical other protocol that this is relying on which is
 `Clonable`. `Unique` itself can conform to `Clonable` by providing the explicit
 `clone()` operation, but itself not being `Copyable`. If this method were
-conditional on `Value: Clonable`, then you could call `clone()` on a box of a
-box (`Unique<Unique<T>>`).
+conditional on `Value: Clonable`, then you could call `clone()` on something
+like `Unique<Unique<T>>`.
 
 Rust has a hierarchy very similar to this:
 
@@ -258,6 +268,33 @@ where needed.
 We are not suggesting that we make all `Copyable` types inherit from a
 `Clonable` in the future, but simply demonstrating another language's approach
 to how they handle explicit copyability and implicit copyability.
+
+### Add an API to get the pointer of a `Unique`
+
+Because `Unique` has stable address guarantees, API such as the following:
+
+```swift
+extension Unique where Value: ~Copyable {
+  public func unsafeAddress() -> UnsafePointer<Value>
+
+  public mutating func unsafeMutableAddress() -> UnsafeMutablePointer<Value>
+}
+```
+
+could be entirely reasonable to have on `Unique`. This proposal chooses to leave
+this as a future direction because a similar but distinct API `leak` could be
+introduced with new language features:
+
+```swift
+extension Unique where Value: ~Copyable {
+  public consuming func leak() -> Inout<Value>
+}
+```
+
+where `Inout` is some hypothetical type that captures exclusive mutable access
+to a value. `leak` wouldn't solve use cases that require pointers like calling C
+APIs, but we feel it would be more appropriate to propose those API in addition
+to `leak`.
 
 ### Implement something similar to Rust's `Deref` trait
 
