@@ -136,31 +136,7 @@ The memberwise initializer will continue to include both `x` and `y` since its m
 
 ### Compatibility overload
 
-The above change is not source compatible since types may currently be relying on the memberwise initializer to initialize `private` properties of the type. This would become illegal if that type has another memberwise initializable property with a greater access level. Given that the resulting initializer is forced to be `private` or `fileprivate` in these cases, this only affects uses that are in the same file. To help mitigate the compatibility for these cases, the compiler will continue to synthesize a separate compatibility overload of the memberwise initializer that contains the same properties as before the change.
-
-Any uses of this overload will result in a warning on the type with a fix-it that inserts an explicit version of the compatibility overload that can be used:
-
-```swift
-struct S {
-  // ^ warning: synthesized memberwise initializer no longer includes 'x'; uses of it will be an error in a future Swift language mode
-  // ^ note: insert an explicit implementation of the memberwise initializer
-
-  private var x: Int?
-  var y: String
-
-  // New memberwise initializer:
-  // internal init(y: String)
-
-  // Compatibility overload:
-  // private init(x: Int? = nil, y: String)
-
-  func foo() -> S {
-    S(x: x, y: "hello \(y)") // note: memberwise initializer used here
-  }
-}
-```
-
-This implicit compatibility overload will then be removed in a future language mode. An upcoming feature flag will be available to allow adopting the feature without the compatibility overload.
+The above change alone is not source compatible since types may currently be relying on the memberwise initializer to initialize `private` properties of the type. This would become illegal if that type has another memberwise initializable property with a greater access level. Given that the resulting initializer is forced to be `private` or `fileprivate` in these cases, this only affects uses that are in the same file. To help mitigate the compatibility for these cases, the compiler will continue to synthesize a separate compatibility overload of the memberwise initializer that contains the same properties as before the change.
 
 ## Source compatibility
 
@@ -194,6 +170,34 @@ The implicit memberwise initializer is only ever `internal` at most, and as such
 There are no deployment or ABI concerns with adopting this feature. As the memberwise initializer is only ever `internal` at most, any source compatibility impact is limited to the module in which the type is defined. As explored in the source compatibility section, the introduction of a compatibility overload allows users to continue using the original variant of the memberwise initializer until the next language mode.
 
 ## Future directions
+
+### Deprecating the compatibility memberwise initializer
+
+In a future language mode we could consider removing the compatibility overload, with a warning and fix-it that inserts an explicit version of the initializer to help users migrate prior to adopting the new language mode. Given this only affects uses in the same file, the compiler could emit this warning on the type itself if any use of the compatibility overload is present:
+
+```swift
+struct S {
+  // ^ warning: synthesized memberwise initializer no longer includes 'x'; uses of it will be an error in a future Swift language mode
+  // ^ note: insert an explicit implementation of the memberwise initializer
+
+  private var x: Int?
+  var y: String
+
+  // New memberwise initializer:
+  // internal init(y: String)
+
+  // Compatibility overload:
+  // private init(x: Int? = nil, y: String)
+
+  func foo() -> S {
+    S(x: x, y: "hello \(y)") // note: memberwise initializer used here
+  }
+}
+```
+
+An upcoming feature flag could also be available to allow adopting the feature without the compatibility overload.
+
+### Fully customizable memberwise initializer
 
 We could introduce a mechanism that allows full customization of the memberwise initializer, either through the introduction of an attribute that could be attached to properties to explicitly spell whether they should be included or excluded, or potentially through a macro-like syntax, e.g:
 
