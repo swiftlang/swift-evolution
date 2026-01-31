@@ -2,8 +2,8 @@
 
 * Proposal: [SE-NNNN](NNNN-swift-sboms.md)
 * Authors: [Ev Cheng](https://github.com/echeng3805)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Franz Busch](https://github.com/FranzBusch)
+* Status: **Active review (February 02...February 16, 2026)**
 * Discussion thread(s):
   * [Pitch](https://forums.swift.org/t/pitch-software-bill-of-materials-sbom-generation-for-swift-package-manager/83499)
 * Implementation: [swiftlang/swift-package-manager#9633](https://github.com/swiftlang/swift-package-manager/pull/9633)
