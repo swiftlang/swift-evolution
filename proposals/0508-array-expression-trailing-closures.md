@@ -74,7 +74,7 @@ However, this trailing closure syntax _is_ currently supported for `InlineArray`
 
 ```swift
 let powersOfTwo = [4 of Int] { index in
-  index * index
+  1 << index
 }
 ```
 
