@@ -4,9 +4,9 @@
 * Previous Proposal: [SE-0262](0262-demangle.md)
 * Authors: [Konrad'ktoso'Malawski](https://github.com/ktoso), [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active Review (November 4 ..< 18)**
+* Status: **Accepted**
 * Implementation: [PR #84788](https://github.com/swiftlang/swift/pull/84788)
-* Review: ([first pitch](https://forums.swift.org/t/demangle-function/25416/16)) ([second pitch](https://forums.swift.org/t/pitch-expose-demangle-function-in-runtime-module/82605)) ([review](https://forums.swift.org/t/se-0498-expose-demangle-function-in-runtime-module/83032))
+* Review: ([first pitch](https://forums.swift.org/t/demangle-function/25416/16)) ([second pitch](https://forums.swift.org/t/pitch-expose-demangle-function-in-runtime-module/82605)) ([review](https://forums.swift.org/t/se-0498-expose-demangle-function-in-runtime-module/83032)) ([acceptance](https://forums.swift.org/t/accepted-se-0498-expose-demangle-function-in-runtime-module/84111))
 
 ## Introduction
 
@@ -28,10 +28,21 @@ This proposal introduces an official `demangle(_: String) -> String?` function t
 
 We propose to introduce two `demangle` functions in the `Runtime` module:
 
-A simple demangle method, returning an optional `String`:
+A simple demangle method, returning a `String`:
 
 ```swift
-public func demangle(_ mangledName: String) -> String?
+/// Given a mangled Swift symbol, demangle it into a human readable format.
+///
+/// If the provided string is not a valid mangled swift identifier this function will throw.
+/// If mangling succeeds the returned string will contain a demangled human-readable representation of the identifier.
+///
+/// - Parameters:
+///   - mangledName: A mangled Swift symbol.
+/// - Returns: A human readable demangled Swift symbol.
+/// - Throws: When the demangling fails for any reason.
+/// - Warning: The demangled output is lossy is not not guaranteed to be stable across Swift versions.
+///            Future versions of Swift may choose to print more (or less) information in the demangled format.
+public func demangle(_ mangledName: String) throws(DemanglingError) -> String
 ```
 
 The demangling function supports all valid Swift symbols. Valid Swift 5.0 and later symbols begin with `$s` (preceded by an optional platform-specific prefix).
@@ -39,15 +50,36 @@ The demangling function supports all valid Swift symbols. Valid Swift 5.0 and la
 And an overload which accepts an `UTF8Span` into which the demangled string can be written:
 
 ```swift
+/// Given a mangled Swift symbol, demangle it into a human readable format into the prepared output span.
+///
+/// If the provided bytes are not a valid mangled swift name, the output span will be initialized with zero elements.
+/// If mangling succeeds the output span will contain the resulting demangled string.
+/// A successfully demangled string is _not_ null terminated, and its length is communicated by the `initializedCount`
+/// of the output span.
+///
+/// The demangled output may be _truncated_ if the output span's capacity is insufficient for the
+/// demangled output string! You can detect this situation by inspecting the returned ``DemanglingResult``,
+/// for the ``DemanglingResult/truncated`` case.
+///
+/// - Parameters:
+///   - mangledName: A mangled Swift symbol.
+///   - output: A pre-allocated span to demangle the Swift symbol into.
+/// - Throws: When the demangling failed entirely, and the output span will not have been written to.
+/// - Warning: The demangled output is lossy is not not guaranteed to be stable across Swift versions.
+///            Future versions of Swift may choose to print more (or less) information in the demangled format.
 public func demangle(
   _ mangledName: borrowing UTF8Span,
   into output: inout OutputSpan<UTF8.CodeUnit>
-) -> DemanglingResult
+) throws(DemanglingError)
 
-public enum DemanglingResult: Equatable {
-  case success
-  case failed
-  case truncated(Int)
+/// Error thrown to indicate failure to demangle a Swift symbol.
+public enum DemanglingError: Error {
+  /// Demangling resulted in truncating the result. The payload value is the
+  /// number of bytes necessary for a full demangle.
+  case truncated(requiredBufferSize: Int)
+
+  /// The passed Swift mangled symbol was invalid.
+  case invalidSymbol
 }
 ```
 
@@ -55,17 +87,22 @@ The span accepting API is necessary for performance sensitive use-cases, which a
 
 The output from this API is an `OutputSpan` of `UTF8.CodeUnit`s, and it may not necessarily be well-formed UTF8, because of the potential of truncation happening between two code units which would render the UTF8 invalid.
 
-If the demangled representation does not fit the preallocated buffer, the demangle method will return `truncated(actualSize)` such that developers can determine by how much the buffer might need to be increased to handle the complete demangling. When `.truncated` is returned, the `OutputSpan` will contain a _partial result_, of however many characters were able to fit into it before truncation ocurred. This also means that a truncated output may not be entirely valid UTF8. 
+If the demangled representation does not fit the preallocated buffer, the demangle method will throw `DemanglingError.truncated(requiredBufferSize: Int)` such that developers can determine by how much the buffer might need to be increased to handle the complete demangling. When `.truncated` is thrown, the `OutputSpan` will contain a _partial result_, of however many Unicode scalars were able to fit into it before truncation occurred. If truncation occurs, the returned string will contain only valid UTF8, i.e. the result will never be truncated in the middle of a Unicode scalar.
 
 Converting the outputSpan to a `String`, which is guarateed to be valid UTF8, follows the below pattern, where creating an `UTF8Span` _will_ perform validation of the UTF8 String contents, and fail if the output wasn't correct. 
 
 ```swift
 var demangledOutputSpan: OutputSpan<UTF8.CodeUnit> = ...
 
-if demangle("$sSG", into: &demangledOutputSpan) == .success {
+do {
+  try demangle("$sSG", into: &demangledOutputSpan)
   let utf8 = try UTF8Span(validating: demangledOutputSpan.span)
   let demangledString = String(copying: utf8)
   print(demangledString) // Swift.RandomNumberGenerator
+} catch DemanglingError.truncated(let requiredBufferSize) {
+  // Handle truncation - need a buffer of size requiredBufferSize
+} catch {
+  // Handle invalid symbol
 }
 ```
 

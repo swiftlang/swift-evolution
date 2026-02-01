@@ -36,7 +36,7 @@ The most notable use case for this is conditional inclusion of tests for the Swi
 
 ## Proposed solution
 
-The solution proposed is to allow #if conditionals using their exiting syntax inside collection literals surrounding sublists of elements. These elements would be either included or not included in the resulting array or dictionary instance dependant on the truth of the `#if`, `#elseif` or `#else` i.e. whether they where "active". One new syntactic requirement is the trailing comma in sublists before or inside conditional clauses is not optional as it would normally be at the end of the collection.
+The solution proposed is to allow #if conditionals using their existing syntax inside collection literals surrounding sublists of elements. These elements would be either included or not included in the resulting array or dictionary instance dependent on the truth of the `#if`, `#elseif` or `#else` i.e. whether they where "active". One new syntactic requirement is the trailing comma in sublists before or inside conditional clauses is not optional as it would normally be at the end of the collection.
 
 ## Detailed design
 
@@ -50,7 +50,7 @@ N/A. This is an purely additive proposal for syntax that is not currently valid 
 
 ## Effect on ABI stability
 
-N/A. This is a compile time alteration of a collections's elements. The resulting collection is a conventional container as it would have been without the conditional though exactly which elements are included can affect the collection's type.
+N/A. This is a compile time alteration of a collection's elements. The resulting collection is a conventional container as it would have been without the conditional though exactly which elements are included can affect the collection's type.
 
 ## Effect on API resilience
 

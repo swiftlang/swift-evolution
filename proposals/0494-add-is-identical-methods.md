@@ -3,8 +3,8 @@
 * Proposal: [SE-0494](0494-add-is-identical-methods.md)
 * Authors: [Rick van Voorden](https://github.com/vanvoorden), [Karoy Lorentey](https://github.com/lorentey)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted with modifications**
-* Implementation: ([String, Substring](https://github.com/swiftlang/swift/pull/82055)), ([Array, ArraySlice, ContiguousArray](https://github.com/swiftlang/swift/pull/82438)), ([Dictionary, Set](https://github.com/swiftlang/swift/pull/82439))
+* Status: **Implemented (Swift Next)**
+* Implementation: ([String, Substring](https://github.com/swiftlang/swift/pull/82055)), ([Array, ArraySlice, ContiguousArray](https://github.com/swiftlang/swift/pull/82438)), ([Dictionary, Set](https://github.com/swiftlang/swift/pull/82439)), ([Memory Regions](https://github.com/swiftlang/swift/pull/84998))
 * Review: ([prepitch](https://forums.swift.org/t/-/78792)) ([first pitch](https://forums.swift.org/t/-/79145)) ([second pitch](https://forums.swift.org/t/-/80496)) ([review](https://forums.swift.org/t/se-0494-add-isidentical-to-methods-for-quick-comparisons-to-concrete-types/82296)) ([revision](https://forums.swift.org/t/se-0494-add-isidentical-to-methods-for-quick-comparisons-to-concrete-types/82296/142)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0494-add-isidentical-to-methods-for-quick-comparison-to-concrete-types/82695))
 
 ### Table of Contents
@@ -57,22 +57,27 @@ let a = [1, 2, 3, 4]
 print(result(for: a))
 // Prints "computing new result"
 // Prints "[2, 4]"
+
 let b = a
 print(result(for: b))
 // Prints "computing new result"
 // Prints "[2, 4]"
+
 let c = [1, 2, 3, 4]
 print(result(for: c))
 // Prints "computing new result"
 // Prints "[2, 4]"
+
 let d = [1, 2, 3, 4, 5, 6]
 print(result(for: d))
 // Prints "computing new result"
 // Prints "[2, 4, 6]"
+
 let e = d
 print(result(for: e))
 // Prints "computing new result"
 // Prints "[2, 4, 6]"
+
 let f = [1, 2, 3, 4, 5, 6]
 print(result(for: f))
 // Prints "computing new result"
@@ -113,19 +118,24 @@ let a = [1, 2, 3, 4]
 print(memoizer.result(for: a))
 // Prints "computing new result"
 // Prints "[2, 4]"
+
 let b = a
 print(memoizer.result(for: b))
 // Prints "[2, 4]"
+
 let c = [1, 2, 3, 4]
 print(memoizer.result(for: c))
 // Prints "[2, 4]"
+
 let d = [1, 2, 3, 4, 5, 6]
 print(memoizer.result(for: d))
 // Prints "computing new result"
 // Prints "[2, 4, 6]"
+
 let e = d
 print(memoizer.result(for: e))
 // Prints "[2, 4, 6]"
+
 let f = [1, 2, 3, 4, 5, 6]
 print(memoizer.result(for: f))
 // Prints "[2, 4, 6]"
@@ -301,6 +311,7 @@ Many more examples of `isIdentical(to:)` functions are currently shipping in `Sw
 Before we look at the concrete types in this proposal, let’s begin with some more general principles and ideas we would expect for *all* concrete types to follow when adopting this new method. While this specific proposal is not adding a new protocol to Standard Library, it could be helpful to think of an “informal” protocol that guides us in choosing the types to adopt this new method. This could then serve as a guide for library maintainers that might choose to adopt this method on *new* types in the future.
 
 Suppose we are proposing an `isTriviallyIdentical(to:)` method on a type `T`. We propose the following axioms that library maintainers should adopt:
+
 * `a.isTriviallyIdentical(to: a)` is always `true` (Reflexivity)
 * If `T` is `Equatable`:
   * `a.isTriviallyIdentical(to: b)` implies `a == b` (*or else `a` and `b` are exceptional values*)
@@ -348,20 +359,25 @@ let a = [1, 2, 3, 4]
 print(memoizer.result(for: a))
 // Prints "computing new result"
 // Prints "[2, 4]"
+
 let b = a
 print(memoizer.result(for: b))
 // Prints "[2, 4]"
+
 let c = [1, 2, 3, 4]
 print(memoizer.result(for: c))
 // Prints "computing new result"
 // Prints "[2, 4]"
+
 let d = [1, 2, 3, 4, 5, 6]
 print(memoizer.result(for: d))
 // Prints "computing new result"
 // Prints "[2, 4, 6]"
+
 let e = d
 print(memoizer.result(for: e))
 // Prints "[2, 4, 6]"
+
 let f = [1, 2, 3, 4, 5, 6]
 print(memoizer.result(for: f))
 // Prints "computing new result"
@@ -394,6 +410,7 @@ When we build and run our SwiftUI app we confirm that we are not computing new `
 ## Detailed Design
 
 We propose adding `isTriviallyIdentical(to:)` methods to the following concrete types from Standard Library:
+
 * `String`
 * `String.UnicodeScalarView`
 * `String.UTF16View`
@@ -453,6 +470,7 @@ extension String {
 ```
 
 The following types will adopt `isTriviallyIdentical(to:)` with the same semantic guarantees as `String`:
+
 * `String.UnicodeScalarView`
 * `String.UTF16View`
 * `String.UTF8View`
@@ -493,6 +511,7 @@ extension Substring {
 ```
 
 The following types will adopt `isTriviallyIdentical(to:)` with the same semantic guarantees as `Substring`:
+
 * `Substring.UnicodeScalarView`
 * `Substring.UTF16View`
 * `Substring.UTF8View`
@@ -616,6 +635,7 @@ extension UnsafeBufferPointer where Element: ~Copyable {
 ```
 
 The following types will adopt `isTriviallyIdentical(to:)` with the same semantic guarantees as `UnsafeBufferPointer`:
+
 * `UnsafeMutableBufferPointer`
 * `UnsafeMutableRawBufferPointer`
 * `UnsafeRawBufferPointer`
@@ -651,7 +671,6 @@ Any Standard Library types that are copy-on-write values could be good candidate
 * `KeyValuePairs`
 * `StaticBigInt`
 * `StaticString`
-* `UTF8Span`
 
 This proposal focuses on what we see as the most high-impact types to support from Standard Library. This proposal *is not* meant to discourage adding `isTriviallyIdentical(to:)` on any of these types at some point in the future. A follow-up “second-round” proposal could focus on these remaining types.
 
@@ -719,19 +738,23 @@ Thanks to [Xiaodi Wu](https://forums.swift.org/t/-/80496/67) for proposing that 
 
 Thanks to [QuinceyMorris](https://forums.swift.org/t/-/82296/72) for proposing the name `isTriviallyIdentical(to:)`.
 
-[^1]: https://github.com/swiftlang/swift/blob/swift-6.1.2-RELEASE/stdlib/public/core/String.swift#L397-L415
-[^2]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/DequeModule/Deque._Storage.swift#L223-L225
-[^3]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/HashTreeCollections/HashNode/_HashNode.swift#L78-L80
-[^4]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/HashTreeCollections/HashNode/_RawHashNode.swift#L50-L52
-[^5]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Conformances/BigString%2BEquatable.swift#L14-L16
-[^6]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigString%2BUnicodeScalarView.swift#L77-L79
-[^7]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigString%2BUTF8View.swift#L39-L41
-[^8]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigString%2BUTF16View.swift#L39-L41
-[^9]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigSubstring.swift#L100-L103
-[^10]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigSubstring%2BUnicodeScalarView.swift#L94-L97
-[^11]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigSubstring%2BUTF8View.swift#L64-L67
-[^12]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigSubstring%2BUTF16View.swift#L87-L90
-[^13]: https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/Rope/Basics/Rope.swift#L68-L70
-[^14]: https://github.com/swiftlang/swift-markdown/blob/swift-6.1.1-RELEASE/Sources/Markdown/Base/Markup.swift#L370-L372
-[^15]: https://github.com/Swift-CowBox/Swift-CowBox/blob/1.1.0/Sources/CowBox/CowBox.swift#L19-L27
-[^16]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
+Thanks to [benrimmington](https://github.com/swiftlang/swift/pull/84998) for volunteering to contribute implementations.
+
+Thanks to [WindowsMEMZ](https://github.com/swiftlang/swift/pull/85171) for volunteering to contribute implementations.
+
+[^1]: <https://github.com/swiftlang/swift/blob/swift-6.1.2-RELEASE/stdlib/public/core/String.swift#L397-L415>
+[^2]: <https://github.com/apple/swift-collections/blob/1.2.0/Sources/DequeModule/Deque._Storage.swift#L223-L225>
+[^3]: <https://github.com/apple/swift-collections/blob/1.2.0/Sources/HashTreeCollections/HashNode/_HashNode.swift#L78-L80>
+[^4]: <https://github.com/apple/swift-collections/blob/1.2.0/Sources/HashTreeCollections/HashNode/_RawHashNode.swift#L50-L52>
+[^5]: <https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Conformances/BigString%2BEquatable.swift#L14-L16>
+[^6]: <https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigString%2BUnicodeScalarView.swift#L77-L79>
+[^7]: <https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigString%2BUTF8View.swift#L39-L41>
+[^8]: <https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigString%2BUTF16View.swift#L39-L41>
+[^9]: <https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigSubstring.swift#L100-L103>
+[^10]: <https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigSubstring%2BUnicodeScalarView.swift#L94-L97>
+[^11]: <https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigSubstring%2BUTF8View.swift#L64-L67>
+[^12]: <https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/BigString/Views/BigSubstring%2BUTF16View.swift#L87-L90>
+[^13]: <https://github.com/apple/swift-collections/blob/1.2.0/Sources/RopeModule/Rope/Basics/Rope.swift#L68-L70>
+[^14]: <https://github.com/swiftlang/swift-markdown/blob/swift-6.1.1-RELEASE/Sources/Markdown/Base/Markup.swift#L370-L372>
+[^15]: <https://github.com/Swift-CowBox/Swift-CowBox/blob/1.1.0/Sources/CowBox/CowBox.swift#L19-L27>
+[^16]: <https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md>
