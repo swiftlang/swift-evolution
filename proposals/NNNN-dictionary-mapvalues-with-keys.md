@@ -4,12 +4,12 @@
 * Authors: [Diana Ma](https://github.com/tayloraswift) (tayloraswift)
 * Review Manager: unassigned
 * Status: **Pitch**
-* Implementation: [`#86268`](https://github.com/swiftlang/swift/pull/86268), [`swift-collections:#556`](https://github.com/apple/swift-collections/pull/556)
+* Implementation: [`#86268`](https://github.com/swiftlang/swift/pull/86268)
 * Review: ([pitch](https://forums.swift.org/t/giving-dictionary-mapvalues-access-to-the-associated-key/83904))
 
 ## Introduction
 
-I propose adding a method `Dictionary.mapValuesWithKeys` (and `OrderedDictionary.mapValuesWithKeys`) that passes the `Key` to the transformation closure.
+I propose adding a method `Dictionary.mapValuesWithKeys` that passes the `Key` to the transformation closure.
 
 This enables us to transform dictionary values with their associated key context without incurring the performance cost of rehashing (or in the case of `reduce`, reallocating) the dictionary storage, which is currently unavoidable when using `init(uniqueKeysWithValues:)` or `reduce(into:)`.
 
@@ -37,20 +37,9 @@ I propose adding the following method to `Dictionary`:
 
 ```swift
 extension Dictionary {
-    @inlinable public func mapValuesWithKeys<T>(
-        _ transform: (Key, Value) throws -> T
-    ) rethrows -> Dictionary<Key, T>
-}
-
-```
-
-And similarly for `OrderedDictionary` in `swift-collections`:
-
-```swift
-extension OrderedDictionary {
-    @inlinable public func mapValuesWithKeys<T>(
-        _ transform: (Key, Value) throws -> T
-    ) rethrows -> OrderedDictionary<Key, T>
+    @inlinable public func mapValuesWithKeys<T, E>(
+        _ transform: (Key, Value) throws(E) -> T
+    ) throws(E) -> Dictionary<Key, T>
 }
 
 ```
@@ -64,19 +53,13 @@ let displayText: [Currency: String] = balances.mapValuesWithKeys {
 }
 ```
 
-## Detailed design
 
-### Changes to `Dictionary`
+## Detailed design
 
 The implementation would mirror the existing `mapValues` method but inside the storage iteration loop it would pass the key along with the value to the transformation closure.
 
 On Apple platforms, `Dictionary` may be backed by a Cocoa dictionary. This does not pose any major issues, as `__CocoaDictionary` can be retrofitted with essentially the same machinery as `_NativeDictionary` within the standard library, and the new `mapValuesWithKeys` can dispatch between the two exactly as the existing `mapValues` does.
 
-### Changes to `OrderedDictionary` (swift-collections)
-
-The performance gain for `OrderedDictionary` could be even more significant. `OrderedDictionary` maintains a standard `Array` for keys and values, plus a sidecar hash table for lookups.
-
-The current workaround (`reduce` or `init`) forces the reconstruction of the entire hash table and an eager copy of the keys array. We could instead use zipped iteration to map the underlying `_keys` and `_values` arrays to a new array of values, and then copy the `_keys` table – which includes the hash table `__storage` – and is an O(1) copy-on-write if not mutated, or O(*n*) on later mutation.
 
 ## Source compatibility
 
@@ -94,9 +77,31 @@ The new `mapValuesWithKeys` method would introduce an API asymmetry with `compac
 
 ### Doing nothing
 
-As an extensively frozen type, it may be possible for developers to retrofit `Dictionary` in user space to support key context  by relying on stable-but-unspecified implementation details. Similarly, the `swift-collections` package could be forked to add such functionality. But this would not be a good workflow and we should not encourage it.
+As an extensively frozen type, it may be possible for developers to retrofit `Dictionary` in user space to support key context by relying on stable-but-unspecified implementation details. But this would not be a sound workflow and we should not encourage it.
 
 
 ## Future directions
 
-The proposed `mapValuesWithKeys` method does not use typed `throws`, for symmetry with the existing API. Both methods could be mirrored with typed `throws` variants in the future.
+### Adoption of typed `throws` for pre-existing methods
+
+The proposed `mapValuesWithKeys` method uses typed `throws`, unlike the existing `mapValues` method which uses untyped `throws`. In the future, we may wish to introduce a typed `throws` variant of `mapValues` as well, and take the API break opportunity to select a new name for this method, which would then enable the standard library to eventually reassign the `mapValues` name to the version that supplies key context to the transformation closure.
+
+### Changes to `OrderedDictionary` (swift-collections)
+
+As a natural extension of this proposal, the `OrderedDictionary` type in the `swift-collections` package could also gain a `mapValuesWithKeys` method with similar performance benefits. 
+
+It would have the following signature:
+
+
+```swift
+extension OrderedDictionary {
+    @inlinable public func mapValuesWithKeys<T, E>(
+        _ transform: (Key, Value) throws(E) -> T
+    ) throws(E) -> OrderedDictionary<Key, T>
+}
+
+```
+
+The performance gain for `OrderedDictionary` could be even more significant than for `Dictionary`. `OrderedDictionary` maintains a standard `Array` for keys and values, plus a sidecar hash table for lookups. The current workaround (`reduce` or `init`) forces the reconstruction of the entire hash table and an eager copy of the keys array. We could instead use zipped iteration to map the underlying `_keys` and `_values` arrays to a new array of values, and then copy the `_keys` table – which includes the hash table `__storage` – and is an O(1) copy-on-write if not mutated, or O(*n*) on later mutation.
+
+For completeness, I have provided a draft implementation in a PR to the `swift-collections` repository: [`swift-collections:#556`](https://github.com/apple/swift-collections/pull/556).
