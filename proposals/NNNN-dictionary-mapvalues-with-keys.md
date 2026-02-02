@@ -82,9 +82,9 @@ As an extensively frozen type, it may be possible for developers to retrofit `Di
 
 ## Future directions
 
-### Adoption of typed `throws` for pre-existing methods
+### Reassigning the name `mapValues`
 
-The proposed `mapValuesWithKeys` method uses typed `throws`, unlike the existing `mapValues` method which uses untyped `throws`. In the future, we may wish to introduce a typed `throws` variant of `mapValues` as well, and take the API break opportunity to select a new name for this method, which would then enable the standard library to eventually reassign the `mapValues` name to the version that supplies key context to the transformation closure.
+In the future, we may wish to rename the existing `mapValues` method to something like `mapValuesWithoutKeys`, which would enable the standard library to reassign the `mapValues` name to the version that supplies key context to the transformation closure in a subsequent language mode.
 
 ### Changes to `OrderedDictionary` (swift-collections)
 
@@ -99,7 +99,6 @@ extension OrderedDictionary {
         _ transform: (Key, Value) throws(E) -> T
     ) throws(E) -> OrderedDictionary<Key, T>
 }
-
 ```
 
 The performance gain for `OrderedDictionary` could be even more significant than for `Dictionary`. `OrderedDictionary` maintains a standard `Array` for keys and values, plus a sidecar hash table for lookups. The current workaround (`reduce` or `init`) forces the reconstruction of the entire hash table and an eager copy of the keys array. We could instead use zipped iteration to map the underlying `_keys` and `_values` arrays to a new array of values, and then copy the `_keys` table – which includes the hash table `__storage` – and is an O(1) copy-on-write if not mutated, or O(*n*) on later mutation.
