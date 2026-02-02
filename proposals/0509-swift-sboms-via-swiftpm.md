@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM) Generation for Swift Package Manager
 
-* Proposal: [SE-0509](0509-swift-sboms.md)
+* Proposal: [SE-0509](0509-swift-sboms-via-swiftpm.md)
 * Authors: [Ev Cheng](https://github.com/echeng3805)
 * Review Manager: [Franz Busch](https://github.com/FranzBusch)
 * Status: **Active review (February 02...February 16, 2026)**
