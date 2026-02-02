@@ -5,7 +5,7 @@
 * Review Manager: [Franz Busch](https://github.com/FranzBusch)
 * Status: **Active review (February 02...February 16, 2026)**
 * Implementation: [swiftlang/swift-package-manager#9633](https://github.com/swiftlang/swift-package-manager/pull/9633)
-* Review: ([pitch](https://forums.swift.org/t/pitch-software-bill-of-materials-sbom-generation-for-swift-package-manager/83499))
+* Review: ([pitch](https://forums.swift.org/t/pitch-software-bill-of-materials-sbom-generation-for-swift-package-manager/83499)) ([review](https://forums.swift.org/t/se-0509-software-bill-of-materials-sbom-generation-for-swift-package-manager/84516))
 
 ## Introduction
 
