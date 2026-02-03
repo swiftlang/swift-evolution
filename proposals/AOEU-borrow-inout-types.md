@@ -132,6 +132,21 @@ struct Person: ~Copyable, ~Escapable {
   var age: Inout<Int>
 }
 ```
+
+`Borrow` and `Inout` furthermore allow for references to be used as generic
+parameters, allowing containers and wrappers which support non-`Escapable` types
+to contain references:
+
+```
+@_lifetime(&array)
+func element(of array: inout [Int], at: Int) -> Inout<Int>? {
+  if at >= 0 && at < array.count {
+    return &array[at]
+  } else {
+    return nil
+  }
+}
+```
  
 ## Detailed design
 
@@ -278,6 +293,19 @@ types as **bitwise-borrowable**, since a borrow can be passed across functions
 by bitwise copy.
 
 As such, immutable values of *bitwise-borrowable* type do not have a stable address.
+However, with the introduction of `Borrow` values, it ought to be possible to
+define functions that, given a borrow of a value, returns a `Borrow` (or,
+more usefully, a type containing a `Borrow`) with the same lifetime as that
+borrow:
+
+```swift
+@_lifetime(borrow target)
+func refer<T>(to target: T) -> Borrow<T> {
+  // This ought to be allowed
+  Borrow(target)
+}
+```
+
 If `Borrow` always used a pointer-to-target representation, then forming a
 `Borrow` targeting a bitwise-borrowable value would require storing that value
 in memory, possibly in a temporary stack allocation. A temporary stack
@@ -288,7 +316,8 @@ would depend on the function's own stack frame:
 ```swift
 @_lifetime(borrow target)
 func refer(to target: AnyObject) -> Borrow<AnyObject> {
-  // This ought to be allowed
+  // This ought to be allowed, so `target` can't be spilled to a local
+  // temporary allocation
   Borrow(target)
 }
 ```
@@ -307,7 +336,7 @@ a `Span` with a pointer to the array's elements, which is expected to have a
 lifetime constrained by borrowing the `InlineArray`:
 
 ```swift
-@_lifetime(borrow target)
+@_lifetime(borrow array)
 func span(over array: [2 of Int8]) -> Span<Int8> {
   // This ought to be allowed
   return array.span
@@ -331,6 +360,21 @@ from the target through the `Borrow`, so when the `Value` type is
 func span(over borrow: Borrow<[2 of Int8]>) -> Span<Int8> {
   // This also ought to be allowed
   return borrow.target.span
+}
+```
+
+Since the calling convention rules pass *addressable-for-dependencies*
+types by pointer when there is a returned dependency, and any `Borrow` value
+returned would be a dependency, `Borrow` using the pointer representation does
+not interfere with forming and returning a `Borrow` from a borrowed parameter:
+
+```swift
+@_lifetime(borrow target)
+func refer(to target: [2 of Int8]) -> Borrow<[2 of Int8]> {
+  // This ought to be allowed. `target` is received by pointer, so
+  // `Borrow<[2 of Int8]>` using the pointer representation can point to the
+  // caller's memory.
+  Borrow(target)
 }
 ```
 
@@ -486,7 +530,14 @@ to `Inout`:
 Our usual naming conventions might argue that the proper spelling of the
 `inout`-capturing reference type would be `InOut`, capitalizing both words.
 The authors subjectively find this odd-looking, and hard to type, and see
-`inout` in its special
+`inout` in its specialized usage as a keyword as more akin to a single word than a true
+compound of its components.
+
+There has been talk in the past of possibly superseding `inout` with the
+`mutating` keyword, to bring it in line with the `mutating` modifier on
+methods and fit it into the `borrowing`/`consuming` naming scheme for the
+other parameter ownership modifiers. That might suggest `Mutable` or something
+along those lines as the name of the reference type.
 
 ### Naming the `value` property
 
