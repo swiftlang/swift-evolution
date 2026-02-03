@@ -1,8 +1,8 @@
 # Introduce `Dictionary.mapValuesWithKeys`
 
-* Proposal: [SE-NNNN](NNNN-dictionary-mapvalues-with-keys.md)
+* Proposal: [SE-0510](NNNN-dictionary-mapvalues-with-keys.md)
 * Authors: [Diana Ma](https://github.com/tayloraswift) (tayloraswift)
-* Review Manager: unassigned
+* Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Pitch**
 * Implementation: [`#86268`](https://github.com/swiftlang/swift/pull/86268)
 * Review: ([pitch](https://forums.swift.org/t/giving-dictionary-mapvalues-access-to-the-associated-key/83904))
