@@ -3,10 +3,10 @@
 * Proposal: [SE-0502](0502-exclude-private-from-memberwise-init.md)
 * Authors: [Hamish Knight](https://github.com/hamishknight), [Holly Borla](https://github.com/hborla)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Active Review (January 8–22, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#84514](https://github.com/swiftlang/swift/pull/84514)
 * Experimental Feature Flag: `ExcludePrivateFromMemberwiseInit`
-* Review: ([pitch](https://forums.swift.org/t/pitch-exclude-private-initialized-properties-from-memberwise-initializer/83348)) ([review](https://forums.swift.org/t/se-0502-exclude-private-initialized-properties-from-memberwise-initializer/84022))
+* Review: ([pitch](https://forums.swift.org/t/pitch-exclude-private-initialized-properties-from-memberwise-initializer/83348)) ([review](https://forums.swift.org/t/se-0502-exclude-private-initialized-properties-from-memberwise-initializer/84022)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0502-exclude-private-initialized-properties-from-memberwise-initializer/84565))
 
 ## Introduction
 
