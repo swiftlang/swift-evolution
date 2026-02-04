@@ -19,7 +19,7 @@ exclusive (mutable) access respectively.
 
 Swift can provide temporary access to a value as part of a function call:
 
-- An `inout` parameter receives temporary exclusive access to a value from
+- An `inout` parameter receives temporary exclusive access to a value owned
   by the caller. The callee can modify the parameter, and even consume its
   current value (so long as it gets replaced with a new value), and the caller
   reclaims ownership once the callee returns.
@@ -28,9 +28,9 @@ Swift can provide temporary access to a value as part of a function call:
   callee can generally only read the value, but it can do so without needing
   an independent copy of the value.
 
-However, it is useful to be able to form these sorts of references outside of
+It would be useful to be able to form these sorts of references outside of
 the confines of a function call, as local variable bindings, as members of
-other types, in generic containers, and so on. Developers can use classes
+other types, as elements of generic containers, and so on. Developers can use classes
 to box values and pass references to a common holder object around, but in
 doing so they introduce allocation, reference counting, and dynamic exclusivity
 checking overhead. `UnsafePointer` is, of course, unsafe, and interacts
