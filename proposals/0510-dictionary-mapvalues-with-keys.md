@@ -1,6 +1,6 @@
 # Introduce `Dictionary.mapValuesWithKeys`
 
-* Proposal: [SE-0510](NNNN-dictionary-mapvalues-with-keys.md)
+* Proposal: [SE-0510](0510-dictionary-mapvalues-with-keys.md)
 * Authors: [Diana Ma](https://github.com/tayloraswift) (tayloraswift)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active Review (February 3...17, 2026)**
