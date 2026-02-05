@@ -6,7 +6,7 @@
 * Status: **Active Review (February 05...February 19, 2026)**
 * Bug: [swiftlang/swift-package-manager#8169](https://github.com/swiftlang/swift-package-manager/issues/8169)
 * Implementation: [swiftlang/swift-package-manager#8432](https://github.com/swiftlang/swift-package-manager/pull/8432)
-* Review: ([Pitch](https://forums.swift.org/t/proposal-swift-package-add-target-plugin-command-to-swiftpm/77930))
+* Review: ([Pitch](https://forums.swift.org/t/proposal-swift-package-add-target-plugin-command-to-swiftpm/77930)), ([Review](https://forums.swift.org/t/se-0511-swiftpm-add-target-plugin-command/84587))
 
 ## Introduction
 
