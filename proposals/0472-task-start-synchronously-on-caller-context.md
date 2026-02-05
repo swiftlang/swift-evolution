@@ -41,7 +41,7 @@ func synchronousFunction() {
   MainActor.assumeIsolated { 
     // The following would error:
     // await asyncUpdateThingsHappenedCounter() 
-    // because is it is an async call; cannot call from synchronous context
+    // because it is an async call; cannot call from synchronous context
   }
   
   // Using the newly proposed Immediate Task:
@@ -64,7 +64,7 @@ While this should be used sparingly, it allows entering an asynchronous context 
 
 We propose the introduction of a new family of Task creation APIs collectively called "**immediate tasks**", which create a task and use the calling execution context to run the task's immediately, before yielding control back to the calling context upon encountering the first suspension point inside the immediate task.
 
-Upon first suspension inside the immediate task, the calling executor is freed up and able to continue executing other work, including the code surrounding the creation of the immediate task. This happens specifically when when a real suspension happens, and not for "potential suspension point" (which are marked using the `await` keyword).
+Upon first suspension inside the immediate task, the calling executor is freed up and able to continue executing other work, including the code surrounding the creation of the immediate task. This happens specifically when a real suspension happens, and not for "potential suspension point" (which are marked using the `await` keyword).
 
 The canonical example for using this new API is using an *unstructured immediate task* like this:
 
@@ -242,11 +242,11 @@ Task group methods which create immediate child tasks do not inherit isolation a
 
 ### Scheduling immediate tasks given matching current and requested isolation
 
-The Swift concurrency runtime maintains a notion of the "current executor" in order to be able to perform executor switching and isolation checking dynamically. This information is managed runtime, and is closely related to compile time isolation rules, but it is also maintained throughout nonisolated and synchronous functions.
+The Swift concurrency runtime maintains a notion of the "current executor" in order to be able to perform executor switching and isolation checking dynamically. This information is managed at runtime, and is closely related to compile time isolation rules, but it is also maintained throughout nonisolated and synchronous functions.
 
 Immediate tasks make use of this executor tracking to determine on which executor we're asking the task to "immediately" execute. It is possible to start an immediate task in a synchronous context, and even require it to have some specific isolation.
 
-The following example invokes the synchronous `sayHello()` function from a `@MainActor` isolated function. The static information about this isolation is _lost_ by the synchronous function. And the compiler will assume, that the `sayHello()` function is not isolated to any specific context -- after all, the actual isolated context would depending on where we call it from, and we're not passing an `isolated` parameter to this synchronous function.
+The following example invokes the synchronous `sayHello()` function from a `@MainActor` isolated function. The static information about this isolation is _lost_ by the synchronous function. And the compiler will assume, that the `sayHello()` function is not isolated to any specific context -- after all, the actual isolated context would depend on where we call it from, and we're not passing an `isolated` parameter to this synchronous function.
 
 By using an immediate task the runtime is able to notice that the requested, and current, executor are actually the same (`MainActor`) and therefore execute the task _immediately_ on the caller's executor _and_ with the expected `@MainActor` isolation, which is guaranteed to be correct:
 
@@ -306,7 +306,7 @@ func sayHello() {
     counterImmediate += 1
   }
 
-  // at this point, no guarantees can be made ablue the values of the `counter` variables
+  // at this point, no guarantees can be made about the values of the `counter` variables
 }
 ```
 
@@ -361,7 +361,7 @@ After the suspension point though, there may have been other tasks executed on t
 
 ### Immediate child tasks
 
-Immediate child tasks tasks can be created using the various `*TaskGroup/addImmediateTask*` methods behave similarily to their normal structured child task API counterparts (`*TaskGroup/addTask*`).
+Immediate child tasks can be created using the various `*TaskGroup/addImmediateTask*` methods, they behave similarily to their normal structured child task API counterparts (`*TaskGroup/addTask*`).
 
 Child tasks, including immediate child tasks, do not infer their isolation from the enclosing context, and by default are `nonisolated`.
 
@@ -377,7 +377,7 @@ actor Worker {
 }
 ```
 
-While the immediate task in the above example is indeed `nonisolated` and does not inherit the Worker's explicit isolation, it will start out immediately on the Worker's executor. Since this example features _no suspension points_ in the task group child tasks, this is effectively synchronously going to execute those child tasks on the caller (`self`). In other words, this is not performing any of its work in parallel.
+While the immediate task in the above example is indeed `nonisolated` and does not inherit the Worker's explicit isolation, it will start out immediately on the Worker's executor. Since this example features _no suspension points_ in the task group's child tasks, this is effectively synchronously going to execute those child tasks on the caller (`self`). In other words, this is not performing any of its work in parallel.
 
 If we were to modify the work to have potential suspension points like so:
 
