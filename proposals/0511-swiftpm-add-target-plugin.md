@@ -1,6 +1,6 @@
 # SwiftPM Add Target Plugin Command
 
-* Proposal: [SE-0511](NNNN-swiftpm-add-target-plugin.md)
+* Proposal: [SE-0511](0511-swiftpm-add-target-plugin.md)
 * Authors: [Gage Halverson](https://github.com/hi2gage)
 * Review Manager: [Mikaela Caron](https://github.com/mikaelacaron)
 * Status: **Active Review (February 05...February 19, 2026)**
