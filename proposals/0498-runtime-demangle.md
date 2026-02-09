@@ -12,7 +12,7 @@
 
 Swift symbols are subject to name mangling. These mangled names then show up in backtraces and other profiling tools. Mangled names may look something like this `$sSS7cStringSSSPys4Int8VG_tcfC` and often end up visible to developers, unless they are demangled before displaying. 
 
-In manu situations, it is much preferable to demangle the identifiers before displaying them. For example, the previously shown identifier would can be demangled as `Swift.String.init(cString: Swift.UnsafePointer<Swift.Int8>) -> Swift.String`, which is a nice human-readable format, that a Swift developer can easily understand.
+In many situations, it is much preferable to demangle the identifiers before displaying them. For example, the previously shown identifier would can be demangled as `Swift.String.init(cString: Swift.UnsafePointer<Swift.Int8>) -> Swift.String`, which is a nice human-readable format, that a Swift developer can easily understand.
 
 This proposal introduces a new API that allows calling out to the Swift runtime's demangler, without leaving the process.
 
