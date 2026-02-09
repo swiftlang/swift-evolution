@@ -20,7 +20,7 @@ All four of the Android target architectures work well with Swift- 64-bit arm64-
 
 The potential applications of Swift on Android are diverse and extend beyond simply sharing code between iOS and Android:
 
-*	Shared Business Logic - Of course, the prominent use case is sharing core business logic, algorithms, and data models across iOS and Android applications. This minimizes duplication and ensures consistency in application behavior.
+*	Shared Business Logic - A prominent use case is sharing core business logic, algorithms, and data models across iOS and Android applications. This minimizes duplication and ensures consistency in application behavior.
 *	Performance-Critical Modules - Swift's strong performance characteristics make it ideal for developing performance-sensitive components, such as image/audio processing, game engines, or other computationally-intensive tasks within an Android app, similar to using C or C++ via the NDK.
 *	Cross-Platform Libraries and SDKs - Developers can leverage Swift to build libraries and SDKs that can be easily integrated into existing Android and iOS applications, providing a consistent API surface across platforms.
 
@@ -57,7 +57,7 @@ There will not be a single official UI framework, instead we will acknowledge an
 *	Jetpack Compose - Android's modern, declarative UI toolkit in Kotlin: Swift applications could interact with Compose through robust bridging layers.
 *	Android Views (XML-based) - The traditional imperative UI
 *	Third-Party Cross-Platform UI Frameworks - Such as Flutter, with Swift as the business logic language via [FlutterSwift](https://github.com/PADL/FlutterSwift), or potentially others that offer C/C++ interop, which Swift can pull in.
-*	Bridging Solutions - Tools [such as Skip](https://github.com/skiptools) demonstrate how SwiftUI-like code can be transformed and rendered using Jetpack Compose on Android, offering a path to native cross-platform UI.
+*	Bridging Solutions - Projects such as [Skip](https://github.com/skiptools) provide a declarative SwiftUI-like API surface atop Android's Jetpack Compose, offering a path to native shared cross-platform UI.
 
 The goal is to ensure Swift works well with these existing UI approaches, allowing developers to select the most suitable option for their project while deploying Swift for the underlying logic.
 
