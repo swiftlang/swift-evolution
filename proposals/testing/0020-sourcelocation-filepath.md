@@ -3,10 +3,13 @@
 * Proposal: [ST-0020](0020-sourcelocation-filepath.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Rachel Brindle](https://github.com/younata)
-* Status: **Active Review (01-26...02-09, 2026)**
+* Status: **Accepted**
 * Bug: rdar://152999195
-* Implementation: [swiftlang/swift-testing#1334](https://github.com/swiftlang/swift-testing/pull/1334), [swiftlang/swift-testing#1472](https://github.com/swiftlang/swift-testing/pull/1472)
-* Review: ([pitch](https://forums.swift.org/t/pitch-add-a-filepath-property-to-sourcelocation-in-swift-testing/83995)) ([review](https://forums.swift.org/t/st-0020-add-a-filepath-property-to-sourcelocation/84380))
+* Implementation: [swiftlang/swift-testing#1334](https://github.com/swiftlang/swift-testing/pull/1334),
+[swiftlang/swift-testing#1472](https://github.com/swiftlang/swift-testing/pull/1472)
+* Review: ([pitch](https://forums.swift.org/t/pitch-add-a-filepath-property-to-sourcelocation-in-swift-testing/83995))
+([review](https://forums.swift.org/t/st-0020-add-a-filepath-property-to-sourcelocation/84380))
+([acceptance](https://forums.swift.org/t/accepted-st-0020-add-a-filepath-property-to-sourcelocation/84664))
 
 ## Introduction
 
