@@ -573,7 +573,7 @@ Some future features that can be added include:
 * **Package.resolved generation**: Generate a `Package.resolved` file based on an SBOM in order to reproduce a dependency graph (e.g., for debugging)
 * **SBOM signing**: Sign the SBOM cryptographically to link it to an artifact
 * **Hashes**: Add hashes to the SBOM
-
+* **Easily parsable paths**: Provide some object (JSON, XML, etc) to stdout or stderr that maps the spec(s) requested to the SBOM paths(s) generated. For example, `{ "spec": "cyclonedx", "version": "1.9", "output": "some/path/to/cyclonedx-1.9-output.json"}`. This makes it easier to parse the paths programmatically and confirm that the SBOMs were generated.
 ## Appendix
 
 ### Dependencies Extraction Algorithm
