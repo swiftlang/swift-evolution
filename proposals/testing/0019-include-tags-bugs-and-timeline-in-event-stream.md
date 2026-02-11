@@ -3,9 +3,9 @@
 * Proposal: [ST-0019](0019-include-tags-bugs-and-timeline-in-event-stream)
 * Authors: [Sam Khouri](https://github.com/bkhouri)
 * Review Manager: [Paul LeMarquand](https://github.com/plemarquand)
-* Status: **In Review**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift-testing#1429](https://github.com/swiftlang/swift-testing/pull/1429)
-* Review: [pitch](https://forums.swift.org/t/adding-additional-information-to-the-abi-json/83426)
+* Review: ([pitch](https://forums.swift.org/t/adding-additional-information-to-the-abi-json/83426)) ([review](https://forums.swift.org/t/st-0019-include-metadata-for-tags-bugs-and-time-limit-traits-in-event-stream/84299/3)) ([acceptance](https://forums.swift.org/t/accepted-st-0019-include-metadata-for-tags-bugs-and-time-limit-traits-in-event-stream/84685))
 
 ## Introduction
 
