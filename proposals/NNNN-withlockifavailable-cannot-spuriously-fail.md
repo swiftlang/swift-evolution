@@ -30,11 +30,14 @@ if mutex.tryLock() {
 ```
 
 `mutex.tryLock()` _should_ return `true` if the lock was acquired, and `false` if another thread has currently acquired it.
-A _spurious failure_ occurs if the function returns `false` despite no other thread having acquired it.
+Swift exposes this functionality via a single function that takes a closure and returns the result of that closure if the underlying `mutex.tryLock()` call succeeded, or `nil` if it failed.
+A _spurious failure_ occurs here if `mutex.tryLock()` returns `false` despite no other thread having acquired the mutex.
 
 ### Why should we document our behavior?
 
-`Mutex.withLockIfAvailable(_:)` is Swift's spelling of the `tryLock()` operation, and there is a schism between the C/C++ standards and POSIX as to whether `tryLock()` might fail spuriously.
+There is a split between the C/C++ standards, POSIX, and other language standards as to whether `tryLock()` might fail spuriously.
+We should document our behavior to make it clear to developers whether `Mutex` behaves like a C/C++ mutex or like one from another language.
+Without this documentation, Swift developers cannot even _infer_ the behavior of Swift based on other languages because they do not all agree.
 
 ### C/C++ vs. POSIX
 
@@ -150,7 +153,7 @@ That way, developers who use `Mutex` will know what to expect from it and will (
 
 ## Detailed design
 
-I propose we strengthen the language in the **Return Value** documentation section:
+I propose we strengthen the language in the **Return Value** documentation section along the lines of:
 
 ```diff
 - The return value, if any, of the `body` closure parameter or `nil` if the lock
@@ -159,7 +162,7 @@ I propose we strengthen the language in the **Return Value** documentation secti
 + is already held by any thread (including the current thread), `nil`.
 ```
 
-And that we add the following **Note** callout to the **Discussion** section:
+And that we explain what we mean with a callout or similar in the **Discussion** section such as:
 
 ```diff
 + - Note: This function cannot spuriously fail to acquire the lock. The behavior
@@ -180,9 +183,19 @@ This proposal is purely a documentation change which can be implemented without 
 The documentation change itself is not something to be "adopted" by developers.
 However (subjectively speaking) the existence of this guarantee allows those developers to use `Mutex.withLockIfAvailable(_:)` without needing to be concerned with spurious failures.
 
+This proposal does not change how code is compiled or how it runs.
+Rather, it strengthens the execution-time guarantees of the existing API.
+Callers that were relying on spurious failure not happening will continue to work.
+Callers that were protecting against spurious failure will continue to not experience it and can be simplified at their maintainers' leisure.
+
+
 ## Future directions
 
 When we add support in Swift for new platforms, we will need to take care that their implementations of `Mutex` are also not subject to spurious failures.
+
+There may be a real-world use case for something like `Mutex.withLockIfAvailable(weak: true)`, and it can be added in the future.
+On most platforms Swift targets, it will behave identically to the existing API.
+On a subset of platforms where we have control over the relevant compare-and-exchange operations, it will allow developers to choose a weak operation if needed.
 
 ## Alternatives considered
 
@@ -191,14 +204,10 @@ When we add support in Swift for new platforms, we will need to take care that t
 
 - **Documenting that `Mutex.withLockIfAvailable(_:)` _is_ subject to spurious failures.**
   This lets us be more flexible in how we implement the function on current and future platforms, but it is not currently true in any of our implementations.
+  Allowing for spurious failures would therefore be a breaking change.
   Besides, spurious failures violate the principle of least surprise and are not something you'd expect from a programming language that markets itself as safe and secure!
   To quote the documentation for GCC's `__atomic_compare_exchange_n()` (which clang's documentation refers us to):
   > When in doubt, use the strong variation.
-
-- **Introducing explicit weak and strong variants of `Mutex.withLockIfAvailable(_:)` and letting developers choose which one to use.**
-  This offloads the problem to individual developers, but in the general case does not provide developers with a _better_ API surface.
-  Should the API default to a strong or weak operation?
-  If there is no default, then how does a developer know when to use a strong `tryLock()` and when they can get away with a weak one?
 
 ## Acknowledgments
 
