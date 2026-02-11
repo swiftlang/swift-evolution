@@ -575,6 +575,7 @@ Some future features that can be added include:
 * **Hashes**: Add hashes to the SBOM
 * **Easily parsable paths**: Provide some object (JSON, XML, etc) to stdout or stderr that maps the spec(s) requested to the SBOM paths(s) generated. For example, `{ "spec": "cyclonedx", "version": "1.9", "output": "some/path/to/cyclonedx-1.9-output.json"}`. This makes it easier to parse the paths programmatically and confirm that the SBOMs were generated.
 * **SDKs, frameworks, and others**: Add information to the SBOM about SDKs, frameworks, precompiled headers, vendored binaries.
+* **Reverse-engineered SBOMs**: Embed SBOM information in a Swift binary so that the SBOM can be extracted from a binary without needing to build source code
 
 ## Appendix
 
