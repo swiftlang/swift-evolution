@@ -20,18 +20,21 @@ Normally, the lack of any discussion about spurious failures wouldn't be an issu
 
 ### What is a "spurious failure"?
 
-Given the following algorithm:
+Consider the following code snippet:
 
-```
-if mutex.tryLock() {
-  doWork()
-  mutex.unlock()
-}
+```swift
+let optionalResult: T? = mutex.withLockIfAvailable { value in ... }
 ```
 
-`mutex.tryLock()` _should_ return `true` if the lock was acquired, and `false` if another thread has currently acquired it.
-Swift exposes this functionality via a single function that takes a closure and returns the result of that closure if the underlying `mutex.tryLock()` call succeeded, or `nil` if it failed.
-A _spurious failure_ occurs here if `mutex.tryLock()` returns `false` despite no other thread having acquired the mutex.
+`Mutex.withLockIfAvailable(_:)` allows a thread to check whether a lock is available.
+It never waits for another thread to be finished with the lock.
+Instead, if it observes that another thread has successfully acquired the lock, it must immediately return `nil`.
+If it returns `nil`, it is said to have failed.
+
+Most mutex interfaces offer an operation like this.
+Most of these APIs, such as POSIX's [`pthread_mutex_trylock()`](https://pubs.opengroup.org/onlinepubs/7908799/xsh/pthread_mutex_lock.html) and the mutexes included in various languages' standard libraries, only allow this operation to fail when another thread has successfully acquired the lock.
+However some APIs, specifically C's [`mtx_trylock()`](https://en.cppreference.com/w/c/thread/mtx_trylock.html) and C++'s [`std::mutex::try_lock()`](https://en.cppreference.com/w/cpp/thread/mutex/try_lock.html), permit this operation to fail for arbitrary other reasons.
+If the operation fails for some reason other than that another thread has successfully acquired the lock, it is said to have _spuriously_ failed.
 
 ### Why should we document our behavior?
 
@@ -39,7 +42,7 @@ There is a split between the C/C++ standards, POSIX, and other language standard
 We should document our behavior to make it clear to developers whether `Mutex` behaves like a C/C++ mutex or like one from another language.
 Without this documentation, Swift developers cannot even _infer_ the behavior of Swift based on other languages because they do not all agree.
 
-### C/C++ vs. POSIX
+### Why do C and C++ allow spurious failure at all?
 
 C11's [`mtx_trylock()`](https://en.cppreference.com/w/c/thread/mtx_trylock.html) and C++11's [`std::mutex::try_lock()`](https://en.cppreference.com/w/cpp/thread/mutex/try_lock.html) are both allowed to spuriously fail[^doThey].
 Per the C++11 standard [§30.4.1.1/16](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3690.pdf):
@@ -48,26 +51,19 @@ Per the C++11 standard [§30.4.1.1/16](https://www.open-std.org/jtc1/sc22/wg21/d
 > other thread. [ _Note:_ This spurious failure is normally uncommon, but allows
 > interesting implementations based on a simple compare and exchange [...] ]
 
-(The standard is referring to _weak_ compare-and-exchange operations which can fail spuriously at the hardware level; _strong_ compare-and-exchange operations cannot fail in this manner.)
+The standard is referring to _weak_ compare-and-exchange operations which can fail spuriously at the hardware level; _strong_ compare-and-exchange operations cannot fail in this manner.
+The intent is to allow conforming implementations to use weak compare-and-exchange operations in their mutexes to improve performance on CPU architectures where strong compare-and-exchange operations are more complex to implement (typically involving retry loops at the assembly level).
 
-But the POSIX standard for [`pthread_mutex_trylock()`](https://pubs.opengroup.org/onlinepubs/7908799/xsh/pthread_mutex_lock.html) makes no such accommodation, instead stating simply:
-
-> The function `pthread_mutex_trylock()` is identical to `pthread_mutex_lock()`
-> except that if the mutex object referenced by `mutex` is currently locked (by
-> any thread, including the current thread), the call returns immediately.
-
-[^doThey]: I'm not aware of any real-world C/C++ standard library implementation
-  that actually has this failure mode. But if you choose to code defensively to
-  these language standards, you have chosen to accept spurious failures into
-  your life, and I don't know any software engineer who enjoys dealing with
-  those.
+[^doThey]: I'm not aware of any real-world C/C++ standard library implementation that actually has this failure mode.
+  But if you choose to code defensively to these language standards, you have chosen to accept spurious failures into your life, and I don't know any software engineer who enjoys dealing with those.
 
 ### Other languages
 
-Other languages have equivalent API:
+POSIX and the standard libraries of other languages have equivalent API:
 
 | Language | Equivalent API |
 |-|-|
+| POSIX | [`pthread_mutex_trylock()`](https://pubs.opengroup.org/onlinepubs/7908799/xsh/pthread_mutex_lock.html) |
 | Go | [`Mutex.TryLock()`](https://pkg.go.dev/sync#Mutex.TryLock) |
 | Java | [`Lock.tryLock()`](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html#tryLock--) |
 | Kotlin | [`Mutex.tryLock()`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.sync/-mutex/try-lock.html) |
@@ -75,12 +71,7 @@ Other languages have equivalent API:
 | Zig | [`std.Thread.Mutex.tryLock()`](https://ziglang.org/documentation/master/std/#std.Thread.Mutex.tryLock) |
 
 None of these methods document that they spuriously fail (other than the Rust-specific concept of a "poisoned" mutex which is not germane to this proposal).
-A reader without further context has no reason to expect that they can spuriously fail because any API that can spuriously fail would surely document it.[^bugHunt]
-
-[^bugHunt]: At least one of these languages' platform-specific implementations
-  uses a weak compare-and-exchange operation and (as far as I understand their
-  code) is therefore subject to undocumented spurious failures. I leave it as an
-  exercise for the reader to determine which one(s).
+A reader without further context has no reason to expect that they can spuriously fail because any API that can spuriously fail would surely document it.
 
 ### Where does Swift stand?
 
