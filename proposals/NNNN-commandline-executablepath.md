@@ -91,7 +91,6 @@ extension CommandLine {
 #if hasFeature(Embedded) || os(WASI)
   @available(*, unavailable)
 #endif
-  @_alwaysEmitIntoClient // on Darwin only
   public static var executablePath: String? { get }
 }
 ```
