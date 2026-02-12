@@ -1,4 +1,4 @@
-# `Mutex.withLockIfAvailable(_:)` cannot spuriously fail
+# `Mutex.withLockIfAvailable(_:)` should document if it can spuriously fail
 
 * Proposal: [SE-NNN](NNNN-withlockifavailable-cannot-spuriously-fail.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
