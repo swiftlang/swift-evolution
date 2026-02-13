@@ -3,9 +3,9 @@
 * Proposal: [SE-0508](0508-array-expression-trailing-closures.md)
 * Authors: [Cal Stephens](https://github.com/calda)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Active review (January 30...February 12, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#86244](https://github.com/swiftlang/swift/pull/86244)
-* Review: ([pitch](https://forums.swift.org/t/support-trailing-closure-syntax-for-single-argument-array-and-dictionary-initializers/83900)) ([review](https://forums.swift.org/t/se-0508-array-expression-trailing-closures/84479))
+* Review: ([pitch](https://forums.swift.org/t/support-trailing-closure-syntax-for-single-argument-array-and-dictionary-initializers/83900)) ([review](https://forums.swift.org/t/se-0508-array-expression-trailing-closures/84479)) ([acceptance](https://forums.swift.org/t/accepted-se-0508-array-expression-trailing-closures/84728))
 
 ## Summary of changes
 
