@@ -40,11 +40,15 @@ The concurrency library has now adopted typed throws in `Task.init`, `Task.detac
 extension Task {
   @discardableResult // REMOVE
   public init(...)
+
+  // ... 
 }
 
 extension Task where Failure == Never {
   @discardableResult // keep
   public init(...)
+
+  // ... 
 }
 ```
 
@@ -52,23 +56,33 @@ Which will result in the following warning behaviors:
 
 ```swift
 Task {  }
-Task { throws in ... } // warning: result of call to 'init(name:priority:operation:)' is unused
-Task { throws(Boom) in ... } // warning: result of call to 'init(name:priority:operation:)' is unused
+Task { throws in ... } // warning: Unstructured throwing task created by 'init(priority:operation:)' is unused [#NoUseUnstructuredThrowingTask]
+Task { throws(Boom) in ... } // warning: Unstructured throwing task created by 'init(priority:operation:)' is unused [#NoUseUnstructuredThrowingTask]
 
 Task.detached {  }
-Task.detached { throws in ... } // warning: result of call to 'detached(name:priority:operation:)' is unused
-Task.detached { throws(Boom) in ... } // warning: result of call to 'detached(name:priority:operation:)' is unused
-
-// etc.
+Task.detached { throws in ... } // warning: Unstructured throwing task created by 'detached(name:priority:operation:)' is unused [#NoUseUnstructuredThrowingTask]
+Task.detached { throws(Boom) in ... } // warning: Unstructured throwing task created by 'detached(name:priority:operation:)' is unused [#NoUseUnstructuredThrowingTask]
 ```
 
-And it is possible to silence the issue by explicitly ignoring the value:
+And similarily for all other unstructured task creation (immediate tasks etc).
+
+We also provide additional documentation about this in a new warning group which further explains the problem.
+
+It is possible to silence the issue by explicitly ignoring the value:
 
 ```swift
 _ = Task { throws in ... }
 ```
 
-The same change will be applied to all other unstructured task initializers.
+Or just by actually using the value, which is the way how you'd observe thr thrown error:
+
+```swift
+let task = Task { throws in } 
+
+let value = try await task.value // would throw the error if task failed 
+```
+
+The same change will be applied to all unstructured task initializers.
 
 ## Source compatibility
 
