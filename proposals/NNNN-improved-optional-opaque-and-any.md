@@ -4,7 +4,7 @@
 * Authors: [Tony Allevato](https://github.com/allevato)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: [swiftlang/swift#87115](https://github.com/swiftlang/swift/pull/87115)
+* Implementation: [swiftlang/swift#87115](https://github.com/swiftlang/swift/pull/87115), [swiftlang/swift-syntax#3268](https://github.com/swiftlang/swift-syntax/pull/3268)
 
 ## Summary of changes
 
@@ -26,19 +26,55 @@ This extends to multiple levels of optionality. For example, `some/any P??` will
 
 Likewise, implicitly unwrapped optionals receive the same treatment wherever they are already supported. This proposal would make `any P!` equivalent to `(any P)!`.
 
+Protocol compositions are also supported if they are wrapped by parentheses. For example, `any (P & Q)?` would become equivalent to `(any P & Q)?`. The latter is what must be written today (and would continue to be valid).
+
 ## Detailed design
 
-### Parser
+### Parser changes
 
-This proposal does **not** change the parsing rules of the language. `some P?` will still be parsed as it is today, producing a `TypeRepr` with the shape `OpaqueResultTypeRepr(OptionalTypeRepr(P))` (and likewise for `any P?`). `TypeRepr`s are defined as the "[r]epresentation of a type as written in source", and we wish to continue honoring that definition.
+The current type parser implements the following precedence relationships:
 
-### Type Checking
+_Prec_(`?`) > _Prec_(`&`) > _Prec_({`some`, `any`})
 
-When the type checker resolves an opaque or existential type whose constraint is an optional or implicitly unwrapped optional type, it will look through the type sugar to find the actual protocol constraint. As it does so, it will remember the depth of optionality so that the resolved type can be rewrapped correctly.
+The snippet below shows some examples and how they parse today. Note that all of these _parse_ successfully, and the ones marked invalid are diagnosed as semantically invalid by the type checker:
 
-Special care is needed during name lookup when handling `some` types in function parameter positions. These use a slightly different code path because they are hoisted into the function's generic signature as anonymous type parameters. That is, we need to ensure that `f(_: some P?)` is treated as `f<T: P>(_: T?)` and not the nonsensical `f<T: P?>(_: T)`.
+```swift
+some P?         // some (P?)               (invalid)
+some P & Q      // some (P & Q)            (valid)
+some P & Q?     // some (P & (Q?))         (invalid)
+some P? & Q     // some ((P?) & Q)         (invalid)
+some P?.R & Q   // some (((P?).R) & Q)     (valid)
+some P?.R & Q?  // some (((P?).R) & (Q?))  (invalid)
+some P?.R?      // some (((P?).R)?)        (invalid)
+```
 
-### Fix-its
+We propose the following changes to these rules. When we see the `some` or `any` keyword, we slightly adjust the way we interpret `?` and `!`:
+
+*   A `?` and `!` is only bound to its preceding composition element type (or the sole preceding base type if not a composition) if it is followed by a `.` or a `&`.
+*   Otherwise, if a `?` or `!` follows the last element of a composition type (or the sole base type if not a composition), then it is hoisted to encompass the containing `some` or `any` type.
+*   If `?` or `!` is bound to a composition element type other than the last one in the composition, we do not hoist it; we continue consuming composition elements as long as we see a `&` token. This improves parser recovery for otherwise semantically invalid cases, which will be diagnosed during type checking.
+
+These rules change the parse trees of the examples above to be as follows. Only those forms with trailing `?` or `!` are impacted:
+
+```swift
+some P?         // (some P)?               (valid)
+some P & Q      // some (P & Q)            (valid; same as before)
+some P & Q?     // (some (P & Q))?         (see subsection below)
+some P? & Q     // some ((P?) & Q)         (invalid; same as before)
+some P?.R & Q   // some (((P?).R) & Q)     (valid; same as before)
+some P?.R & Q?  // (some (((P?).R) & Q))?  (see subsection below)
+some P?.R?      // (some ((P?).R))?        (valid)
+```
+
+#### Potentially confusing optional compositions
+
+Note that the parsing rules above permit the type `some P & Q?` to be treated as a valid "optional of opaque type conforming to `P & Q`". We could allow this, but we consider it to be potentially confusing. Most readers of Swift would not expect a postfix operator `?` to encompass both an arbitrarily long protocol composition _and_ the keyword before it. We acknowledge that we _are_ proposing such an encompassing rule for the `some`/`any` keyword in cases like `some P?`, but we consider the longer form to be less clear due to additional intervening operators and whitespace.
+
+Therefore, we will emit a specific diagnostic in the case where we see a `?` or `!` following a bare protocol composition, along with a fix-it to insert parentheses around the composition.
+
+If practical experience in the future tells us that this limitation is too restrictive, then it can be revisited without causing any source breaks.
+
+### Existential `any` fix-its
 
 Compiler fix-its for explicit existential `any` no longer insert parentheses when the existential type is optional or implicitly unwrapped optional. For example, when the following code is compiled with `-enable-experimental-feature ExistentialAny` today:
 
