@@ -86,6 +86,10 @@ This proposal does not affect ABI as it only changes compile-time diagnostic beh
 
 We feel the community has voiced this as a problem for long enough, and we should improve the situation here.
 
+### Also remove discardableResult from non-throwing initializers
+
+We believe that non-throwing values which return either Void or non-Void values are usually intentionally fire and forget -- otherwise you would be interested in using the resulting value, and be forced to store the task (or await it immediately). Therefore we do not propose to remove this attribute from Task initializers which _do not_ throw.
+
 ## Acknowledgments
 
 Everyone in the previous pitch threads, thank you for raising the issue.
