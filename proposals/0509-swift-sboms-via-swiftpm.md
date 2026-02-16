@@ -563,19 +563,20 @@ Command and build plugins need to be added to the Package.swift file to be avail
 
 Some future features that can be added include:
 
-* **Best attempt at licenses**: Automatic license identification from source code (some edge cases make it difficult to exactly accurately determine licenses; examples: multi-license projects depending on whether payment was rendered, multiple licenses in the repository, license of single file vs license of whole project, changes in license verbiage without changing the name of the license, relicensing for different versions of the same project)
+* **[Best attempt at licenses](https://github.com/swiftlang/swift-package-manager/issues/9717)**: Automatic license identification from source code (some edge cases make it difficult to exactly accurately determine licenses; examples: multi-license projects depending on whether payment was rendered, multiple licenses in the repository, license of single file vs license of whole project, changes in license verbiage without changing the name of the license, relicensing for different versions of the same project)
 * **`--target` flag support**: Support more granular SBOMs (per target)
-* **Additional information**: Maintainers’ contact information, commit/forking history, additional build metadata (e.g., host, operating system)
-* **Additional file formats**: XML, TV, YAML. XML is a format supported by both specs; however, XML is not the preferred format for either CycloneDX or SPDX.
+* **[Additional information](https://github.com/swiftlang/swift-package-manager/issues/9718)**: Maintainers’ contact information, commit/forking history, additional build metadata (e.g., host, operating system)
+* **[Additional file formats](https://github.com/swiftlang/swift-package-manager/issues/9719)**: XML, TV, YAML. XML is a format supported by both specs; however, XML is not the preferred format for either CycloneDX or SPDX.
 * **Additional spec versions**: CycloneDX 2, SPDX 4 when available
-* **Merged SBOMs**: Generate one SBOM for multiple products/targets, merge or link existing SBOM (e.g., from a third-party SDK) into output SBOM. At the least, this requires a common output location for SBOMs, as well as SBOM parsing capabilities. 
+* **[Merged SBOMs](https://github.com/swiftlang/swift-package-manager/issues/9720)**: Generate one SBOM for multiple products/targets, merge or link existing SBOM (e.g., from a third-party SDK) into output SBOM. At the least, this requires a common output location for SBOMs, as well as SBOM parsing capabilities. 
 * **Independent CycloneDX and SPDX libraries**: For parsing CycloneDX/SPDX files, or supporting other fields besides the bare minimum
-* **Package.resolved generation**: Generate a `Package.resolved` file based on an SBOM in order to reproduce a dependency graph (e.g., for debugging)
-* **SBOM signing**: Sign the SBOM cryptographically to link it to an artifact
-* **Hashes**: Add hashes to the SBOM
-* **Easily parsable paths**: Provide some object (JSON, XML, etc) to stdout or stderr that maps the spec(s) requested to the SBOM paths(s) generated. For example, `{ "spec": "cyclonedx", "version": "1.9", "output": "some/path/to/cyclonedx-1.9-output.json"}`. This makes it easier to parse the paths programmatically and confirm that the SBOMs were generated.
-* **SDKs, frameworks, and others**: Add information to the SBOM about SDKs, frameworks, precompiled headers, vendored binaries.
-* **Reverse-engineered SBOMs**: Embed SBOM information in a Swift binary so that the SBOM can be extracted from a binary without needing to build source code
+* **[Package.resolved generation](https://github.com/swiftlang/swift-package-manager/issues/9721)**: Generate a `Package.resolved` file based on an SBOM in order to reproduce a dependency graph (e.g., for debugging)
+* **[SBOM signing](https://github.com/swiftlang/swift-package-manager/issues/9722)**: Sign the SBOM cryptographically to link it to an artifact
+* **[Hashes](https://github.com/swiftlang/swift-package-manager/issues/9723)**: Add hashes to the SBOM
+* **[Easily parsable paths](https://github.com/swiftlang/swift-package-manager/issues/9724)**: Provide some object (JSON, XML, etc) to stdout or stderr that maps the spec(s) requested to the SBOM paths(s) generated. For example, `{ "spec": "cyclonedx", "version": "1.9", "output": "some/path/to/cyclonedx-1.9-output.json"}`. This makes it easier to parse the paths programmatically and confirm that the SBOMs were generated.
+* **[SDKs, frameworks, and others](https://github.com/swiftlang/swift-package-manager/issues/9737)**: Add information to the SBOM about SDKs, frameworks, precompiled headers, vendored binaries.
+* **[Reverse-engineered SBOMs](https://github.com/swiftlang/swift-package-manager/issues/9725)**: Embed SBOM information in a Swift binary so that the SBOM can be extracted from a binary without needing to build source code
+* **[packageurl-swift library](https://github.com/swiftlang/swift-package-manager/issues/9726)**: Use the `packageurl-swift` library for the PURL implementation
 
 ## Appendix
 
