@@ -154,9 +154,8 @@ Testing at your own pace.
 Present and future Swift Testing APIs will be supported in XCTest if the
 XCTest API _already_ provides similar functionality.
 
-For example, the recently-pitched [test cancellation][] feature in Swift Testing
-is analogous to `XCTSkip`. If that pitch were accepted, this proposal would
-support interop of the new API with XCTest.
+For example, the [test cancellation][] feature in Swift Testing is analogous to
+`XCTSkip`. This proposal would support interop of that API with XCTest.
 
 On the other hand, [traits][] are a powerful Swift Testing feature which is not
 related to any functionality in XCTest. Therefore, there would not be
@@ -205,7 +204,8 @@ The "complete" interoperability mode will be the default for new projects.
 Existing projects will have "limited" interoperability mode by default, with the
 option to easily opt-in to "complete".
 
-Concretely, when interoperability is available in toolchain version `6.X`:
+Concretely, when interoperability is available in toolchain version `6.X`,
+the interop mode will be determined for Swift Package projects as follows:
 
 - `swift-tools-version` >= `6.X` will have "complete" interop mode
 - `swift-tools-version` < `6.X` will have "limited" interop mode
