@@ -2,13 +2,13 @@
 
 * Proposal: [SE-NNNN](NNNN-noncopyable-reduce.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
+* Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift#85716](https://github.com/swiftlang/swift/pull/85716)
 
 ## Introduction
 
-A proposal to alter `Sequence.reduce(_:_)` to:
+A proposal to alter `Sequence.reduce(_:_:)` to:
 - allow noncopyable initial values and results; and
 - consume rather than borrow the initial value, even when it is copyable.
 
