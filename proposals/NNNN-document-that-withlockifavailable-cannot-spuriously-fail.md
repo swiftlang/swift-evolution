@@ -1,4 +1,4 @@
-# `Mutex.withLockIfAvailable(_:)` should document if it can spuriously fail
+# Document that `Mutex.withLockIfAvailable(_:)` cannot spuriously fail
 
 * Proposal: [SE-NNN](NNNN-withlockifavailable-cannot-spuriously-fail.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
@@ -16,7 +16,10 @@ The implementation already cannot spuriously fail.
 ## Motivation
 
 The documentation for `Mutex.withLockIfAvailable(_:)` does not specify if it can spuriously fail to acquire the mutex.
-Normally, the lack of any discussion about spurious failures wouldn't be an issue since we don't document whether or not most other APIs can spuriously fail either.
+Normally, the lack of any discussion wouldn't be an issue since the current implementation cannot, in fact, spuriously fail.
+Functions are generally expected to document the failure conditions they actually have, not everything they don't.
+However, some peer languages of Swift do allow their analogous APIs to spuriously fail.
+Programmers therefore could reasonably be confused about whether this is possible in Swift.
 
 ### What is a "spurious failure"?
 
