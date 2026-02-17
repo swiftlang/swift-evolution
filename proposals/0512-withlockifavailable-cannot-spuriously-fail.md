@@ -1,9 +1,9 @@
 # Document that `Mutex.withLockIfAvailable(_:)` cannot spuriously fail
 
-* Proposal: [SE-NNN](NNNN-withlockifavailable-cannot-spuriously-fail.md)
+* Proposal: [SE-0512](0512-withlockifavailable-cannot-spuriously-fail.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Awaiting review**
+* Status: **Active review (February 17...March 2, 2026)**
 * Implementation: [swiftlang/swift#85497](https://github.com/swiftlang/swift/pull/85497)
 * Review: ([pre-pitch](https://forums.swift.org/t/should-we-document-the-behavior-of-mutex-withlockifavailable/83166))
   ([pitch](https://forums.swift.org/t/pitch-document-the-lack-of-spurious-failures-in-mutex-withlockifavailable/84279))
