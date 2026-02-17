@@ -6,7 +6,7 @@
 * Status: **Active review (February 17...March 2, 2026)**
 * Implementation: [swiftlang/swift#85497](https://github.com/swiftlang/swift/pull/85497)
 * Review: ([pre-pitch](https://forums.swift.org/t/should-we-document-the-behavior-of-mutex-withlockifavailable/83166))
-  ([pitch](https://forums.swift.org/t/pitch-document-the-lack-of-spurious-failures-in-mutex-withlockifavailable/84279))
+  ([pitch](https://forums.swift.org/t/pitch-document-the-lack-of-spurious-failures-in-mutex-withlockifavailable/84279)) ([review](https://forums.swift.org/t/se-0512-document-that-mutex-withlockifavailable-cannot-spuriously-fail/84789))
 
 ## Summary of changes
 
