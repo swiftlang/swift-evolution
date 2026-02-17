@@ -624,7 +624,7 @@ represented under the "Nonisolated" category in the table:
 |----------------------|------------------------|------------------|
 | Nonisolated          | Actor isolated         | No               |
 | Nonisolated          | `@isolated(any)`       | No               |
-| Nonisolated          | `@concurrent`          | Yes              |
+| Nonisolated          | `@concurrent`          | No               |
 | Actor isolated       | Actor isolated         | Yes              |
 | Actor isolated       | `@isolated(any)`       | No               |
 | Actor isolated       | Nonisolated            | Yes              |
