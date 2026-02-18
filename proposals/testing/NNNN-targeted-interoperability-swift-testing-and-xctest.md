@@ -97,8 +97,8 @@ We propose supporting the following XCTest APIs in Swift Testing:
 
 - [Assertions][XCTest Assertions]: `XCTAssert*` and [unconditional failure][]
   `XCTFail`
-- [Expected failures][], such as `XCTExpectFailure`: marking a Swift Testing
-  issue in this way will generate a runtime warning issue.
+- [Expected failures][], such as `XCTExpectFailure` (where available): marking a
+  Swift Testing issue in this way will generate a runtime warning issue.
 - [Issue handling traits][]: we will make our best effort to translate issues
   from XCTest to Swift Testing. For issue details unique to XCTest, we will
   include them as a comment when constructing the Swift Testing issue.
