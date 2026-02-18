@@ -176,3 +176,23 @@ N/A
   a thrown error in a way that would allow the API to succeed the next time it
   is called, so callers would probably end up ignoring errors with `try?` or
   similar.
+
+- **Making the property available (always equalling `nil`) on WASI.** The
+  property's value is optional on platforms where it is supported for reasons
+  described earlier in this section. On WASI, there is no real concept of an
+  "executable" within the WebAssembly virtual machine. If a developer is using
+  this API and ports their code to WASI, and there is no compile-time indication
+  that the property is non-functional, that developer may be misled into
+  thinking the code works correctly. A better option is to mark the API
+  unavailable so that a developer who is using it will be forced to stop and
+  think about appropriate alternatives.
+
+- **Making the property available under Embedded Swift.** Under Embedded Swift,
+  the Swift runtime has limited ability to call platform-specific API because
+  there's no real guarantee there is even a "platform" _per se_. Embedded Swift
+  can be used with full desktop-class operating systems, but it can also be used
+  on true embedded systems where the CPU directly executes instructions loaded
+  from RAM or ROM and there isn't even a file system in which to place an
+  executable. As with WASI, it is better to mark the API unavailable so that a
+  developer is forced to think about why they are trying to use it under
+  Embedded Swift and whether it's appropriate to use in the first place.
