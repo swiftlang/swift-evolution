@@ -1,4 +1,4 @@
-# `~Sendable` Conformance for Suppressing Sendable Inference
+# `~Sendable` for explicitly marking non-`Sendable` types
 
 * **Proposal**: [SE-NNNN](NNNN-tilde-sendable.md)
 * **Authors**: [Pavel Yaskevich](https://github.com/xedin)
@@ -17,7 +17,7 @@ This proposal introduces `~Sendable` conformance syntax to explicitly suppress a
 
 When encountering a public type that doesn't explicitly conform to `Sendable`, it's difficult to determine the intent. It can be unclear whether the type should have an explicit `Sendable` conformance that hasn't been added yet, or whether it's deliberately non-`Sendable`. Making this determination requires understanding how the type's storage is structured and whether access to shared state is protected by a synchronization mechanism - implementation details which may not be accessible from outside the library.
 
-There are also situations when a class is not `Sendable` but some of its subclasses are. There is currently a way to expression that a type does not conform to a `Sendable` protocol:
+There are also situations when a class is not `Sendable` but some of its subclasses are. There is currently a way to express that a type does not conform to a `Sendable` protocol:
 
 
 ```swift
@@ -60,12 +60,34 @@ This third state of a class not having a conformance to `Sendable` because subcl
 
 ## Proposed Solution
 
-Introduce `~Sendable` conformance syntax that explicitly suppresses `Sendable`:
+Introduce `~Sendable` conformance syntax that explicitly indicates that a type is non-`Sendable`:
 
 ```swift
-// This type will never be inferred as Sendable before though it could be inferred as such.
-struct MyType: ~Sendable {
-    let value: Int
+// The `ExecutionResult` has been audited and explicitly stated to be non-`Sendable` because
+// one of its cases has a non-Sendable associated value.
+public enum ExecutionResult: ~Sendable {
+case success
+// ...
+// ...
+case failure(NonSendable)
+// ...
+}
+
+// The `Base` type has been audited and determined to be non-`Sendable`, sub-classes
+// can introduce non-`Sendable` mutable state or protect their state / make everything
+// constant and thus may be marked as `Sendable`.
+public class Base: ~Sendable {
+  // ...
+}
+
+// This sub-class of `Base` has been audited and determined to be `Sendable`.
+public class ThreadSafeImpl: Base, @unchecked Sendable {
+    // protects `value` from Base in some way that make it safe to access i.e. via a lock.
+}
+
+// This sub-class has mutable non-`Sendable` state and so is non-`Sendable` just like it's base type.
+public class UnsafeImpl: Base {
+   var x: NonSendable
 }
 ```
 
@@ -178,7 +200,7 @@ Conditional conformances to `Sendable` protocol are still allowed:
 extension Container: Sendable where T: Sendable {} // Ok!
 ```
 
-Due to `Sendable` inference on types, it is still helpful to allow conditional `Sendable` conformances on `~Sendable` types when an API author would like to express that the type is only `Sendable` conditionally when `Sendable` conformance could otherwise be inferred e.g. by checking type's storage or isolation. `~Sendable` is not required in other cases even for auditing purposes (with `ExplicitSendable`, please see below) because the type would be non-Sendable unless explicitly stated otherwise on a primary declaration or in a conditional `Sendable` conformance extension.
+It is still helpful to allow conditional `Sendable` conformances on `~Sendable` types when an API author would like to express that the type is only `Sendable` conditionally when `Sendable` conformance could otherwise be inferred e.g. by checking type's storage or isolation. `~Sendable` is not required in other cases even for auditing purposes (with `ExplicitSendable`, please see below) because the type would be non-Sendable unless explicitly stated otherwise on a primary declaration or in a conditional `Sendable` conformance extension.
 
 The Swift compiler provides a way to audit Sendability of public types. The current way to do this is by enabling the `-require-explicit-sendable` flag to produce a warning for every public type without explicit `Sendable` conformance (or an unavailable extension). This flag now supports `~Sendable` and has been turned into a diagnostic group that is disabled by default - `ExplicitSendable`, and can be enabled by `-Wwarning ExplicitSendable`.
 
