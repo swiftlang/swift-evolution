@@ -1,8 +1,8 @@
 # `Hashable` Conformance for `Dictionary.Keys`, `CollectionOfOne` and `EmptyCollection`
 
-* Proposal: [SE-NNNN](NNNN-hashable-conformance-for-dictionarykeys-collectionofone-emptycollection.md)
+* Proposal: [SE-0514](0514-hashable-conformance-for-dictionarykeys-collectionofone-emptycollection.md)
 * Authors: [Clinton Nkwocha](https://github.com/clintonpi)
-* Review Manager: TBD
+* Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Awaiting Review**
 * Implementation: [swiftlang/swift#86899](https://github.com/swiftlang/swift/pull/86899)
 * Review: [pitch](https://forums.swift.org/t/pitch-hashable-conformance-for-dictionary-keys-collectionofone-and-emptycollection/84117)
@@ -130,18 +130,18 @@ extension EmptyCollection: Hashable {}
 
 ## Source compatibility
 
-This is a purely additive change, and the `hash` and `==` functions use `@_alwaysEmitIntoClient` to back-deploy.
+This is a purely additive change, but any code that provides its own redundant conformance will now generate a warning (see "Implications on Adoption" for discussion of how to handle this).
 
 ## ABI compatibility
 
-This proposal is purely an extension of the ABI of the standard library and does not change any existing features. The new conformances are guarded with `@available(SwiftStdlib 6.3, *)`.
+This proposal is purely an extension of the ABI of the standard library and does not change any existing features.
 
 ## Implications on adoption
 
-The new conformances require Swift 6.3 or later. Adopters may simply only declare the conformances when deploying to earlier Swift versions. For example:
+The new conformances require Swift 6.4 or later. Adopters may simply declare the conformances when deploying to earlier Swift versions. For example:
 
 ```swift
-#if swift(<6.3)
+#if swift(<6.4)
   extension Dictionary.Keys: @retroactive Hashable {}
 #endif
 ```
