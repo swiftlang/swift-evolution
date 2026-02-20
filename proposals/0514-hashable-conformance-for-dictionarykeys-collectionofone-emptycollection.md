@@ -5,7 +5,9 @@
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active Review (February 20...March 6, 2026)**
 * Implementation: [swiftlang/swift#86899](https://github.com/swiftlang/swift/pull/86899)
-* Review: [pitch](https://forums.swift.org/t/pitch-hashable-conformance-for-dictionary-keys-collectionofone-and-emptycollection/84117)
+* Review: ([pitch](https://forums.swift.org/t/pitch-hashable-conformance-for-dictionary-keys-collectionofone-and-emptycollection/84117))
+          ([review](https://forums.swift.org/t/se-0514-hashable-conformance-for-dictionary-keys-collectionofone-and-emptycollection/84852))
+
 
 ## Introduction
 
