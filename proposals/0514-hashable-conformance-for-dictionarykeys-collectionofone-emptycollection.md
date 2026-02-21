@@ -57,7 +57,7 @@ extension Dictionary.Keys {
   }
 }
 
-@available(SwiftStdlib 6.3, *)
+@available(SwiftStdlib 6.4, *)
 extension Dictionary.Keys: Hashable {}
 ```
 
@@ -100,10 +100,10 @@ extension CollectionOfOne where Element: Hashable {
   }
 }
 
-@available(SwiftStdlib 6.3, *)
+@available(SwiftStdlib 6.4, *)
 extension CollectionOfOne: Equatable where Element: Equatable {}
 
-@available(SwiftStdlib 6.3, *)
+@available(SwiftStdlib 6.4, *)
 extension CollectionOfOne: Hashable where Element: Hashable {}
 ```
 
@@ -126,7 +126,7 @@ extension EmptyCollection {
   }
 }
 
-@available(SwiftStdlib 6.3, *)
+@available(SwiftStdlib 6.4, *)
 extension EmptyCollection: Hashable {}
 ```
 
