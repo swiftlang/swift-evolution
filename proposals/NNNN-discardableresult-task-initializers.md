@@ -3,8 +3,8 @@
 * Proposal: [SE-NNN](NNN-discardableresult-task-initializers.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-* Implementation: https://github.com/swiftlang/swift/pull/87171
+* Status: Implemented 
+* Implementation: [PR #87439](https://github.com/swiftlang/swift/pull/87439/)
 * Review: TBD
 
 ## Summary of changes
