@@ -13,7 +13,7 @@
 We propose a new protocol for iteration, `BorrowingSequence`, which 
 will work with noncopyable types and provide more efficient iteration
 in some circumstances for copyable types. The Swift compiler will
-support use of this protocol via the familiar `for...in` syntax.
+support use of this protocol via the familiar `for`-`in` syntax.
 
 ## Motivation
 
@@ -66,6 +66,19 @@ public protocol BorrowingSequence<Element>: ~Copyable, ~Escapable {
   /// Returns a borrowing iterator over the elements of this sequence.
   @lifetime(borrow self)
   func makeBorrowingIterator() -> BorrowingIterator
+  
+  /// A value less than or equal to the number of elements in the sequence,
+  /// calculated nondestructively.
+  var underestimatedCount: Int { get }
+  
+  /// Internal customization point for fast `contains(_:)` checks.
+  func _customContainsEquatableElement(_ element: borrowing Element) -> Bool?
+}
+
+// Default implementations
+extension BorrowingSequence where Self: ~Copyable & ~Escapable, Element: ~Copyable {
+  public var underestimatedCount: Int { 0 }
+  public func _customContainsEquatableElement(...) -> Bool? { nil }
 }
 ```
 
@@ -73,10 +86,9 @@ This protocol shape is very similar to the current `Sequence`. It has a primary
 associated type for the element, and just one method
 that hands you an iterator you can use to iterate the elements of the sequence.
 
-The differences being:
+The differences from the `Sequence` protocol are as follows:
 
-- It allows conformance by noncopyable types. Note that copyable and escapable
-types can also conform---but the protocol is designed to not require it.
+- `BorrowingSequence` allows conformance by noncopyable and nonescapable types. Note that copyable and escapable types can also conform, but the protocol is designed to not require it.
 - The `Element` type is also not required to be copyable.
 - There is a `BorrowingIterator` associated type, and a `makeBorrowingIterator()`
 method that returns one. These play a similar role to `Iterator` and `makeIterator()`
@@ -105,8 +117,8 @@ public protocol BorrowingIteratorProtocol<Element>: ~Copyable, ~Escapable {
   mutating func skip(by maximumOffset: Int) -> Int
 }
 
+// Default implementations
 extension BorrowingIteratorProtocol where Element: ~Copyable {
-  // default implementation
   public mutating func skip(by maximumOffset: Int) -> Int { ... }
 }
 ```
@@ -186,32 +198,28 @@ iterated spans of noncopyable elements as they exist today. It allows
 noncopyable elements to be passed directly into functions like `f`
 and `g` without the need for a temporary variable.
 
-This desugared `while` loop is a lot more complex than its `Sequence`
-equivalent. But the day-to-day usage remains exactly the same, with
+This desugared `while` loop is more complex than its `Sequence`
+equivalent, but the day-to-day usage remains exactly the same, with
 the added complexity left to the caller.
 
-Note that in the case of `Array`, the new protocol results in much less overhead
-for the optimizer to eliminate. Iterating a `Span` in the inner loop is a lot
-closer to the "ideal" model of advancing a pointer over a buffer and accessing
-the elements directly. It is therefore expected that this design will result
-in better performance in some cases where today the optimizer is unable
-to eliminate the overhead of Swift's `Array`.
+### Example `BorrowingSequence` algorithms
 
-### Borrowing sequence operations
+*Note:* The addition of appropriate algorithms aligning with those on `Sequence`
+will be specified in an upcoming proposal. 
 
-The addition of appropriate algorithms matching those on `Sequence` will be specified 
-in an upcoming proposal. Much like `Sequence` operations, these will be written as 
-extensions on the `BorrowingSequence` protocol. The following two examples demonstrate 
-how some operations will be as simple as their `Sequence` counterparts, while others 
-will require more careful manual iteration over spans.
+The following two examples, included in this proposal only for illustration, 
+show how some `BorrowingSequence` operations 
+will be as simple as their `Sequence` counterparts, while others 
+will require more careful manual iteration.
 
-The differences between `Sequence.reduce(into:_:)` and `BorrowingSequence.reduce(_:_:)` 
-are only in the parameters' ownership annotations, because we only need a borrowing 
-access to one element at a time. The implementation itself is essentially identical:
+The differences between an implementation of `reduce(into:_:)` for `Sequence` and 
+`BorrowingSequence` are only in the parameters' ownership annotations, because 
+we only need access to one element at a time. The implementation itself
+is essentially identical:
 
 ```swift
 extension BorrowingSequence {
-   func reduce<T: ~Copyable>(
+   func example_reduce<T: ~Copyable>(
       into initial: consuming T,
       _ nextPartialResult: (inout T, borrowing Element) -> Void
    ) -> T {
@@ -224,11 +232,12 @@ extension BorrowingSequence {
 }
 ```
 
-For `elementsEqual`, however, we use manual iteration to compare spans of equal size between two `BorrowingSequences`:
+In order to properly implement `elementsEqual`, however, we must use manual 
+iteration to compare spans of equal size between two `BorrowingSequence` types:
 
 ```swift
-extension BorrowingSequence where Self: ~Escapable & ~Copyable, Element: Equatable {
-   func elementsEqual<S: BorrowingSequence<Element>>(
+extension BorrowingSequence where Self: ~Escapable & ~Copyable, Element: ~Copyable & Equatable {
+   func example_elementsEqual<S: BorrowingSequence<Element>>(
       _ rhs: borrowing S
    ) -> Bool
       where S: ~Escapable & ~Copyable
@@ -259,45 +268,65 @@ extension BorrowingSequence where Self: ~Escapable & ~Copyable, Element: Equatab
 
 ### Standard Library adoption
 
-`InlineArray` and the various `Span` types will conform to `BorrowingSequence`,
-with `Span` also conforming to `BorrowingIteratorProtocol` and acting as the iterator
-for all these types.
+`InlineArray` and the various `Span` types will conform to `BorrowingSequence`.
 
 ```swift
-extension Span: BorrowingSequence, BorrowingIteratorProtocol
+extension Span: BorrowingSequence
    where Self: ~Copyable & ~Escapable, Element: ~Copyable
 {
    @lifetime(borrow self)
-   func makeBorrowingIterator() -> Self
-
-   @lifetime(&self)
-   mutating func nextSpan(maximumCount: Int) -> Self
-    
-   mutating func skip(by maximumOffset: Int) -> Int
+   func makeBorrowingIterator() -> SpanIterator<Element>
 }
 
 extension MutableSpan: BorrowingSequence
    where Self: ~Copyable & ~Escapable, Element: ~Copyable
 {
    @lifetime(borrow self)
-   func makeBorrowingIterator() -> Span<Element>
+   func makeBorrowingIterator() -> SpanIterator<Element>
 }
 
 extension RawSpan: BorrowingSequence {
    @lifetime(borrow self)
-   func makeBorrowingIterator() -> Span<UInt8>
+   func makeBorrowingIterator() -> SpanIterator<UInt8>
 }
 
 extension MutableRawSpan: BorrowingSequence {
    @lifetime(borrow self)
-   func makeBorrowingIterator() -> Span<UInt8>
+   func makeBorrowingIterator() -> SpanIterator<UInt8>
 }
 
 extension InlineArray: BorrowingSequence
    where Self: ~Copyable & ~Escapable, Element: ~Copyable
 {
    @lifetime(borrow self)
-   func makeBorrowingIterator() -> Span<Element>
+   func makeBorrowingIterator() -> SpanIterator<Element>
+}
+```
+
+Each of these types use a new borrowing iterator type, `SpanIterator`,
+that is suitable for types that store their elements in a single 
+contiguous block of memory. The `SpanIterator` type stores both a
+`Span` and the current offsets into the span, to allow flexibility for
+future kinds of iteration.
+
+```swift
+/// A borrowing iterator type that provides access to the contents of a single
+/// span of elements.
+public struct SpanIterator<Element>: BorrowingIteratorProtocol, ~Copyable, ~Escapable
+  where Element: ~Copyable
+{
+  /// Creates a new iterator over the given span.
+  @_lifetime(copy elements)
+  public init(_ elements: Span<Element>)
+  
+  /// Returns a span over the next group of contiguous elements, up to the
+  /// specified maximum number.
+  @_lifetime(&self)
+  public mutating func nextSpan(maximumCount: Int) -> Span<Element>
+  
+  /// Advances this iterator by up to the specified number of elements and
+  /// returns the number of elements that were actually skipped.
+  public mutating func skip(by offset: Int) -> Int
 }
 ```
 
@@ -383,72 +412,27 @@ to allow extensions written against `BorrowingSequence` to "just work",
 on those types, since needing to copy or escape an iterator is rarely bumped 
 into when implementing most sequence algorithms.
 
-### `for` loop desugaring when both protocols are available
+### `for`-`in` loop desugaring when both protocols are available
 
-Note that in this case, it is likely that using `BorrowingSequence` to iterate
-`UnfoldSequence` will be slightly _less_ efficient than using its `Sequence`
-conformance, depending on the element type, given the overhead of moving the
-element into the `currentValue` storage. If the element is non-trivial, this
-may result in additional copies being made with the new borrowing iteration 
-model, where with the existing `next()` operation, the element can be returned 
-and consumed directly into its destination.
+In order to preserve the performance and semantics of existing code that
+uses `for`-`in` loops, the generated code will only use borrowing iteration
+for types that _only_ conform to `BorrowingSequence`, or in contexts where 
+only `BorrowingSequence` conformance can be assured.
 
-For example, imagine using `UnfoldSequence` to generate strings that are being streamed
-into an `Array<String>`:
-- with `Sequence`, the strings are produced by the `UnfoldSequence`, returned by `next()`,
-and consumed into the `Array` with no logical copies
-- with `BorrowingSequence`, the strings are produced, stored in the `currentValue` variable,
-**copied** out of the `Span` of that variable into the `Array`, and then the value in
-`currentValue` is destroyed.
+Existing code written with types that conform to both `BorrowingSequence` and 
+`Sequence` will call the `makeIterator()` method and iterate over each element
+using that approach.
 
-For this reason, it may not be appropriate to switch all `for` iteration to use
-`BorrowingSequence` when `Sequence` is available. How to determine which cases are
-better (such as `Array` is expected to be) and which are worse (such as the `UnfoldSequence`
-example above) needs further investigation. 
-
-An experimental feature, `BorrowingForLoopByDefault`, will be made available
-to allow switching of the compiler to default to always use the new desugaring,
-to allow for experimentation with the impact on performance.
-
-Regardless, types that _do not_ offer a `Sequence` conformance today (noncopyable types, 
-`InlineArray`, and `Span` itself) will use the new desugaring.  Making that switch is left
-to future proposals. For now, if a `Sequence` conformance is available, it will be used
-even if `BorrowingSequence` is also available.
+In effect, this means that `InlineArray` and the span types will be the only
+ones to use borrowing iteration. Types like `Array`, if given conformance
+to `BorrowingSequence`, would continue to use the element-wise 
+`Sequence`-based iteration model that they use today.
 
 ## Source compatibility
 
 This proposal introduces a new protocol, `BorrowingSequence`.
-Existing conformers to `Sequence` can also implement `BorrowingSequence`. This is
-entirely source compatible.
-
-As discussed above, switching to use the new `BorrowingSequence` protocol
-by default could impact runtime performance, and so while source compatible,
-needs further control.
-
-There is an additional source compatibility edge case that would be caused
-by changing `for` loops to :
-
-```swift
-var array: [Int] = // ...
-for element in array {
-  // when used with BorrowingSequence, this
-  // would cause a compile time error
-  array[0] = 1
-}
-```
-
-This is similar to a simpler example where the reason is clearer:
-
-```swift
-var array: [Int] = // ...
-let span = array.span
-// error: Overlapping accesses to 'array', but modification requires exclusive access
-array[0] = 99
-```
-
-Now, it is usually unwise or unintentional to modify a collection while iterating over it.
-Often the user does not realize that this triggers copy-on-write for the collection
-they are iterating. But this potential source of breakage that should be considered.
+Existing conformers to `Sequence` can also implement `BorrowingSequence`
+by simply declaring their conformance. This is entirely source compatible.
 
 ## ABI compatibility
 
@@ -494,6 +478,72 @@ for the following kinds of iteration:
 Another approach for providing iteration and sequential algorithms 
 to noncopyable types added defaulted requirements to the existing `Sequence`
 protocol. 
+
+### Different lifetime relationships
+
+For some types that implement `BorrowingSequence`, it would be possible to have
+the spans returned from their iterator's `nextSpan` method to tie their lifetime to 
+the overlying sequence type instead of the iterator. For example, the spans provided by a
+deque implementation would be over memory managed by the deque, not its iterator. 
+
+However, for sequence types that generate their elements as needed, the iterator must store the element as it's being borrowed, which requires the lifetime dependency on
+the iterator. This is the design chosen in order to allow maximum flexibility for
+conforming sequence types.
+
+### Using an opaque iterator type
+
+As a way to mitigate the challenge of customizing the borrowing iterator in ABI-stable
+frameworks, `BorrowingSequence` could declare `makeBorrowingIterator()` as returning
+an opaque iterator type instead of giving the protocol an associated type. However,
+using an opaque type in this position creates barriers to optimization that render 
+this approach unworkable.
+
+### Using `Span` as an iterator
+
+An earlier version of this proposal used `Span` as a self-consuming iterator type.
+This added API that seemed out of place on `Span` (e.g. `nextSpan()`) and limited
+the flexibility of types to provide bidirectional or random-access iteration in the
+future.
+
+### Using borrowing iteration for all `for`-`in` loops
+
+In the case of collections with contiguous storage, notably `Array`, the new 
+iteration model results in much less overhead the optimizer to eliminate. 
+Iterating over a `Span` is a lot closer to the "ideal" model of advancing a
+pointer over a buffer and accessing elements directly. It is therefore expected 
+that this design will result in better performance in some cases where today 
+the optimizer is unable to eliminate the collection type's overhead.
+
+However, there are performance and semantic caveats to switching all iteration
+to the new model.
+
+For an example of potential performance issues, imagine using `UnfoldSequence` 
+to generate strings that are being streamed into an `Array<String>`:
+- with `Sequence`, the strings are produced by the `UnfoldSequence`, returned by `next()`,
+and consumed into the `Array` with no logical copies
+- with `BorrowingSequence`, the strings are produced, stored in the `currentValue` variable,
+**copied** out of the `Span` of that variable into the `Array`, and then the value in
+`currentValue` is destroyed.
+
+From the perspective of semantics, changing to a borrowing access of the collection
+type while iterating would change the meaning of some existing code, in particular
+in cases where an array is modified during iteration. (While this is usually ill-advised, 
+this code is perfectly valid.) Such cases could fail to compile if converted to 
+borrowing iteration, or, in some cases, continue to compile but result in a 
+runtime exclusivity violation.
+
+For these reasons, this proposal chooses to only use borrowing iteration in cases
+where `Sequence`-based iteration is not available: in `BorrowingSequence`-constrained
+generic contexts and for types that conform only to `BorrowingSequence`, but not
+`Sequence`. Any switch from this default is left to future proposals. 
+
+### Nonescapable elements
+
+While there are use cases for modeling sequences of nonescapable elements (such as a
+`Span<Span<Int>>`, crafting such types isn't possible under the currently proposed 
+model for annotating lifetimes. The authors are confident that the current design could
+be modified to support nonescapable elements in the event that Swift were to gain the
+capability to model them.
 
 ## Acknowledgments
 
