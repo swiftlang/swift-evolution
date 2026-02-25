@@ -56,7 +56,7 @@ Other examples of types that cannot conform to `ConvertibleFromRawBytes` are `Un
 The compiler cannot enforce the semantic requirements of `ConvertibleFromRawBytes`, therefore types outside the standard library can only conform with an unsafe conformance.
 
 ```swift
-extension myType: @unsafe ConvertibleFromRawBytes {}
+extension MyType: @unsafe ConvertibleFromRawBytes {}
 ```
 
 A conformance to `ConvertibleFromRawBytes` can only be declared by a type's containing module.
