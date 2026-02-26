@@ -29,7 +29,7 @@ We propose two new protocols, to be initially restricted to types defined by the
 @_marker public protocol ConvertibleToRawBytes {}
 ```
 
-A type can conform to `ConvertibleToRawBytes` if its memory representation includes no padding. In other words, the sum of the size of its stored properties is equal to its size. A type that conforms to `ConvertibleToRawBytes` must have:
+A type can conform to `ConvertibleToRawBytes` if its memory representation includes no padding. In other words, the sum of the size of its stored properties is equal to its stride. A type that conforms to `ConvertibleToRawBytes` must have:
 
 - one or more stored properties,
 - all of its stored properties have types conforming to `ConvertibleToRawBytes`,
@@ -574,9 +574,9 @@ extension PartialRangeFrom.Iterator: ConvertibleToRawBytes
 extension PartialRangeThrough: ConvertibleToRawBytes where Bound: ConvertibleToRawBytes {}
 extension PartialRangeUpTo: ConvertibleToRawBytes where Bound: ConvertibleToRawBytes {}
 
+extension Bool: ConvertibleToRawBytes {}
 extension ObjectIdentifier: ConvertibleToRawBytes {}
 extension AnyObject: ConvertibleToRawBytes {}
-extension Optional: ConvertibleToRawBytes where Wrapped: ConvertibleToRawBytes {}
 
 extension UnsafePointer: ConvertibleToRawBytes {}
 extension UnsafeMutablePointer: ConvertibleToRawBytes {}
