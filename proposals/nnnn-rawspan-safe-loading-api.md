@@ -45,7 +45,7 @@ A conformance to `ConvertibleToRawBytes` can only be declared by a type's contai
 public protocol ConvertibleFromRawBytes: BitwiseCopyable {}
 ```
 
-A type can conform to `ConvertibleFromRawBytes` if every bit pattern for every byte of its stored properties is valid. Note that this allows conformances for types with internal padding. A conformer to `ConvertibleFromRawBytes` must not have semantic constraints on the values of its stored properties.
+A type can conform to `ConvertibleFromRawBytes` if every bit pattern for every byte of its stored properties is valid. Note that this allows conformances for types with internal padding. A conformer to `ConvertibleFromRawBytes` must not have semantic constraints on the values of its stored properties. All its stored properties must themselves conform to `ConvertibleFromRawBytes`.
 
 For example, a type representing two-dimensional Cartesian coordinates, such as `struct Point { var x, y: Int }` could conform to `ConvertibleFromRawBytes`. Its stored properties are `Int`, which is `ConvertibleFromRawBytes`. There are no semantic constraints between the `x` and `y` properties: any combination of `Int` values can represent a valid `Point`.
 
@@ -230,7 +230,7 @@ The memory representation of a `ConvertibleToRawBytes` type must include no padd
 protocol ConvertibleToRawBytes {}
 ```
 
-Custom types will not be allowed to declare an unsafe conformance to `ConvertibleToRawBytes` at this time.
+Custom types will not be allowed to declare a conformance to `ConvertibleToRawBytes` at this time.
 
 ##### `ConvertibleFromRawBytes`
 
@@ -618,9 +618,19 @@ These functions require the existence of `Span`, and have a minimum deployment t
 
 ## Future directions
 
-#### Validation for the `ConvertibleToRawBytes` layout constraint
+#### Validation for the `ConvertibleToRawBytes` protocol
 
 `ConvertibleToRawBytes` conformances will undergo additional validation by the compiler at a later time. This protocol can be fully validated at compilation time, since it relies entirely on the layout of the type in addressable memory. It should be automatable in a manner similar to `BitwiseCopyable`.
+
+Alongside validation, we could consider automatically inserting stored null bytes instead of padding for types which elect it.
+
+#### Partial validation for the `ConvertibleFromRawBytes`protocol
+
+`ConvertibleFromRawBytes` conformances may undergo some validation by the compiler at a later time. The compiler can enforce that all of a type's stored properties conform to `ConvertibleFromRawBytes`. It cannot directly enforce the absence of semantic constraints on the type's fields, but we may choose to accept a roundabout way of supporting its absence, such as if all the stored properties are `public` and mutable (`var` bindings).
+
+#### Support for types imported from C
+
+The Clang importer should be taught which basic C types support these protocols. There should be a way to declare a conformance to the protocols for C types which are aggregates.
 
 #### Support for tuples and SIMD types
 
