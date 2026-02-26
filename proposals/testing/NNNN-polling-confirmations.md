@@ -25,39 +25,39 @@ Consider the following class, `Aquarium`, modeling raising dolphins:
 ```swift
 @MainActor
 final class Aquarium {
-    private(set) var isRaising = false
-    var hasFunding = true
+  private(set) var isRaising = false
+  var hasFunding = true
 
-    func raiseDolphins() {
-        Task {
-            if hasFunding {
-                isRaising = true
+  func raiseDolphins() {
+    Task {
+      if hasFunding {
+        isRaising = true
 
-                // Long running work that I'm not qualified to describe.
-                // ...
+        // Long running work that I'm not qualified to describe.
+        // ...
 
-                isRaising = false
-            }
-        }
+        isRaising = false
+      }
     }
+  }
 }
 ```
 
 As is, it is extremely difficult to check that `isRaising` is correctly set to
-true once `raiseDolphins` is called. The system offers test authors no
-control for when the created task runs, leaving test authors add arbitrary sleep
-calls. Like this example:
+true once `raiseDolphins()` is called. The system offers test authors no
+control for when the created task runs, leaving test authors little choice but
+to add arbitrary sleep calls to wait for the task to run. For example:
 
 ```swift
 @Test func `raiseDolphins if hasFunding sets isRaising to true`() async throws {
-    let subject = Aquarium()
-    subject.hasFunding = true
+  let subject = Aquarium()
+  subject.hasFunding = true
 
-    subject.raiseDolphins()
+  subject.raiseDolphins()
 
-    try await Task.sleep(for: .seconds(1))
+  try await Task.sleep(for: .seconds(1))
 
-    #expect(subject.isRaising == true)
+  #expect(subject.isRaising == true)
 }
 ```
 
@@ -65,20 +65,20 @@ This requires test authors to have to figure out how long to wait so that
 `isRaising` will reliably be set to true, while not waiting too long, such that
 the test suite is not unnecessarily delayed or task itself finishes.
 
-As another example, imagine a test author wants to verify that no dolphins are
+Conversely, imagine a test author wants to verify that no dolphins are
 raised when there isn't any funding. There isn't and can't be a mechanism for
-verifying that `isRaising` is never set to `true`, but if we constrain the
-problem to within a given timeframe, then we can have a reasonable assumption
-that `isRaising` remains set to false. Again, without some other mechanism to
-notify the test when to check `isRaising`, test authors are left to add
-arbitrary sleep calls, when having the ability to fail fast would save a not
-insignificant amount of time in the event that `isRaising` is mistakenly set to
-true.
+verifying that `isRaising` is never set to `true`, if we constrain the
+check to within a given timeframe, then we can easily make such an assertion.
+Again, without some mechanism to monitory and notify the test that `isRaising`
+was set to`true`, the simplest approach is to use an arbitary sleep call and
+then check `isRaising`. Additionally, in the failure case where `isRaising` is
+very quickly set to true, the test should fail fast instead of delaying any more
+than absolutely necessayr.
 
 This proposal introduces polling to help test authors address these cases. In
-this and other similar cases, polling makes these tests practical or even
-possible, as well as speeding up the execution of individual tests as well as
-the entire test suite.
+this and other similar cases, polling makes these classes of tests practical or
+even possible, as well as speeding up the execution of individual tests as well
+as the entire test suite.
 
 ## Proposed solution
 
@@ -110,21 +110,21 @@ might look like:
 
 ```swift
 @Test func `raiseDolphins if hasFunding sets isRaising to true`() async throws {
-    let subject = Aquarium()
-    subject.hasFunding = true
+  let subject = Aquarium()
+  subject.hasFunding = true
 
-    subject.raiseDolphins()
+  subject.raiseDolphins()
 
-    try await confirmation(until: .firstPass) { subject.isRaising == true }
+  try await confirmation(until: .firstPass) { subject.isRaising == true }
 }
 
 @Test func `raiseDolphins if no funding keeps isRaising false`() async throws {
-    let subject = Aquarium()
-    subject.hasFunding = false
+  let subject = Aquarium()
+  subject.hasFunding = false
 
-    subject.raiseDolphins()
+  subject.raiseDolphins()
 
-    try await confirmation(until: .stopsPassing) { subject.isRaising == false }
+  try await confirmation(until: .stopsPassing) { subject.isRaising == false }
 }
 ```
 
@@ -401,21 +401,21 @@ when to stop execution, such as:
 ```swift
 let end = ContinuousClock.now + timeout
 while ContinuousClock.now < end {
-    if await runPollAndCheckIfShouldStop() {
-        // alert the user!
-    }
-    await Task.yield()
+  if await runPollAndCheckIfShouldStop() {
+    // alert the user!
+  }
+  await Task.yield()
 }
 ```
 
 With enough system load, the polling check might only run a handful of times, or
-even once, before the timeout is triggered. In this case, the component being
+only once, before the timeout is triggered. In this case, the component being
 polled might not have had time to update its status such that polling could
 pass. Using the `Aquarium.raiseDolphins` example from earlier: On the first time
-that `runPollAndCheckIfShouldStop` executes the background task created by
+that `runPollAndCheckIfShouldStop` executes, the background task created by
 `raiseDolphins` might not have started executing its closure, leading the
-polling to continue. If the system is under sufficiently high load, which can
-be caused by having a very large amount of tests in the test suite, then once
+polling to continue. If the system is under sufficiently high load - which can
+be caused by having a very large amount of tests in the test suite - then once
 the `Task.yield` finishes and the while condition is checked again, then it
 might now be past the timeout. Or the task created by `Aquarium.runDolphins`
 might have started and the closure run to completion before the next time
@@ -425,11 +425,11 @@ unreliable as the load on the system increases and as the size of the test suite
 increases.
 
 To prevent this, the Testing library will calculate how many times to poll the
-`body`. This can be done by dividing the `duration` by the `interval`. For example,
-with the default 1 second duration and 1 millisecond interval, the Testing
-library could poll 1000 times, waiting 1 millisecond between polling attempts.
-This is immune to the issues posed by concurrent execution, allowing it to
-scale with system load and test suite size.
+`body`. This can be done by dividing the `duration` by the `interval`. For
+example, with the default 1 second duration and 1 millisecond interval, the
+Testing library could poll 1000 times, waiting 1 millisecond between polling
+attempts. This is resistant to the issues posed by concurrent execution and
+scales with system load and test suite size.
 This is also very easy for test authors to understand and predict, even if it is
 not fully accurate to wall-clock time - each poll attempt takes some amount of
 time, even for very  fast `body` closures. Which means that the real-time
@@ -442,13 +442,13 @@ These functions can be used with an async test function:
 
 ```swift
 @Test func `The aquarium's dolphin nursery works`() async {
-    let subject = Aquarium()
-    Task {
-        await subject.raiseDolphins()
-    }
-    await confirmation(until: .firstPass) {
-        await subject.dolphins.count == 1
-    }
+  let subject = Aquarium()
+  Task {
+    await subject.raiseDolphins()
+  }
+  await confirmation(until: .firstPass) {
+    await subject.dolphins.count == 1
+  }
 }
 ```
 
@@ -470,15 +470,16 @@ problems that polling solves can be solved through other, better means. Such as
 the observability system, using Async sequences, callbacks, or delegates. When
 possible, implementation code which requires polling to be tested should be
 refactored to support other means. Polling exists for the case where such
-refactors are either not possible or require a large amount of overhead.
+refactors are either not possible or not yet practicable.
 
-Polling introduces a small amount of instability to the tests - in the example
-of waiting for `Aquarium.isRaising` to be set to true, it is entirely possible
-that, unless the code covered by
+Polling inherently introduces some amount of instability to the tests - in the
+example of waiting for `Aquarium.isRaising` to be set to true, it is entirely
+possible that, unless the code covered by
 `// Long running work that I'm not qualified to describe` has a test-controlled
 means to block further execution, the created `Task` could finish between
-polling attempts - resulting `Aquarium.isRaising` to always be read as false,
-and failing the test despite the code having done the right thing.
+polling attempts - resulting `Aquarium.isRaising` to always (or worse,
+occasionaly) read as false, and failing the test despite the code having done
+the right thing.
 
 Polling also only offers a snapshot in time of the state. When
 `PollingStopCondition.firstPass` is used, polling will stop and return a pass
@@ -500,15 +501,15 @@ attempts just waiting out that long delay. In high-load environments such as
 CI systems or systems running in virtual machines, that 0.5 second delay can
 often last longer than the amount of time spent polling, resulting in
 unstable tests.  
-To address this, developers should either write the implementation code to use
-an injected clock, allowing for the test to inject a clock where the delay can
-be noted but otherwise skipped. Polling can then be attempted to wait for any
-minor delays in task or runloop scheduling. Alternatively, if injecting a clock
-is infeasible, then the test itself should wait at least as long as the delay
-before starting polling. Using an injected clock will
-entirely mitigate this concern and is the approach developers should prefer,
-while adding delays to the test will only reduce the rate of instability to a
-manageable level, but may not entirely eliminate it.
+To address this, developers should write the implementation code to use an
+injected clock, allowing for the test to inject a clock where the delay can be
+noted but otherwise skipped. Polling can then be attempted to wait for any minor
+delays in task or runloop scheduling. Alternatively, if injecting a clock is
+infeasible, then the test itself should wait at least as long as the delay
+before starting polling. Using an injected clock will entirely mitigate this
+concern and is the approach developers should prefer, while adding delays to the
+test will only reduce the rate of instability to a manageable level, but may not
+entirely eliminate it.
 
 Despite all this, we think that polling is an extremely valuable tool, and is
 worth adding to the Testing library.
@@ -549,7 +550,7 @@ be added as part of future proposals.
 
 ### Curved polling rates
 
-As initially specified, the polling rate is flat: poll, sleep for the
+As initially implemented, the polling rate is flat: poll, sleep for the
 specified polling interval, repeat until the stop condition or timeout is
 reached.
 
@@ -562,58 +563,7 @@ For this initial implementation, I wanted to keep this simple. As such, while
 a curve is promising, I think it is better considered on its own as a separate
 proposal.
 
-### Use Task execution time to determine how long to poll
-
-As currently proposed, polling confirmations do not take into account how long
-it takes to run the given task.
-`confirmation(until: .stopsPassing, within: .seconds(1))`, in the success case,
-will spend 1 second just waiting between polling attempts. The time spent
-setting up polling and the time spent running the closure is not accounted for
-whatsoever. On average, this means that test authors can expect the wall-clock
-time spent running the polling confirmation for the full iteration count to be
-around twice as long as the timeout duration specified.
-
-As part of discussing this, the testing workgroup has started exploring
-[adding the ability to track Task execution time](
-https://forums.swift.org/t/possible-feature-inspect-task-execution-time/83396).
-This would allow the testing library to directly track how long a polling
-confirmation has ran for, without any of the time spent waiting between polling
-attempts. This would allow polling confirmations to directly use timeouts,
-without any of the reliability issues noted in discussion around why timeout
-aren't directly used.
-
-Additionally, tracking task execution time would enable the testing library
-to add a watchdog timer to catch stalled polling closures, and even improve the
-current watchdog timer for stalled tests. A watchdog timer for polling
-confirmations is not included in this proposal because of the issues surrounding
-parallel test execution. Instead, test authors will have to rely on the much
-coarser-grained watchdog timer for the overall test.
-
-Furthermore, tracking task execution time would also enable for other forms of
-`confirmation` to use a time-based tracking method, instead of just the lifespan
-of the running function. Similar to XCTest's XCTestExpectation API.
-
-Tracking Task execution time is not included with this proposal because such a
-feature is a major feature request in and of itself, and the testing workgroup
-feels there is benefit to offering polling confirmations without tracking task
-execution time. In the future, we might reimplement polling confirmations to use
-task execution time if it becomes available.
-
 ## Alternatives considered
-
-### Use separate functions instead of the `PollingStopCondition` enum
-
-Instead of the `PollingStopCondition` enum, we could have created different
-functions for each stop condition. This would double the number new confirmation
-functions being added, and require additional `confirmation` functions to be
-added as we define new stop conditions. In addition to ballooning the number
-of `confirmation` functions, this would also harm usability: to differentiate
-polling confirmations from the other `confirmation` functions, there needs to be
-at least one named argument without a default which isn't the `body` closure.
-I was unwilling to compromise on the `duration` and `interval` arguments,
-because being able to fall back to defaults is important to usability.
-Instead, I created the `stopCondition` argument as the one named argument
-without a default.
 
 ### Directly use timeouts
 
@@ -649,6 +599,89 @@ feature. Most test authors think in terms of a duration, and I would expect test
 authors to either not use this feature, or to add helpers to compute a polling
 iteration count from a duration value anyway.
 
+### Use Task execution time to determine how long to poll
+
+As currently proposed, polling confirmations do not take into account how long
+it takes to run the given task.
+`confirmation(until: .stopsPassing, within: .seconds(1))`, in the success case,
+will spend 1 second just waiting between polling attempts. The time spent
+setting up polling and the time spent running the closure is not accounted for
+whatsoever. On average, this means that test authors can expect the wall-clock
+time spent running the polling confirmation for the full iteration count to be
+around twice as long as the timeout duration specified.
+
+The testing workgroup has explored [adding the ability to track Task execution
+time](
+https://forums.swift.org/t/possible-feature-inspect-task-execution-time/83396).
+The idea was to allow the testing library to directly track how long
+a polling confirmation has ran for, without any of the time spent waiting
+between polling attempts. Again, this would not be wall-clock time, but rather
+only the time spent execution the given polling closure and all subtasks. This
+would allow polling confirmations to directly use timeouts, while being immune
+to issues presented by using wall-clock timeouts.
+
+Additionally, tracking task execution time would have enabled the testing
+library to add a watchdog timer to catch stalled polling closures, and even
+improve the current watchdog timer for stalled tests. A watchdog timer for
+polling confirmations is not included in this proposal because of the issues
+surrounding parallel test execution. Instead, test authors will have to rely on
+the much coarser-grained watchdog timer for the overall test.
+
+Furthermore, tracking task execution time would have also enabled other forms of
+`confirmation` to use a time-based tracking method, instead of just the lifespan
+of the running function. Similar to XCTest's XCTestExpectation API.
+
+Unfortunately, tracking test execution time is not feasible. It can only work to
+capture time spent executing tasks within Swift Concurrency. However, no delays
+for code running outside of Swift Concurrency will be occurred - such as code
+awaiting on a continuation or waiting for a system call to resolve. For example,
+this test would count the time spent waiting for `usleep` as part of the polling
+execution time, and would always fail the confirmation:
+
+```swift
+@Test func `sleeping using usleep`() async {
+  await confirmation(until: .firstPass, within: .seconds(1)) {
+    await withCheckedContinuation<Bool> { continuation in
+      usleep(1_500_000) // 1.5 seconds
+      continuation.finish(true)
+    }
+  }
+}
+```
+
+Conversely, this this test would not count the time spent waiting for
+`Task.sleep` as part of the test execution, leading the test to pass:
+
+```swift
+@Test func `sleeping using Task.sleep`() async throws {
+  try await confirmation(until: .firstPass, within: .seconds(1)) {
+    try await Task.sleep(for: .milliseconds(1_500))
+    return true
+  }
+}
+```
+
+While, in principle, the testing library could inspect certain OSes to be able
+to inspect test execution time external to Swift Concurrency, it is at best
+infeasible to do so for all OSes the testing library supports. This inability
+to implement support for test execution time for all OSes the testing library
+supports makes this approach infeasible as the primary method for tracking
+when to stop a polling confirmation.
+
+### Use separate functions instead of the `PollingStopCondition` enum
+
+Instead of the `PollingStopCondition` enum, we could have created different
+functions for each stop condition. This would double the number new confirmation
+functions being added, and require additional `confirmation` functions to be
+added as we define new stop conditions. In addition to ballooning the number
+of `confirmation` functions, this would also harm usability: to differentiate
+polling confirmations from the other `confirmation` functions, there needs to be
+at least one named argument without a default which isn't the `body` closure.
+I was unwilling to compromise on the `duration` and `interval` arguments,
+because being able to fall back to defaults is important to usability.
+Instead, I created the `stopCondition` argument as the one named argument
+without a default.
+
 ### Take in a `Clock` instance
 
 Polling confirmations could take in and use a custom Clock by test authors.
@@ -679,4 +712,5 @@ In particular, thanks to [Jeff Hui](https://github.com/jeffh) for writing the
 original implementation of Nimble's Polling Expectations.
 
 Additionally, I'd like to thank [Jonathan Grynspan](https://github.com/grynspan)
-for his help with API design during the pitch phase of this proposal.
+for his help with API design, as well as for investigating tracking task
+execution time.
