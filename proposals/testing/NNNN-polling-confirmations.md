@@ -69,11 +69,11 @@ Conversely, imagine a test author wants to verify that no dolphins are
 raised when there isn't any funding. There isn't and can't be a mechanism for
 verifying that `isRaising` is never set to `true`, if we constrain the
 check to within a given timeframe, then we can easily make such an assertion.
-Again, without some mechanism to monitory and notify the test that `isRaising`
+Again, without some mechanism to monitor and notify the test that `isRaising`
 was set to`true`, the simplest approach is to use an arbitary sleep call and
 then check `isRaising`. Additionally, in the failure case where `isRaising` is
 very quickly set to true, the test should fail fast instead of delaying any more
-than absolutely necessayr.
+than absolutely necessary.
 
 This proposal introduces polling to help test authors address these cases. In
 this and other similar cases, polling makes these classes of tests practical or
@@ -393,10 +393,9 @@ requires macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0 and visionOS 1.0.
 ### Duration and Concurrent Execution
 
 Directly using the `duration` to determine when to stop polling is incredibly
-unreliable in a
-parallel execution environment, like most platforms Swift Testing runs on. The
-fundamental issue is that if polling were to directly use a timeout to determine
-when to stop execution, such as:
+unreliable in a parallel execution environment, like most platforms Swift Testing 
+runs on. The fundamental issue is that if polling were to directly use a timeout 
+to determine when to stop execution, such as:
 
 ```swift
 let end = ContinuousClock.now + timeout
@@ -488,11 +487,11 @@ would've returned false.
 
 Furthermore, polling introduces delays to the running code. This isn't that
 much of a concern for `PollingStopCondition.firstPass`, where the passing
-case minimizes test execution time. However, the
-passing case when using `PollingStopCondition.stopsPassing` utilizes the full
-duration specified. If the test author specifies the polling duration to be
-10 minutes, then the test will poll for approximately that long, so long as the
-polling body keeps returning true.
+case minimizes test execution time. However, the passing case when using 
+`PollingStopCondition.stopsPassing` utilizes the full duration specified. If 
+the test author specifies the polling duration to be 10 minutes, then the test 
+will poll for approximately that long, so long as the polling body keeps 
+returning true.
 
 Additionally, polling should not be used to wait out long delays in
 implementation code. If there is a 0.5 second delay in the implementation code,
