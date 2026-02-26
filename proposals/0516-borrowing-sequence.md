@@ -1,12 +1,11 @@
 # Borrowing Sequence
 
-* Proposal: [SE-NNNN](NNNN-borrowing-sequence.md)
+* Proposal: [SE-0516](0516-borrowing-sequence.md)
 * Authors: [Nate Cook](https://github.com/natecook1000), [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Holly Borla](https://github.com/hborla)
+* Status: **Active review (February 26 - March 12)**
 * Implementation: [swiftlang/swift#86066](https://github.com/swiftlang/swift/pull/86066)
-* Upcoming Feature Flag: TBD
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-borrowing-sequence/84332))
 
 ## Summary of changes
 
