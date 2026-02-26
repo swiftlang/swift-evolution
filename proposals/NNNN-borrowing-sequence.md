@@ -412,6 +412,20 @@ to allow extensions written against `BorrowingSequence` to "just work",
 on those types, since needing to copy or escape an iterator is rarely bumped 
 into when implementing most sequence algorithms.
 
+### Use of `@lifetime`
+
+Both `BorrowingSequence` and `BorrowingIteratorProtocol` have methods that 
+return a non-escapable type (the `BorrowingIterator` and a `Span`, respectively), 
+with a lifetime tied to `self`. This will require conforming types to
+enable the `Lifetimes` experimental feature.
+
+_Using_ these types – either directly, or via the `for` syntax – will not
+generally require use of lifetime annotations or enabling of the experimental
+feature (unless the user intends to e.g. return the iterator out of a function).
+
+Algorithms written as extensions on `BorrowingSequence` should similarly
+not commonly need use of lifetime annotations.
+
 ### `for`-`in` loop desugaring when both protocols are available
 
 In order to preserve the performance and semantics of existing code that
