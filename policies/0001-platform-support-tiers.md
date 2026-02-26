@@ -1,6 +1,6 @@
 # Swift Platform Support Tiers
 
-* Policy: [POL-0001](0001-platform-support-tiers.md)
+* Policy: [SP-0001](0001-platform-support-tiers.md)
 * Authors: [Platform Steering Group](https://forums.swift.org/g/platform-steering-group)
 * Review Manager: TBD
 * Status: **Request for Comments**
@@ -117,6 +117,23 @@ Platforms that are in Tier 1 should:
      document](https://github.com/swiftlang/swift/blob/main/Runtimes/Readme.md#layering)
      in [the Swift repository](https://github.com/swiftlang/swift) for the list of definitions.)
 
+- [ ] Where it makes sense, include the following Swift packages:
+
+    - [ ] Foundation
+        - [ ] FoundationEssentials
+        - [ ] FoundationXML
+        - [ ] FoundationNetworking
+        - [ ] FoundationInternationalization
+    - [ ] Dispatch
+    - [ ] XCTest
+    - [ ] Swift Testing
+
+    N.B. The Platform Steering Group will determine to what extent
+    these packages are required by a platform to comply with Tier 1
+    requirements; additionally, the Platform Steering Group may add to
+    or remove items from this list on a case-by-case basis, as it
+    considers appropriate for the platform under consideration.
+
 - [ ] Maintain a three-version window of support, including:
 
     - [ ] At least one stable release.
@@ -128,6 +145,16 @@ Platforms that are in Tier 1 should:
       simulator and be debugged.
 
 - [ ] Have testing in CI, including PR testing.
+
+      New platforms should expect that their PR tests will not
+      initially be required to pass to merge changes, but the intent
+      is that in the longer term they will be made mandatory.  This is
+      so that it is possible to accumulate experience with new
+      platforms' PR tests in order to establish that they are not
+      flaky and do not pose problems that will block forward progress.
+
+      Core Team will have sole discretion as to which platforms' PR
+      tests must pass in order to merge.
 
 - [ ] Ship SDKs as regular release from [swift.org](https://swift.org)
 
@@ -176,6 +203,16 @@ In addition to the requirements above, a toolchain host platform should:
     - [ ] Swift Package Manager (SwiftPM).
     - [ ] Language Server (`sourcekit-lsp`).
     - [ ] Debug Adapter (`lldb-dap`).
+
+- [ ] Where possible, include the following additional components:
+
+    - [ ] DocC (`docc`)
+    - [ ] Swiftly (`swiftly`)
+
+    As with the list of packages above, the Platform Steering Group
+    reserves the right to decide to what extent these are optional for a
+    given platform, as well as the right to add or remove items from this
+    list on a case-by-case basis.
 
 - [ ] Code-sign individual tools as appropriate for the platform.
 
@@ -291,3 +328,9 @@ there is some requirement in this document that is not being met, it
 is expected that either there is a very good reason for the
 requirement not being met, or that there is some plan to meet it in
 future.
+
+(Note: we intentionally do not list specific architectures,
+distributions or SKUs above.  More precise details of what we consider
+supported will be published on [swift.org](https://swift.org) in due
+course.)
+
