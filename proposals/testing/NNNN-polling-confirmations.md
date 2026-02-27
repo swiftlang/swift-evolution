@@ -70,7 +70,7 @@ raised when there isn't any funding. There isn't and can't be a mechanism for
 verifying that `isRaising` is never set to `true`, if we constrain the
 check to within a given timeframe, then we can easily make such an assertion.
 Again, without some mechanism to monitor and notify the test that `isRaising`
-was set to`true`, the simplest approach is to use an arbitary sleep call and
+was set to`true`, the simplest approach is to use an arbitrary sleep call and
 then check `isRaising`. Additionally, in the failure case where `isRaising` is
 very quickly set to true, the test should fail fast instead of delaying any more
 than absolutely necessary.
@@ -477,7 +477,7 @@ possible that, unless the code covered by
 `// Long running work that I'm not qualified to describe` has a test-controlled
 means to block further execution, the created `Task` could finish between
 polling attempts - resulting `Aquarium.isRaising` to always (or worse,
-occasionaly) read as false, and failing the test despite the code having done
+occasionally) read as false, and failing the test despite the code having done
 the right thing.
 
 Polling also only offers a snapshot in time of the state. When
