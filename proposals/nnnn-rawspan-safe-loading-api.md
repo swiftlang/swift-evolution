@@ -25,7 +25,7 @@ We propose two new protocols, supporting the conversion between initialized type
 
 ##### `ConvertibleToRawBytes`
 
-When initializing memory to any value of a type conforming to `ConvertibleToRawBytes`, every byte underlying the type's [stride](https://developer.apple.com/documentation/swift/memorylayout/stride) must be initialized.
+When initializing memory to any value of a type conforming to `ConvertibleToRawBytes`, every byte underlying the type's [stride](https://developer.apple.com/documentation/swift/memorylayout/stride) must be initialized.
 
 ```swift
 @_marker public protocol ConvertibleToRawBytes: Copyable {}
