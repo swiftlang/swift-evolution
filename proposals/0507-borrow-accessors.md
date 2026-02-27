@@ -115,6 +115,25 @@ struct InvalidExamples {
 }
 ```
 
+The restrictions on returning temporary values also restricts certain uses of optionals:
+```
+struct Source {
+    var _s: String? = ""
+    var s: String? {
+        borrow { _s }
+    }
+}
+
+struct Wrapper {
+    var i: Source?
+    var prop: String? {
+        // 🛑 Error: If `i == nil`, this would require a
+        // temporary `String?.none` to be returned.
+        borrow { i?.s }
+    }
+}
+```
+
 #### Reading from properties that use `borrow`
 
 Clients read a value via a `borrow` accessor using the same code they might use for a property implemented with `get`.  However, when a property is implemented with `borrow`, reading the value does not copy.  To preserve memory consistency, Swift’s exclusivity rules prevent the provider from being mutated while the borrow is active:
@@ -293,6 +312,60 @@ var x: ArrayLikeType
 swap(&x[0], &x[1])
 ```
 
+#### Globals
+
+You may not borrow or mutate a global `var`.
+You are allowed to borrow a global `let`, but not to mutate it.
+
+```swift
+var mutableGlobal: SomeType
+let constantGlobal: SomeType
+
+struct BorrowingGlobals {
+  var mutable: SomeType {
+    borrow {
+      // 🛑 Cannot borrow a mutable global
+      return mutableGlobal
+    }
+    mutate {
+      // 🛑 Cannot mutate a mutable global
+      return &mutableGlobal
+    }
+  }
+
+  var constant: SomeType {
+    borrow {
+      // OK
+      return constantGlobal
+    }
+    mutate {
+      // 🛑 Cannot mutate a non-mutable value
+      return &constantGlobal
+    }
+  }
+}
+```
+
+#### Reference types
+
+A borrow or mutate accessor cannot return a value of class or actor type:
+
+```swift
+struct ClassType {
+  private var obj: KlassType
+  var klass: KlassType {
+    borrow {
+      // 🛑 Cannot borrow a reference type
+      return obj
+    }
+    mutate {
+      // 🛑 Cannot mutate a reference type
+      return &obj
+    }
+  }
+}
+```
+
 ## Source compatibility
 
 This could potentially change the interpretation of an existing accessor that uses a function called `borrow` or `mutate` that takes a trailing closure parameter:
@@ -341,6 +414,8 @@ struct S<Value> {
 
 ### Borrowing via unsafe pointers
 
+Note: LSG has recommended making some variation of this be part of the proposal rather than a "Future Direction".
+
 Low-level data structures are often built using unsafe pointers.
 Unsafe pointers by their nature prevent the compiler from accurately diagnosing
 lifetimes, which means that it must generally reject code like the following:
@@ -368,6 +443,92 @@ var first: Element {
 
 This would assert that the result of the expression is valid at least
 until the next mutating operation on `self`.
+
+### fatalError() and trapping
+
+Note: LSG has recommended making this be part of the proposal rather than a "Future Direction".
+
+It should be possible eventually to use `fatalError()` within a borrow accessor.
+
+Similarly, it should be possible to implement borrow accessors that have trapping behaviors:
+```
+struct Source {
+    var _s: String? = ""
+    var s: String? {
+        borrow { _s }
+    }
+}
+
+struct Wrapper {
+    var i: Source?
+    var prop: String? {
+        borrow { i!.s }
+    }
+}
+```
+
+
+### Multiple Returns
+
+Note: LSG has recommended making this be part of the proposal rather than a "Future Direction".
+
+The current implementation does not handle `borrow` or `mutate` accessors that
+have more than one `return` statement.
+```
+struct Wrapper {
+    var selector: Bool
+    var i: SomeType
+	var j: SomeType
+
+    var prop: SomeType {
+        borrow {
+            if selector {
+                return i
+            } else {
+                return j
+            }
+        }
+    }
+}
+```
+
+### Interaction with borrowing switch
+
+Note: LSG has recommended making this be part of the proposal rather than a "Future Direction".
+
+The current implementation does not fully work with borrowing `switch` statements:
+```
+struct Box {
+    enum E {
+	case a(SomeType)
+	case b(SomeType)
+	}
+    var value: E
+
+    var prop: SomeType {
+        borrow {
+		    switch value {
+			case a(let va): return va
+			case b(let vb): return vb
+            }
+        }
+    }
+}
+```
+
+### Local computed properties that provide borrowing of captured values
+
+```
+func f() {
+  var storage: [Int]
+
+  var property: Span<Int> {
+    borrow {
+      storage.span
+    }
+  }
+}
+```
 
 ## Alternatives considered
 
