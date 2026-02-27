@@ -21,19 +21,24 @@ In [SE-0447][SE-0447], we introduced `RawSpan` along with some unsafe functions 
 
 ## Proposed solution
 
-We propose two new protocols, to be initially restricted to types defined by the standard library. The first will be conformed to by types that can always safely be read as raw bytes: `ConvertibleToRawBytes`. The second will be conformed to by types that can always be interpreted from raw bytes: `ConvertibleFromRawBytes`.
+We propose two new protocols, supporting the conversion between initialized typed values and initialized raw bytes. The first will be conformed to by types that can always safely be read as raw bytes: `ConvertibleToRawBytes`. The second will be conformed to by types that can always be safely interpreted from raw bytes: `ConvertibleFromRawBytes`.
 
 ##### `ConvertibleToRawBytes`
 
+When initializing memory to any value of a type conforming to `ConvertibleToRawBytes`, every byte underlying the type's [stride](https://developer.apple.com/documentation/swift/memorylayout/stride) must be initialized.
+
 ```swift
-@_marker public protocol ConvertibleToRawBytes {}
+@_marker public protocol ConvertibleToRawBytes: Copyable {}
 ```
 
-A type can conform to `ConvertibleToRawBytes` if its memory representation includes no padding. In other words, the sum of the size of its stored properties is equal to its stride. A type that conforms to `ConvertibleToRawBytes` must have:
+A type can conform to `ConvertibleToRawBytes` if its memory representation includes no padding. In other words, the sum of the size of its stored properties is equal to its stride. For example, an `Optional<Int16>` is stored in 3 bytes out of a stride of 4, and therefore `Optional<Int16>` cannot conform. A `struct Pair { var a, b: Int16 }` could conform to `ConvertibleToRawBytes`, as its size and stride are equal.
+
+A type that conforms to `ConvertibleToRawBytes` must have:
 
 - one or more stored properties,
 - all of its stored properties have types conforming to `ConvertibleToRawBytes`,
 - its stored properties are stored contiguously in memory, with no padding.
+- none of its values disregards a subset of its bytes (this makes most enums ineligible.)
 
 Many basic types in the standard library will conform to this protocol, but types outside the standard library will not initially be able to conform to `ConvertibleToRawBytes`.
 
@@ -42,10 +47,10 @@ A conformance to `ConvertibleToRawBytes` can only be declared by a type's contai
 ##### `ConvertibleFromRawBytes`
 
 ```swift
-public protocol ConvertibleFromRawBytes: BitwiseCopyable {}
+@_marker public protocol ConvertibleFromRawBytes: BitwiseCopyable {}
 ```
 
-A type can conform to `ConvertibleFromRawBytes` if every bit pattern for every byte of its stored properties is valid. Note that this allows conformances for types with internal padding. A conformer to `ConvertibleFromRawBytes` must not have semantic constraints on the values of its stored properties. All its stored properties must themselves conform to `ConvertibleFromRawBytes`.
+A type can conform to `ConvertibleFromRawBytes` if every bit pattern for every byte of its stored properties is valid. Note that this allows conformances for types with internal or trailing padding. A conformer to `ConvertibleFromRawBytes` must not have semantic constraints on the values of its stored properties. All its stored properties must themselves conform to `ConvertibleFromRawBytes`.
 
 For example, a type representing two-dimensional Cartesian coordinates, such as `struct Point { var x, y: Int }` could conform to `ConvertibleFromRawBytes`. Its stored properties are `Int`, which is `ConvertibleFromRawBytes`. There are no semantic constraints between the `x` and `y` properties: any combination of `Int` values can represent a valid `Point`.
 
@@ -227,7 +232,7 @@ A `ConvertibleToRawBytes` type has at least one stored property, and all its sto
 The memory representation of a `ConvertibleToRawBytes` type must include no padding. For example, `struct A { var v: [3 of Int8]; var n: Int64 }` has two stored properties, both `ConvertibleToRawBytes`, but it has five bytes of padding. <!-- `MemoryLayout<A>.stride - (MemoryLayout<[3 of Int8]>.stride + MemoryLayout<Int64>.stride)` equals 5 -->
 
 ```swift
-protocol ConvertibleToRawBytes {}
+@_marker protocol ConvertibleToRawBytes: Copyable {}
 ```
 
 Custom types will not be allowed to declare a conformance to `ConvertibleToRawBytes` at this time.
@@ -237,7 +242,7 @@ Custom types will not be allowed to declare a conformance to `ConvertibleToRawBy
 A `ConvertibleFromRawBytes` type has a valid value for every bit pattern of every byte of its stored properties. This precludes any semantic constraints, whether static or dynamic, on the values of a type conforming to `ConvertibleFromRawBytes`.
 
 ```swift
-protocol ConvertibleFromRawBytes: BitwiseCopyable {}
+@_marker protocol ConvertibleFromRawBytes: BitwiseCopyable {}
 ```
 
 Custom types will be allowed to declare an unsafe conformance to `ConvertibleFromRawBytes`.
@@ -313,6 +318,10 @@ extension RawSpan {
   /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
   ///     must be greater or equal to zero, and less than `count`.
   subscript(unchecked byteOffset: Int) -> UInt8 { get }
+  
+  /// Convert a typed span to a raw span.
+  @_lifetime(copy span)
+  init<T: ConvertibleToRawBytes>(_ span: consuming Span<T>)
 }
 ```
 ##### `MutableRawSpan`
@@ -329,7 +338,7 @@ extension MutableRawSpan {
   ///   - offset: The offset in bytes into the buffer pointer's memory to begin
   ///     writing bytes from the value. The default is zero.
   ///   - type: The type of the instance to create.
-  mutating func storeBytes<T: ConvertibleToRawBytes>(
+  mutating func storeBytes<T>(
     of value: T,
     toByteOffset offset: Int = 0,
     as type: T.Type
@@ -351,6 +360,19 @@ extension MutableRawSpan {
     toByteOffset offset: Int = 0,
     as type: T.Type,
     _ byteOrder: ByteOrder
+  )
+
+  /// Stores a value's bytes repeatedly into this span's memory.
+  ///
+  /// There must be at least `count * MemoryLayout<T>.stride` bytes
+  /// available in the span.
+  ///
+  /// - Parameters:
+  ///   - repeatedValue: The value to store as raw bytes.
+  ///   - count: The number of copies of `value` to append to this span.
+  ///   - type: The type of the instance to create.
+  mutating func storeBytes<T>(
+    repeating repeatedValue: T, count: Int, as type: T.Type
   )
 
   /// Returns a value constructed from the raw memory at the specified offset.
@@ -402,6 +424,11 @@ extension MutableRawSpan {
   ///     must be greater or equal to zero, and less than `count`.
   subscript(unchecked byteOffset: Int) -> UInt8 { get set }
   
+  /// Mutate the elements of a typed span as raw bytes.
+  @_lifetime(&mutableSpan)
+  init<T>(mutating mutableSpan: inout MutableSpan<T>)
+    where T: ConvertibleFromRawBytes & ConvertibleToRawBytes
+
   /// Convert a typed span to a raw span.
   @_lifetime(copy span)
   init<T: ConvertibleToRawBytes>(_ span: consuming MutableSpan<T>)
@@ -411,7 +438,7 @@ extension MutableRawSpan {
 ##### `OutputRawSpan`
 ```swift
 extension OutputRawSpan {
-  /// Appends a value's bytes to the span's memory.
+  /// Appends a value's bytes to this span's bytes.
   ///
   /// There must be at least `MemoryLayout<T>.size` bytes available
   /// in the span.
@@ -436,6 +463,19 @@ extension OutputRawSpan {
     _ value: T, as type: T.Type, _ byteOrder: ByteOrder
   )
   
+  /// Appends the given value's bytes repeatedly to this span's bytes.
+  ///
+  /// There must be at least `count * MemoryLayout<T>.stride` bytes
+  /// available in the span.
+  ///
+  /// - Parameters:
+  ///   - value: The value to store as raw bytes.
+  ///   - count: The number of copies of `value` to append to this span.
+  ///   - type: The type of the instance to create.
+  mutating func append<T: ConvertibleToRawBytes>(
+    repeating repeatedValue: T, count: Int, as type: T.Type
+  )
+
   /// Append to the span as elements of a specific type.
   ///
   /// There must be at least `n * MemoryLayout<T>.stride` bytes
@@ -487,7 +527,7 @@ extension OutputSpan where Element: ConvertibleFromRawBytes {
     elements n: Int,
     initializingWith initializer:
       (_ rawSpan: inout OutputRawSpan) throws(E) -> Void
-  ) throws(E)
+  ) throws(E) where Element: ConvertibleFromRawBytes
 }
 ```
 
@@ -562,11 +602,8 @@ extension InlineArray: ConvertibleFromRawBytes where Element: ConvertibleFromRaw
 
 extension CollectionOfOne: ConvertibleToRawBytes where Element: ConvertibleToRawBytes {}
 extension CollectionOfOne: ConvertibleFromRawBytes where Element: ConvertibleFromRawBytes {}
-extension CollectionOfOne.Iterator: ConvertibleToRawBytes
-  where Element: ConvertibleToRawBytes {}
 
 extension ClosedRange: ConvertibleToRawBytes where Bound: ConvertibleToRawBytes {}
-extension ClosedRange.Index: ConvertibleToRawBytes where Bound: ConvertibleToRawBytes {}
 extension Range: ConvertibleToRawBytes where Bound: ConvertibleToRawBytes {}
 extension PartialRangeFrom: ConvertibleToRawBytes where Bound: ConvertibleToRawBytes {}
 extension PartialRangeFrom.Iterator: ConvertibleToRawBytes
@@ -592,13 +629,21 @@ extension UnsafeMutableRawBufferPointer: ConvertibleToRawBytes {}
 
 > **Note:** any of the types in the list above which is missing a prerequisite `BitwiseCopyable` conformance will gain one. 
 
-##### Free `bitCast` function
+##### Top-level safe `bitCast` function
 
 With the two protocols we have defined, we gain the ability to define a safe function to reinterpret types:
 
 ```swift
-func bitCast<A,B>(_ original: consuming A, to: B.self) -> B
-  where A: ConvertibleToRawBytes, B: ConvertibleFromRawBytes
+/// Returns the bits of the given instance, interpreted as having the specified
+/// type.
+///
+/// Parameters:
+///   - x: The instance to cast to `type`.
+///   - type: The type to cast `x` to. `type` and the type of `x` must have the
+///     same size of memory representation and compatible memory layout.
+/// Returns: A new instance of type `U`, cast from `x`.
+func bitCast<T, U>(_ original: T, to: U.self) -> U
+  where T: ConvertibleToRawBytes, U: ConvertibleFromRawBytes
 ```
 
 
@@ -630,7 +675,7 @@ Alongside validation, we could consider automatically inserting stored null byte
 
 #### Support for types imported from C
 
-The Clang importer should be taught which basic C types support these protocols. There should be a way to declare a conformance to the protocols for C types which are aggregates.
+The Clang importer should be taught which basic C types support these protocols. There should be a way to declare a conformance to the protocols for C types which are aggregates. For example, we could relax the restriction that these conformances can only be declared in a type's owning module, for imported C types only.
 
 #### Support for tuples and SIMD types
 
