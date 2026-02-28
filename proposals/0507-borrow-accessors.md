@@ -286,9 +286,25 @@ No combinations other than those specified above are supported.
 
 #### Cannot use for properties of classes or actors
 
-Classes require runtime exclusivity checks to run both before and after each property access.  Since borrowing accessors do not provide a way for the provider to run code after the access, they cannot be used for properties of classes.[^1]
+Classes require runtime exclusivity checks to run both before and after each property access.  Since borrowing accessors do not provide a way for the provider to run code after the access, they cannot be used for properties of classes or actors.[^1]
 
 [^1]: `yielding borrow` and `yielding mutate` accessors can be used for properties of classes.
+
+```swift
+class ClassType {
+  private var _value: SomeType
+  var value: SomeType {
+    borrow {
+      // 🛑 Cannot use mutate to implement a property of a class or actor type
+      return _value
+    }
+    mutate {
+      // 🛑 Cannot use mutate to implement a property of a class or actor type
+      return &_value
+    }
+  }
+}
+```
 
 #### Use for subscripts
 
@@ -341,26 +357,6 @@ struct BorrowingGlobals {
     mutate {
       // 🛑 Cannot mutate a non-mutable value
       return &constantGlobal
-    }
-  }
-}
-```
-
-#### Reference types
-
-A borrow or mutate accessor cannot return a value of class or actor type:
-
-```swift
-struct ClassType {
-  private var obj: KlassType
-  var klass: KlassType {
-    borrow {
-      // 🛑 Cannot borrow a reference type
-      return obj
-    }
-    mutate {
-      // 🛑 Cannot mutate a reference type
-      return &obj
     }
   }
 }
@@ -444,33 +440,7 @@ var first: Element {
 This would assert that the result of the expression is valid at least
 until the next mutating operation on `self`.
 
-### fatalError() and trapping
-
-Note: LSG has recommended making this be part of the proposal rather than a "Future Direction".
-
-It should be possible eventually to use `fatalError()` within a borrow accessor.
-
-Similarly, it should be possible to implement borrow accessors that have trapping behaviors:
-```
-struct Source {
-    var _s: String? = ""
-    var s: String? {
-        borrow { _s }
-    }
-}
-
-struct Wrapper {
-    var i: Source?
-    var prop: String? {
-        borrow { i!.s }
-    }
-}
-```
-
-
 ### Multiple Returns
-
-Note: LSG has recommended making this be part of the proposal rather than a "Future Direction".
 
 The current implementation does not handle `borrow` or `mutate` accessors that
 have more than one `return` statement.
@@ -494,9 +464,9 @@ struct Wrapper {
 
 ### Interaction with borrowing switch
 
-Note: LSG has recommended making this be part of the proposal rather than a "Future Direction".
-
-The current implementation does not fully work with borrowing `switch` statements:
+The current implementation does not support borrowing `switch` statements,
+due to known gaps in the borrowing switch implementation that would need
+to be resolved first.
 ```
 struct Box {
     enum E {
@@ -518,6 +488,8 @@ struct Box {
 
 ### Local computed properties that provide borrowing of captured values
 
+We do not support using `borrow` or `mutate` to define a closure.
+
 ```
 func f() {
   var storage: [Int]
@@ -529,6 +501,11 @@ func f() {
   }
 }
 ```
+
+### Let properties of classes
+
+In the future, we should be able to support borrow accessors on let
+properties of classes.
 
 ## Alternatives considered
 
