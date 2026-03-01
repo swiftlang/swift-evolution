@@ -3,8 +3,8 @@
 * Proposal: [SE-NNNN](NNNN-lifetime-dependency.md)
 * Authors: [Andrew Trick](https://github.com/atrick), [Meghana Gupta](https://github.com/meg-gupta), [Tim Kientzle](https://github.com/tbkka), [Joe Groff](https://github.com/jckarter/)
 * Review Manager: TBD
-* Status: **Implemented** in `main` branch, with the `Lifetimes` experimental feature flag
-* Review: ([pitch 1](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency/69865))
+* Status: **Implemented** in `main` branch, with the `Lifetimes` experimental feature flag (using underscored syntax `@_lifetime`)
+* Review: ([pitch 1](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency/69865), [pitch 2](https://forums.swift.org/t/pitch-2-lifetime-dependencies-for-non-escapable-values/78821))
 
 ## Introduction
 
@@ -57,7 +57,6 @@ This is deeply related to `~Escapable` types, as introduced in [SE-0446](0446-no
 * [Pitch Thread for Span](https://forums.swift.org/t/pitch-safe-access-to-contiguous-storage/69888)
 * [Forum discussion of BufferView language requirements](https://forums.swift.org/t/roadmap-language-support-for-bufferview)
 * [Proposed Vision document for BufferView language requirements (includes description of ~Escapable)](https://github.com/atrick/swift-evolution/blob/fd63292839808423a5062499f588f557000c5d15/visions/language-support-for-BufferView.md#non-escaping-bufferview) 
-* [First pitch thread for lifetime dependencies](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency/69865)
 
 ## Motivation
 
@@ -355,14 +354,14 @@ Structural composition is an important use case for non-`Escapable` types. Getti
 ```swift
 struct Wrapper<Element: ~Escapable>: ~Escapable {
   var element: Element {
-    @lifetime(copy self)
+    @lifetime(copy self) // DEFAULT
     get { ... }
 
     @lifetime(self: copy self, self: copy newValue)
     set { ... }
   }
 
-  @lifetime(copy element)
+  @lifetime(copy element) // DEFAULT
   init(element: Element) { ... }
 }
 ```
