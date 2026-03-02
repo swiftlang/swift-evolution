@@ -5,6 +5,7 @@
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Active review (February 25...March 10, 2026)**
 * Implementation: [swiftlang/swift#85716](https://github.com/swiftlang/swift/pull/85716)
+* Review: ([pitch](https://forums.swift.org/t/pitch-allow-reduce-to-produce-noncopyable-results/84073)) ([review](https://forums.swift.org/t/se-0515-allow-reduce-to-produce-noncopyable-results/84997))
 
 ## Introduction
 
