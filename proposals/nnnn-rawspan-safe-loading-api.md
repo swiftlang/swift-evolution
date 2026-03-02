@@ -131,38 +131,33 @@ extension MutableRawSpan {
 
 ##### `MutableRawSpan` and `OutputRawSpan`
 
-`MutableRawSpan` will gain new overloads of `storeBytes()`:
+`MutableRawSpan` will gain a new overload of `storeBytes()`:
+
 ```swift
 extension MutableRawSpan {
-  mutating func storeBytes<T: ConvertibleToRawBytes>(
-    of value: T,
-    toByteOffset offset: Int = 0,
-    as type: T.Type
-  )
-
-  mutating func storeBytes<T: ConvertibleToRawBytes & FixedWidthInteger>(
+  mutating func storeBytes<T>(
     of value: T,
     toByteOffset offset: Int = 0,
     as type: T.Type,
     _ byteOrder: ByteOrder
-  )
+  ) where T: ConvertibleToRawBytes & BitwiseCopyable & FixedWidthInteger
 }
 ```
-The existing `storeBytes` function constrained to `T: BitwiseCopyable` will be marked `@unsafe`.
+The existing `storeBytes` function constrained to `T: BitwiseCopyable` does not need to be marked `@unsafe`;  all the underlying bytes are already initialized, and therefore optimizations cannot result in uninitialized bytes.
 
 `OutputRawSpan` will have matching `append()` functions:
 ```swift
 extension OutputRawSpan {
-  mutating func append<T: ConvertibleToRawBytes>(
+  mutating func append<T>(
     _ value: T, as type: T.Type
-  )
+  ) where T: ConvertibleToRawBytes & BitwiseCopyable
 
-mutating func append<T: ConvertibleToRawBytes & FixedWidthInteger>(
+  mutating func append<T>(
     _ value: T, as type: T.Type, _ byteOrder: ByteOrder
-  )
+  ) where T: ConvertibleToRawBytes & BitwiseCopyable & FixedWidthInteger
 }
 ```
-The existing `append` function constrained to `T: BitwiseCopyable` will be marked `@unsafe`.
+The existing `append` function constrained to just `T: BitwiseCopyable` will be marked `@unsafe`.
 
 ##### Loading and storing in-memory types
 
@@ -202,11 +197,11 @@ The existing `bytes` and `mutableBytes` accessors will have safe overloads for w
 ```swift
 extension OutputRawSpan {
   @_lifetime(copy self)
-  mutating func append<T: ConvertibleToRawBytes, E: Error>(
+  mutating func append<T, E: Error>(
     elements n: Int,
     as type: T.self,
     initializingWith initializer: (inout OutputSpan<T>) throws(E) -> Void
-  ) throws(E)
+  ) throws(E) where T: ConvertibleToRawBytes & BitwiseCopyable
 }
 ```
 `append(byteCount:as:initializingWith)` will perform bounds-checking and alignment-checking before executing the closure.
@@ -338,29 +333,13 @@ extension MutableRawSpan {
   ///   - offset: The offset in bytes into the buffer pointer's memory to begin
   ///     writing bytes from the value. The default is zero.
   ///   - type: The type of the instance to create.
-  mutating func storeBytes<T>(
-    of value: T,
-    toByteOffset offset: Int = 0,
-    as type: T.Type
-  )
-
-  /// Stores a value's bytes to the specified offset into the span's memory.
-  ///
-  /// The range of bytes required to store a value of `T` starting at
-  /// byte offset `offset` must be completely within the span.
-  ///
-  /// - Parameters:
-  ///   - value: The value to store as raw bytes.
-  ///   - offset: The offset in bytes into the buffer pointer's memory to begin
-  ///     writing bytes from the value. The default is zero.
-  ///   - type: The type of the instance to create.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
-  mutating func storeBytes<T: ConvertibleToRawBytes & FixedWidthInteger>(
+  mutating func storeBytes<T>(
     of value: T,
     toByteOffset offset: Int = 0,
     as type: T.Type,
     _ byteOrder: ByteOrder
-  )
+  ) where T: ConvertibleToRawBytes & BitwiseCopyable & FixedWidthInteger
 
   /// Stores a value's bytes repeatedly into this span's memory.
   ///
@@ -373,7 +352,7 @@ extension MutableRawSpan {
   ///   - type: The type of the instance to create.
   mutating func storeBytes<T>(
     repeating repeatedValue: T, count: Int, as type: T.Type
-  )
+  ) where T: BitwiseCopyable
 
   /// Returns a value constructed from the raw memory at the specified offset.
   ///
@@ -446,9 +425,9 @@ extension OutputRawSpan {
   /// - Parameters:
   ///   - value: The value to store as raw bytes.
   ///   - type: The type of the instance to create.
-  mutating func append<T: ConvertibleToRawBytes>(
+  mutating func append<T>(
     _ value: T, as type: T.Type,
-  )
+  ) where T: ConvertibleToRawBytes & BitwiseCopyable
 
   /// Appends a value's bytes to the span's memory.
   ///
@@ -459,9 +438,9 @@ extension OutputRawSpan {
   ///   - value: The value to store as raw bytes.
   ///   - type: The type of the instance to create.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
-  mutating func append<T: ConvertibleToRawBytes & FixedWidthInteger>(
+  mutating func append<T>(
     _ value: T, as type: T.Type, _ byteOrder: ByteOrder
-  )
+  ) where T: ConvertibleToRawBytes & BitwiseCopyable & FixedWidthInteger
   
   /// Appends the given value's bytes repeatedly to this span's bytes.
   ///
@@ -472,9 +451,9 @@ extension OutputRawSpan {
   ///   - value: The value to store as raw bytes.
   ///   - count: The number of copies of `value` to append to this span.
   ///   - type: The type of the instance to create.
-  mutating func append<T: ConvertibleToRawBytes>(
+  mutating func append<T>(
     repeating repeatedValue: T, count: Int, as type: T.Type
-  )
+  ) where T: ConvertibleToRawBytes & BitwiseCopyable
 
   /// Append to the span as elements of a specific type.
   ///
@@ -495,12 +474,12 @@ extension OutputRawSpan {
   ///     - Parameters:
   ///       - typedSpan: An `OutputSpan` over enough bytes to initialize
   ///         the specified number of additional elements.
-  mutating func append<T: ConvertibleToRawBytes, E: Error>(
+  mutating func append<T, E: Error>(
     elements n: Int,
     as type: T.self,
     initializingWith initializer:
       (_ typedSpan: inout OutputSpan<T>) throws(E) -> Void
-  ) throws(E)
+  ) throws(E) where T: ConvertibleToRawBytes & BitwiseCopyable
 }
 ```
 
@@ -544,6 +523,7 @@ extension Span where Element: ConvertibleToRawBytes {
   /// Construct a raw span over the memory represented by this span.
   ///
   /// - Returns: a RawSpan over the memory represented by this span
+  @_lifetime(copy self)
   var bytes: RawSpan { get }
 }
 ```
