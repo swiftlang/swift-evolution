@@ -1,6 +1,6 @@
 # `Transferable` Attachments
 
-* Proposal: [ST-022](0022-coretransferable-attachments.md)
+* Proposal: [ST-NNNN](NNNN-coretransferable-attachments.md)
 * Authors: [Julia Vashchenko](https://github.com/aronskaya), [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: 
 * Status: **Draft**
