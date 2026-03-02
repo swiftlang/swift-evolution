@@ -82,12 +82,13 @@ extension BorrowingSequence where Self: ~Copyable & ~Escapable, Element: ~Copyab
 ```
 
 This protocol shape is very similar to the current `Sequence`. It has a primary
-associated type for the element, and just one method
+associated type for the element, and a method
 that hands you an iterator you can use to iterate the elements of the sequence.
 
 The differences from the `Sequence` protocol are as follows:
 
-- `BorrowingSequence` allows conformance by noncopyable and nonescapable types. Note that copyable and escapable types can also conform, but the protocol is designed to not require it.
+- `BorrowingSequence` allows conformance by noncopyable and nonescapable types. 
+Note that copyable and escapable types can also conform, but the protocol is designed to not require it.
 - The `Element` type is also not required to be copyable.
 - There is a `BorrowingIterator` associated type, and a `makeBorrowingIterator()`
 method that returns one. These play a similar role to `Iterator` and `makeIterator()`
@@ -96,9 +97,10 @@ on `Sequence`.
 of the sequence. This allows the iterator to be implemented in terms of properties 
 borrowed from the sequence (often a span of the sequence).
 
-Note that the names of the associated type and method are specifically chosen to not conflict 
+Note that the names of the associated type and iterator-providing method are specifically chosen to not conflict 
 with the existing names on `Sequence`, allowing a type to have different implementations 
-for both `BorrowingSequence` and `Sequence`.
+for both `BorrowingSequence` and `Sequence`. The `underestimatedCount` and `_customContains...` requirements,
+however, must have the same semantics between the two protocols, and therefore have the same names.
 
 The `BorrowingIteratorProtocol` is similar to its analog, but differs a little more:
 
@@ -486,11 +488,43 @@ for the following kinds of iteration:
 
 ## Alternatives considered
 
+### Only support sequences with direct storage
+
+The current proposal allows any type that conforms to the current `Sequence`
+protocol to conform to the new `BorrowingSequence` protocol. Sequences can conform
+to the new protocol in basically one of two ways: 
+- a sequence that directly stores all of its elements can yield one or more spans
+providing access to those directly stored elements, and
+- a sequence that does not store its elements can generate one or more elements as needed, 
+store them in the iterator, and yield a span providing access to the elements stored
+in the iterator.
+
+In order to support this second method of conformance, the span returned by a borrowing 
+iterator's `nextSpan()` method has a lifetime that depends on the iterator 
+(using the `@_lifetime(&self)` annotation). 
+This places a limitation on what algorithms can be written for `BorrowingSequence`, 
+since the borrow of the sequence's elements does persist beyond the lifetime of the iterator, 
+which is typically created and used within a sequence method. 
+For example, a `first(where:)` method can't return a borrow of an individual element;
+that borrow would only be valid inside the body of the function.
+
+As an alternative, `BorrowingSequence` could _only_ support sequences that directly store their elements. 
+In that case, the iterator would only be in charge of managing access to the sequence's storage, 
+not storing and yielding elements itself. The spans returned from `nextSpan()` 
+could have a lifetime dependent on the sequence instead of the iterator
+(in which case the `nextSpan()` method would be marked with `@_lifetime(copy self)`).
+With the spans of elements tied to the lifetime of the sequence, 
+a borrow of an element can outlive the iterator, and be returnable from a method like `first(where:)`.
+
+Future refinements of `BorrowingSequence` could help resolve this limitation 
+by adding `Collection`-like indices, allowing referential access to elements.
+
 ### Adding noncopyable support to `Sequence`
 
 Another approach for providing iteration and sequential algorithms 
 to noncopyable types added defaulted requirements to the existing `Sequence`
-protocol. 
+protocol. However, this design requires several `Sequence`-specific workarounds
+in the compiler, as well as additional undesirable API.
 
 ### Different lifetime relationships
 
