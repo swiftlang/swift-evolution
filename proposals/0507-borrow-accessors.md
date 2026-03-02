@@ -295,7 +295,7 @@ class ClassType {
   private var _value: SomeType
   var value: SomeType {
     borrow {
-      // 🛑 Cannot use mutate to implement a property of a class or actor type
+      // 🛑 Cannot use borrow to implement a property of a class or actor type
       return _value
     }
     mutate {
@@ -331,7 +331,7 @@ swap(&x[0], &x[1])
 #### Globals
 
 You may not borrow or mutate a global `var`.
-You are allowed to borrow a global `let`, but not to mutate it.
+You are allowed to borrow a global `let`, but not mutate it.
 
 ```swift
 var mutableGlobal: SomeType
