@@ -155,3 +155,7 @@ Note: if existing code on an earlier Swift version also implements these functio
 ### Don't include the `Hashable` conformance for `EmptyCollection`
 
 Asides the reasons of completeness and consistency with other standard library collection types, use cases for working with `EmptyCollection`s in a hash-based context can be avoided (e.g. by working with `result ?? EmptyCollection<T>` instead). However, such workarounds may not be idiomatic for that use case.
+
+### Add `Hashable` conformance to `Dictionary.Values`
+
+Unlike `Dictionary.Keys`, which represents a set-like collection of unique elements, `Dictionary.Values` can contain duplicates. A proper _multiset_ comparison would require sorting or counting, adding non-trivial cost. As the goal of this proposal is to add trivial missing conformances rather than design new data structures or algorithms, `Hashable` conformance for `Dictionary.Values` has been excluded.
