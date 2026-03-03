@@ -9,7 +9,7 @@
 
 ## Summary of changes
 
-Previously, `@discardableResult` was applied universally to all Task initializers, making it too easy to accidentally miss that a thrown error was ignored. We propose to only apply discardable result treatment to non-throwing Task initializers.
+Previously, `@discardableResult` was applied universally to all Task initializers, making it too easy to accidentally miss that a thrown error was ignored. We propose to introduce a new warning that will be applied to throwing Task initializers, in order to help developers not "miss" handling errors thrown by tasks.
 
 ## Motivation
 
@@ -34,34 +34,28 @@ The origin of this semantic is that originally this `Task {}` syntax was primari
 
 ## Detailed design
 
-The concurrency library has now adopted typed throws in `Task.init`, `Task.detached`, `Task.immediate`, `Task.immediateDetached`, so the only change needed for this proposal is to remove the `@discardableResult` annotation:
+The concurrency library has now adopted typed throws in `Task.init`, `Task.detached`, `Task.immediate`, `Task.immediateDetached`, we build on top of this by introducing a new warning kind which recognizes the thrown type (`throws(Failure)`) and only triggers if the failure type is not-`Never`.
 
-```swift
-extension Task {
-  @discardableResult // REMOVE
-  public init(...)
+Previous iterations of this proposal used multiple overloads and removed the `@discardableResult` from the specific method when the where the `Failure` type was `Never`. This would result in duplicating declarations again, even though we adopted typed throws in order to lessen the number of necessary overloads. 
 
-  // ... 
-}
-
-extension Task where Failure == Never {
-  @discardableResult // keep
-  public init(...)
-
-  // ... 
-}
-```
+Instead, this proposal will introduce a new bespoke warning mechanism which is able to trigger
 
 Which will result in the following warning behaviors:
 
 ```swift
 Task {  }
-Task { throws in ... } // warning: Unstructured throwing task created by 'init(priority:operation:)' is unused [#NoUseUnstructuredThrowingTask]
-Task { throws(Boom) in ... } // warning: Unstructured throwing task created by 'init(priority:operation:)' is unused [#NoUseUnstructuredThrowingTask]
+// no warning
 
-Task.detached {  }
-Task.detached { throws in ... } // warning: Unstructured throwing task created by 'detached(name:priority:operation:)' is unused [#NoUseUnstructuredThrowingTask]
-Task.detached { throws(Boom) in ... } // warning: Unstructured throwing task created by 'detached(name:priority:operation:)' is unused [#NoUseUnstructuredThrowingTask]
+Task { throws in ... } 
+// warning: Unstructured throwing task created by 'init(priority:operation:)' is unused [#NoUseUnstructuredThrowingTask]
+// note: To silence this warning, store or ignore the task value explicitly, or handle the error inside the task operation
+
+Task { throws(Boom) in ... } 
+// warning: Unstructured throwing task created by 'init(priority:operation:)' is unused [#NoUseUnstructuredThrowingTask]
+// note: To silence this warning, store or ignore the task value explicitly, or handle the error inside the task operation
+
+Task { throws(Never) in ... }
+// no warning
 ```
 
 And similarily for all other unstructured task creation (immediate tasks etc).
