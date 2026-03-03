@@ -1,9 +1,9 @@
 # UniqueBox
 
-* Proposal: [SE-NNNN](nnnn-unique.md)
+* Proposal: [SE-0517](0517-uniquebox.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (Mar 2-13 2026)**
 * Implementation: [swiftlang/swift#86336](https://github.com/swiftlang/swift/pull/86336)
 * Review: ([pitch](https://forums.swift.org/...))
 
