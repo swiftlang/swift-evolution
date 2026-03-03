@@ -410,8 +410,6 @@ struct S<Value> {
 
 ### Borrowing via unsafe pointers
 
-Note: LSG has recommended making some variation of this be part of the proposal rather than a "Future Direction".
-
 Low-level data structures are often built using unsafe pointers.
 Unsafe pointers by their nature prevent the compiler from accurately diagnosing
 lifetimes, which means that it must generally reject code like the following:
