@@ -6,17 +6,18 @@
 * Status: **Draft**
 * Bug: 
 * Implementation: [swiftlang/swift-testing#1519](https://github.com/swiftlang/swift-testing/pull/1519/)
-* Review: 
+* Review: https://forums.swift.org/t/pitch-transferable-attachments/85104
 
 ## Introduction
 
-[ST-0009](https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0009-attachments.md) introduced the `Attachment` type that allows tests authors to "attach" arbitrary data blobs to tests. Providing a default implementation for types that conform to `Transferable` expands the number of types that can be used as attachments. 
+[ST-0009](https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0009-attachments.md) introduced the `Attachment` type that allows tests authors to "attach" arbitrary data blobs to tests. Providing a default implementation for types that conform to [`Transferable` protocol](https://developer.apple.com/documentation/coretransferable/transferable) expands the number of types that can be used as attachments. 
 
 ## Motivation
 
-`Transferable` is a Swift protocol declared in the `CoreTransferable` framework which is shipped with Apple operating systems. The main purpose of it is to convert values to and from binary data. Additionally, it supports writing values to disk as files and reading files back into values. `Transferable` is designed for Swift and is integrated into SwiftUI, AppIntents, and other public APIs.
+`Transferable` is a Swift protocol declared in the [`CoreTransferable` framework](https://developer.apple.com/documentation/coretransferable) which is shipped with Apple operating systems. The main purpose of it is to convert values to and from binary data. Additionally, it supports writing values to disk as files and reading files back into values. `Transferable` is designed for Swift and is integrated into SwiftUI, AppIntents, and other public APIs.
 
 [ST-0009](https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0009-attachments.md) states: 
+
 > Default implementations are provided for types when they conform to Attachable and either Encodable or NSSecureCoding (or both.)
 
 `Transferable` is similar to `Encodable` and `NSSecureCoding` in a way that it also provides functionality to convert values into data blobs, which makes it a perfect candidate to also have a default implementation in order to simplify the testing logic and move some boilerplate code out of it.
@@ -24,6 +25,26 @@
 ## Proposed solution
 
 We propose introducing a new concrete type that conforms to `AttachableWrapper` that wraps a `Transferable` value, and a new initializer on `Attachment` that accepts a `Transferable`. 
+
+```swift
+import Testing
+import CoreTransferrable
+
+@Test func menuNotEmpty() throws {
+    let menu = FoodTruck.menu
+    if menu.isEmpty {
+        let attachment = try await Attachment(exporting: menu, as: .pdf)
+        Attachment.record(attachment)
+        #expect(false)
+    }
+}
+
+struct Menu: Transferable {
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(exportedContentType: .pdf) { menu in try await menu.pdfData() }
+    }
+}
+```
 
 ## Detailed design
 
