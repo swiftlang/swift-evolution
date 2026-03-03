@@ -6,7 +6,7 @@
 * Status: **Draft**
 * Bug: 
 * Implementation: [swiftlang/swift-testing#1519](https://github.com/swiftlang/swift-testing/pull/1519/)
-* Review: https://forums.swift.org/t/pitch-transferable-attachments/85104
+* Review: [pitch](https://forums.swift.org/t/pitch-transferable-attachments/85104)
 
 ## Introduction
 
@@ -51,6 +51,7 @@ struct Menu: Transferable {
 The new `Attachment` initializer is defined as follows:
 
 ```swift
+@available(macOS 15.2, iOS 18.2, tvOS 18.2, visionOS 2.2, watchOS 11.2, *)
 extension Attachment {
   /// Initialize an instance of this type that encloses the given transferable
   /// value.
@@ -105,11 +106,11 @@ None.
 
 ### Alternatives considered
 
-* Doing nothing: Transferable protocol is adopted widely enough for us to know we want to provide the default implementation for it.
+* Doing nothing: `Transferable` protocol is adopted widely enough for us to know we want to provide the default implementation for it.
 * New overload on `Issue.record(_:sourceLocation:)`. Rather than introducing a new initializer on `Attachment`, we considered adding a new overload on `record(_:sourceLocation:)`. This approach was ultimately rejected for the following reasons.
   Converting a `Transferable` value to an attachable value requires going through `exported(as:)`, which is both async and throwing. Consequently, any overload of `record(_:sourceLocation:)` accepting a `Transferable` value would itself need to be async throws, diverging from the synchronous, non-throwing character of the existing `record(_:sourceLocation:)` API family and placing a burden on call sites that do not require this functionality.
   The asynchronous nature of `exported(as:)` is intentional: encoding a value into its binary representation can be a costly, time-consuming operation, and performing it synchronously would risk blocking the calling actor. Similarly, the throwing behavior reflects the reality that this conversion can fail for a variety of reasons, which must be surfaced to the caller. Representative failure cases include:
     * Unsupported content type. The value cannot be encoded into the requested format.
-    * Disk I/O failure. When a value is backed by an on-disk file, materializing it as in-memory Data involves file system access, which is inherently fallible.
+    * Disk I/O failure. When a value is backed by an on-disk file, materializing it as in-memory data involves file system access, which is inherently fallible.
 
 By encapsulating this complexity inside an `Attachment` initializer, the failure and its reason remain local to the site of attachment construction, keeping `record(_:sourceLocation:)` itself simple and uniformly synchronous.
