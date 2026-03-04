@@ -6,7 +6,7 @@
 * Status: **Active review (March 4...17, 2026)**
 * Implementation: [swiftlang/swift#87222](https://github.com/swiftlang/swift/pull/87222), available in recent `main` development snapshots on swift.org
 * Previous Revision: *if applicable* [1](https://github.com/swiftlang/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Review: ([pitch](https://forums.swift.org/...)) -->
+* Review: ([pitch](https://forums.swift.org/...)) ([review](https://forums.swift.org/t/se-0519-borrow-and-inout-types-for-safe-first-class-references/85151))
 
 ## Summary of changes
 
