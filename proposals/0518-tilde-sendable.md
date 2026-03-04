@@ -1,9 +1,9 @@
 # `~Sendable` for explicitly marking non-`Sendable` types
 
-* **Proposal**: [SE-NNNN](NNNN-tilde-sendable.md)
+* **Proposal**: [SE-0518](0518-tilde-sendable.md)
 * **Authors**: [Pavel Yaskevich](https://github.com/xedin)
-* **Review Manager**: TBD
-* **Status**: **Pitch**
+* **Review Manager**: [Xiaodi Wu](https://github.com/xwu)
+* **Status**: **Active review** (March 3...16, 2026)
 * **Implementation**: [implementation](https://github.com/swiftlang/swift/pull/84777), [Interaction with ObjC](https://github.com/swiftlang/swift/pull/85105)
 * **Experimental Feature Flag**: `TildeSendable`
 * **Review**: [pitch](https://forums.swift.org/t/pitch-sendable-conformance-for-suppressing-sendable-inference/83288)
