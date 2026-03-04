@@ -1,11 +1,10 @@
 # `Borrow` and `Inout` types for safe, first-class references
 
-* Proposal: [SE-AOEU](AOEU-borrow-inout-types.md)
+* Proposal: [SE-0519](0519-borrow-inout-types.md)
 * Authors: [Joe Groff](https://github.com/jckarter), [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
-* Implementation: [swiftlang/swift#87222](https://github.com/swiftlang/swift/pull/87222)
-<!-- * Upcoming Feature Flag: *if applicable* `MyFeatureName`
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (March 4...17, 2026)**
+* Implementation: [swiftlang/swift#87222](https://github.com/swiftlang/swift/pull/87222), available in recent `main` development snapshots on swift.org
 * Previous Revision: *if applicable* [1](https://github.com/swiftlang/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
 * Review: ([pitch](https://forums.swift.org/...)) -->
 
@@ -147,7 +146,7 @@ func element(of array: inout [Int], at: Int) -> Inout<Int>? {
   }
 }
 ```
- 
+
 ## Detailed design
 
 ### Lifetime dependence
