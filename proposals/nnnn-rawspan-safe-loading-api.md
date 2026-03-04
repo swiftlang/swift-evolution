@@ -112,7 +112,9 @@ The `load(as:)` functions are not atomic operations.
 
 The `load(as:)` functions will not have equivalents with unchecked byte offset. If that functionality is needed, the `unsafeLoad(fromUncheckedByteOffset:as:)`function is already available.
 
-As a convenience for the specific case of `UInt8`, we will define subscripts for `RawSpan` and `MutableRawSpan`, similar to the existing `Span` and `MutableSpan` subscripts:
+##### Subscripts for the `RawSpan` family
+
+As a convenience for the specific case of `UInt8`, we will define subscripts for `RawSpan`, `MutableRawSpan`, and `OutputRawSpan`, similar to the existing `Span`, `MutableSpan` and `OutputSpan` subscripts:
 ```swift
 extension RawSpan {
   subscript(_ byteOffset: Int) -> UInt8 { get }
@@ -122,6 +124,13 @@ extension RawSpan {
 }
 
 extension MutableRawSpan {
+  subscript(_ byteOffset: Int) -> UInt8 { get set }
+
+  @unsafe
+  subscript(unchecked byteOffset: Int) -> UInt8 { get set }
+}
+
+extension OutputRawSpan {
   subscript(_ byteOffset: Int) -> UInt8 { get set }
 
   @unsafe
@@ -312,6 +321,7 @@ extension RawSpan {
   ///
   /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
   ///     must be greater or equal to zero, and less than `count`.
+  @unsafe
   subscript(unchecked byteOffset: Int) -> UInt8 { get }
   
   /// Convert a typed span to a raw span.
@@ -401,6 +411,7 @@ extension MutableRawSpan {
   ///
   /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
   ///     must be greater or equal to zero, and less than `count`.
+  @unsafe
   subscript(unchecked byteOffset: Int) -> UInt8 { get set }
   
   /// Mutate the elements of a typed span as raw bytes.
@@ -480,6 +491,22 @@ extension OutputRawSpan {
     initializingWith initializer:
       (_ typedSpan: inout OutputSpan<T>) throws(E) -> Void
   ) throws(E) where T: ConvertibleToRawBytes & BitwiseCopyable
+
+  /// Accesses the byte at the specified offset in the span.
+  ///
+  /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
+  ///     must be greater or equal to zero, and less than `byteCount`.
+  subscript(_ byteOffset: Int) -> UInt8 { get set }
+
+  /// Accesses the byte at the specified offset in the span.
+  ///
+  /// This subscript does not validate `byteOffset`. Using this subscript
+  /// with an invalid `byteOffset` results in undefined behaviour.
+  ///
+  /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
+  ///     must be greater or equal to zero, and less than `count`.
+  @unsafe
+  subscript(unchecked byteOffset: Int) -> UInt8 { get set }
 }
 ```
 
