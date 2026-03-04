@@ -4,9 +4,9 @@
 * **Authors**: [Pavel Yaskevich](https://github.com/xedin)
 * **Review Manager**: [Xiaodi Wu](https://github.com/xwu)
 * **Status**: **Active review** (March 3...16, 2026)
-* **Implementation**: [implementation](https://github.com/swiftlang/swift/pull/84777), [Interaction with ObjC](https://github.com/swiftlang/swift/pull/85105)
+* **Implementation**: [1](https://github.com/swiftlang/swift/pull/84777), [2](https://github.com/swiftlang/swift/pull/85105)
 * **Experimental Feature Flag**: `TildeSendable`
-* **Review**: [pitch](https://forums.swift.org/t/pitch-sendable-conformance-for-suppressing-sendable-inference/83288)
+* **Review**: ([pitch](https://forums.swift.org/t/pitch-sendable-conformance-for-suppressing-sendable-inference/83288)) ([review](https://forums.swift.org/t/se-0518-sendable-for-explicitly-marking-non-sendable-types/85132))
 
 ## Summary of changes
 
