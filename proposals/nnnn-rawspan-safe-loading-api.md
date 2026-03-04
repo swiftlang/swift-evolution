@@ -140,7 +140,7 @@ extension OutputRawSpan {
 
 ##### `MutableRawSpan` and `OutputRawSpan`
 
-`MutableRawSpan` will gain a new overload of `storeBytes()`:
+`MutableRawSpan` will gain a new overloads of `storeBytes()`:
 
 ```swift
 extension MutableRawSpan {
@@ -150,9 +150,13 @@ extension MutableRawSpan {
     as type: T.Type,
     _ byteOrder: ByteOrder
   ) where T: ConvertibleToRawBytes & BitwiseCopyable & FixedWidthInteger
+  
+  mutating func storeBytes<T>(
+    repeating repeatedValue: T, count: Int, as type: T.Type
+  ) where T: BitwiseCopyable
 }
 ```
-The existing `storeBytes` function constrained to `T: BitwiseCopyable` does not need to be marked `@unsafe`;  all the underlying bytes are already initialized, and therefore optimizations cannot result in uninitialized bytes.
+The existing `storeBytes` function constrained to `T: BitwiseCopyable` does not need to be marked `@unsafe`;  all the underlying bytes are already initialized, and therefore optimizations cannot result in uninitialized bytes. The addition of a repeating variant corrects an omission.
 
 `OutputRawSpan` will have matching `append()` functions:
 ```swift
@@ -164,6 +168,10 @@ extension OutputRawSpan {
   mutating func append<T>(
     _ value: T, as type: T.Type, _ byteOrder: ByteOrder
   ) where T: ConvertibleToRawBytes & BitwiseCopyable & FixedWidthInteger
+  
+  mutating func append<T>(
+    repeating repeatedValue: T, count: Int, as type: T.Type
+  ) where T: ConvertibleToRawBytes & BitwiseCopyable
 }
 ```
 The existing `append` function constrained to just `T: BitwiseCopyable` will be marked `@unsafe`.
