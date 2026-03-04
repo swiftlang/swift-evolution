@@ -8,9 +8,9 @@
 * **Experimental Feature Flag**: `TildeSendable`
 * **Review**: [pitch](https://forums.swift.org/t/pitch-sendable-conformance-for-suppressing-sendable-inference/83288)
 
-## Introduction
+## Summary of changes
 
-This proposal introduces `~Sendable` conformance syntax to explicitly suppress a conformance to `Sendable`, which would prevent automatic `Sendable` inference on types, and provide an alternative way to mark types as non-Sendable without inheritance impact.
+Introduces `~Sendable` conformance syntax to explicitly suppress a conformance to `Sendable`, which would prevent automatic `Sendable` inference on types, and provide an alternative way to mark types as non-`Sendable` without inheritance impact.
 
 
 ## Motivation
@@ -120,12 +120,12 @@ Suppression must be declared on the struct, enum or class type declaration itsel
 extension Test: ~Sendable {} // Error!
 ```
 
-Attempting to suppress 'Sendable' conformance on generic parameters or protocol declarations would be rejected because they are always non-Sendable unless explicitly stated otherwise via `Sendable` requirement:
+Attempting to suppress `Sendable` conformance on generic parameters or protocol declarations would be rejected because there is no implied `Sendable` requirement to suppress:
 
 ```swift
 protocol P: ~Sendable {} // Error!
 struct Test<T: ~Sendable> {} // Error!
-extension Array where Element: ~Sendable {} // Error!
+func test<T: ~Sendable>(_: T) {} // Error!
 ```
 
 Just like with unavailable `Sendable` extensions, types with `~Sendable` conformances cannot satisfy `Sendable` requirements:
@@ -153,13 +153,6 @@ func takesSendable<T: Sendable>(_: T) {
 }
 
 takesSendable(B()) // Ok!
-```
-
-
-Attempting to use `~Sendable` as a generic requirement results in a compile-time error:
-
-```swift
-func test<T: ~Sendable>(_: T) {} // error: conformance to 'Sendable' can only be suppressed on structs, classes, and enums
 ```
 
 
@@ -200,9 +193,9 @@ Conditional conformances to `Sendable` protocol are still allowed:
 extension Container: Sendable where T: Sendable {} // Ok!
 ```
 
-It is still helpful to allow conditional `Sendable` conformances on `~Sendable` types when an API author would like to express that the type is only `Sendable` conditionally when `Sendable` conformance could otherwise be inferred e.g. by checking type's storage or isolation. `~Sendable` is not required in other cases even for auditing purposes (with `ExplicitSendable`, please see below) because the type would be non-Sendable unless explicitly stated otherwise on a primary declaration or in a conditional `Sendable` conformance extension.
+It is still helpful to allow conditional `Sendable` conformances on `~Sendable` types when an API author would like to express that the type is only `Sendable` conditionally when `Sendable` conformance could otherwise be inferred unconditionally — for example, based on the type's storage or isolation. But `~Sendable` is not required, even for auditing purposes with `ExplicitSendable` (see below), when the type is already conditionally `Sendable`.
 
-The Swift compiler provides a way to audit Sendability of public types. The current way to do this is by enabling the `-require-explicit-sendable` flag to produce a warning for every public type without explicit `Sendable` conformance (or an unavailable extension). This flag now supports `~Sendable` and has been turned into a diagnostic group that is disabled by default - `ExplicitSendable`, and can be enabled by `-Wwarning ExplicitSendable`.
+The Swift compiler provides a way to audit sendability of public types. The current way to do this is by enabling the `-require-explicit-sendable` flag to produce a warning for every public type without explicit `Sendable` conformance (or an unavailable extension). This flag now supports `~Sendable` and has been turned into a diagnostic group that is disabled by default - `ExplicitSendable`, and can be enabled by `-Wwarning ExplicitSendable`.
 
 ## Source Compatibility
 
@@ -223,7 +216,7 @@ This proposal is purely additive and maintains full source compatibility with ex
 
 The `~Sendable` annotation affects API contracts:
 
-* **Public API**: Adding `~Sendable` to a public type does not impact source compatibility because `Sendable` inference does not apply to public types. Changing a `Sendable` conformance to `~Sendable` is a source breaking change.
+* **Public API**: Adding `~Sendable` to a public type does not impact source compatibility because `Sendable` inference does not apply to public types. Changing a `Sendable` conformance to `~Sendable` is a source breaking change. It's also possible to adopt `~Sendable` on types that previously had `Sendable` conformance suppressed via `@available(*, unavailable)` in a source compatible way.
 
 ## Alternatives Considered
 
