@@ -26,7 +26,7 @@ This extends to multiple levels of optionality. For example, `some/any P??` will
 
 Likewise, implicitly unwrapped optionals receive the same treatment wherever they are already supported. This proposal would make `any P!` equivalent to `(any P)!`.
 
-Protocol compositions are also supported if they are wrapped by parentheses. For example, `any (P & Q)?` would become equivalent to `(any P & Q)?`. The latter is what must be written today (and would continue to be valid).
+Protocol compositions are also supported if the composition itself is wrapped in parentheses. Today, a developer must write `(any P & Q)?`. That would continue to be valid, but for consistency with the single constraint case, `any (P & Q)?` would also become valid. The same composition without parentheses, `any P & Q?`, would continue to be an error (see [Potentially confusing optional compositions](#potentially-confusing-optional-compositions) below).
 
 ## Detailed design
 
@@ -36,39 +36,21 @@ The current type parser implements the following precedence relationships:
 
 _Prec_(`?`) > _Prec_(`&`) > _Prec_({`some`, `any`})
 
-The snippet below shows some examples and how they parse today. Note that all of these _parse_ successfully, and the ones marked invalid are diagnosed as semantically invalid by the type checker:
+We propose modifying these rules to hoist up a trailing optional `?`/`!` operator to encompass the entire `some`/`any` type. The following table shows how some examples parse today vs. how they would parse under the new rules in this proposal. The ✅ or ❌ next to each example indicates whether they are currently/will be valid Swift under the new rules.
 
-```swift
-some P?         // some (P?)               (invalid)
-some P & Q      // some (P & Q)            (valid)
-some P & Q?     // some (P & (Q?))         (invalid)
-some P? & Q     // some ((P?) & Q)         (invalid)
-some P?.R & Q   // some (((P?).R) & Q)     (valid)
-some P?.R & Q?  // some (((P?).R) & (Q?))  (invalid)
-some P?.R?      // some (((P?).R)?)        (invalid)
-```
-
-We propose the following changes to these rules. When we see the `some` or `any` keyword, we slightly adjust the way we interpret `?` and `!`:
-
-*   A `?` and `!` is only bound to its preceding composition element type (or the sole preceding base type if not a composition) if it is followed by a `.` or a `&`.
-*   Otherwise, if a `?` or `!` follows the last element of a composition type (or the sole base type if not a composition), then it is hoisted to encompass the containing `some` or `any` type.
-*   If `?` or `!` is bound to a composition element type other than the last one in the composition, we do not hoist it; we continue consuming composition elements as long as we see a `&` token. This improves parser recovery for otherwise semantically invalid cases, which will be diagnosed during type checking.
-
-These rules change the parse trees of the examples above to be as follows. Only those forms with trailing `?` or `!` are impacted:
-
-```swift
-some P?         // (some P)?               (valid)
-some P & Q      // some (P & Q)            (valid; same as before)
-some P & Q?     // (some (P & Q))?         (see subsection below)
-some P? & Q     // some ((P?) & Q)         (invalid; same as before)
-some P?.R & Q   // some (((P?).R) & Q)     (valid; same as before)
-some P?.R & Q?  // (some (((P?).R) & Q))?  (see subsection below)
-some P?.R?      // (some ((P?).R))?        (valid)
-```
+| Example          | Current Parse               | Proposed Parse             |
+|------------------|-----------------------------|----------------------------|
+| `some P?`        | ❌ `some (P?)`              | ✅ `(some P)?`              |
+| `some P & Q`     | ✅ `some (P & Q)`           | ✅ **same**                 |
+| `some P & Q?`    | ❌ `some (P & (Q?))`        | ❌ `(some (P & Q))?`        |
+| `some P? & Q`    | ❌ `some ((P?) & Q)`        | ❌ **same**                 |
+| `some P?.R & Q`  | ✅ `some (((P?).R) & Q)`    | ✅ **same**                 |
+| `some P?.R & Q?` | ❌ `some (((P?).R) & (Q?))` | ❌ `(some (((P?).R) & Q))?` |
+| `some P?.R?`     | ❌ `some (((P?).R)?)`       | ✅ `(some ((P?).R))?`       |
 
 #### Potentially confusing optional compositions
 
-Note that the parsing rules above permit the type `some P & Q?` to be treated as a valid "optional of opaque type conforming to `P & Q`". We could allow this, but we consider it to be potentially confusing. Most readers of Swift would not expect a postfix operator `?` to encompass both an arbitrarily long protocol composition _and_ the keyword before it. We acknowledge that we _are_ proposing such an encompassing rule for the `some`/`any` keyword in cases like `some P?`, but we consider the longer form to be less clear due to additional intervening operators and whitespace.
+Note that under the new parsing rules, the spelling `some P & Q?` produces a parse tree that could be interpreted as an "optional of opaque type conforming to `P & Q`". We could allow this, but we consider it to be potentially confusing. Most readers of Swift would not expect a postfix operator `?` to encompass both an arbitrarily long protocol composition _and_ the keyword before it. We acknowledge that we _are_ proposing such an encompassing rule for the `some`/`any` keyword in cases like `some P?`, but we consider the longer form to be less clear due to additional intervening operators and whitespace.
 
 Therefore, we will emit a specific diagnostic in the case where we see a `?` or `!` following a bare protocol composition, along with a fix-it to insert parentheses around the composition.
 
@@ -76,7 +58,7 @@ If practical experience in the future tells us that this limitation is too restr
 
 ### Existential `any` fix-its
 
-Compiler fix-its for explicit existential `any` no longer insert parentheses when the existential type is optional or implicitly unwrapped optional. For example, when the following code is compiled with `-enable-experimental-feature ExistentialAny` today:
+Compiler fix-its for explicit existential `any` no longer insert parentheses when the existential type is constrained to a single protocol (not a composition) and it is optional or implicitly unwrapped optional. For example, when the following code is compiled with `-enable-experimental-feature ExistentialAny` today:
 
 ```swift
 let x: P?
