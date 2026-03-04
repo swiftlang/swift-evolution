@@ -4,8 +4,8 @@
 * Authors: [Joe Groff](https://github.com/jckarter), [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-<!-- * Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN) or [swiftlang/swift-evolution-staging#NNNNN](https://github.com/swiftlang/swift-evolution-staging/pull/NNNNN)
-* Upcoming Feature Flag: *if applicable* `MyFeatureName`
+* Implementation: [swiftlang/swift#87222](https://github.com/swiftlang/swift/pull/87222)
+<!-- * Upcoming Feature Flag: *if applicable* `MyFeatureName`
 * Previous Revision: *if applicable* [1](https://github.com/swiftlang/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
 * Review: ([pitch](https://forums.swift.org/...)) -->
 
@@ -411,6 +411,65 @@ runtimes.
 
 ## Future directions
 
+### Local reference bindings in more places
+
+Using `Borrow` and `Inout`, developers can form reference bindings anywhere
+a variable or property can be declared, reaching beyond the limited places in
+the language that references can be formed. This technically satisfies our
+developers' long-standing desire to be able to form local reference bindings,
+and store references as members of types; however, since `Borrow` and
+`Inout` are distinct types, with their own value and members distinct from the
+target type, working with `Borrow` or `Inout` requires notational overhead to form and
+dereference the reference separate from the target. This leaves them as an
+unsatisfying endpoint to the local reference bindings story.
+
+In the future, we should still consider introducing primitive reference binding
+syntax to the language (which could be viewed as sugar over forming an explicit
+`Borrow` or `Inout`):
+
+```swift
+// Explicitly-formed reference
+let x = Borrow(y)
+x.value.foo()
+
+// Reference binding sugar (strawman syntax)
+borrow x = y
+x.foo()
+```
+
+One might ask, if we're still going to talk about adding reference bindings,
+why also have `Borrow` and `Inout` as separate types? The explicit reference
+types would still play a role in addressing the fundamental limitations of
+reference bindings:
+
+- Since a reference binding's name refers to the target value, and in particular,
+  assignments through the binding would reassign the target value, the reference
+  itself cannot be reassigned. In a graph of values that refer to each other
+  through `Borrow` or `Inout` references, a traversal loop can update a `Borrow`
+  variable in-place as it advances through the graph, but not a `borrow` binding.
+
+- `Borrow` and `Inout` can be used as type arguments to generic types
+  and functions. This allows for references to participate in generic algorithms
+  and data structures without those data structures having any specific knowledge
+  of them; the generic interface in question only needs to be able to accept
+  `~Escapable` types.
+
+Although we should consider bindings, and we would likely recommend that
+developers prefer the bindings where possible, `Borrow` and `Inout` are
+primitives that provide expressivity what bindings can, and the types also
+provide a "desugaring" explanation for how the bindings work in the future.
+As such, we consider the types to be an important permanent addition to the
+language.
+
+### Implicit dereferencing or member forwarding
+
+As another approach to reduce the syntactic overhead of using
+`Borrow` and `Inout`, we might consider giving `Borrow` or `Inout` dynamic
+member lookup capabilities, or introducing something like Rust's `Deref` trait
+to automatically forward name lookups from `Borrow` or `Inout` to the target
+`value`. Any such mechanism will be imperfect, since `Borrow` and
+`Inout`'s own members will shadow any forwarding mechanism.
+
 ### `~Escapable` target types
 
 As proposed here, `Borrow` and `Inout` both require their target type to
@@ -459,35 +518,6 @@ be to introduce a "fat reference" that can capture the suspended execution
 contexts of any accesses to be passed along with the value reference itself.
 Such a type would naturally use more space and incur more execution overhead
 to use, but may be useful in some circumstances.
-
-### Primitive reference bindings in more places
-
-Using `Borrow` and `Inout`, developers can form reference bindings anywhere
-a variable or property can be declared, reaching beyond the limited places in
-the language that references can be formed. However, as distinct types with their
-own interface, these types introduce indirection overhead in forming and
-dereferencing the references separate from the target values. It may still be
-valuable to introduce primitive reference binding syntax to the language (which
-could be viewed as sugar over forming an explicit `Borrow` or `Inout`):
-
-```swift
-// Explicitly-formed reference
-let x = Borrow(y)
-x.value.foo()
-
-// Reference binding sugar
-borrow x = y
-x.foo()
-```
-
-### Implicit dereferencing or member forwarding
-
-Along similar lines, we might consider giving `Borrow` or `Inout` dynamic
-member lookup capabilities, or introducing something like Rust's `Deref` trait
-to automatically forward name lookups from `Borrow` or `Inout` to the target
-`value`. This would somewhat reduce the syntactic overhead of working with
-these types, though any such mechanism will be imperfect, since `Borrow` and
-`Inout`'s own members will shadow any forwarding mechanism.
 
 ### `exclusive` ownership or reborrowing for `Inout.value`
 
