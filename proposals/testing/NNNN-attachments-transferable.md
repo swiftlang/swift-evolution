@@ -35,7 +35,7 @@ import CoreTransferrable
     if menu.isEmpty {
         let attachment = try await Attachment(exporting: menu, as: .pdf)
         Attachment.record(attachment)
-        #expect(false)
+        Issue.record("The food truck's menu was empty")
     }
 }
 
