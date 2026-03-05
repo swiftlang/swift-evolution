@@ -146,7 +146,7 @@ public struct Continuation<Success: ~Copyable, Failure: Error>: ~Copyable, Senda
 ### Free function
 
 ```swift
-public func withContinuation<Success: ~Copyable, Failure: Error>(
+public nonisolated(nonsending) func withContinuation<Success: ~Copyable, Failure: Error>(
     of: Success.Type,
     throws: Failure.Type = Never.self,
     file: StaticString = #file,
@@ -258,4 +258,4 @@ Currently, Swift does not support capturing non Copyable types in closures. The 
 
 ### Introduction of `~Discardable` protocol
 
-While the new `Continuation` improves the ergonomics of continuations in a lot of places, we still rely on a runtime trap, if a continuation is dropped. Since we use a noncopyable type here, the compiler already injects deinit calls at the places where a continuation is dropped. The Swift team could consider adding a new mode for `~Copyable` types, that signals, that instead of adding `deinit`s the compiler enforces that a type must be explicitly consumed. This would turn the runtime trap into a compiler error.
+While the new `Continuation` improves the ergonomics of continuations in a lot of places, we still rely on a runtime trap, if a continuation is dropped. Since we use a noncopyable type here, the compiler already injects deinit calls at the places where a continuation is dropped. We could consider adding a new mode for `~Copyable` types, that signals, that instead of adding `deinit`s the compiler enforces that a type must be explicitly consumed. This would turn the runtime trap into a compiler error.
