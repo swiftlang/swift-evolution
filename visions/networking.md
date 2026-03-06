@@ -103,8 +103,6 @@ The layered architecture enables sharing at each level. When multiple libraries 
 
 Shared implementations also mean common use cases work out of the box. Developers should make requests or serve responses without extensive configuration or deep protocol knowledge. Sensible defaults and proper security should be the starting point.
 
-When multiple libraries each implement HTTP/1.1, HTTP/2, HTTP/3, QUIC, TLS, or WebSockets, effort is duplicated and bugs are fixed independently. Shared implementations let improvements benefit everyone at once.
-
 This frees library authors to focus on differentiation at the layer where they add value. A web framework differentiates through routing and ergonomics, not its HTTP/2 flow-control implementation. An API client differentiates through interface design, not header field parsing. By sharing foundational and protocol layers, higher-level components compete on design philosophy rather than duplicating infrastructure.
 
 We're starting with HTTP client and server implementations for every Swift platform. These implementations are pluggable, allowing alternative transports where appropriate, and extensible for advanced use cases. Most importantly, they work immediately for the common case; no assembly required before writing application code.
