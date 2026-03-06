@@ -316,6 +316,6 @@ We could _narrow_ the source break by only allowing trailing closures following 
 
 Thank you to Tony Allevato for encouraging to investigate this improvement and sharing feedback on the pitch.
 
-Thank you to for Xiaodi Wu for sharing feedback on the pitch and developing the argument that the closure result builder use case is too fragile to be worth accommodating.
+Thank you to Xiaodi Wu for sharing feedback on the pitch and developing the argument that the closure result builder use case is too fragile to be worth accommodating.
 
 Thank you to Jed Fox for sharing the `InlineArray` trailing closure example.
