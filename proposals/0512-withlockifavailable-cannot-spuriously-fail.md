@@ -3,10 +3,10 @@
 * Proposal: [SE-0512](0512-withlockifavailable-cannot-spuriously-fail.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (February 17...March 2, 2026)**
+* Status: **Implemented (Swift 6.0)**
 * Implementation: [swiftlang/swift#85497](https://github.com/swiftlang/swift/pull/85497)
 * Review: ([pre-pitch](https://forums.swift.org/t/should-we-document-the-behavior-of-mutex-withlockifavailable/83166))
-  ([pitch](https://forums.swift.org/t/pitch-document-the-lack-of-spurious-failures-in-mutex-withlockifavailable/84279)) ([review](https://forums.swift.org/t/se-0512-document-that-mutex-withlockifavailable-cannot-spuriously-fail/84789))
+  ([pitch](https://forums.swift.org/t/pitch-document-the-lack-of-spurious-failures-in-mutex-withlockifavailable/84279)) ([review](https://forums.swift.org/t/se-0512-document-that-mutex-withlockifavailable-cannot-spuriously-fail/84789)) ([acceptance](https://forums.swift.org/t/accepted-se-0512-document-that-mutex-withlockifavailable-cannot-spuriously-fail/85225))
 
 ## Summary of changes
 
