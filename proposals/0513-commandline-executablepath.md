@@ -51,8 +51,8 @@ would benefit from a way to get the executable path, including:
 
 ## Proposed solution
 
-I propose adding a new read-only string property named `executablePath` to the
-existing [`CommandLine`](https://developer.apple.com/documentation/swift/commandline)
+I propose adding a new read-only property named `executablePath` to the existing
+[`CommandLine`](https://developer.apple.com/documentation/swift/commandline)
 type in the standard library.
 
 ### Precedent in other languages
@@ -88,10 +88,7 @@ extension CommandLine {
   /// - Important: On some systems, it is possible to move an executable file on
   ///   disk while it is running. If the current executable file is moved, the
   ///   value of this property is not updated to its new path.
-#if hasFeature(Embedded) || os(WASI)
-  @available(*, unavailable)
-#endif
-  public static var executablePath: String? { get }
+  public static var executablePath: FilePath? { get }
 }
 ```
 
@@ -101,7 +98,10 @@ This is a pragmatic decision: in the common case, a symlink is not present and
 the I/O necessary to try and resolve it is wasted effort. If there _is_ a
 symlink, its presence is not necessarily a problem for the calling code. Callers
 that need to resolve symlinks in this path can manually call `realpath()`
-(`_wfullpath()` on Windows) or equivalent API as needed.
+(`_wfullpath()` on Windows) or equivalent API as needed. Note that, as of today,
+`FilePath` does not provide a wrapper interface around `realpath()` (such an
+interface is beyond the scope of this proposal, but if one is added in the
+future we can update the documentation for `executablePath` accordingly).
 
 If the current executable is moved on disk after it starts, the underlying
 system may or may not update the path it reports. This is ultimately a
@@ -109,12 +109,12 @@ platform-specific implementation detail and one that we cannot reliably work
 around, but neither can developers who implement their own version of this
 property. The documentation therefore warns developers of the possibility.
 
-This property is explicitly unavailable in Embedded Swift and WASI: if in the
-future we can reliably get a value for this property in Embedded Swift or on
-WASI, we ought to be able to lift these constraints.
+On platforms where this property cannot be implemented (generally because the
+underlying operating system does not provide an interface for querying the
+executable path), the value of this property is always `nil`.
 
 [^linuxRealpath]: On some platforms (namely Linux) the API itself consists of
-  resolving a symlink, and we _do_ resolve that symlink out of necessity.
+  _reading_ a symlink, which we do out of necessity.
 
 ## Source compatibility
 
@@ -151,18 +151,18 @@ N/A
   the standard library) or have significant constraints when linking to it (such
   as Swift Testing).
 
-- **Providing API in the swift-system package.** swift-system's [`FilePath`](https://developer.apple.com/documentation/System/FilePath)
-  type is appealing here, of course. But swift-system is non-portable by design,
-  and the goal here is to provide a portable (or mostly-portable) API that can
-  be used in cross-platform code.
+- **Exposing the property as an instance of `String` instead of `FilePath`.**
+  The original version of this proposal did so, but we currently expect that
+  `FilePath` will be brought from the swift-system package into the standard
+  library with [SE-NNNN](). `FilePath` represents a better interface for path
+  strings as it can handle invalid Unicode sequences ("bag-o'-bytes encoding").
 
-- **Exposing the property as a C string rather than as a Swift string.** We
+- **Exposing the property as a C string rather than as a Swift value.** We
   could provide an interface that produces an `UnsafePointer<CChar>` (or
   `UnsafePointer<CWideChar>` on Windows), a `Span<CChar>`, a
   `ContiguousArray<CChar>`, etc. We could still provide such an interface if
-  needed, but paths are generally treated as strings in Swift code and in the
-  common case a developer who is handed an `UnsafePointer<CChar>` is going to
-  immediately pass it to `String.init(cString:)` anyway.
+  needed, but it is straightforward to get a platform C string from an instance
+  of `FilePath` using [`withPlatformString(_:)`](https://developer.apple.com/documentation/system/filepath/withplatformstring(_:)).
 
 - **Making the property's type non-optional.** The initial version of this
   proposal presented a non-optional property that aborted if the path was
@@ -176,23 +176,3 @@ N/A
   a thrown error in a way that would allow the API to succeed the next time it
   is called, so callers would probably end up ignoring errors with `try?` or
   similar.
-
-- **Making the property available (always equalling `nil`) on WASI.** The
-  property's value is optional on platforms where it is supported for reasons
-  described earlier in this section. On WASI, there is no real concept of an
-  "executable" within the WebAssembly virtual machine. If a developer is using
-  this API and ports their code to WASI, and there is no compile-time indication
-  that the property is non-functional, that developer may be misled into
-  thinking the code works correctly. A better option is to mark the API
-  unavailable so that a developer who is using it will be forced to stop and
-  think about appropriate alternatives.
-
-- **Making the property available under Embedded Swift.** Under Embedded Swift,
-  the Swift runtime has limited ability to call platform-specific API because
-  there's no real guarantee there is even a "platform" _per se_. Embedded Swift
-  can be used with full desktop-class operating systems, but it can also be used
-  on true embedded systems where the CPU directly executes instructions loaded
-  from RAM or ROM and there isn't even a file system in which to place an
-  executable. As with WASI, it is better to mark the API unavailable so that a
-  developer is forced to think about why they are trying to use it under
-  Embedded Swift and whether it's appropriate to use in the first place.
