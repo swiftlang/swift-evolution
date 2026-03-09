@@ -348,14 +348,6 @@ Both of these APIs have the intent to be used for composition, for example if a 
 to communicate a deadline to some other system it can use these properties to relay that information 
 without needing the deadline to be directly passed.
 
-#### Behaviors for Cancellation and Expiration
-
-//// TODO
-
-#### Interaction with Executors
-
-//// TODO
-
 ### Implementation Details
 
 The implementation uses structured concurrency with task groups to race the
@@ -375,10 +367,201 @@ deadline expires, but waits for the operation to return. This means
 doesn't respond to cancellation immediately. This design ensures proper cleanup
 and prevents resource leaks from abandoned tasks.
 
+Users who wish to adjust behaviors can use the task cancellation shields to 
+alter the behavior of the return values along with task cancellation handlers.
+These in conjunction with manual processing of do/catch clauses can compose 
+to complex behaviors needed for many specialized scenarios.
+
+#### Behaviors for Cancellation and Expiration
+
+The following examples should outline common composition and cancellation behaviors.
+
+```
+struct LocalError: Error { }
+
+print("====== EXAMPLE 0 ======")
+do {
+  let value = try await withDeadline(in: .seconds(2), tolerance: .microseconds(2)) {
+    return "Success"
+  }
+} catch {
+  print("caught \(error)")
+}
+// ====== EXAMPLE 0 ======
+
+print("====== EXAMPLE 1 ======")
+do {
+  try await withDeadline(in: .seconds(2), tolerance: .microseconds(2)) {
+    throw LocalError()
+  }
+} catch {
+  print("caught \(error)")
+}
+// ====== EXAMPLE 1 ======
+// caught DeadlineError(cause: .operationFailed, expiration: Instant(_value: 1737016.436590875 seconds), underlyingError: LocalError()
+
+print("====== EXAMPLE 2 ======")
+do {
+  try await withDeadline(in: .seconds(3), tolerance: .microseconds(2)) {
+    try await withTaskCancellationHandler {
+      try await withDeadline(in: .seconds(2), tolerance: .microseconds(2)) {
+        try await withTaskCancellationHandler {
+          let elapsed = await ContinuousClock().measure {
+            try? await Task.sleep(for: .seconds(10))
+          }
+          print("\(elapsed) elapsed")
+          throw LocalError()
+        } onCancel: {
+          print("cancel inner")
+        }
+      }
+    } onCancel: {
+      print("cancel outer")
+    }
+  }
+} catch {
+  print("caught \(error)")
+}
+// ====== EXAMPLE 2 ======
+// cancel inner
+// 2.001315 seconds elapsed
+// caught DeadlineError(cause: .operationFailed, expiration: Instant(_value: 1736722.0348198751 seconds), underlyingError: DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736721.0351736662 seconds), underlyingError: LocalError()
+
+print("====== EXAMPLE 3 ======")
+do {
+  try await withDeadline(in: .seconds(2), tolerance: .microseconds(2)) {
+    try await withTaskCancellationHandler {
+      try await withDeadline(in: .seconds(3), tolerance: .microseconds(2)) {
+        try await withTaskCancellationHandler {
+          let elapsed = await ContinuousClock().measure {
+            try? await Task.sleep(for: .seconds(10))
+          }
+          print("\(elapsed) elapsed")
+          throw LocalError()
+        } onCancel: {
+          print("cancel inner")
+        }
+      }
+    } onCancel: {
+      print("cancel outer")
+    }
+  }
+} catch {
+  print("caught \(error)")
+}
+// ====== EXAMPLE 3 ======
+// cancel inner
+// cancel outer
+// 2.00507375 seconds elapsed
+// caught DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736723.037342833 seconds), underlyingError: DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736723.037342833 seconds), underlyingError: LocalError()
+
+print("====== EXAMPLE 4 ======")
+do {
+  try await withDeadline(in: .seconds(2), tolerance: .microseconds(2)) {
+    try await withTaskCancellationHandler {
+      try await withDeadline(in: .seconds(10), tolerance: .microseconds(2)) {
+        try await withTaskCancellationHandler {
+          let elapsed = await ContinuousClock().measure {
+            try? await Task.sleep(for: .seconds(3))
+          }
+          print("\(elapsed) elapsed")
+          throw LocalError()
+        } onCancel: {
+          print("cancel inner")
+        }
+      }
+    } onCancel: {
+      print("cancel outer")
+    }
+  }
+} catch {
+  print("caught \(error)")
+}
+// ====== EXAMPLE 4 ======
+// cancel inner
+// cancel outer
+// 2.005246625 seconds elapsed
+// caught DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736725.042865291 seconds), underlyingError: DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736725.042865291 seconds), underlyingError: LocalError()
+
+print("====== EXAMPLE 5 ======")
+do {
+  try await withDeadline(in: .seconds(3), tolerance: .microseconds(2)) {
+    try await withTaskCancellationHandler {
+      try await withDeadline(in: .seconds(2), tolerance: .microseconds(2)) {
+        try await withTaskCancellationHandler {
+          let clock = ContinuousClock()
+          let elapsed = await clock.measure {
+            let start = clock.now
+            while clock.now < start + .seconds(10) {
+              await Task.yield()
+            }
+          }
+          print("\(elapsed) elapsed")
+          throw LocalError()
+        } onCancel: {
+          print("cancel inner")
+        }
+      }
+    } onCancel: {
+      print("cancel outer")
+    }
+  }
+} catch {
+  print("caught \(error)")
+}
+// ====== EXAMPLE 5 ======
+// cancel inner
+// cancel outer
+// 10.000002291000001 seconds elapsed
+// caught DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736728.048390583 seconds), underlyingError: DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736727.048450916 seconds), underlyingError: LocalError()
+```
+
+## Source compatibility
+
+The proposed APIs are additive and the behavior of deadlines are composed 
+without a need for intermediary participation. Existing systems that handle
+cancellation or throwing of errors will compose with this without the need
+to adjust for the new deadline semantics.
+
+## Effect on ABI compatibility
+
+Since this is an additive proposal there is no change to any existing ABI.
+The proposed APIs are capable of being implemented in less performant manners
+to the introduction of typed throws. Back porting this feature is not a proposed
+part of the pitch but no technical limitation is added except the burden of 
+making the implementation fragmented upon deployment.
+
 ## Effect on API resilience
 
 This is an additive API and no existing systems are changed, however it will
 introduce a few new types that will need to be maintained as ABI interfaces.
+
+## Location and availability
+
+Previously this feature was pitched for swift-async-algorithms. However due
+to the large demand and existing requests for this feature it was considered 
+perhaps not specialized enough to live in that particular package. It would 
+be a fairly common occurrence to need this functionality and it would be better
+served living in the Concurrency module.
+
+The availability has particular consideration listed in the ABI section.
+
+## Future directions
+
+This can have an impact upon executors. The current implementation does not 
+need executors to do anything different than they do as this is pitched, but
+some modification around cancellation of jobs could be added to allow
+executors to more efficiently handle deadlines.
+
+There are potentials of exposing the underlying structured concurrency primitives
+to enable APIs like `withDeadline`. This has a precident in other langauges
+and is often called `race`. Introducing the `withDeadline` API does not preclude
+that as an eventuality and lends credence to the utility of having that as 
+a general purpose feature, however offering the more primitive functionality 
+would still likely have the same considerations and motivation for introducing
+a `withDeadline` API. So these concepts are not mutually exclusive or blocking.
+If at some point in time the concurrency library grows a new `race` type
+primitive, then  `withDeadline` would likely be a strong candidate for using that.
 
 ## Alternatives considered
 
