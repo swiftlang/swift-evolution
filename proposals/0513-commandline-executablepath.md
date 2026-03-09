@@ -3,9 +3,9 @@
 * Proposal: [SE-0513](0513-commandline-executablepath.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Active review (February 18–March 4, 2026)**
+* Status: **Returned for revision**
 * Implementation: [swiftlang/swift#85496](https://github.com/swiftlang/swift/pull/85496)
-* Review: ([pitch](https://forums.swift.org/t/pitch-api-to-get-the-path-to-the-current-executable/84137)) ([review](https://forums.swift.org/t/se-0513-api-to-get-the-path-to-the-current-executable/84800))
+* Review: ([pitch](https://forums.swift.org/t/pitch-api-to-get-the-path-to-the-current-executable/84137)) ([review](https://forums.swift.org/t/se-0513-api-to-get-the-path-to-the-current-executable/84800)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0513-api-to-get-the-path-to-the-current-executable/85220))
 
 ## Introduction
 
