@@ -1,7 +1,7 @@
 # Deadline
 
 * Proposal: [NNNN](NNNN-deadline.md)
-* Authors: [Franz Busch](https://github.com/FranzBusch) [Philippe Hausler](https://github.com/phausler)
+* Authors: [Franz Busch](https://github.com/FranzBusch), [Philippe Hausler](https://github.com/phausler), [Konrad Malawski](https://github.com/ktoso)
 * Status: **Awaiting implementation**
 * Review Manager: TBD
 
