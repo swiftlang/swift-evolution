@@ -102,7 +102,7 @@ I've reviewed the [platform-specific implementations](https://github.com/swiftla
 [^windowsImpl]: Windows is, of course, closed-source, and Microsoft's
   implementation of `TryAcquireSRWLockExclusive()` is proprietary. My
   conclusions are based on Microsoft's documentation and a careful reading of
-  the Wine reimplementation [here](https://github.com/wine-mirror/wine/blob/main/dlls/ntdll/sync.c).
+  the Wine reimplementation [here](https://github.com/wine-mirror/wine/blob/master/dlls/ntdll/sync.c).
 
 In other words, although we don't (yet) document it, Swift's `Mutex.withLockIfAvailable(_:)` implementations do not spuriously fail.
 These implementations are, of course, _implementation details_ and are subject to change over time, but any change to `Mutex` that causes us to start spuriously failing is a _breaking change_ because it could wreak havoc on code that uses `Mutex.withLockIfAvailable(_:)` today.
