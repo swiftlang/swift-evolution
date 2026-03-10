@@ -115,6 +115,25 @@ struct InvalidExamples {
 }
 ```
 
+The restrictions on returning temporary values also restricts certain uses of optionals:
+```
+struct Source {
+    var _s: String? = ""
+    var s: String? {
+        borrow { _s }
+    }
+}
+
+struct Wrapper {
+    var i: Source?
+    var prop: String? {
+        // 🛑 Error: If `i == nil`, this would require a
+        // temporary `String?.none` to be returned.
+        borrow { i?.s }
+    }
+}
+```
+
 #### Reading from properties that use `borrow`
 
 Clients read a value via a `borrow` accessor using the same code they might use for a property implemented with `get`.  However, when a property is implemented with `borrow`, reading the value does not copy.  To preserve memory consistency, Swift’s exclusivity rules prevent the provider from being mutated while the borrow is active:
@@ -267,9 +286,25 @@ No combinations other than those specified above are supported.
 
 #### Cannot use for properties of classes or actors
 
-Classes require runtime exclusivity checks to run both before and after each property access.  Since borrowing accessors do not provide a way for the provider to run code after the access, they cannot be used for properties of classes.[^1]
+Classes require runtime exclusivity checks to run both before and after each property access.  Since borrowing accessors do not provide a way for the provider to run code after the access, they cannot be used for properties of classes or actors.[^1]
 
 [^1]: `yielding borrow` and `yielding mutate` accessors can be used for properties of classes.
+
+```swift
+class ClassType {
+  private var _value: SomeType
+  var value: SomeType {
+    borrow {
+      // 🛑 Cannot use borrow to implement a property of a class or actor type
+      return _value
+    }
+    mutate {
+      // 🛑 Cannot use mutate to implement a property of a class or actor type
+      return &_value
+    }
+  }
+}
+```
 
 #### Use for subscripts
 
@@ -291,6 +326,40 @@ mutating accesses of `x` for the duration of the function call:
 ```swift
 var x: ArrayLikeType
 swap(&x[0], &x[1])
+```
+
+#### Globals
+
+You may not borrow or mutate a global `var`.
+You are allowed to borrow a global `let`, but not mutate it.
+
+```swift
+var mutableGlobal: SomeType
+let constantGlobal: SomeType
+
+struct BorrowingGlobals {
+  var mutable: SomeType {
+    borrow {
+      // 🛑 Cannot borrow a mutable global
+      return mutableGlobal
+    }
+    mutate {
+      // 🛑 Cannot mutate a mutable global
+      return &mutableGlobal
+    }
+  }
+
+  var constant: SomeType {
+    borrow {
+      // OK
+      return constantGlobal
+    }
+    mutate {
+      // 🛑 Cannot mutate a non-mutable value
+      return &constantGlobal
+    }
+  }
+}
 ```
 
 ## Source compatibility
@@ -368,6 +437,73 @@ var first: Element {
 
 This would assert that the result of the expression is valid at least
 until the next mutating operation on `self`.
+
+### Multiple Returns
+
+The current implementation does not handle `borrow` or `mutate` accessors that
+have more than one `return` statement.
+```
+struct Wrapper {
+    var selector: Bool
+    var i: SomeType
+	var j: SomeType
+
+    var prop: SomeType {
+        borrow {
+            if selector {
+                return i
+            } else {
+                return j
+            }
+        }
+    }
+}
+```
+
+### Interaction with borrowing switch
+
+The current implementation does not support borrowing `switch` statements,
+due to known gaps in the borrowing switch implementation that would need
+to be resolved first.
+```
+struct Box {
+    enum E {
+	case a(SomeType)
+	case b(SomeType)
+	}
+    var value: E
+
+    var prop: SomeType {
+        borrow {
+		    switch value {
+			case a(let va): return va
+			case b(let vb): return vb
+            }
+        }
+    }
+}
+```
+
+### Local computed properties that provide borrowing of captured values
+
+We do not support using `borrow` or `mutate` to define a closure.
+
+```
+func f() {
+  var storage: [Int]
+
+  var property: Span<Int> {
+    borrow {
+      storage.span
+    }
+  }
+}
+```
+
+### Let properties of classes
+
+In the future, we should be able to support borrow accessors on let
+properties of classes.
 
 ## Alternatives considered
 
