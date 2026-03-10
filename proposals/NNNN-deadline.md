@@ -4,6 +4,7 @@
 * Authors: [Franz Busch](https://github.com/FranzBusch), [Philippe Hausler](https://github.com/phausler), [Konrad Malawski](https://github.com/ktoso)
 * Status: **Awaiting implementation**
 * Review Manager: TBD
+* Pitch Thread: https://forums.swift.org/t/pitch-withdeadline/85262
 
 ## Introduction
 
