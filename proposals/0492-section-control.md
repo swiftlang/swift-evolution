@@ -3,7 +3,7 @@
 * Proposal: [SE-0492](0492-section-control.md)
 * Authors: [Kuba Mracek](https://github.com/kubamracek)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor/)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.3)**
 * Implementation: available in recent `main` snapshots under the experimental feature `SymbolLinkageMarkers` and with undercored attribute names `@_section` and `@_used`.
 * Review: [review](https://forums.swift.org/t/se-0492-section-placement-control/82289), [acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0492-section-placement-control/82701)
 * Discussion threads:
