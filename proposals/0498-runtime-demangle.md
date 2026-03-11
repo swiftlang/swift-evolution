@@ -4,7 +4,7 @@
 * Previous Proposal: [SE-0262](0262-demangle.md)
 * Authors: [Konrad'ktoso'Malawski](https://github.com/ktoso), [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Implemented (Swift 6.3)**
+* Status: **Implemented (Swift 6.4)**
 * Implementation: [PR #84788](https://github.com/swiftlang/swift/pull/84788)
 * Review: ([first pitch](https://forums.swift.org/t/demangle-function/25416/16)) ([second pitch](https://forums.swift.org/t/pitch-expose-demangle-function-in-runtime-module/82605)) ([review](https://forums.swift.org/t/se-0498-expose-demangle-function-in-runtime-module/83032)) ([acceptance](https://forums.swift.org/t/accepted-se-0498-expose-demangle-function-in-runtime-module/84111))
 
