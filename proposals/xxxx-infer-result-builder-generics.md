@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [#86209](https://github.com/swiftlang/swift/pull/86209)
-* Pitch: [1](https://forums.swift.org/t/add-arraybuilder-to-the-standard-library/83811/3)
+* Pitch: [1](https://forums.swift.org/t/pitch-infer-generic-arguments-of-result-builder-attributes/85272)
 
 ## Introduction
 
