@@ -47,12 +47,12 @@ Task {  }
 // no warning
 
 Task { throws in ... } 
-// warning: Unstructured throwing task created by 'init(priority:operation:)' is unused [#NoUseUnstructuredThrowingTask]
-// note: To silence this warning, store or ignore the task value explicitly, or handle the error inside the task operation
+// warning: Unstructured throwing task was not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+// note: To silence this warning, handle the error inside the task, or store/discard the task value explicitly
 
 Task { throws(Boom) in ... } 
-// warning: Unstructured throwing task created by 'init(priority:operation:)' is unused [#NoUseUnstructuredThrowingTask]
-// note: To silence this warning, store or ignore the task value explicitly, or handle the error inside the task operation
+// warning: Unstructured throwing task was not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+// note: To silence this warning, handle the error inside the task, or store/discard the task value explicitly
 
 Task { throws(Never) in ... }
 // no warning
