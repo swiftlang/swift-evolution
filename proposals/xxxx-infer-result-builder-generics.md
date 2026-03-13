@@ -171,6 +171,15 @@ var array: [String] {
 }
 ```
 
+Placeholder types are also supported, like in other generic contexts, allowing you to only specify a subset of the generic arguments and have the rest be inferred automatically:
+
+```swift
+@DictionaryBuilder<String, _>
+var dictionary: [String: (a: Int, b: Int, c: Int)] {
+    (key: "a", value: (a: 1, b: 2, c: 3))
+}
+```
+
 This will be supported in all valid result builder use cases, including function parameters, computed properties, functions results, and struct properties:
 
 ```swift
