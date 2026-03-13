@@ -1,6 +1,6 @@
 # Policy name
 
-* Policy: [POL-NNNN](NNNN-filename.md)
+* Policy: [SP-NNNN](NNNN-filename.md)
 * Authors: [Author 1](https://github.com/swiftdev), [Author 2](https://github.com/swiftdev)
 * Review Manager: TBD
 * Status: **Request for Comments** or **Accepted**
