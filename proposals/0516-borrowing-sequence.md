@@ -483,8 +483,9 @@ for the following kinds of iteration:
   may want to provide in-place mutation of its elements during iteration.
 - *Generative iteration:* Certain types generate their elements during iteration, rather
   than storing them in memory, like iterating an `UnfoldSequence` or the key-value pairs
-  in a dictionary. A different iteration model could be more performant than the
-  borrowing iteration proposed here.
+  in a dictionary. For those types, particularly those generate noncopyable values, a 
+  different iteration model would be more performant than the borrowing iteration 
+  proposed here.
 
 ## Alternatives considered
 
@@ -518,6 +519,85 @@ a borrow of an element can outlive the iterator, and be returnable from a method
 
 Future refinements of `BorrowingSequence` could help resolve this limitation 
 by adding `Collection`-like indices, allowing referential access to elements.
+
+### Basing `~Copyable` iteration on `IteratorProtocol`
+
+Another direction for enabling borrowing iteration, and other kinds of iteration
+in the future, is to move to using iterators as the primary type for iterative
+algorithms. With this direction, `IteratorProtocol` would be generalized to
+allow both noncopyable/nonescapable types and elements, and instead of the proposed
+`BorrowingSequence` design, the new protocol could like the following:
+
+```swift
+public protocol BorrowingSequence<BorrowedElement>: ~Copyable & ~Escapable {
+  associatedtype BorrowedElement: ~Copyable & ~Escapable
+  associatedtype BorrowingIterator: IteratorProtocol<BorrowedElement>
+    & ~Copyable & ~Escapable
+
+  @_lifetime(borrow self)
+  borrowing func makeBorrowingIterator() -> BorrowingIterator
+}
+```
+
+With this approach, the `BorrowedElement` type that a sequence would declare as
+the element iterated over during borrowing iteration is not constrained to be
+equal to the sequence's "actual" element type. A type that can only provide
+borrowing access to its elements could therefore have `Borrow<Element>` as the
+iterated element type, like `Span`, for example:
+
+```swift
+extension Span: BorrowingSequence where Self: ~Escapable, Element: ~Copyable {
+  @_lifetime(borrow self)
+  borrowing func makeBorrowingIterator() -> BorrowingIterator { ... }
+  
+  struct BorrowingIterator: IteratorProtocol {
+      @_lifetime(copy self)
+      mutating func next() -> Borrow<Element> { ... }
+  }
+}
+```
+
+Iterative algorithms would then be written for `IteratorProtocol`, and be 
+accessible whether the `BorrowedElement` type is the expected `Element` type
+(as for types like `Array`) or `Borrow<Element>` (for types that support
+iteration of noncopyable elements). Because the `BorrowedElement` type has
+its lifetime linked to the iterator-providing sequence (copied from the
+iterator), iterative algorithms can return those elements without issue.
+
+```swift
+extension IteratorProtocol
+  where Self: ~Copyable & ~Escapable, Element: ~Copyable & ~Escapable
+{
+  @_lifetime(copy self)
+  consuming func first(
+    where predicate: (borrowing Element) -> Bool
+  ) -> Element? {
+    while let el = next() {
+      if predicate(el) { return el }
+    }
+    return nil
+  }
+}
+```
+
+After prototyping this model, we still feel that the proposed direction is
+the best way forward for Swift. Primarily, the bulk iteration aspect of the
+proposed `BorrowingSequence` is a critical part of improving performance
+when working with a wide variety of collections. Our experience with
+the existing `Sequence` and `Collection` protocol hierarchy has been instructive
+in how having fundamental functionality defined in the most basic, underlying
+protocol is important for predictable performance as the protocol hierarchy
+grows. We expect `BorrowingSequence` to play a similar role as `Sequence`
+in an upcoming hierarchy of container protocols, in which bulk iteration
+will continue to be a critical feature.
+
+In addition, the different element types used in this alternative design
+lead to awkward usage at the call site. For example, when used with a
+`Span<NoncopyableInt>`, the `first(where:)` method declared above would have
+a signature like the following, with a `(borrowing Borrow<NoncopyableInt>) -> Bool` 
+predicate parameter. Forcing interaction with the element a user actually
+wants work with to go through a wrapper type in such a common case doesn't
+meet our usability expectations.
 
 ### Adding noncopyable support to `Sequence`
 
