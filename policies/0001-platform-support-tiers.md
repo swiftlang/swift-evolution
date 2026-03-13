@@ -4,7 +4,7 @@
 * Authors: [Platform Steering Group](https://forums.swift.org/g/platform-steering-group)
 * Review Manager: Alastair Houghton
 * Status: **Accepted**
-* Review: ([rfc](https://forums.swift.org/...))
+* Review: ([rfc](https://forums.swift.org/t/sp-001-platform-support-levels/84420))
 
 ## Introduction
 
