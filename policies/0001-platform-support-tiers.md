@@ -2,8 +2,8 @@
 
 * Policy: [SP-0001](0001-platform-support-tiers.md)
 * Authors: [Platform Steering Group](https://forums.swift.org/g/platform-steering-group)
-* Review Manager: TBD
-* Status: **Request for Comments**
+* Review Manager: Alastair Houghton
+* Status: **Accepted**
 * Review: ([rfc](https://forums.swift.org/...))
 
 ## Introduction
@@ -120,19 +120,15 @@ Platforms that are in Tier 1 should:
 - [ ] Where it makes sense, include the following Swift packages:
 
     - [ ] Foundation
-        - [ ] FoundationEssentials
-        - [ ] FoundationXML
-        - [ ] FoundationNetworking
-        - [ ] FoundationInternationalization
     - [ ] Dispatch
     - [ ] XCTest
     - [ ] Swift Testing
 
     N.B. The Platform Steering Group will determine to what extent
-    these packages are required by a platform to comply with Tier 1
-    requirements; additionally, the Platform Steering Group may add to
-    or remove items from this list on a case-by-case basis, as it
-    considers appropriate for the platform under consideration.
+    these packages are required; additionally, the Platform Steering
+    Group may add to or remove items from this list on a case-by-case
+    basis, as it considers appropriate for the platform under
+    consideration.
 
 - [ ] Maintain a three-version window of support, including:
 
@@ -331,6 +327,5 @@ future.
 
 (Note: we intentionally do not list specific architectures,
 distributions or SKUs above.  More precise details of what we consider
-supported will be published on [swift.org](https://swift.org) in due
-course.)
+supported will be published on [swift.org](https://swift.org).)
 
