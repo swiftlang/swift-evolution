@@ -5,7 +5,7 @@
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (March 16 - March 30, 2026)**
 * Implementation: [PR #87439](https://github.com/swiftlang/swift/pull/87439/)
-* Review: ([pitch](https://forums.swift.org/t/pitch-remove-discardableresult-from-throwing-task-initializers/84721))
+* Review: ([pitch](https://forums.swift.org/t/pitch-remove-discardableresult-from-throwing-task-initializers/84721)) ([review](https://forums.swift.org/t/se-0520-discardable-result-use-in-task-initializers/85374))
 
 ## Summary of changes
 
