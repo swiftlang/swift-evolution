@@ -5,7 +5,7 @@
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Active Review (March 2-13, 2026)**
 * Implementation: [swiftlang/swift#86336](https://github.com/swiftlang/swift/pull/86336)
-* Review: ([pitch](https://forums.swift.org/t/pitch-box/84014))
+* Review: ([pitch](https://forums.swift.org/t/pitch-box/84014)) ([review](https://forums.swift.org/t/se-0517-uniquebox/85107))
 
 ## Introduction
 
