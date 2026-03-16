@@ -1,9 +1,9 @@
 # Improved Syntax for Optionals of Opaque and Existential Types
 
-* Proposal: [SE-NNNN](NNNN-improved-optional-opaque-and-any.md)
+* Proposal: [SE-0521](0521-improved-optional-opaque-and-any.md)
 * Authors: [Tony Allevato](https://github.com/allevato)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
+* Status: **Active Review (March 16 - March 30, 2026)**
 * Implementation: [swiftlang/swift#87115](https://github.com/swiftlang/swift/pull/87115), [swiftlang/swift-syntax#3268](https://github.com/swiftlang/swift-syntax/pull/3268)
 
 ## Summary of changes
