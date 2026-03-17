@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0498](0498-runtime-demangle.md)
 * Previous Proposal: [SE-0262](0262-demangle.md)
-* Authors: [Konrad'ktoso'Malawski](https://github.com/ktoso), [Alejandro Alonso](https://github.com/Azoy)
+* Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Implemented (Swift 6.4)**
 * Implementation: [PR #84788](https://github.com/swiftlang/swift/pull/84788)
