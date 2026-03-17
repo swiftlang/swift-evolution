@@ -3,10 +3,11 @@
 * Proposal: [SE-0514](0514-hashable-conformance-for-dictionarykeys-collectionofone-emptycollection.md)
 * Authors: [Clinton Nkwocha](https://github.com/clintonpi)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active Review (February 20...March 6, 2026)**
+* Status: **Implemented (Swift 6.4)**
 * Implementation: [swiftlang/swift#86899](https://github.com/swiftlang/swift/pull/86899)
 * Review: ([pitch](https://forums.swift.org/t/pitch-hashable-conformance-for-dictionary-keys-collectionofone-and-emptycollection/84117))
           ([review](https://forums.swift.org/t/se-0514-hashable-conformance-for-dictionary-keys-collectionofone-and-emptycollection/84852))
+          ([acceptance](https://forums.swift.org/t/accepted-se-0514-hashable-conformance-for-dictionary-keys-collectionofone-and-emptycollection/85228))
 
 
 ## Introduction
