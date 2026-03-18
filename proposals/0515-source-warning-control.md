@@ -228,31 +228,33 @@ A `@warn` attribute applied to a declaration at a nested lexical scope overrides
 
 #### Multiple `@warn` attributes on the same declaration
 
-More than one `@warn` attribute on a given declaration for the same diagnostic group is not valid and results in an error.
+Application of multiple `@warn` attibutes on the same declaration is order-sensitive and follows a convention similar to [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md): lexically-last attribute "wins", i.e. multiple `@warn` attributes on a given declaration for nested or same diagnostic groups are evaluated in the order they are specified in source. For example:
 
 ```swift
 @warn(DiagGroupID, as: error)
-@warn(DiagGroupID, as: warning) // 🟥 error: multiple conflicting `@warn` attributes for group `DiagGroupID`.
+@warn(DiagGroupID, as: warning) // Overrides the above 'error' behavior
 public func foo()
 ```
 
-Multiple `@warn` attributes on a given declaration for nested diagnostic groups are evaluated in the order they are specified in source. For example:
+Multiple `@warn` attributes may be used to first specify a broader group policy, and later refine the policy for a specific sub-group. For example, if `UnsafeImportedOwnership` is a subgroup of `UnsafeImportedAPI`, the following annotation will first apply the `error` behavior for the broader parent group, and then apply the `ignored` behavior to the sub-group:
 
 ```swift
 @warn(UnsafeImportedAPI, as: error)
-@warn(UnsafeImportedOwnership, as: ignored)
+@warn(UnsafeImportedOwnership, as: ignored) // Overrides the above 'error' behavior for a subset of the diagnostics
 public func foo()
 ```
 
-Where `UnsafeImportedOwnership` is a subgroup of `UnsafeImportedAPI`, this annotation will first apply the `error` behavior for the broader parent group, and then apply the `ignored` behavior to the sub-group. In the opposite case:
+In the opposite case:
 
 ```swift
 @warn(UnsafeImportedOwnership, as: ignored)
-@warn(UnsafeImportedAPI, as: warning) // 🟨 warning: `warning` diagnostic behavior for `UnsafeImportedAPI` overrides prior attribute for `UnsafeImportedOwnership` `ignored` behavior
+@warn(UnsafeImportedAPI, as: warning) // Overrides the above 'ignored' behavior for a superset of the diagnostics
 public func foo()
 ```
 
-The second attribute completely overrides the first attribute’s diagnostic severity directive, with a corresponding compiler warning.
+The second attribute completely overrides the first attribute’s diagnostic severity directive by covering the super set of diagnostics covered by the first attirubte's diagnostic group.
+
+Order-sensitivity is a departure from the norm of having attributes in Swift be order-insensitive (with the exception of property wrappers); however, order-sensitivity affords `@warn` an added expressivity of being able to specify both broad goup and fine-grained sub-group control, and do it in a fashion consistent with the command line flag behavior outlined in [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md).
 
 #### Interaction with `-suppress-warnings`
 
