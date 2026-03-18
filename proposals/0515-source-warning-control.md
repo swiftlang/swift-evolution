@@ -116,7 +116,7 @@ The `@warn` attribute can be applied on:
 * *`enum-declaration`*, *`struct-declaration`*, *`extension-declaration`*, *`class-declaration`*, *`actor-declaration`*, *`protocol-declaration`*, *`function-declaration`*, *`initializer-declaration`*, *`deinitializer-declaration`*, *`subscript-declaration`*, *`macro-declaration`*, computed property declaration (with a *`code-block`*), accessors (*`getter-clause`*, *`setter-clause`*, etc.), observers (*`willSet-clause`*, *`willSet-clause`*).
     Setting behavior of all warning diagnostics belonging to the indicated group in the ***lexical scope*** of the body of the corresponding declaration and the declaration's signature.
 * *`union-style-enum-clause`*, *`raw-value-style-enum-case-clause`*, *`typealias-declaration`*, *`protocol-associated-type-declaration`*
-    Setting behavior of all warning diagnostics belonging to the indicated group in the declaration's signature (since these declaration kinds do not open a further lexical scope).
+    Setting behavior of all warning diagnostics belonging to the indicated group in the declaration's signature (these declaration kinds do not open a further lexical scope).
 * *`macro-expansion-declaration`* (freestanding declaration macro invocation)
     Setting behavior of all warning diagnostics belonging to the indicated group in all declarations produced by the macro expansion.
 * *`import-declaration`*
@@ -214,8 +214,19 @@ protocol P {
 macro Foo() = ...
 
 // Freestanding declaration macro invocation
-@warn(DiagGroupID, as: ignored, reason: "Generated code uses legacy APIs")
-#generateLegacyBindings(for: OldFramework)
+@warn(DiagGroupID, as: ignored)
+#generateBindings(for: Foo)
+```
+
+The `@warn` attribute's effect on a declaration's signature includes other attributes applied to the same declaration, regardless of the position of `@warn` relative to non-`@warn` attributes. For example, if `@SomeWrapper` is deprecated, both of the following are equivalent and will escalate the deprecation warning to an error:
+
+```swift
+@warn(DeprecatedDeclaration, as: error)
+@SomeWrapper func foo() { ... }
+
+@SomeWrapper
+@warn(DeprecatedDeclaration, as: error)
+func foo() { ... }
 ```
 
 ### Interaction with compiler options and evaluation order
