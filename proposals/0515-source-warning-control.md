@@ -113,10 +113,12 @@ Compilation **error** diagnostics, even when belonging to a specified diagnostic
 
 The `@warn` attribute can be applied on:
 
-* *`function-declaration`*, *`initializer-declaration`*, *`deinitializer-declaration`*, *`subscript-declaration`*, *`getter-clause`*, *`setter-clause`*, computed property declaration (with a *`code-block`*)
+* *`enum-declaration`*, *`struct-declaration`*, *`extension-declaration`*, *`class-declaration`*, *`actor-declaration`*, *`protocol-declaration`*, *`function-declaration`*, *`initializer-declaration`*, *`deinitializer-declaration`*, *`subscript-declaration`*, *`macro-declaration`*, computed property declaration (with a *`code-block`*), accessors (*`getter-clause`*, *`setter-clause`*, etc.), observers (*`willSet-clause`*, *`willSet-clause`*).
     Setting behavior of all warning diagnostics belonging to the indicated group in the ***lexical scope*** of the body of the corresponding declaration and the declaration's signature.
-* *`enum-declaration`*, *`struct-declaration`*, *`extension-declaration`*, *`class-declaration`*, *`actor-declaration`*, *`protocol-declaration`*
-    Setting behavior of all warning diagnostics belonging to the indicated group in the ***lexical scope*** of the declaration, affecting all declarations contained within.
+* *`union-style-enum-clause`*, *`raw-value-style-enum-case-clause`*, *`typealias-declaration`*, *`protocol-associated-type-declaration`*
+    Setting behavior of all warning diagnostics belonging to the indicated group in the declaration's signature (since these declaration kinds do not open a further lexical scope).
+* *`macro-expansion-declaration`* (freestanding declaration macro invocation)
+    Setting behavior of all warning diagnostics belonging to the indicated group in all declarations produced by the macro expansion.
 * *`import-declaration`*
     Setting behavior of all warning diagnostics emitted on the import statement itself.
 
@@ -146,7 +148,7 @@ struct FooCollection<T> {
   static func +++ (lhs: T, rhs: T) -> T { ... }
 }
 
-// Getter and Setter
+// Accessors
 struct Foo {
     var property: Int {
         @warn(DiagGroupID, as: ignored)
@@ -156,9 +158,25 @@ struct Foo {
     }
 }
 
+// Observers
+extension Foo {
+    var property: Int {
+        @warn(DiagGroupID, as: ignored)
+        willSet {...}
+        @warn(DiagGroupID, as: ignored)
+        didSet {...}
+    }
+}
+
 // Enum
 @warn(DiagGroupID, as: ignored)
 enum Foo {...}
+
+// Enum case
+enum Foo {
+  @warn(DiagGroupID, as: ignored)
+  case c1
+}
 
 // Struct
 @warn(DiagGroupID, as: ignored)
@@ -179,6 +197,25 @@ actor Foo {...}
 // Protocol
 @warn(DiagGroupID, as: ignored)
 protocol Foo {...}
+
+// Typealias
+@warn(DiagGroupID, as: ignored)
+typealias Foo = Bar
+
+// Associated type
+protocol P {
+  @warn(DiagGroupID, as: ignored)
+  associatedtype Foo: Bar
+}
+
+// Macro declaration
+@warn(DiagGroupID, as: ignored)
+@freestanding(declaration)
+macro Foo() = ...
+
+// Freestanding declaration macro invocation
+@warn(DiagGroupID, as: ignored, reason: "Generated code uses legacy APIs")
+#generateLegacyBindings(for: OldFramework)
 ```
 
 ### Interaction with compiler options and evaluation order
@@ -221,10 +258,44 @@ The second attribute completely overrides the first attribute’s diagnostic sev
 
 [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md) deliberately excluded `-suppress-warnings` from the unified group control model, forbidding its combination with `-Wwarning` and `-Werror`. This proposal similarly treats `-suppress-warnings` as outside the scoped override model: when `-suppress-warnings` is in effect, it suppresses all warning diagnostics module-wide, and `@warn` attributes specifying `warning` or `ignored` behavior have no additional observable effect (warnings are already suppressed).
 
-However, `@warn` attributes that *escalate* diagnostics — `@warn(groupID, as: error)` — do take effect even under `-suppress-warnings`. This allows developers to enforce critical diagnostic policies at the declaration level regardless of the module-wide suppression setting with an explicit, deliberate in-source assertion. Honoring `as: error` behavior control under `-suppress-warnings` ensures that source-level annotations can always be used to express "this must not be ignored here".
+However, `@warn` attributes that *escalate* diagnostics do take effect even under `-suppress-warnings`. This allows developers to enforce critical diagnostic policies at the declaration level regardless of the module-wide suppression setting with an explicit, deliberate in-source assertion. Honoring `as: error` behavior control under `-suppress-warnings` ensures that source-level annotations can always be used to express "this must not be ignored here".
 
 #### Behavior in macro-expanded code
-If a macro expansion generates code inside a `@warn`-annotated scope, the attribute's effect applies to expanded code as well.
+
+If a macro expansion generates code inside a `@warn`-annotated scope, the attribute's effect applies to the expanded code. For example, if a method annotated with `@warn(groupID, as: ignored)` contains a call to an expression macro, warnings belonging to `groupID` that are emitted within the macro's expansion are also suppressed.
+
+##### `@warn` on freestanding declaration macros
+
+The `@warn` attribute can be applied to a freestanding declaration macro expansion. The attribute's behavior applies to *all* declarations produced by the macro expansion, analogous to applying `@warn` to a type declaration that contains multiple members:
+
+```swift
+@warn(DeprecatedDeclaration, as: ignored)
+#generateLegacyBindings(for: OldFramework)
+```
+
+##### `@warn` in macro-generated code
+
+Macro expansions are permitted to produce `@warn` attributes on declarations within the expansion. This allows macro authors to encode diagnostic expectations about the code they generate, escalating specific warnings to errors when the macro's own code-generation logic guarantees they should not occur, or suppressing warnings that are expected artifacts of a particular code-generation pattern.
+
+For example, consider a freestanding declaration macro that generates a public API endpoint from a user-specified type:
+
+```swift
+#PublicEndpoint(returning: UserProvidedType)
+```
+
+Suppose the macro's authors intend its use to enforce a requirement that the generated public API must not expose deprecated types. Since the macro cannot control which type is specified as input, it escalates `DeprecatedDeclaration` warnings to errors in its expansion so that violations are caught immediately:
+
+```swift
+// The macro expansion may produce:
+@warn(DeprecatedDeclaration, as: error)
+public func endpoint() -> UserProvidedType {
+  // 🟥 error: 'UserProvidedType' is deprecated [#DeprecatedDeclaration]
+}
+```
+
+Without the ability to annotate its own expansion, the macro would have no way to express this intent, and users would need to manually apply `@warn` at every call site to achieve a similar enforcement.
+
+When both the macro-expanded code and an enclosing scope both provide `@warn` attributes for the same diagnostic group, the normal nesting rules apply: the innermost (macro-generated) attribute overrides the enclosing attribute for the scope it is applied to.
 
 ### Effect on the public interface
 
@@ -285,6 +356,10 @@ While this mechanism is flexible, it does not align with Swift's conventions:
 
 * Swift generally favors attaching metadata and behavior to declarations, making developer intent clear and self-documenting.
 * Asking the developer to define the “end” of a region means requiring careful manual state management - forgetting or misplacing a region delimiter could lead to complex unintended behaviors when multiple scopes are overlapping and potentially affect nested diagnostic groups.
+
+### Prohibiting `@warn` in macro-generated code
+
+An alternative design would prohibit macro expansions from producing `@warn` attributes entirely, ensuring that all warning control is explicitly visible in the developer's source code. However, this would prevent macros from enforcing diagnostic policies on code they generate but do not fully control. Allowing `@warn` in macro expansions gives macro authors the ability to express these constraints directly, while users retain the ability to specify their own controls via `@warn` at the invocation site.
 
 ## Acknowledgments
 
