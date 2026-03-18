@@ -258,9 +258,9 @@ Order-sensitivity is a departure from the norm of having attributes in Swift be 
 
 #### Interaction with `-suppress-warnings`
 
-[SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md) deliberately excluded `-suppress-warnings` from the unified group control model, forbidding its combination with `-Wwarning` and `-Werror`. This proposal similarly treats `-suppress-warnings` as outside the scoped override model: when `-suppress-warnings` is in effect, it suppresses all warning diagnostics module-wide, and `@warn` attributes specifying `warning` or `ignored` behavior have no additional observable effect (warnings are already suppressed).
+[SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md) deliberately excluded `-suppress-warnings` from the unified group control model, forbidding its combination with `-Wwarning` and `-Werror`. This proposal similarly treats `-suppress-warnings` as outside the scoped override model: when `-suppress-warnings` is in effect, it suppresses all warning diagnostics module-wide, and `@warn` attributes have no observable effect, including `@warn` attributes that specify `as: error` behavior.
 
-However, `@warn` attributes that *escalate* diagnostics do take effect even under `-suppress-warnings`. This allows developers to enforce critical diagnostic policies at the declaration level regardless of the module-wide suppression setting with an explicit, deliberate in-source assertion. Honoring `as: error` behavior control under `-suppress-warnings` ensures that source-level annotations can always be used to express "this must not be ignored here".
+This semantic is also in alignment with how [SE-0480](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0480-swiftpm-warning-control.md) handles warning control for remote package dependencies: SwiftPM strips all warning control flags (`-Werror`, `-Wwarning`, etc.) from the command line and substitutes `-suppress-warnings` when building a package as a dependency. If `@warn(groupID, as: error)` were honored under `-suppress-warnings`, source-level escalation would cause build failures in remote dependencies that the equivalent command-line flag (`-Werror groupID`) would not.
 
 #### Behavior in macro-expanded code
 
@@ -362,6 +362,10 @@ While this mechanism is flexible, it does not align with Swift's conventions:
 ### Prohibiting `@warn` in macro-generated code
 
 An alternative design would prohibit macro expansions from producing `@warn` attributes entirely, ensuring that all warning control is explicitly visible in the developer's source code. However, this would prevent macros from enforcing diagnostic policies on code they generate but do not fully control. Allowing `@warn` in macro expansions gives macro authors the ability to express these constraints directly, while users retain the ability to specify their own controls via `@warn` at the invocation site.
+
+### Honoring `as: error` under `-suppress-warnings`
+
+An alternative design would have `@warn(groupID, as: error)` take effect even under `-suppress-warnings`, allowing unconditional source-level escalation. However, this would be inconsistent with both [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md), which outlines that `-suppress-warnings` overrides `-Werror` and with [SE-0480](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0480-swiftpm-warning-control.md), which relies on `-suppress-warnings` to prevent remote package dependencies from failing builds, including when new warnings are introduced in future compiler versions.
 
 ## Acknowledgments
 
