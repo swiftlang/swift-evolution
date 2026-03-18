@@ -46,7 +46,7 @@ public func foo() {
 }
 ```
 
-Within the scope of the `foo` declaration in this example, the effect of the attribute is equivalent to `-Werror ForeignReferenceType`, but without affecting diagnostic behavior on any other source code in the current module. The attribute supports 3 `as:` behavior specifiers: `error`, `warning`, and `ignored`. The attribute also supports an optional `reason:` parameter which accepts a string literal. With `error` and `warning` behavior specifiers, the attribute has the effect equivalent to that of `-Werror <groupID>` and `-Wwarning <groupID>`, respectively, without affecting other source code in the module. With the `ignored` behavior specifier, warnings belonging to the diagnostic group `<groupID>` are fully suppressed (akin to a global (module-wide) `-Wsuppress`, which does not exist).
+For the entirety of the `foo` declaration in this example, including the function signature and its lexical scope, the effect of the attribute is equivalent to `-Werror ForeignReferenceType`, but without affecting diagnostic behavior on any other source code in the current module. The attribute supports 3 `as:` behavior specifiers: `error`, `warning`, and `ignored`. The attribute also supports an optional `reason:` parameter which accepts a string literal. With `error` and `warning` behavior specifiers, the attribute has the effect equivalent to that of `-Werror <groupID>` and `-Wwarning <groupID>`, respectively, without affecting other source code in the module. With the `ignored` behavior specifier, warnings belonging to the diagnostic group `<groupID>` are fully suppressed (akin to a global (module-wide) `-Wsuppress`, which does not exist).
 
 The `@warn` attribute overrides diagnostic behavior for the specified diagnostic group, relative to its *enclosing scope* - with command-line behavior specifiers representing global (module-wide) scope: `-warnings-as-errors`, `-Werror`, `-Wwarning`.
 
@@ -114,7 +114,7 @@ Compilation **error** diagnostics, even when belonging to a specified diagnostic
 The `@warn` attribute can be applied on:
 
 * *`function-declaration`*, *`initializer-declaration`*, *`deinitializer-declaration`*, *`subscript-declaration`*, *`getter-clause`*, *`setter-clause`*, computed property declaration (with a *`code-block`*)
-    Setting behavior of all warning diagnostics belonging to the indicated group in the ***lexical scope*** of the body of the corresponding declaration.
+    Setting behavior of all warning diagnostics belonging to the indicated group in the ***lexical scope*** of the body of the corresponding declaration and the declaration's signature.
 * *`enum-declaration`*, *`struct-declaration`*, *`extension-declaration`*, *`class-declaration`*, *`actor-declaration`*, *`protocol-declaration`*
     Setting behavior of all warning diagnostics belonging to the indicated group in the ***lexical scope*** of the declaration, affecting all declarations contained within.
 * *`import-declaration`*
