@@ -3,7 +3,7 @@
 * Proposal: [SE-0491](0491-module-selectors.md)
 * Authors: [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.3)**
 * Bug: [swiftlang/swift#53580](https://github.com/swiftlang/swift/issues/53580) (SR-11183)
 * Implementation: [swiftlang/swift#34556](https://github.com/swiftlang/swift/pull/34556)
 * Review: ([pitch](https://forums.swift.org/t/pitch-module-selectors/80835)) ([review](https://forums.swift.org/t/se-0491-module-selectors-for-name-disambiguation/82124)) ([acceptance](https://forums.swift.org/t/accepted-se-0491-module-selectors-for-name-disambiguation/82589))
