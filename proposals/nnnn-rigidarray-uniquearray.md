@@ -3,8 +3,8 @@
 * Proposal: [SE-NNNN](NNNN-rigidarray-uniquearray.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey), [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-* Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN)
+* Status: **Awaiting review**
+* Implementation: [swiftlang/swift#87521](https://github.com/swiftlang/swift/pull/87521)
 * Review: ([pitch](https://forums.swift.org/...))
 
 ## Introduction
