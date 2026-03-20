@@ -140,7 +140,7 @@ extension OutputRawSpan {
 
 ##### `MutableRawSpan` and `OutputRawSpan`
 
-`MutableRawSpan` will gain a new overloads of `storeBytes()`:
+`MutableRawSpan` will gain new overloads of `storeBytes()`:
 
 ```swift
 extension MutableRawSpan {
@@ -223,7 +223,7 @@ extension OutputRawSpan {
 ```
 `append(byteCount:as:initializingWith)` will perform bounds-checking and alignment-checking before executing the closure.
 
-Similarly,, `OutputSpan` will provide a way to initialize a portion of its uninitialized storage using an `OutputRawSpan`, when its `Element` type conforms to `ConvertibleFromRawBytes`.
+Similarly, `OutputSpan` will provide a way to initialize a portion of its uninitialized storage using an `OutputRawSpan`, when its `Element` type conforms to `ConvertibleFromRawBytes`.
 ```swift
 extension OutputSpan where Element: ConvertibleFromRawBytes {
   @_lifetime(copy self)
