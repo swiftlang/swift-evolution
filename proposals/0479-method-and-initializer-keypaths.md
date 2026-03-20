@@ -6,8 +6,7 @@
 * Status: **Returned for revision**
 * Implementation: [swiftlang/swift#78823](https://github.com/swiftlang/swift/pull/78823), [swiftlang/swiftsyntax#2950](https://github.com/swiftlang/swift-syntax/pull/2950), [swiftlang/swiftfoundation#1179](https://github.com/swiftlang/swift-foundation/pull/1179) 
 * Experimental Feature Flag: `KeyPathWithMethodMembers`
-* Review: ([pitch](https://forums.swift.org/t/pitch-method-key-paths/76678)) ([review](https://forums.swift.org/t/se-0479-method-and-initializer-key-paths/79457))
-* Decision Notes: [Returned for revision](https://forums.swift.org/t/returned-for-revision-se-0479-method-and-initializer-key-paths/80262)
+* Review: ([pitch](https://forums.swift.org/t/pitch-method-key-paths/76678)) ([review](https://forums.swift.org/t/se-0479-method-and-initializer-key-paths/79457)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0479-method-and-initializer-key-paths/80262))
 
 ## Introduction
 
