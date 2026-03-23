@@ -7,7 +7,7 @@
 * Implementation: [swiftlang/swift#87521](https://github.com/swiftlang/swift/pull/87521)
 * Review: ([pitch](https://forums.swift.org/t/pitch-rigidarray-and-uniquearray/85455))
 
-## Introduction
+## Summary of changes
 
 We propose to introduce two new array types to the standard library,
 `RigidArray` and `UniqueArray`, that are both capable of storing noncopyable
@@ -128,7 +128,7 @@ a.append(3)
 
 This is an extremely important detail. Performance critical contexts that
 cannot sacrifice an implicit allocation from underneath their feet would greatly
-prefer to use `RigidArray` where it's impossible to do so. Solutions that try to
+prefer to use `RigidArray` where it's possible to do so. Solutions that try to
 carefully use `UniqueArray` without implicitly allocating will almost certainly
 be met with bugs. `RigidArray` provides this guarantee at the type level. These
 semantics come with concrete time and space complexity guarantees that aren't
@@ -294,7 +294,9 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///
   /// - Complexity: O(`count`)
   public mutating func reserveCapacity(_ n: Int)
+}
 
+extension [Rigid|Unique]Array where Element: Copyable {
   /// Copy the contents of this array into a newly allocated {rigid|unique} array
   /// instance with just enough capacity to hold all its elements.
   ///
