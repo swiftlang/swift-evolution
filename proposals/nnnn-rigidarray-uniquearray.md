@@ -29,7 +29,7 @@ noncopyable values and its default copy on write (🐮) behavior is quite
 problematic for these kinds of types as well:
 
 ```swift
-struct File {
+struct File: ~Copyable {
   let fd: UInt32
 
   init(_ path: String) { ... }
