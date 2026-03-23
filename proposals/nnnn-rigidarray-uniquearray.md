@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift#87521](https://github.com/swiftlang/swift/pull/87521)
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-rigidarray-and-uniquearray/85455))
 
 ## Introduction
 
