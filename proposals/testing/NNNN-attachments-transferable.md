@@ -107,6 +107,7 @@ None.
 ### Alternatives considered
 
 * Doing nothing: `Transferable` protocol is adopted widely enough for us to know we want to provide the default implementation for it.
+* An alternative would have been to put this functionality into `CoreTransferable` instead of `Testing`. Since `CoreTransferable` is a closed-source project, it would mean that this implementation's source would be closed as well. We preferred to make it open-source by amending` Testing`.
 * New overload on `Issue.record(_:sourceLocation:)`. Rather than introducing a new initializer on `Attachment`, we considered adding a new overload on `record(_:sourceLocation:)`. This approach was ultimately rejected for the following reasons.
   Converting a `Transferable` value to an attachable value requires going through `exported(as:)`, which is both async and throwing. Consequently, any overload of `record(_:sourceLocation:)` accepting a `Transferable` value would itself need to be async throws, diverging from the synchronous, non-throwing character of the existing `record(_:sourceLocation:)` API family and placing a burden on call sites that do not require this functionality.
   The asynchronous nature of `exported(as:)` is intentional: encoding a value into its binary representation can be a costly, time-consuming operation, and performing it synchronously would risk blocking the calling actor. Similarly, the throwing behavior reflects the reality that this conversion can fail for a variety of reasons, which must be surfaced to the caller. Representative failure cases include:
