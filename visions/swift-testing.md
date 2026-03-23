@@ -190,7 +190,7 @@ among testing libraries: XCTest has 40+ functions in its
 JUnit has
 [several dozen](https://junit.org/junit5/docs/5.0.1/api/org/junit/jupiter/api/Assertions.html);
 RSpec has a
-[large DSL](https://relishapp.com/rspec/rspec-expectations/docs/built-in-matchers) 
+[large DSL](https://rspec.info/features/3-13/rspec-expectations/built-in-matchers/) 
 of test matchers.
 
 Although this approach allows straightforward reporting, it is not scalable:
