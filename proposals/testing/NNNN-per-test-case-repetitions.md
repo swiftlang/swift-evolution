@@ -6,7 +6,7 @@
 * Status: **Awaiting review**
 * Bugs: [swiftlang/swift-testing#1392](https://github.com/swiftlang/swift-testing/issues/1392), rdar://130508488
 * Implementation: [swiftlang/swift-testing#1528](https://github.com/swiftlang/swift-testing/pull/1528)
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-make-test-repetition-per-test-case-instead-of-global/85552))
 
 ## Introduction
 
