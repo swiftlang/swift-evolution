@@ -193,13 +193,3 @@ boilerplate code proposed here.
   methods on their respective span types. However, top-level functions better
 match the existing `withUnsafeTemporaryAllocation` and `withExtendedLifetime`
 patterns.
-
-## Acknowledgments
-
-If significant changes or improvements suggested by members of the
-community were incorporated into the proposal as it developed, take a
-moment here to thank them for their contributions. Swift evolution is a
-collaborative process, and everyone's input should receive recognition!
-
-Generally, you should not acknowledge anyone who is listed as a
-co-author or as the review manager.
