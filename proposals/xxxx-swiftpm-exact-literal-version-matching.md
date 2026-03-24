@@ -6,7 +6,7 @@
 * Status: **Pitch**
 * Bugs: [swiftlang/swift-package-manager#6675](https://github.com/swiftlang/swift-package-manager/issues/6675), [swiftlang/swift#80711](https://github.com/swiftlang/swift/issues/80711)
 * Implementation: [swiftlang/swift-package-manager#9812](https://github.com/swiftlang/swift-package-manager/pull/9812)
-* Review: ([Pitch](https://forums.swift.org/t/pitch-swiftpm-opt-in-exact-matching-for-version-tags-that-include-semver-build-metadata/84691))
+* Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-opt-in-exact-matching-for-version-tags-that-include-semver-build-metadata/84691))
 
 ## Introduction
 
