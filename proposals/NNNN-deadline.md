@@ -45,10 +45,10 @@ The solution provides a clean, composable API that handles cancellation and
 error propagation automatically:
 
 ```swift
-let deadline = ContinuousClock().now.advanced(by: .seconds(5))
+let clock = ContinuousClock()
 
 do {
-    let result = try await withDeadline(deadline) {
+    let result = try await withDeadline(clock.now.advanced(by: .seconds(5)), clock: clock) {
         try await fetchDataFromServer()
     }
     print("Data received: \(result)")
@@ -88,7 +88,7 @@ The fundamental entry point for working with deadlines is a single function: `wi
 /// let clock = ContinuousClock()
 /// let deadline = clock.now.advanced(by: .seconds(5))
 /// do {
-///     let result = try await withDeadline(deadline) {
+///     let result = try await withDeadline(deadline, clock: clock) {
 ///         try await fetchDataFromServer()
 ///     }
 ///     print("Data received: \(result)")
@@ -121,7 +121,7 @@ The fundamental entry point for working with deadlines is a single function: `wi
 /// let clock = ContinuousClock()
 /// let deadline = clock.now.advanced(by: .seconds(10))
 ///
-/// async let result1 = withDeadline(deadline) {
+/// async let result1 = withDeadline(deadline, clock: clock) {
 ///     try await fetchUserData()
 /// }
 /// async let result2 = withDeadline(deadline) {
@@ -141,7 +141,7 @@ The fundamental entry point for working with deadlines is a single function: `wi
 /// - Parameters:
 ///   - deadline: The instant by which the operation must complete.
 ///   - tolerance: The tolerance used for the sleep.
-///   - clock: The clock to use for measuring time. The default is `ContinuousClock`.
+///   - clock: The clock to use for measuring time.
 ///   - body: The asynchronous operation to execute before the deadline.
 ///
 /// - Returns: The result of the operation if it completes successfully before or after the deadline expires.
@@ -149,6 +149,13 @@ The fundamental entry point for working with deadlines is a single function: `wi
 /// - Throws: A ``DeadlineError`` indicating whether the operation failed before deadline
 /// (``DeadlineError/Cause/operationFailed``) or was cancelled due to deadline expiration
 /// (``DeadlineError/Cause/deadlineExceeded``).
+nonisolated(nonsending) public func withDeadline<Return, Failure: Error, C: Clock>(
+  _ expiration: C.Instant,
+  tolerance: C.Instant.Duration? = nil,
+  clock: C,
+  body: nonisolated(nonsending) () async throws(Failure) -> Return
+) async throws(DeadlineError<Failure>) -> Return where C.Instant.Duration == Swift.Duration
+
 nonisolated(nonsending) public func withDeadline<Return, Failure: Error>(
   _ expiration: ContinuousClock.Instant,
   tolerance: ContinuousClock.Instant.Duration? = nil,
@@ -156,36 +163,41 @@ nonisolated(nonsending) public func withDeadline<Return, Failure: Error>(
 ) async throws(DeadlineError<Failure>) -> Return
 ```
 
-The deadline-based API accepts a `ContinuousClock.Instant`, allowing multiple operations
+The deadline-based API accepts a generic `Clock.Instant`, allowing multiple operations
 to share the same absolute deadline:
 
 ```swift
-let deadline = ContinuousClock().now.advanced(by: .seconds(10))
+let clock = ContinuousClock()
+let deadline = clock.now.advanced(by: .seconds(10))
 
-async let user = withDeadline(deadline) {
+async let user = withDeadline(deadline, clock: clock) {
     try await fetchUser()
 }
-async let prefs = withDeadline(deadline) {
+async let prefs = withDeadline(deadline, clock: clock) {
     try await fetchPreferences()
 }
 
 let (userData, prefsData) = try await (user, prefs)
 ```
 
-These absolute deadlines are composable and nestable to any set scope of a deadline. This means that when more than one `withDeadline` is nested the minimum of the expiration is taken.
+These absolute deadlines are composable and nestable to any set scope of a deadline. This means that when more than 
+one `withDeadline` is nested the minimum of the expiration is taken. If any nested cases are differing clocks the 
+deadline is adjusted to the minimum by aproximating the current deadline with the offset of the proposed expiration.
+
 
 ```swift
-let userAndPrefsDeadline = ContinuousClock().now.advanced(by: .seconds(5))
+let clock = ContinuousClock()
+let userAndPrefsDeadline = clock.now.advanced(by: .seconds(5))
 
-let userAndPrefs = try await withDeadline(deadline) {
+let userAndPrefs = try await withDeadline(userAndPrefsDeadline, clock: clock) {
   let user = try await fetchUser()
   let prefs = try await fetchPrefs()
 }
 
 func fetchPrefs() async throws(FetchFailure) -> Prefs {
-  let prefsDeadline = ContinuousClock().now.advanced(by: .seconds(10))
+  let prefsDeadline = clock.now.advanced(by: .seconds(10))
   do {
-    return try await withDeadline(deadline) {
+    return try await withDeadline(prefsDeadline. clock: clock) {
       try await fetchPreferences()
     }
   } catch {
@@ -194,19 +206,33 @@ func fetchPrefs() async throws(FetchFailure) -> Prefs {
 }
 ```
 
-Particularly in this case the composition can be made such that two independent regions can participate in a composed deadline across library boundaries and still result in the correct 
-deadline for the composed expectation of the caller. This is the underlying reason for the clock to be distinctly used as the continuous clock since those instants can be composed within the process across those boundaries. Any case that needs to communicate beyond that boundary needs to have some sort of serialization anyways so those uses of the communications channels need to manage the conversions between the expiration measured against the continuous clock and whatever other clock mechanism that is suitable for that communication.
+Particularly in this case the composition can be made such that two independent regions can participate in a composed 
+deadline across library boundaries and still result in the correct deadline for the composed expectation of the caller. 
+This is the underlying reason for the clock to be distinctly used as the continuous clock since those instants can be 
+composed within the process across those boundaries. Any case that needs to communicate beyond that boundary needs to 
+have some sort of serialization anyways so those uses of the communications channels need to manage the conversions 
+between the expiration measured against the continuous clock and whatever other clock mechanism that is suitable for 
+that communication.
 
-In short the deadline is composed by the minimum. The previous example would execute with the minimum of 5 seconds from now and 10 seconds from now (being 5 seconds from now as the "current" deadline).
+In short the deadline is composed by the minimum. The previous example would execute with the minimum of 5 seconds from 
+now and 10 seconds from now (being 5 seconds from now as the "current" deadline).
 
 #### Shorthand for quickly using common deadline construction
 
-Constructing an instant every time is not per-se the most terse; so a simple extension offers the ease of construction with the same compositional advantage as the primary entry point.
+Constructing an instant every time is not per-se the most terse; so a simple extension offers the ease of construction 
+with the same compositional advantage as the primary entry point.
 
 ```
+nonisolated(nonsending) public func withDeadline<Return, Failure: Error, C: Clock>(
+  in timeout: C.Instant.Duration,
+  tolerance: C.Instant.Duration? = nil,
+  clock: C,
+  body: nonisolated(nonsending) () async throws(Failure) -> Return
+) async throws(DeadlineError<Failure>) -> Return
+
 nonisolated(nonsending) public func withDeadline<Return, Failure: Error>(
-  in timeout: ContinuousClock.Instant.Duration,
-  tolerance: ContinuousClock.Instant.Duration? = nil,
+  in timeout: ContinousClock.Instant.Duration,
+  tolerance: ContinousClock.Instant.Duration? = nil,
   body: nonisolated(nonsending) () async throws(Failure) -> Return
 ) async throws(DeadlineError<Failure>) -> Return
 ```
@@ -214,7 +240,7 @@ nonisolated(nonsending) public func withDeadline<Return, Failure: Error>(
 The implementation of this is trivially:
 
 ```
-try await withDeadline(ContinuousClock().now.advanced(by: timeout), tolerance: tolerance, body: body)
+try await withDeadline(clock.now.advanced(by: timeout), tolerance: tolerance, clock: clock, body: body)
 ```
 
 #### Non-escaping nonisolated(nonsending) operation closure 
@@ -292,13 +318,13 @@ public struct DeadlineError<OperationError: Error>: Error, CustomStringConvertib
   public var cause: Cause
 
   /// The deadline expiration that was specified for the operation.
-  public var expiration: ContinuousClock.Instant 
+  public var expiration: any InstantProtocol 
 
   /// The error thrown by the operation either in cases of expiration or failure
   public var underlyingError: OperationError
 
   /// Creates a deadline error with the specified cause and deadline expiration.
-  public init(cause: Cause, expiration: ContinuousClock.Instant, underlyingError: OperationError)
+  public init<C: Clock>(cause: Cause, expiration: C.Instant, clock: C, underlyingError: OperationError)
 }
 ```
 
@@ -319,11 +345,11 @@ context about the time measurement used and the specific deadline that was set.
 
 ```
 extension Task where Success == Never, Failure == Never {
-  public static var currentDeadline: ContinuousClock.Instant? { get }
+  public static var currentDeadline: any InstantProtocol? { get }
 }
 
 extension UnsafeCurrentTask {
-  public var deadline: ContinuousClock.Instant? { get }
+  public var deadline: any InstantProtocol? { get }
 }
 ```
 
@@ -331,7 +357,7 @@ The safe current deadline accessor is trivially the following:
 
 ```
 extension Task where Success == Never, Failure == Never {
-  public static var currentDeadline: ContinuousClock.Instant? { 
+  public static var currentDeadline: any InstantProtocol? { 
     unsafe withUnsafeCurrentTask { unsafeTask in
       if let unsafeTask = unsafe unsafeTask {
         return unsafe unsafeTask.deadline
@@ -597,3 +623,13 @@ parameter. This approach was rejected because it severely limited composability.
 `@Sendable` requirement prevented accessing actor-isolated state, making it
 difficult to use in isolated contexts. The final design uses
 `nonisolated(nonsending)` to enable better composition while maintaining safety.
+
+### Previous Incarnations
+
+The clock was originally suggested as a generic clock originally, however when 
+moving to a composable interface the clock was made to be concrete to the 
+`ContinousClock`. This ended up being too restrictive so that was relaxed to
+where a generic clock was used but restricted to a clock with the `Instant.Duration`
+that is `Swift.Duration`. This constraint allows for the composition of expirations
+and in the cases of differing clocks an aproximation of the expiry is made by
+using the delta from now as an offset.
