@@ -134,7 +134,7 @@ func ableToConnectToSocket() {
 
 ### Configuration for global vs case-level iteration
 
-We could provide a toggle in `Configuration` for choosing the existingglobal iteration behavior.
+We could provide a toggle in `Configuration` for choosing the existing global iteration behavior.
 However, in our experience and discussion with Swift Testing clients, the current behavior is almost always
 seen as surprising and unexpected. As such, we see little value in leaving the old behavior in beyond
 the amount required for staging a transition.
