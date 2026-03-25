@@ -32,8 +32,7 @@ tests which have issues recorded will be repeated, but that is not the current b
 ## Proposed solution
 
 Swift Testing should instead only re-run test cases that meet the repetition condition. Further, iterations
-should be reported directly along with `testStarted`/`testEnded` events, not via global `iteration` events,
-and on `Test.Case` instances.
+should be reported directly along with `testStarted`/`testEnded` events, not via global `iteration` events.
 
 ## Detailed design
 
