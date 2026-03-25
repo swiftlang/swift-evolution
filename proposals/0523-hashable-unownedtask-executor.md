@@ -1,13 +1,13 @@
 # Hashable conformance for `UnownedTaskExecutor`
 
-* **Proposal:** SE-NNNN
-* **Authors:** [Fabian Fett](https://github.com/fabianfett), [Konrad Malawski](https://github.com/ktoso)
-* **Review Manager:** TBD
-* **Status:** **Pitch**
-* **Implementation:** [apple/swift#73968](https://github.com/swiftlang/swift/pull/73968)
-* **Related Proposals:** [SE-0417: Task Executor Preference](https://github.com/apple/swift-evolution/blob/main/proposals/0417-task-executor-preference.md)
+* Proposal: [SE-0523](0523-hashable-unownedtask-executor.md)
+* Authors: [Fabian Fett](https://github.com/fabianfett), [Konrad Malawski](https://github.com/ktoso)
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active Review**
+* Implementation: [apple/swift#73968](https://github.com/swiftlang/swift/pull/73968)
+* Review: ([pitch](https://forums.swift.org/t/pitch-hashable-conformance-for-unownedtaskexecutor/85143))
 
-## Introduction
+## Summary of changes
 
 This proposal adds `Hashable` conformance to `UnownedTaskExecutor`, enabling its use as a dictionary key and in sets. `UnownedTaskExecutor` already conforms to `Equatable`; this is a natural and source-compatible extension of that conformance.
 
