@@ -78,7 +78,7 @@ be updated to use the updated SPI values.
 
 If tools intend to support test repetition, they can provide the repetition behavior by providing
 the existing `--repetitions` and `--repeat-until` command-line arguments in the Swift Testing
-entrypoint. If not provided, all `iteration` values provided to `EncodedEvent`s will be `1`.
+entrypoint. If not provided, all `iteration` values provided in JSON events will be `1`.
 
 ## Future directions
 
