@@ -60,7 +60,6 @@ extension UnownedTaskExecutor: Hashable {}
 The only public API change is the addition of the `Hashable` protocol conformance on `UnownedTaskExecutor`:
 
 ```swift
-@available(SwiftStdlib 6.0, *)
 extension UnownedTaskExecutor: Hashable {}
 ```
 
