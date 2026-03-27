@@ -1,11 +1,11 @@
 # Custom reflection during testing
 
-* Proposal: [ST-NNNN](NNNN-filename.md)
+* Proposal: [ST-0022](0022-customtestreflectable.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Maarten Engels](https://github.com/maartene/)
+* Status: **Active review**
 * Implementation: [swiftlang/swift-testing#1594](https://github.com/swiftlang/swift-testing/pull/1594)
-* Review: ([pitch](https://forums.swift.org/t/pitch-custom-reflection-during-testing/85190))
+* Review: ([review]()), ([pitch](https://forums.swift.org/t/pitch-custom-reflection-during-testing/85190))
 
 ## Introduction
 
