@@ -1,6 +1,6 @@
 # Custom reflection during testing
 
-* Proposal: [ST-NNNN](NNNN-customtestreflectable.md)
+* Proposal: [ST-0022](0022-customtestreflectable.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Maarten Engels](https://github.com/maartene/)
 * Status: **Active review**
