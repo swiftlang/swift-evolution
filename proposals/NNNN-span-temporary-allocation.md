@@ -49,7 +49,7 @@ for raw byte allocations.
 ```swift
 let result = try withTemporaryAllocation(
   of: Float.self,
-  capacity: 10
+  capacity: 42
 ) { output -> Int in
   for i in 0..<capacity {
       output.append(i)
@@ -69,11 +69,13 @@ let result = try withTemporaryAllocation(
 ### Raw Bytes Allocation
 
 ```swift
+let byteCount = 16
+
 let result = try withTemporaryAllocation(
-  byteCount: 16,
+  byteCount: byteCount,
   alignment: 4
 ) { rawSpan -> Int in
-  rawSpan.append(repeating: 0, count: 16, as: UInt8.self)
+  rawSpan.append(repeating: 0, count: byteCount, as: UInt8.self)
 
   var mutableBytes = output.mutableBytes
   updateInPlace(&mutableBytes)
