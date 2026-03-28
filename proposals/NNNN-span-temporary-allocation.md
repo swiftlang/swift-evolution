@@ -47,11 +47,21 @@ for raw byte allocations.
 ### Typed Allocation
 
 ```swift
-try withTemporaryAllocation(of: Int.self, capacity: 10) { span in
-  span.append(1)
-  span.append(2)
-  // `OutputSpan` passed to this closure deinitializes and deallocates
-  // elements upon exit
+let result = try withTemporaryAllocation(
+  of: Float.self,
+  capacity: 10
+) { output -> Int in
+  for i in 0..<capacity {
+      output.append(i)
+  }
+
+  var mutableSpan = output.mutableSpan
+  updateInPlace(&mutableSpan)
+
+  return aggregate(output.span)
+
+  // `OutputSpan` passed to this closure is deinitialized and deallocated
+  // by `withTemporaryAllocation` after the closure returns
 }
 
 ```
@@ -59,9 +69,19 @@ try withTemporaryAllocation(of: Int.self, capacity: 10) { span in
 ### Raw Bytes Allocation
 
 ```swift
-try withTemporaryAllocation(byteCount: 16, alignment: 4) { rawSpan in
-  rawSpan.append(UInt32(0xF00), as: UInt32.self)
-  // `OutputRawSpan` deallocates raw bytes upon exit
+let result = try withTemporaryAllocation(
+  byteCount: 16,
+  alignment: 4
+) { rawSpan -> Int in
+  rawSpan.append(repeating: 0, count: 16, as: UInt8.self)
+
+  var mutableBytes = output.mutableBytes
+  updateInPlace(&mutableBytes)
+
+  return aggregate(output.bytes)
+
+  // `OutputRawSpan` passed to this closure is deallocated
+  // by `withTemporaryAllocation` after the closure returns
 }
 
 ```
@@ -83,7 +103,7 @@ homogenous type.
 ```swift
 
 @available(SwiftCompatibilitySpan 5.0, *)
-@_alwaysEmitIntoClient @_transparent
+@export(implementation)
 public func withTemporaryAllocation<T: ~Copyable, R: ~Copyable, E: Error>(
   of type: T.Type,
   capacity: Int,
@@ -124,7 +144,7 @@ This function is for working with temporary raw byte buffers.
 
 ```swift
 @available(SwiftCompatibilitySpan 5.0, *)
-@_alwaysEmitIntoClient @_transparent
+@export(implementation)
 public func withTemporaryAllocation<R: ~Copyable, E: Error>(
   byteCount: Int,
   alignment: Int,
@@ -167,7 +187,7 @@ This is an additive change and does not affect existing code.
 
 ## ABI compatibility
 
-The functions are marked `@_alwaysEmitIntoClient` and `@_transparent`. They
+The functions are marked `@export(implementation)`. They
 will be emitted directly into the client's binary and do not constitute new ABI
 entry points in the standard library. They rely on existing ABI entry points.
 
