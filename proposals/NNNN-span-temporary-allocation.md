@@ -47,9 +47,10 @@ for raw byte allocations.
 ### Typed Allocation
 
 ```swift
+let capacity = 42
 let result = try withTemporaryAllocation(
   of: Float.self,
-  capacity: 42
+  capacity: capacity
 ) { output -> Int in
   for i in 0..<capacity {
       output.append(i)
