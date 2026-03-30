@@ -204,8 +204,15 @@ memory, as users no longer need to be comfortable with "unsafe" pointer APIs.
 This proposal covers the primary safe wrappers for temporary allocation. Future
 work could consider specialized versions, like `async` overloads.
 
-## Alternatives considered
+We also think that inclusion of `async` overloads should be done wholesale
+for `with`-style functions in the standard library where possible, not just
+to a few functions. For example, `async` overloads for functions proposed
+here requires `async` overloads for underlying
+`withUnsafeTemporaryAllocation`. Additionally, allocations across
+suspension points end up on async call stack allocated from the heap, which
+undermines usefulness of `async` overloads specifically for these functions.
 
+## Alternatives considered
 
 * **Do nothing**: Users would continue to use the `withUnsafe...` variants and
   manually wrap them in `OutputSpan` or `OutputRawSpan`, replicating the
