@@ -3,7 +3,7 @@
 * Proposal: [SE-0504](0504-task-cancellation-shields.md)
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.4)**
 * Implementation: [PR #85637](https://github.com/swiftlang/swift/pull/85637)
 * Review: ([pitch](https://forums.swift.org/t/pitch-task-cancellation-shields/83379)) ([review](https://forums.swift.org/t/se-0504-task-cancellation-shields/84095)) ([acceptance](https://forums.swift.org/t/accepted-se-0504-task-cancellation-shields/84667))
 
