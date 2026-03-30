@@ -6,7 +6,7 @@
 * Status: **Implemented (Swift 6.4)**
 * Vision: [[Prospective Vision] Accessors](https://forums.swift.org/t/prospective-vision-accessors/76707)
 * Implementation: Available on `main` by default
-* Review: ([acceptance](https://forums.swift.org/t/accepted-se-0507-borrow-and-mutate-accessors/85266))([review](https://forums.swift.org/t/se-0507-borrow-and-mutate-accessors/84376))([pitch](https://forums.swift.org/t/pitch-borrowing-accessors/83933))
+* Review: ([pitch](https://forums.swift.org/t/pitch-borrowing-accessors/83933)) ([review](https://forums.swift.org/t/se-0507-borrow-and-mutate-accessors/84376)) ([acceptance](https://forums.swift.org/t/accepted-se-0507-borrow-and-mutate-accessors/85266))
 
 ## Introduction
 
