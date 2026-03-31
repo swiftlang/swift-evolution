@@ -24,7 +24,7 @@ func bridgeToLegacySystem() {
 ```
 Today, the only recourse is to amend the module-wide policy. With source-level control, the developer will be empowered to make a scoped exception:
 ```swift
-@warn(DeprecatedDeclaration, as: warning, reason: "Must maintain compatibility until end of release cycle")
+@diagnose(DeprecatedDeclaration, as: warning, reason: "Must maintain compatibility until end of release cycle")
 func bridgeToLegacySystem() {
   oldAPI() // warning: 'oldAPI()' is deprecated [#Deprecated]
 }
@@ -40,7 +40,7 @@ Declaration-level warning behavior controls provide the precision needed for the
 This proposal introduces a new declaration attribute to the language which will allow the behavior of warnings to be controlled in the lexical scope of the annotated declaration, for a specific diagnostic group.
 
 ```swift
-@warn(ForeignReferenceType, as: error)
+@diagnose(ForeignReferenceType, as: error)
 public func foo() {
   ...
 }
@@ -48,15 +48,15 @@ public func foo() {
 
 For the entirety of the `foo` declaration in this example, including the function signature and its lexical scope, the effect of the attribute is equivalent to `-Werror ForeignReferenceType`, but without affecting diagnostic behavior on any other source code in the current module. The attribute supports 3 `as:` behavior specifiers: `error`, `warning`, and `ignored`. The attribute also supports an optional `reason:` parameter which accepts a string literal. With `error` and `warning` behavior specifiers, the attribute has the effect equivalent to that of `-Werror <groupID>` and `-Wwarning <groupID>`, respectively, without affecting other source code in the module. With the `ignored` behavior specifier, warnings belonging to the diagnostic group `<groupID>` are fully suppressed (akin to a global (module-wide) `-Wsuppress`, which does not exist).
 
-The `@warn` attribute overrides diagnostic behavior for the specified diagnostic group, relative to its *enclosing scope* - with command-line behavior specifiers representing global (module-wide) scope: `-warnings-as-errors`, `-Werror`, `-Wwarning`.
+The `@diagnose` attribute overrides diagnostic behavior for the specified diagnostic group, relative to its *enclosing scope* - with command-line behavior specifiers representing global (module-wide) scope: `-warnings-as-errors`, `-Werror`, `-Wwarning`.
 
-For example, suppose there existed a hypothetical diagnostic group `UnsafeImportedAPI`. On a compilation which specifies either `-warnings-as-errors` or `-Werror UnsafeImportedAPI`, the `@warn` attribute can be used to lower the severity of `UnsafeImportedAPI` diagnostics to a warning within the scope of a specific method, while the same code pattern elsewhere in the module would be diagnosed as an error:
+For example, suppose there existed a hypothetical diagnostic group `UnsafeImportedAPI`. On a compilation which specifies either `-warnings-as-errors` or `-Werror UnsafeImportedAPI`, the `@diagnose` attribute can be used to lower the severity of `UnsafeImportedAPI` diagnostics to a warning within the scope of a specific method, while the same code pattern elsewhere in the module would be diagnosed as an error:
 
 ```swift
 let result = c_parse_buffer(ptr, len)
 // 🟥 error: call to imported function 'c_parse_buffer' is unsafe API [#UnsafeImportedAPI]
 
-@warn(UnsafeImportedAPI, as: warning)
+@diagnose(UnsafeImportedAPI, as: warning)
 func parseLegacyFormat(_ data: UnsafeRawPointer, _ count: Int) -> ParsedResult {
   c_parse_buffer(data, count)
   // 🟨 warning: call to imported function 'c_parse_buffer' is unsafe API [#UnsafeImportedAPI]
@@ -66,14 +66,14 @@ func parseLegacyFormat(_ data: UnsafeRawPointer, _ count: Int) -> ParsedResult {
 Diagnostic behavior can be refined further by modifying the severity of diagnostics belonging to the same group in a nested declaration:
 
 ```swift
-@warn(UnsafeImportedAPI, as: warning)
+@diagnose(UnsafeImportedAPI, as: warning)
 struct LegacyFormatReader {
   func read(_ data: UnsafeRawPointer, _ count: Int) -> Header {
     c_read_bundle(data, count)
     // 🟨 warning: call to imported function 'c_read_bundle' is unsafe API [#UnsafeImportedAPI]
   }
 
-  @warn(UnsafeImportedAPI, as: ignored, reason: "input is validated upstream")
+  @diagnose(UnsafeImportedAPI, as: ignored, reason: "input is validated upstream")
   func readTrustedInput(_ data: UnsafeRawPointer, _ count: Int) -> Header {
     c_read_bundle(data, count)
     // No diagnostic is emitted
@@ -81,10 +81,10 @@ struct LegacyFormatReader {
 }
 ```
 
-Furthermore, the `@warn` attribute can be used to restrict behavior of diagnostic **sub**groups. For example, for a hypothetical subgroup `UnsafeImportedOwnership` of the `UnsafeImportedAPI` group, module-wide control (`-Werror UnsafeImportedAPI`) of the latter can be refined with a fine-grained scoped attribute for the former:
+Furthermore, the `@diagnose` attribute can be used to restrict behavior of diagnostic **sub**groups. For example, for a hypothetical subgroup `UnsafeImportedOwnership` of the `UnsafeImportedAPI` group, module-wide control (`-Werror UnsafeImportedAPI`) of the latter can be refined with a fine-grained scoped attribute for the former:
 
 ```swift
-@warn(UnsafeImportedOwnership, as: warning)
+@diagnose(UnsafeImportedOwnership, as: warning)
 func createSession(_ ctx: OpaquePointer) -> Session {
   let session = c_create_session(ctx)
   // 🟨 warning: cannot infer ownership of reference value returned by 'c_create_session' [#UnsafeImportedOwnership]
@@ -94,24 +94,24 @@ func createSession(_ ctx: OpaquePointer) -> Session {
 }
 ```
 
-`import` statements can generate various warnings related to deprecation, cross-import overlays, and `import` access control violations. The `@warn` attribute can be used for fine-grained control over which import-related warnings should be treated as errors, warnings, or temporarily ignored.
+`import` statements can generate various warnings related to deprecation, cross-import overlays, and `import` access control violations. The `@diagnose` attribute can be used for fine-grained control over which import-related warnings should be treated as errors, warnings, or temporarily ignored.
 
 ## Detailed design
 
-### @warn attribute on declarations
+### @diagnose attribute on declarations
 
-A `@warn` attribute's argument list must have at least two arguments: a diagnostic group identifier in the first position, and a diagnostic behavior specifier in the second position of a parameter labelled `as:`, supporting arguments `error`, `warning`, `ignored`. The attribute may have a third, optional string literal argument in the third position of a parameter labelled `reason:`. The reason argument must not have any string interpolation.
+A `@diagnose` attribute's argument list must have at least two arguments: a diagnostic group identifier in the first position, and a diagnostic behavior specifier in the second position of a parameter labelled `as:`, supporting arguments `error`, `warning`, `ignored`. The attribute may have a third, optional string literal argument in the third position of a parameter labelled `reason:`. The reason argument must not have any string interpolation.
 
 ```
-attribute → '@warn' '(' group-identifier ',' 'as' ':' behavior-specifier (',' 'reason' ':' static-string-literal)? ')'
+attribute → '@diagnose' '(' group-identifier ',' 'as' ':' behavior-specifier (',' 'reason' ':' static-string-literal)? ')'
     behavior-specifier → 'error' | 'warning' | 'ignored'
     group-identifier → identifier
 ```
 
 This attribute only affects warning diagnostics belonging to the specified `group-identifier` diagnostic group.
-Compilation **error** diagnostics, even when belonging to a specified diagnostic group, cannot be controlled by either diagnostic control compiler options or the `@warn` attribute.
+Compilation **error** diagnostics, even when belonging to a specified diagnostic group, cannot be controlled by either diagnostic control compiler options or the `@diagnose` attribute.
 
-The `@warn` attribute can be applied on:
+The `@diagnose` attribute can be applied on:
 
 * *`enum-declaration`*, *`struct-declaration`*, *`extension-declaration`*, *`class-declaration`*, *`actor-declaration`*, *`protocol-declaration`*, *`function-declaration`*, *`initializer-declaration`*, *`deinitializer-declaration`*, *`subscript-declaration`*, *`macro-declaration`*, computed property declaration (with a *`code-block`*), accessors (*`getter-clause`*, *`setter-clause`*, etc.), observers (*`willSet-clause`*, *`willSet-clause`*).
     Setting behavior of all warning diagnostics belonging to the indicated group in the ***lexical scope*** of the body of the corresponding declaration and the declaration's signature.
@@ -124,36 +124,36 @@ The `@warn` attribute can be applied on:
 
 ```swift
 // Import statement
-@warn(DiagGroupID, as: ignored)
+@diagnose(DiagGroupID, as: ignored)
 import bar
 
 // Function declaration
-@warn(DiagGroupID, as: ignored, reason: "Proposal Example")
+@diagnose(DiagGroupID, as: ignored, reason: "Proposal Example")
 func foo() {...}
 
 // Initializer and Deinitializer
 struct Foo {
-    @warn(DiagGroupID, as: ignored)
+    @diagnose(DiagGroupID, as: ignored)
     init() {...}
-    @warn(DiagGroupID, as: ignored)
+    @diagnose(DiagGroupID, as: ignored)
     deinit {...}
 }
 
 // Subscript and Operator
 struct FooCollection<T> {
-  @warn(DiagGroupID, as: ignored)
+  @diagnose(DiagGroupID, as: ignored)
   subscript(index: Int) -> T { ... }
 
-  @warn(DiagGroupID, as: ignored)
+  @diagnose(DiagGroupID, as: ignored)
   static func +++ (lhs: T, rhs: T) -> T { ... }
 }
 
 // Accessors
 struct Foo {
     var property: Int {
-        @warn(DiagGroupID, as: ignored)
+        @diagnose(DiagGroupID, as: ignored)
         get {...}
-        @warn(DiagGroupID, as: ignored)
+        @diagnose(DiagGroupID, as: ignored)
         set {...}
     }
 }
@@ -161,71 +161,71 @@ struct Foo {
 // Observers
 extension Foo {
     var property: Int {
-        @warn(DiagGroupID, as: ignored)
+        @diagnose(DiagGroupID, as: ignored)
         willSet {...}
-        @warn(DiagGroupID, as: ignored)
+        @diagnose(DiagGroupID, as: ignored)
         didSet {...}
     }
 }
 
 // Enum
-@warn(DiagGroupID, as: ignored)
+@diagnose(DiagGroupID, as: ignored)
 enum Foo {...}
 
 // Enum case
 enum Foo {
-  @warn(DiagGroupID, as: ignored)
+  @diagnose(DiagGroupID, as: ignored)
   case c1
 }
 
 // Struct
-@warn(DiagGroupID, as: ignored)
+@diagnose(DiagGroupID, as: ignored)
 struct Foo {...}
 
 // Class
-@warn(DiagGroupID, as: ignored)
+@diagnose(DiagGroupID, as: ignored)
 class Foo {...}
 
 // Extension
-@warn(DiagGroupID, as: ignored)
+@diagnose(DiagGroupID, as: ignored)
 extension Foo {...}
 
 // Actor
-@warn(DiagGroupID, as: ignored)
+@diagnose(DiagGroupID, as: ignored)
 actor Foo {...}
 
 // Protocol
-@warn(DiagGroupID, as: ignored)
+@diagnose(DiagGroupID, as: ignored)
 protocol Foo {...}
 
 // Typealias
-@warn(DiagGroupID, as: ignored)
+@diagnose(DiagGroupID, as: ignored)
 typealias Foo = Bar
 
 // Associated type
 protocol P {
-  @warn(DiagGroupID, as: ignored)
+  @diagnose(DiagGroupID, as: ignored)
   associatedtype Foo: Bar
 }
 
 // Macro declaration
-@warn(DiagGroupID, as: ignored)
+@diagnose(DiagGroupID, as: ignored)
 @freestanding(declaration)
 macro Foo() = ...
 
 // Freestanding declaration macro invocation
-@warn(DiagGroupID, as: ignored)
+@diagnose(DiagGroupID, as: ignored)
 #generateBindings(for: Foo)
 ```
 
-The `@warn` attribute's effect on a declaration's signature includes other attributes applied to the same declaration, regardless of the position of `@warn` relative to non-`@warn` attributes. For example, if `@SomeWrapper` is deprecated, both of the following are equivalent and will escalate the deprecation warning to an error:
+The `@diagnose` attribute's effect on a declaration's signature includes other attributes applied to the same declaration, regardless of the position of `@diagnose` relative to non-`@diagnose` attributes. For example, if `@SomeWrapper` is deprecated, both of the following are equivalent and will escalate the deprecation warning to an error:
 
 ```swift
-@warn(DeprecatedDeclaration, as: error)
+@diagnose(DeprecatedDeclaration, as: error)
 @SomeWrapper func foo() { ... }
 
 @SomeWrapper
-@warn(DeprecatedDeclaration, as: error)
+@diagnose(DeprecatedDeclaration, as: error)
 func foo() { ... }
 ```
 
@@ -233,62 +233,62 @@ func foo() { ... }
 
 For a given warning diagnostic group, its global (module-wide) behavior is defined by the diagnostic’s default behavior and [compiler option evaluation](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md#compiler-options-evaluation). A warning diagnostic’s default behavior is either to be always emitted or fully suppressed - where default-suppressed warnings can be enabled with `-Wwarning` and `-Werror`.
 
-At the top-level file scope, a `@warn` attribute overrides the specified diagnostic group’s global behavior within the lexical scope of the declaration it is applied to. For example, for a globally-escalated (with `-Werror groupID`) diagnostic group, `@warn(groupID, as: warning)` top-level function declaration defines the behavior of `groupID` warnings within the lexical scope of the function’s body.
+At the top-level file scope, a `@diagnose` attribute overrides the specified diagnostic group’s global behavior within the lexical scope of the declaration it is applied to. For example, for a globally-escalated (with `-Werror groupID`) diagnostic group, `@diagnose(groupID, as: warning)` top-level function declaration defines the behavior of `groupID` warnings within the lexical scope of the function’s body.
 
-A `@warn` attribute applied to a declaration at a nested lexical scope overrides the specified diagnostic group’s behavior as defined for the parent lexical scope, either by the global behavior, or a `@warn` attribute applied to the parent scope declaration. For example, `@warn` attribute for diagnostic group `groupID` applied to a method definition in a `struct` declaration may override the diagnostic group’s global behavior as configured with compiler flags, or it may override the diagnostic group’s behavior as defined by a `@warn` attribute on the containing `struct`’s declaration.
+A `@diagnose` attribute applied to a declaration at a nested lexical scope overrides the specified diagnostic group’s behavior as defined for the parent lexical scope, either by the global behavior, or a `@diagnose` attribute applied to the parent scope declaration. For example, `@diagnose` attribute for diagnostic group `groupID` applied to a method definition in a `struct` declaration may override the diagnostic group’s global behavior as configured with compiler flags, or it may override the diagnostic group’s behavior as defined by a `@diagnose` attribute on the containing `struct`’s declaration.
 
-#### Multiple `@warn` attributes on the same declaration
+#### Multiple `@diagnose` attributes on the same declaration
 
-Application of multiple `@warn` attibutes on the same declaration is order-sensitive and follows a convention similar to [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md): lexically-last attribute "wins", i.e. multiple `@warn` attributes on a given declaration for nested or same diagnostic groups are evaluated in the order they are specified in source. For example:
+Application of multiple `@diagnose` attibutes on the same declaration is order-sensitive and follows a convention similar to [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md): lexically-last attribute "wins", i.e. multiple `@diagnose` attributes on a given declaration for nested or same diagnostic groups are evaluated in the order they are specified in source. For example:
 
 ```swift
-@warn(DiagGroupID, as: error)
-@warn(DiagGroupID, as: warning) // Overrides the above 'error' behavior
+@diagnose(DiagGroupID, as: error)
+@diagnose(DiagGroupID, as: warning) // Overrides the above 'error' behavior
 public func foo()
 ```
 
-Multiple `@warn` attributes may be used to first specify a broader group policy, and later refine the policy for a specific sub-group. For example, if `UnsafeImportedOwnership` is a subgroup of `UnsafeImportedAPI`, the following annotation will first apply the `error` behavior for the broader parent group, and then apply the `ignored` behavior to the sub-group:
+Multiple `@diagnose` attributes may be used to first specify a broader group policy, and later refine the policy for a specific sub-group. For example, if `UnsafeImportedOwnership` is a subgroup of `UnsafeImportedAPI`, the following annotation will first apply the `error` behavior for the broader parent group, and then apply the `ignored` behavior to the sub-group:
 
 ```swift
-@warn(UnsafeImportedAPI, as: error)
-@warn(UnsafeImportedOwnership, as: ignored) // Overrides the above 'error' behavior for a subset of the diagnostics
+@diagnose(UnsafeImportedAPI, as: error)
+@diagnose(UnsafeImportedOwnership, as: ignored) // Overrides the above 'error' behavior for a subset of the diagnostics
 public func foo()
 ```
 
 In the opposite case:
 
 ```swift
-@warn(UnsafeImportedOwnership, as: ignored)
-@warn(UnsafeImportedAPI, as: warning) // Overrides the above 'ignored' behavior for a superset of the diagnostics
+@diagnose(UnsafeImportedOwnership, as: ignored)
+@diagnose(UnsafeImportedAPI, as: warning) // Overrides the above 'ignored' behavior for a superset of the diagnostics
 public func foo()
 ```
 
 The second attribute completely overrides the first attribute’s diagnostic severity directive by covering the super set of diagnostics covered by the first attirubte's diagnostic group.
 
-Order-sensitivity is a departure from the norm of having attributes in Swift be order-insensitive (with the exception of property wrappers); however, order-sensitivity affords `@warn` an added expressivity of being able to specify both broad goup and fine-grained sub-group control, and do it in a fashion consistent with the command line flag behavior outlined in [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md).
+Order-sensitivity is a departure from the norm of having attributes in Swift be order-insensitive (with the exception of property wrappers); however, order-sensitivity affords `@diagnose` an added expressivity of being able to specify both broad goup and fine-grained sub-group control, and do it in a fashion consistent with the command line flag behavior outlined in [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md).
 
 #### Interaction with `-suppress-warnings`
 
-[SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md) deliberately excluded `-suppress-warnings` from the unified group control model, forbidding its combination with `-Wwarning` and `-Werror`. This proposal similarly treats `-suppress-warnings` as outside the scoped override model: when `-suppress-warnings` is in effect, it suppresses all warning diagnostics module-wide, and `@warn` attributes have no observable effect, including `@warn` attributes that specify `as: error` behavior.
+[SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md) deliberately excluded `-suppress-warnings` from the unified group control model, forbidding its combination with `-Wwarning` and `-Werror`. This proposal similarly treats `-suppress-warnings` as outside the scoped override model: when `-suppress-warnings` is in effect, it suppresses all warning diagnostics module-wide, and `@diagnose` attributes have no observable effect, including `@diagnose` attributes that specify `as: error` behavior.
 
-This semantic is also in alignment with how [SE-0480](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0480-swiftpm-warning-control.md) handles warning control for remote package dependencies: SwiftPM strips all warning control flags (`-Werror`, `-Wwarning`, etc.) from the command line and substitutes `-suppress-warnings` when building a package as a dependency. If `@warn(groupID, as: error)` were honored under `-suppress-warnings`, source-level escalation would cause build failures in remote dependencies that the equivalent command-line flag (`-Werror groupID`) would not.
+This semantic is also in alignment with how [SE-0480](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0480-swiftpm-warning-control.md) handles warning control for remote package dependencies: SwiftPM strips all warning control flags (`-Werror`, `-Wwarning`, etc.) from the command line and substitutes `-suppress-warnings` when building a package as a dependency. If `@diagnose(groupID, as: error)` were honored under `-suppress-warnings`, source-level escalation would cause build failures in remote dependencies that the equivalent command-line flag (`-Werror groupID`) would not.
 
 #### Behavior in macro-expanded code
 
-If a macro expansion generates code inside a `@warn`-annotated scope, the attribute's effect applies to the expanded code. For example, if a method annotated with `@warn(groupID, as: ignored)` contains a call to an expression macro, warnings belonging to `groupID` that are emitted within the macro's expansion are also suppressed.
+If a macro expansion generates code inside a `@diagnose`-annotated scope, the attribute's effect applies to the expanded code. For example, if a method annotated with `@diagnose(groupID, as: ignored)` contains a call to an expression macro, warnings belonging to `groupID` that are emitted within the macro's expansion are also suppressed.
 
-##### `@warn` on freestanding declaration macros
+##### `@diagnose` on freestanding declaration macros
 
-The `@warn` attribute can be applied to a freestanding declaration macro expansion. The attribute's behavior applies to *all* declarations produced by the macro expansion, analogous to applying `@warn` to a type declaration that contains multiple members:
+The `@diagnose` attribute can be applied to a freestanding declaration macro expansion. The attribute's behavior applies to *all* declarations produced by the macro expansion, analogous to applying `@diagnose` to a type declaration that contains multiple members:
 
 ```swift
-@warn(DeprecatedDeclaration, as: ignored)
+@diagnose(DeprecatedDeclaration, as: ignored)
 #generateLegacyBindings(for: OldFramework)
 ```
 
-##### `@warn` in macro-generated code
+##### `@diagnose` in macro-generated code
 
-Macro expansions are permitted to produce `@warn` attributes on declarations within the expansion. This allows macro authors to encode diagnostic expectations about the code they generate, escalating specific warnings to errors when the macro's own code-generation logic guarantees they should not occur, or suppressing warnings that are expected artifacts of a particular code-generation pattern.
+Macro expansions are permitted to produce `@diagnose` attributes on declarations within the expansion. This allows macro authors to encode diagnostic expectations about the code they generate, escalating specific warnings to errors when the macro's own code-generation logic guarantees they should not occur, or suppressing warnings that are expected artifacts of a particular code-generation pattern.
 
 For example, consider a freestanding declaration macro that generates a public API endpoint from a user-specified type:
 
@@ -300,15 +300,21 @@ Suppose the macro's authors intend its use to enforce a requirement that the gen
 
 ```swift
 // The macro expansion may produce:
-@warn(DeprecatedDeclaration, as: error)
+@diagnose(DeprecatedDeclaration, as: error)
 public func endpoint() -> UserProvidedType {
   // 🟥 error: 'UserProvidedType' is deprecated [#DeprecatedDeclaration]
 }
 ```
 
-Without the ability to annotate its own expansion, the macro would have no way to express this intent, and users would need to manually apply `@warn` at every call site to achieve a similar enforcement.
+Without the ability to annotate its own expansion, the macro would have no way to express this intent, and users would need to manually apply `@diagnose` at every call site to achieve a similar enforcement.
 
-When both the macro-expanded code and an enclosing scope both provide `@warn` attributes for the same diagnostic group, the normal nesting rules apply: the innermost (macro-generated) attribute overrides the enclosing attribute for the scope it is applied to.
+When both the macro-expanded code and an enclosing scope both provide `@diagnose` attributes for the same diagnostic group, the normal nesting rules apply: the innermost (macro-generated) attribute overrides the enclosing attribute for the scope it is applied to.
+
+##### `@diagnose` and attached peer macros
+
+An `@diagnose` attribute applied to a declaration does not propagate to peer declarations generated by an attached macro on that declaration. Peer macros produce independent sibling declarations alongside the annotated declaration ([SE-0389](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0389-attached-macros.md)), and these peers are outside the lexical scope of the original declaration.
+
+To control warning behavior in peer-generated declarations, macro authors can emit `@diagnose` attributes directly in the expansion (see *`@diagnose` in macro-generated code* above). Users who need broader control can apply `@diagnose` to an enclosing scope that contains both the original and the generated declarations, or use module-wide compiler flags.
 
 ### Effect on the public interface
 
@@ -330,7 +336,7 @@ This feature can be freely adopted and un-adopted in source code with no deploym
 
 ### Local lexical scope control
 
-It may be desirable to provide a mechanism for an even finer-grained warning behavior control within lexical scopes which do not correspond to a declaration, such as a `do {}` block. For example, one can imagine extending the file-level `using @warn` mechanism to allow its use anywhere in a given lexical scope, affecting warnings emitted anywhere in entirety of the lexical scope (or strictly the code which follows the `using` statement within said lexical scope). This proposal focuses on providing such control at the granularity of a declaration, leaving this direction for future consideration.
+It may be desirable to provide a mechanism for an even finer-grained warning behavior control within lexical scopes which do not correspond to a declaration, such as a `do {}` block. For example, one can imagine extending the file-level `using @diagnose` mechanism to allow its use anywhere in a given lexical scope, affecting warnings emitted anywhere in entirety of the lexical scope (or strictly the code which follows the `using` statement within said lexical scope). This proposal focuses on providing such control at the granularity of a declaration, leaving this direction for future consideration.
 
 ### `closure-expression`
 
@@ -338,7 +344,7 @@ It may be desirable to provide a mechanism to control the behavior of warning di
 
 ### File-scope warning behavior control
 
-A complementary proposal of the file-scope `using <attribute>` syntax would further expand on this capability by allowing the use of `using @warn(<group>, as: <behavior>)` to define file-scope warning behavior for a given diagnostic group, but is out of scope of this proposal.
+A complementary proposal of the file-scope `using <attribute>` syntax would further expand on this capability by allowing the use of `using @diagnose(<group>, as: <behavior>)` to define file-scope warning behavior for a given diagnostic group, but is out of scope of this proposal.
 
 ### Generalized diagnostic control for third-party tools
 
@@ -350,7 +356,7 @@ class C {
 }
 // swiftlint:enable rule1
 ```
-The `@warn` attribute could be extended to serve as a unified, declaration-level or source-file-level diagnostic control mechanism for third-party tools as well. This could take the form of an additional parameter to namespace the group identifier by tool, such as `@warn(unused_parameter, from: SwiftLint, as: ignored)`.
+The `@diagnose` attribute could be extended to serve as a unified, declaration-level or source-file-level diagnostic control mechanism for third-party tools as well. This could take the form of an additional parameter to namespace the group identifier by tool, such as `@diagnose(unused_parameter, from: SwiftLint, as: ignored)`.
 
 ## Alternatives considered
 
@@ -370,13 +376,13 @@ While this mechanism is flexible, it does not align with Swift's conventions:
 * Swift generally favors attaching metadata and behavior to declarations, making developer intent clear and self-documenting.
 * Asking the developer to define the “end” of a region means requiring careful manual state management - forgetting or misplacing a region delimiter could lead to complex unintended behaviors when multiple scopes are overlapping and potentially affect nested diagnostic groups.
 
-### Prohibiting `@warn` in macro-generated code
+### Prohibiting `@diagnose` in macro-generated code
 
-An alternative design would prohibit macro expansions from producing `@warn` attributes entirely, ensuring that all warning control is explicitly visible in the developer's source code. However, this would prevent macros from enforcing diagnostic policies on code they generate but do not fully control. Allowing `@warn` in macro expansions gives macro authors the ability to express these constraints directly, while users retain the ability to specify their own controls via `@warn` at the invocation site.
+An alternative design would prohibit macro expansions from producing `@diagnose` attributes entirely, ensuring that all warning control is explicitly visible in the developer's source code. However, this would prevent macros from enforcing diagnostic policies on code they generate but do not fully control. Allowing `@diagnose` in macro expansions gives macro authors the ability to express these constraints directly, while users retain the ability to specify their own controls via `@diagnose` at the invocation site.
 
 ### Honoring `as: error` under `-suppress-warnings`
 
-An alternative design would have `@warn(groupID, as: error)` take effect even under `-suppress-warnings`, allowing unconditional source-level escalation. However, this would be inconsistent with both [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md), which outlines that `-suppress-warnings` overrides `-Werror` and with [SE-0480](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0480-swiftpm-warning-control.md), which relies on `-suppress-warnings` to prevent remote package dependencies from failing builds, including when new warnings are introduced in future compiler versions.
+An alternative design would have `@diagnose(groupID, as: error)` take effect even under `-suppress-warnings`, allowing unconditional source-level escalation. However, this would be inconsistent with both [SE-0443](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0443-warning-control-flags.md), which outlines that `-suppress-warnings` overrides `-Werror` and with [SE-0480](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0480-swiftpm-warning-control.md), which relies on `-suppress-warnings` to prevent remote package dependencies from failing builds, including when new warnings are introduced in future compiler versions.
 
 ## Acknowledgments
 
