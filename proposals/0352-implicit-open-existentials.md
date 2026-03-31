@@ -85,7 +85,7 @@ func checkFinaleReadiness(costumes: [any Costume]) -> Bool {
 }
 ```
 
-In the call to `hasBells`, the generic parameter `C` is getting bound to the type `any Costume`, i.e., a box that contains a value of some unknown underlying type. Each instance of that box type might have a different type at runtime, so even though the underlying type conforms to `Costume`, the box does not. That box itself does not conform to `Costume` because it does not meet the requirement for `hasSameAdornments`., i.e., two boxes aren't guaranteed to store the same the same underlying type.
+In the call to `hasBells`, the generic parameter `C` is getting bound to the type `any Costume`, i.e., a box that contains a value of some unknown underlying type. Each instance of that box type might have a different type at runtime, so even though the underlying type conforms to `Costume`, the box does not. That box itself does not conform to `Costume` because it does not meet the requirement for `hasSameAdornments`., i.e., two boxes aren't guaranteed to store the same underlying type.
 
 This proposal introduces implicitly opened existentials, which allow one to use a value of existential type (e.g., `any Costume`) where its underlying type can be captured in a generic parameter. For example, the call  `hasBells(costume)` above would succeed, binding the generic parameter `C` to the underlying type of that particular instance of `costume`. Each iteration of the loop could have a different underlying type bound to `C`:
 

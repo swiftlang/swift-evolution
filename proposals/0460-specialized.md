@@ -3,7 +3,7 @@
 * Proposal: [SE-0460](0460-specialized.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Implemented (Swift Next)**
+* Status: **Implemented (Swift 6.3)**
 * Review: ([pitch](https://forums.swift.org/t/pitch-explicit-specialization/76967)) ([review](https://forums.swift.org/t/se-0460-explicit-specialization/77541)) ([acceptance](https://forums.swift.org/t/accepted-se-0460-explicit-specialization/78583))
 
 ## Introduction

@@ -3,7 +3,7 @@
 * Proposal: [ST-0014](0014-image-attachments-in-swift-testing-apple-platforms.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Maarten Engels](https://github.com/maartene/)
-* Status: **Accepted**
+- Status: **Implemented (Swift 6.3)**
 * Bug: rdar://154869058
 * Implementation: [swiftlang/swift-testing#827](https://github.com/swiftlang/swift-testing/pull/827), _et al._ <!-- jgrynspan/image-attachments has additional conformances -->
 * Review: ([pitch](https://forums.swift.org/t/pitch-image-attachments-in-swift-testing/80867)) ([review](https://forums.swift.org/t/st-0014-image-attachments-in-swift-testing-apple-platforms/81507)) ([acceptance](https://forums.swift.org/t/accepted-st-0014-image-attachments-in-swift-testing-apple-platforms/81868))

@@ -3,9 +3,9 @@
 * Proposal: [SE-0504](0504-task-cancellation-shields.md)
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (January 12...26, 2026)**
+* Status: **Implemented (Swift 6.4)**
 * Implementation: [PR #85637](https://github.com/swiftlang/swift/pull/85637)
-* Review: ([pitch](https://forums.swift.org/t/pitch-task-cancellation-shields/83379)) ([review](https://forums.swift.org/t/se-0504-task-cancellation-shields/84095))
+* Review: ([pitch](https://forums.swift.org/t/pitch-task-cancellation-shields/83379)) ([review](https://forums.swift.org/t/se-0504-task-cancellation-shields/84095)) ([acceptance](https://forums.swift.org/t/accepted-se-0504-task-cancellation-shields/84667))
 
 ## Introduction
 
@@ -196,7 +196,7 @@ task.cancel()
 print(task.isCancelled) // _always_ true
 ```
 
-The instance method `task.isCancelled` queried from the outside of the task will return the _actual_ cancelled state, regardless if the task is right no executing a section of code under a cancellation shield or not. This is because from the outside it would be racy to query the cancellation state and rely on wether or not the task is currently executing a section of code under a shield. This could lead to confusing behavior where querying the same `task.isCancelled` could be flip flopping between cancelled and not cancelled.
+The instance method `task.isCancelled` queried from the outside of the task will return the _actual_ cancelled state, regardless if the task is right now executing a section of code under a cancellation shield or not. This is because from the outside it would be racy to query the cancellation state and rely on wether or not the task is currently executing a section of code under a shield. This could lead to confusing behavior where querying the same `task.isCancelled` could be flip flopping between cancelled and not cancelled.
 
 The static method `Task.isCancelled` always reports the cancelled status of "this context" and thus respects the structure of the program with regards to nesting in `withTaskCancellationShield { ... }` blocks. This static method was, and remains, the primary way tasks interact with cancellation.
 
@@ -224,17 +224,21 @@ While this code pattern is not really often encountered in real-world code, it c
 
 In order to aid understanding and debuggability of cancellation in such systems, we also introduce a new property to query for a cancellation shield being active in a specific task.
 
-This API is not intended to be used in "normal" code, and should only be used during debugging issues with cancellation, to check if a shield is active in a given task. This API is _only_ available on `UnsafeCurrentTask`, in order to dissuade from its use in normal code.
-
-The `hasActiveTaskCancellationShield` property, which can be used to determine if a cancellation shield is active. Primarily this can be used for debugging "why isn't my task getting cancelled?" kinds of issues.
+The `hasActiveTaskCancellationShield` property can be used to determine if a cancellation shield is active. The property is available both as a static property on `Task` (which checks the current task), and as instance property on `UnsafeCurrentTask`:
 
 ```swift
-extension UnsafeCurrentTask {
+extension Task {
+  /// Checks if the current task has an active cancellation shield.
+  /// When not running inside a Task, this property will be false.
   public static var hasActiveTaskCancellationShield: Bool { get }
+}
+
+extension UnsafeCurrentTask {
+  public var hasActiveTaskCancellationShield: Bool { get }
 }
 ```
 
-Here is an example, how `UnsafeCurrentTask`'s  `isCancelled` as well as the new `hasActiveTaskCancellationShield` behave inside of a cancelled, but shielded task. The instance method `UnsafeCurrentTask/isCancelled` behaves the same way as the `Task/isCancelled` method, which was discussed above. However, using the unsafe task handle, we are able to react to task cancellation shields if necessary:
+Here is an example, how `isCancelled` and `hasActiveTaskCancellationShield` behave inside of a cancelled but shielded task:
 
 ```swift
 let task = Task { 
@@ -245,11 +249,11 @@ let task = Task {
     
     withUnsafeCurrentTask { unsafeTask in 
       unsafeTask.isCancelled // true
-      unsafeTask.hasTaskCancellationShield // true
+      unsafeTask.hasActiveTaskCancellationShield // true
                            
       // can replicate respecting shield if necessary (racy by definition, if this was queried from outside)
       let isCancelledRespectingShield = 
-        if unsafeTask.hasTaskCancellationShield { false }
+        if unsafeTask.hasActiveTaskCancellationShield { false }
         else { unsafeTask.isCancelled }
     }
   }
@@ -295,7 +299,7 @@ Therefore the API documentation will be changed to reflect this change:
 ```swift
 /// ... 
 /// A task's cancellation is final and cannot be undone.
-/// However, is possible to cause the `isCancelled` property to return `false` even 
+/// However, it is possible to cause the `isCancelled` property to return `false` even 
 /// if the task was previously cancelled by entering a ``withTaskCancellationShield(_:)`` scope.
 /// ...
 public var isCancelled: Bool {
@@ -312,7 +316,7 @@ While there isn't anything special with regards to defer blocks and cancellation
 let resource = makeResource()
 
 defer { 
-  await withCancellationShield { // ensure that cleanup always runs, regardless of cancellation
+  await withTaskCancellationShield { // ensure that cleanup always runs, regardless of cancellation
     await resource.cleanup()
   }
 }

@@ -336,26 +336,38 @@ struct S: Sendable {
 }
 ```
 
-Only (implicitly or explicitly) `nonisolated` functions can be marked with
-`@concurrent`; it is an error to use this attribute with
-an isolation other than `nonisolated`, including global actors, isolated
-parameters, and `@isolated(any)`:
+Use of the `@concurrent` attribute implies `nonisolated` isolation and it's optional to use
+an explicit `nonisolated` modifier together with `@concurrent` attribute. It is an error
+to use this attribute with isolation other than `nonisolated`, including global actors,
+isolated parameters, and `@isolated(any)`:
 
 ```swift
 actor MyActor {
   var value = 0
 
-  // error: '@concurrent' can only be used with 'nonisolated' methods
+  // Okay to use `@concurrent` without `nonisolated`
   @concurrent
   func isolatedToSelf() async {
+    // cannot access 'value' or other actor-isolated state
     value += 1
   }
-
+ 
+  // `nonisolated` is optional here but accepted by the compiler when specified
+  // together with `@concurrent`.
   @concurrent
   nonisolated func canRunAnywhere() async {
     // cannot access 'value' or other actor-isolated state
   }
 }
+
+// error: global function 'runsOnMainActor()' has multiple actor-isolation attributes (@MainActor and @concurrent)
+@MainActor @concurrent func runsOnMainActor() async {}
+
+// error: cannot use @concurrent on global function 'runsSomewhere(isolation:)' because it has an isolated parameter: 'isolation'
+@concurrent func runsSomewhere(isolation: isolated (any Actor)?) async {}
+
+// error: cannot use '@concurrent' together with '@isolated(any)'
+func longCompute(fn: @concurrent @isolated(any) () async -> Void) async {}
 ```
 
 `@concurrent` can be used together with `@Sendable` or `sending`.
@@ -624,7 +636,7 @@ represented under the "Nonisolated" category in the table:
 |----------------------|------------------------|------------------|
 | Nonisolated          | Actor isolated         | No               |
 | Nonisolated          | `@isolated(any)`       | No               |
-| Nonisolated          | `@concurrent`          | Yes              |
+| Nonisolated          | `@concurrent`          | No               |
 | Actor isolated       | Actor isolated         | Yes              |
 | Actor isolated       | `@isolated(any)`       | No               |
 | Actor isolated       | Nonisolated            | Yes              |

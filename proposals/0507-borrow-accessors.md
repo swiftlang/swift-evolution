@@ -3,10 +3,10 @@
 * Proposal: [SE-0507](0507-borrow-accessors.md)
 * Authors: [Meghana Gupta](https://github.com/meg-gupta), [Tim Kientzle](https://github.com/tbkka)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor/)
-* Status: **Upcoming review (January 22...February 5, 2026)**
+* Status: **Implemented (Swift 6.4)**
 * Vision: [[Prospective Vision] Accessors](https://forums.swift.org/t/prospective-vision-accessors/76707)
-* Implementation: On `main` gated behind `-enable-experimental-feature BorrowAndMutateAccessors`
-* Review: ([pitch](https://forums.swift.org/t/pitch-borrowing-accessors/83933))
+* Implementation: Available on `main` by default
+* Review: ([pitch](https://forums.swift.org/t/pitch-borrowing-accessors/83933)) ([review](https://forums.swift.org/t/se-0507-borrow-and-mutate-accessors/84376)) ([acceptance](https://forums.swift.org/t/accepted-se-0507-borrow-and-mutate-accessors/85266))
 
 ## Introduction
 
@@ -26,7 +26,7 @@ The existing accessor variations have limitations that make them unsuitable for 
 
 A `get` accessor must either copy an existing value or construct a new value to return to the client. This makes it unsuitable when you have stored data that is expensive or impossible to copy.  In particular, collections that store non-copyable values cannot use `get` for their subscript operations.
 
-```
+```swift
 struct NC: ~Copyable { ... }
 struct ContainerOfNoncopyable {
     private var _element: NC
@@ -40,7 +40,7 @@ The `yielding mutate` and `yielding borrow` accessors satisfy a different need. 
 
 But the coroutines used by yielding accessors have drawbacks:  They can add significant overhead to allocate working space for the coroutine and to make multiple function calls into the coroutine.  They also limit the access scope.  The coroutine and all dependent accesses must complete before the end of the calling function:
 
-```
+```swift
 struct Element: ~Copyable {
   var span: Span<...> { ... }
 }
@@ -71,7 +71,7 @@ https://github.com/swiftlang/swift-evolution/blob/main/proposals/0474-yielding-a
 
 Borrowing accessors are defined similarly to any other accessor, using the context-sensitive `borrow` and `mutate` keywords.  They use the `return` keyword to indicate the value being exposed.  The mutating version uses `&` to further indicate that the value is being exposed for potential mutation:
 
-```
+```swift
 struct RigidWrapper<Element: ~Copyable>: ~Copyable {
     var _element: Element
     var element: Element {
@@ -92,7 +92,7 @@ As with other return values in Swift, the `return` keyword is optional when the 
 
 The above example shows how `borrow` and `mutate` accessors can be defined.  Note that the value being returned must be a stored value that will outlive the execution of the accessor.  It is illegal to return a local or temporary value:
 
-```
+```swift
 struct InvalidExamples {
     var _array : [Int]
     
@@ -115,11 +115,30 @@ struct InvalidExamples {
 }
 ```
 
+The restrictions on returning temporary values also restricts certain uses of optionals:
+```
+struct Source {
+    var _s: String? = ""
+    var s: String? {
+        borrow { _s }
+    }
+}
+
+struct Wrapper {
+    var i: Source?
+    var prop: String? {
+        // 🛑 Error: If `i == nil`, this would require a
+        // temporary `String?.none` to be returned.
+        borrow { i?.s }
+    }
+}
+```
+
 #### Reading from properties that use `borrow`
 
 Clients read a value via a `borrow` accessor using the same code they might use for a property implemented with `get`.  However, when a property is implemented with `borrow`, reading the value does not copy.  To preserve memory consistency, Swift’s exclusivity rules prevent the provider from being mutated while the borrow is active:
 
-```
+```swift
 var owner = Wrapper(value)
 
 // "borrow" the value to give to a function
@@ -141,7 +160,7 @@ func doSomething(with value: borrowing Element) {
 
 Using a property implemented with `mutate` is similar.  It gives you read/write access for the duration of the borrow:
 
-```
+```swift
 var owner = Wrapper(value)
 
 // Mutating/inout access will invoke the `mutate` accessor
@@ -200,7 +219,7 @@ caller can only use this to read the property,
 there can be side-effects that alter the containing value in other ways.
 As a result, the property can only be accessed in a context
 that allows mutation:
-```
+```swift
 struct S1 {
   private var cachedValue: Foo
   var foo : Foo {
@@ -223,7 +242,7 @@ Similarly, a `nonmutating mutate` would provide mutable borrow access to some va
 but a mutation of that value is _not_ a mutation of the parent value.
 For example, this might be true if the accessor is providing access to a value
 that is stored outside of the parent value:
-```
+```swift
 struct Outer {
   var inner: InnerType {
     borrow {
@@ -241,7 +260,7 @@ In this example, `inner` can be mutated, but such mutation is not considered to 
 
 Borrowing accessors can also appear as protocol requirements
 
-```
+```swift
 protocol BorrowingAccess {
   associatedtype Element
   var element: Element { borrow mutate }
@@ -267,15 +286,31 @@ No combinations other than those specified above are supported.
 
 #### Cannot use for properties of classes or actors
 
-Classes require runtime exclusivity checks to run both before and after each property access.  Since borrowing accessors do not provide a way for the provider to run code after the access, they cannot be used for properties of classes.[^1]
+Classes require runtime exclusivity checks to run both before and after each property access.  Since borrowing accessors do not provide a way for the provider to run code after the access, they cannot be used for properties of classes or actors.[^1]
 
 [^1]: `yielding borrow` and `yielding mutate` accessors can be used for properties of classes.
+
+```swift
+class ClassType {
+  private var _value: SomeType
+  var value: SomeType {
+    borrow {
+      // 🛑 Cannot use borrow to implement a property of a class or actor type
+      return _value
+    }
+    mutate {
+      // 🛑 Cannot use mutate to implement a property of a class or actor type
+      return &_value
+    }
+  }
+}
+```
 
 #### Use for subscripts
 
 Borrowing accessors can also be used to implement subscript operations:
 
-```
+```swift
 struct ArrayLikeType {
   subscript(index: Int) -> Element {
     borrow { .... }
@@ -288,16 +323,50 @@ Like any `borrow` or `mutate` operation, the above subscript implicitly accesses
 In particular, the following is illegal because it creates two
 mutating accesses of `x` for the duration of the function call:
 
-```
+```swift
 var x: ArrayLikeType
 swap(&x[0], &x[1])
+```
+
+#### Globals
+
+You may not borrow or mutate a global `var`.
+You are allowed to borrow a global `let`, but not mutate it.
+
+```swift
+var mutableGlobal: SomeType
+let constantGlobal: SomeType
+
+struct BorrowingGlobals {
+  var mutable: SomeType {
+    borrow {
+      // 🛑 Cannot borrow a mutable global
+      return mutableGlobal
+    }
+    mutate {
+      // 🛑 Cannot mutate a mutable global
+      return &mutableGlobal
+    }
+  }
+
+  var constant: SomeType {
+    borrow {
+      // OK
+      return constantGlobal
+    }
+    mutate {
+      // 🛑 Cannot mutate a non-mutable value
+      return &constantGlobal
+    }
+  }
+}
 ```
 
 ## Source compatibility
 
 This could potentially change the interpretation of an existing accessor that uses a function called `borrow` or `mutate` that takes a trailing closure parameter:
 
-```
+```swift
 struct S {
   func borrow(closure: () -> ()) { ... }
   // Is this a new borrow accessor?
@@ -327,7 +396,7 @@ This can cause previously working code to no longer compile.
 ### Borrowing returns
 
 It is also useful for functions to be able to return borrowed values. As with borrowing accessors, this requires the value to have a guaranteed lifetime. It is particularly useful to extend the borrow semantics:
-```
+```swift
 struct S<Value> {
   subscript(_ index: Int) -> Value {
      borrow { ... }
@@ -344,13 +413,13 @@ struct S<Value> {
 Low-level data structures are often built using unsafe pointers.
 Unsafe pointers by their nature prevent the compiler from accurately diagnosing
 lifetimes, which means that it must generally reject code like the following:
-```
+```swift
 var _storage: UnsafePointer<Element>
 
 var first: Element {
   borrow {
-    // ERROR: borrow accessors can only return literals, stored
-    // properties, or computed properties that have borrow accessors
+    // ERROR: borrow accessors can only return stored properties
+    // or computed properties that have borrow accessors
     return _storage.pointee
   }
 }
@@ -358,7 +427,7 @@ var first: Element {
 
 Supporting cases like this will require some way to annotate the return expression.
 For example, we might provide a function-like marker:
-```
+```swift
 var first: Element {
   borrow {
     return unsafeResultDependsOnSelf(_storage.pointee)
@@ -368,6 +437,73 @@ var first: Element {
 
 This would assert that the result of the expression is valid at least
 until the next mutating operation on `self`.
+
+### Multiple Returns
+
+The current implementation does not handle `borrow` or `mutate` accessors that
+have more than one `return` statement.
+```
+struct Wrapper {
+    var selector: Bool
+    var i: SomeType
+	var j: SomeType
+
+    var prop: SomeType {
+        borrow {
+            if selector {
+                return i
+            } else {
+                return j
+            }
+        }
+    }
+}
+```
+
+### Interaction with borrowing switch
+
+The current implementation does not support borrowing `switch` statements,
+due to known gaps in the borrowing switch implementation that would need
+to be resolved first.
+```
+struct Box {
+    enum E {
+	case a(SomeType)
+	case b(SomeType)
+	}
+    var value: E
+
+    var prop: SomeType {
+        borrow {
+		    switch value {
+			case a(let va): return va
+			case b(let vb): return vb
+            }
+        }
+    }
+}
+```
+
+### Local computed properties that provide borrowing of captured values
+
+We do not support using `borrow` or `mutate` to define a closure.
+
+```
+func f() {
+  var storage: [Int]
+
+  var property: Span<Int> {
+    borrow {
+      storage.span
+    }
+  }
+}
+```
+
+### Let properties of classes
+
+In the future, we should be able to support borrow accessors on let
+properties of classes.
 
 ## Alternatives considered
 

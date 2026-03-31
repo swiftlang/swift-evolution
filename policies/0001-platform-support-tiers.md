@@ -1,9 +1,17 @@
-# Swift Platform Support: A Vision for Evolution
+# Swift Platform Support Tiers
+
+* Policy: [SP-0001](0001-platform-support-tiers.md)
+* Authors: [Platform Steering Group](https://forums.swift.org/g/platform-steering-group)
+* Review Manager: Alastair Houghton
+* Status: **Accepted**
+* Review: ([rfc](https://forums.swift.org/t/sp-001-platform-support-levels/84420))
+
+## Introduction
 
 The Swift programming language has evolved into a versatile and powerful tool
 for developers across a wide range of platforms. As the ecosystem continues to
-grow, it is essential to establish a clear and forward-looking vision for
-platform support. This vision has two main goals:
+grow, it is essential to establish a clear and forward-looking policy for
+platform support. This policy has two main goals:
 
 1. To establish common terminology and definitions for platform support.
 
@@ -106,8 +114,21 @@ Platforms that are in Tier 1 should:
     - [ ] Swift Testing Frameworks (if applicable)
 
      (See [the Swift Runtime Libraries
-     document](https://github.com/swiftlang/swift/blob/main/Runtimes/Readme.md)
-     in [the Swift repository](https://github.com/swiftlang/swift).)
+     document](https://github.com/swiftlang/swift/blob/main/Runtimes/Readme.md#layering)
+     in [the Swift repository](https://github.com/swiftlang/swift) for the list of definitions.)
+
+- [ ] Where it makes sense, include the following Swift packages:
+
+    - [ ] Foundation
+    - [ ] Dispatch
+    - [ ] XCTest
+    - [ ] Swift Testing
+
+    N.B. The Platform Steering Group will determine to what extent
+    these packages are required; additionally, the Platform Steering
+    Group may add to or remove items from this list on a case-by-case
+    basis, as it considers appropriate for the platform under
+    consideration.
 
 - [ ] Maintain a three-version window of support, including:
 
@@ -120,6 +141,16 @@ Platforms that are in Tier 1 should:
       simulator and be debugged.
 
 - [ ] Have testing in CI, including PR testing.
+
+      New platforms should expect that their PR tests will not
+      initially be required to pass to merge changes, but the intent
+      is that in the longer term they will be made mandatory.  This is
+      so that it is possible to accumulate experience with new
+      platforms' PR tests in order to establish that they are not
+      flaky and do not pose problems that will block forward progress.
+
+      Core Team will have sole discretion as to which platforms' PR
+      tests must pass in order to merge.
 
 - [ ] Ship SDKs as regular release from [swift.org](https://swift.org)
 
@@ -169,6 +200,16 @@ In addition to the requirements above, a toolchain host platform should:
     - [ ] Language Server (`sourcekit-lsp`).
     - [ ] Debug Adapter (`lldb-dap`).
 
+- [ ] Where possible, include the following additional components:
+
+    - [ ] DocC (`docc`)
+    - [ ] Swiftly (`swiftly`)
+
+    As with the list of packages above, the Platform Steering Group
+    reserves the right to decide to what extent these are optional for a
+    given platform, as well as the right to add or remove items from this
+    list on a case-by-case basis.
+
 - [ ] Code-sign individual tools as appropriate for the platform.
 
 Note that the bar for accepting a platform as a toolchain host is somewhat
@@ -194,8 +235,8 @@ Platforms in this tier should:
     - [ ] Swift Testing Frameworks (if applicable)
 
      (See [the Swift Runtime Libraries
-     document](https://github.com/swiftlang/swift/blob/main/Runtimes/Readme.md)
-     in [the Swift repository](https://github.com/swiftlang/swift).)
+     document](https://github.com/swiftlang/swift/blob/main/Runtimes/Readme.md#layering)
+     in [the Swift repository](https://github.com/swiftlang/swift) for the list of definitions.)
 
 - [ ] Maintain at least a two-version window of support, including
 
@@ -283,3 +324,8 @@ there is some requirement in this document that is not being met, it
 is expected that either there is a very good reason for the
 requirement not being met, or that there is some plan to meet it in
 future.
+
+(Note: we intentionally do not list specific architectures,
+distributions or SKUs above.  More precise details of what we consider
+supported will be published on [swift.org](https://swift.org).)
+

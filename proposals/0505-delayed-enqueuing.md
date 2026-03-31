@@ -3,13 +3,13 @@
 * Proposal: [SE-0505](0505-delayed-enqueuing.md)
 * Authors: [Alastair Houghton](https://github.com/al45tair)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Active review (January 15...27, 2026)**
+* Status: **Returned for revision**
 * Implementation: On main branch
 * Review: ([first
   pitch](https://forums.swift.org/t/pitch-custom-main-and-global-executors/77247))
   ([second pitch](https://forums.swift.org/t/pitch-2-custom-main-and-global-executors/78437))
   ([third pitch](https://forums.swift.org/t/pitch-3-custom-main-and-global-executors/80638))
-  ([review](https://forums.swift.org/t/se-0505-delayed-enqueuing-for-executors/84157))
+  ([review](https://forums.swift.org/t/se-0505-delayed-enqueuing-for-executors/84157)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0505-delayed-enqueuing-for-executors/84705))
 
 ## Introduction
 
