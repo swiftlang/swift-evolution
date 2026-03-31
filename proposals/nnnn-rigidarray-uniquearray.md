@@ -1420,6 +1420,9 @@ extension UniqueArray where Element: ~Copyable {
     capacity: Int? = nil,
     copying contents: some Sequence<Element>
   )
+
+  /// Initializes a new unique array with the specified capacity and no elements.
+  public init(minimumCapacity: Int)
 }
 ```
 
@@ -1576,3 +1579,14 @@ guarantee that the community at a whole will. It’s very possible folks extendi
 just provide the API where `Alloc = SystemAllocator` which like I mentioned
 earlier, is a great default.
 
+### Generalizing `Array` to support noncopyable elements
+
+In the motivation section of the proposal it was explained that `Array`'s copy
+on write behavior is fundamentally incompatible with noncopyable elements.
+However, some folks expressed that `Array` could not have copy on write behavior
+when the element type happened to be noncopyable. From an implementation
+perspective, we don't think we can generalize `Array` at all. Even if we could
+however, `RigidArray` and `UniqueArray` are still useful even with copyable
+elements. These types do not introduce any reference counting, uniqueness
+checks, or implicit copies (on write). The noncopyable nature of these types
+makes them much more predictable for performance.
