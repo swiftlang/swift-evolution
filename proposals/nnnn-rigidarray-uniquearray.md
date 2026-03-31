@@ -9,7 +9,7 @@
 
 ## Summary of changes
 
-We propose to introduce two new array types to the standard library,
+We propose to introduce two new array types to the Standard Library,
 `RigidArray` and `UniqueArray`, that are both capable of storing noncopyable
 elements.
 
@@ -33,7 +33,6 @@ struct File: ~Copyable {
   let fd: UInt32
 
   init(_ path: String) { ... }
-
   deinit {
     close(fd)
   }
@@ -74,7 +73,7 @@ potentially copy or clone a noncopyable element.
 
 ## Proposed solution
 
-The standard library proposes to add two new array types `RigidArray` and
+The Standard Library proposes to add two new array types `RigidArray` and
 `UniqueArray`.
 
 `RigidArray` is a noncopyable, heap allocated, fixed capacity array type, while
@@ -1428,20 +1427,20 @@ extension UniqueArray where Element: ~Copyable {
 
 ## Source compatibility
 
-`RigidArray` and `UniqueArray` are new types within the standard library, so
+`RigidArray` and `UniqueArray` are new types within the Standard Library, so
 source should still be compatible. For developers using these types from
 [swift-collections](https://github.com/apple/swift-collections), those versions
 of these types will still be preferred by the compiler due to the shadowing
-rule for standard library type names.
+rule for Standard Library type names.
 
 ## ABI compatibility
 
-The API introduced in this proposal are purely additive to the standard library's
+The API introduced in this proposal are purely additive to the Standard Library's
 ABI; thus existing ABI is compatible.
 
 ## Implications on adoption
 
-`RigidArray` and `UniqueArray` are new types within the standard library, so
+`RigidArray` and `UniqueArray` are new types within the Standard Library, so
 adopters must use at least the version of Swift that introduced these types.
 For developers using these types from
 [swift-collections](https://github.com/apple/swift-collections), it may make
@@ -1513,7 +1512,7 @@ Adding an allocator generic argument is very reminiscent of how it works with
 
 This approach would require an `Allocator` protocol that custom allocators could
 conform to and provide some `SystemAllocator` that comes by default in the
-standard library (similar to SystemRandomNumberGenerator):
+Standard Library (similar to SystemRandomNumberGenerator):
 
 ```swift
 protocol Allocator {
@@ -1573,7 +1572,7 @@ just be a zero sized type that is a wrapper over `UnsafeMutablePointer.allocate`
 and deallocate, so we can easily copy it. However, in Rust especially there are
 many places where API is only available when the allocator is clonable which
 makes writing the most generic API possible a little more difficult. While the
-folks on the standard library are happy to deal with these challenges, we can’t
+folks on the Standard Library are happy to deal with these challenges, we can’t
 guarantee that the community at a whole will. It’s very possible folks extending
 `UniqueArray` (or other potential future collections) won’t deal with it and
 just provide the API where `Alloc = SystemAllocator` which like I mentioned
