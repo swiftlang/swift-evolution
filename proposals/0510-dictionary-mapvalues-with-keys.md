@@ -3,10 +3,12 @@
 * Proposal: [SE-0510](0510-dictionary-mapvalues-with-keys.md)
 * Authors: [Diana Ma](https://github.com/tayloraswift) (tayloraswift)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active Review (February 3...17, 2026)**
+* Status: **Accepted with modifications**
 * Implementation: [`#86268`](https://github.com/swiftlang/swift/pull/86268)
 * Review: ([pitch](https://forums.swift.org/t/giving-dictionary-mapvalues-access-to-the-associated-key/83904))
   ([review](https://forums.swift.org/t/se-0510-dictionary-mapvalueswithkeys/84547))
+  ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0510-dictionary-mapvalueswithkeys/85124))
+
 
 ## Introduction
 
