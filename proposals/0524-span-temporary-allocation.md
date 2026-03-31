@@ -1,9 +1,9 @@
 # Add `withTemporaryAllocation` using `Output(Raw)Span`
 
-* Proposal: [SE-NNNN](NNNN-span-temporary-allocation.md)
+* Proposal: [SE-0524](0524-span-temporary-allocation.md)
 * Authors: [Max Desiatov](https://github.com/MaxDesiatov)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/douggregor)
+* Status: **Active Review (March 31...April 14, 2026)**
 * Implementation: [swiftlang/swift#85866](https://github.com/swiftlang/swift/pull/85866)
 * Review: ([pitch](https://forums.swift.org/t/pitch-add-withtemporaryallocation-using-output-raw-span/84923))
 
@@ -139,7 +139,7 @@ Here's the implementation walkthrough:
 
 4. **Cleanup**: A `defer` block ensures that upon exit, `finalize(for:)` is
    called on the span to get the count of initialized elements, and then those
-elements are deinitialized via `deinitialize()`.
+   elements are deinitialized via `deinitialize()`.
 
 ### Raw Byte Allocation with `OutputRawSpan`
 
@@ -171,7 +171,7 @@ here's the full walkthrough for completeness:
 
 1. **Allocation**: It calls
    `withUnsafeTemporaryAllocation(byteCount:alignment:)` to obtain a raw byte
-buffer.
+   buffer.
 
 2. **Span Creation**: It creates an `OutputRawSpan` covering the buffer, with
    an `initializedCount` of 0.
@@ -181,8 +181,8 @@ buffer.
 
 4. **Cleanup**: A `defer` block ensures `finalize(for:)` is called to consume
    the span. Since `OutputRawSpan` deals with raw bytes (presumed to be
-`BitwiseCopyable`), no explicit deinitialization call is needed on the buffer
-itself. The temporary memory is automatically deallocated.
+   `BitwiseCopyable`), no explicit deinitialization call is needed on the buffer
+   itself. The temporary memory is automatically deallocated.
 
 ## Source compatibility
 
@@ -217,9 +217,9 @@ undermines usefulness of `async` overloads specifically for these functions.
 
 * **Do nothing**: Users would continue to use the `withUnsafe...` variants and
   manually wrap them in `OutputSpan` or `OutputRawSpan`, replicating the
-boilerplate code proposed here.
+  boilerplate code proposed here.
 
 * **Member of `OutputSpan`/`OutputRawSpan`**: We could make these static
   methods on their respective span types. However, top-level functions better
-match the existing `withUnsafeTemporaryAllocation` and `withExtendedLifetime`
-patterns.
+  match the existing `withUnsafeTemporaryAllocation` and `withExtendedLifetime`
+  patterns.
