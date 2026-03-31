@@ -3,9 +3,9 @@
 * Proposal: [ST-0022](0022-customtestreflectable.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Maarten Engels](https://github.com/maartene/)
-* Status: **Active review**
+* Status: **Active review (March 31st...April 14th, 2026)**
 * Implementation: [swiftlang/swift-testing#1594](https://github.com/swiftlang/swift-testing/pull/1594)
-* Review: ([review]()), ([pitch](https://forums.swift.org/t/pitch-custom-reflection-during-testing/85190))
+* Review: ([review](https://forums.swift.org/t/review-st-0022-custom-reflection-during-testing/85716)), ([pitch](https://forums.swift.org/t/pitch-custom-reflection-during-testing/85190))
 
 ## Introduction
 
