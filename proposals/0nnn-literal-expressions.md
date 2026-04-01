@@ -107,7 +107,7 @@ literal-expression → identifier
 
 The supported binary operators are the arithmetic operators `+`, `-`, `*`, `/`, `%`, the bitwise operators `&`, `|`, `^`, and the shift operators `<<`, `>>`. The supported unary prefix operators are `-`, and `~`. Only the standard library definitions of these operators are recognized; user-defined operators and overloads do not participate in literal expression folding. Operator precedence and associativity follow Swift's standard rules.
 
-The result type must be one of the standard library integer types: `Int`, `Int8`, `Int16`, `Int32`, `Int64`, `UInt`, `UInt8`, `UInt16`, `UInt32`, or `UInt64`.
+The result type must be one of the standard library integer types: `Int`, `Int8`, `Int16`, `Int32`, `Int64`, `Int128`, `UInt`, `UInt8`, `UInt16`, `UInt32`, `UInt64`, or `UInt128`.
 
 ```swift
 let a = 4 * 1024                  // ✅ arithmetic
