@@ -7,131 +7,278 @@
 * Implementation: [swiftlang/swift#87521](https://github.com/swiftlang/swift/pull/87521)
 * Review: ([pitch](https://forums.swift.org/t/pitch-rigidarray-and-uniquearray/85455))
 
+[swift-collections]: https://github.com/apple/swift-collections
+
 ## Summary of changes
 
-We propose to introduce two new array types to the Standard Library,
+We propose to introduce two new array types to the Swift Standard Library,
 `RigidArray` and `UniqueArray`, that are both capable of storing noncopyable
 elements.
 
 ## Motivation
 
-Swift 5.9 introduced noncopyable struct and enums into the language and we've
-steadily been adding more new API that helps support these types. The standard
-library has even implemented noncopyable API like `Atomic` and `Mutex` as well
-as `InlineArray` that can store values of noncopyable types in inline storage.
-One of the areas that's still a sore spot however, is that there are no data
-structures in the standard library itself that support heap allocating a list
-of noncopyable values.
+Swift 5.9 introduced noncopyable struct and enum types into the language and we've
+steadily been adding new API that helps support such types. The Standard
+Library has implemented noncopyable types of its own, like `Atomic` and `Mutex`,
+as well as the `InlineArray` container type that allows storing values of 
+potentially noncopyable types in inline storage. However, the Standard Library 
+is still lacking resizable data structure implementations that 
+support noncopyable elements.
 
-Most users reach for `Array` when it comes to needing to store a list of values
-somewhere that can be readily accessed. `Array` unfortunately does not support
-noncopyable values and its default copy on write (🐮) behavior is quite
-problematic for these kinds of types as well:
+As Swift developers, we reach for `Array` when we need to store a dynamically 
+resizable list of values with efficient operations for accessing them. 
+Unfortunately, the classic  `Array` does not support noncopyable values. There 
+are two ways we could try to shoehorn support for noncopyable elements onto it: 
 
-```swift
-struct File: ~Copyable {
-  let fd: UInt32
+1. One idea is to keep `Array` copyable, and tweak its mutation operations to 
+   ensure uniqueness in some way other than copying noncopyable elements. 
+   For example, we could have mutations trigger a runtime error, or we could add
+   new arguments to mutations that describe specifically how to clone elements. 
+   In practice, neither of these options lead to an acceptable programming 
+   experience.
 
-  init(_ path: String) { ... }
-  deinit {
-    close(fd)
-  }
-}
+2. A (superficially) more attractive idea would be to make `Array` 
+   _conditionally copyable_, depending on the copyability of its elements. 
+   Mutation operations would then need to gain an additional runtime condition 
+   that dispatches to  the copy-on-write path if and only if `Element` happens 
+   to be copyable,  otherwise assuming uniqueness. There are two technical 
+   issues here: 
 
-let file1 = File("file1.txt")
-let file2 = File("file2.md")
+    1. Swift code is currently unable to check whether a type argument is 
+       copyable at runtime, and conditionally copy instances if so.
+    2. The need for such a "conformance" check would add potential overhead to 
+       every array mutation.
+    
+   The first problem is resolvable, but the second would be a difficult one to 
+   swallow -- especially as it would particularly impact generic 
+   contexts that allow `Element` to be noncopyable. The check for
+   copyability needs to be a runtime condition in such contexts: we cannot have 
+   `append` assume unique storage just because it is invoked in a context that 
+   _allows_ noncopyable elements. Even if we decide to spend resources on 
+   improving the optimizer in this area, it wouldn't possible to optimize the 
+   condition away in every case, and consulting the Swift runtime every time
+   a function needs to mutate an array instance seems unlikely to be acceptable.
 
-var a = [file1, file2]
+Obviously, making `Array`'s performance even more tricky to analyze than it
+already is would work directly against the goals of the 
+[Swift Ownership Manifesto][ownership-manifesto], which led to the introduction
+of noncopyable types in the first place. Our goal is not just to have an array
+of noncopyables -- we need to do it with predictably good performance that is
+easy to analyze. 
 
-let file3 = File("file3.swift")
+[ownership-manifesto]: https://github.com/swiftlang/swift/blob/main/docs/OwnershipManifesto.md
 
-// Ok, 'a' is still uniquely referenced so performing this mutation
-// doesn't need to copy on write.
-a.append(file3)
+Beyond its inherent lack of support for noncopyable elements, `Array` has two 
+major sources of unpredictable complexity spikes that make it unpalatable to 
+performance-minded use cases:
 
-var b = a
+1. `Array` has **copy-on-write value semantics**, and it's relatively easy to 
+   mutate a shared copy by accident. Every time we do that, the operation needs 
+   to allocate a full copy of the entire array, turning even "usually" 
+   constant-complexity operations like a simple subscript reassignment into 
+   linear-complexity monsters. Use cases that cannot accept such irregular 
+   performance spikes need to carefully avoid making copies, and 
+   there is no indication if/when they get it wrong.
 
-let file4 = File("file4.tar.gz")
+2. `Array` is a **dynamic data structure**: it implicitly resizes itself as needed 
+   to accommodate the items added to it. This resizing is done by allocating a 
+   brand new buffer of the appropriate size, and copying or moving all existing 
+   elements into it. This happens automatically, and it leaves no mark in the 
+   source: the "same" `append` invocation will run in constant space and time 
+   in most cases, but once in a blue moon it triggers resizing and it suddenly 
+   becomes linear. The geometric growth pattern ensures that `append` will still 
+   average out into "amortized" O(1) complexity, but its _actual_ worse-case 
+   complexity is O(`count`). Use cases that cannot accept such irregular 
+   performance spikes need to go out of their way to reserve enough capacity in 
+   advance, and getting it wrong leads to no obvious error.
 
-// Error!
-b.append(file4)
-```
+These two features aren't inherently wrong -- in fact, they both have highly 
+desirable benefits, as they greatly simplify Swift's programming model. When 
+using `Array`, its copy-on-write value semantics means that copies can be 
+cheaply made, and functions are empowered to hold onto array instances whenever 
+they want, without having to change their interface, or even letting the caller 
+know about it. Similarly, dynamic sizing lets us avoid having to constantly
+think about what how much memory an operation will need to do its job.
 
-Appending to `b` triggers a copy on write on the underlying array buffer, but
-we're holding noncopyable values! This particular example is problematic because
-if we blindly copied the values within the array, then when we go to destroy `b`
-we would call `close` on `file1`, `file2`, and `file3`. Working with these files
-on `a` would all be closed!
+However, when we use Swift in contexts where we need to ensure 
+reliably high performance, then these features tend to get in the way of 
+achieving that, by making it significantly more difficult to analyze or
+guarantee how the code will behave at runtime. 
 
-Storing noncopyable elements in an array means that sharing the array cannot
-mutate the elements unless we can dynamically ensure we have exclusive access to
-the array buffer and we can unique the array buffer to guarantee exclusiveness.
-`Array` can dynamically guarantee it has exclusive access, but it doesn't know
-how to actually unique the buffer if there are noncopyable elements. There are
-no hooks during something like an `.append` call on an array to inform it how to
-potentially copy or clone a noncopyable element.
+Complicating `Array` by bolting even more features onto it is not going to let 
+us succeed here; what we actually need are _additional_ array implementations 
+that are optimized specifically for use cases that require more predictable 
+performance than what `Array` can provide. (Having several implementations for
+the same underlying data structure is not a radical idea; indeed, the Standard
+Library's own `ContiguousArray` and `Foundation`'s `NSArray` are preexisting
+resizable array types, doing away with `Array` features that are undesirable in 
+some contexts: Objective-C bridging and value semantics, respectively.)   
+
+But how many new array types do we need? The two features above are technically 
+orthogonal to each other, and we could independently turn them on or off as 
+needed. This suggests four hypothetical array variants, with one of them being 
+the existing `Array` type:
+
+| | **Noncopyable** | **Copy-on-write** |
+| ---: | :---: | :---: |
+| **Fixed capacity** | ??? | ??? |
+| **Dynamic** | ??? | `Array` |
+
+The primary reason to reach for a fixed-capacity data structure is to avoid 
+implicit allocations, but copy-on-write behavior would be in direct conflict 
+with that. This means we can leave the top right corner empty, leaving us with
+this table.
+
+| | **Noncopyable** | **Copy-on-write** |
+| ---: | :---: | :---: |
+| **Fixed capacity** | ??? | --- |
+| **Dynamic** | ??? | `Array` |
 
 ## Proposed solution
 
-The Standard Library proposes to add two new array types `RigidArray` and
-`UniqueArray`.
+We propose to add two new array types to the Swift Standard Library: 
+`RigidArray` and `UniqueArray`. 
 
-`RigidArray` is a noncopyable, heap allocated, fixed capacity array type, while
-`UniqueArray` is its dynamically resizing variant. `UniqueArray` provides the
-ease-of-use benefits of an automatically self-resizing container type, but that
-inherently comes with the cost of those implicit reallocations -- making it far
-more difficult to reliably reason about how much storage the data structure will
-allocate during its use, and precisely when those allocations may happen. In
-contrast, `RigidArray` requires its storage to be carefully (and explicitly) sized
-in advance; this makes it far more difficult to use, but in exchange its
-operations have much tighter time and space complexity guarantees, making it
-better suited for low-latency or memory-constrained use cases.
+Both of these are true array types, providing familiar array operations: we can 
+append, insert, replace, remove elements, reorder them in arbitrary ways, and 
+quickly access their contents using integer offsets as indices. They both use
+a single, heap-allocated, contiguous memory region as storage, allowing it to 
+be partially initialized, with initialized items collected at the front -- in a 
+nutshell, they implement the classic variable-sized array data structure, just 
+like the preexisting `Array` and `ContiguousArray` types.
 
-In a nutshell, `UniqueArray` gives us a slightly reimagined, ownership-aware
-version of the familiar `Array` type with uniquely held storage. `RigidArray`
-turns that into a fixed-capacity construct that feels quite inflexible (or
-rigid), but its rigidity makes it far more suited for realtime or embedded use.
+### `UniqueArray`
 
-```swift
-var a = UniqueArray<File>()
-a.append(file1)
-a.append(file2)
+`UniqueArray` is a great choice for general high-performance contexts where we
+want to avoid using copy-on-write containers, but we aren't overly concerned 
+about strictly budgeting memory, and we just want a simple, dynamically 
+resizing array type, along the lines of `std::vector` in C++, or `Vec` in Rust.
 
-var b = a
-
-// Ok
-b.append(file3)
-
-// Error: 'a' used after consume
-a.append(file4)
-```
-
-`var b = a` is now a _move_ rather than it copying the `Array` class reference.
-This means that `a` is no longer valid to use. Statically we guarantee that
-`UniqueArray`'s are only _uniquely_ held. Note that `a` doesn't perform
-deinitialization anymore, it has transferred ownership to `b` and once `b` goes
-out of scope we deinitialize the elements.
-
-`RigidArray` shares all of those semantics, but it has a very strict capacity
-limit that will cause it to fatal error the process if one tries to over append
-to it:
+`UniqueArray` gives us an `Array` variant whose storage is always 
+_uniquely held_. This is statically enforced, by declaring `UniqueArray` as a
+noncopyable type: a `UniqueArray` itself can only ever be held by 
+a single variable (stored property, local variable, function argument,
+etc) at any one time, and it can only be mutated through that single variable.
+It is possible to move the array to another variable, but this consumes the 
+original, rendering it unusable/uninitialized. For example, the `var b = a` 
+statement in the example below is a move operation, not a copy:  
 
 ```swift
-var a = RigidArray<Int>(capacity: 2)
-a.append(1)
-a.append(2)
+struct FileHandle: ~Copyable {
+  let fd: UInt32
 
-// Runtime error: out of capacity
-a.append(3)
+  init(reading path: String) throws { fd = try open(path, .read) }
+
+  deinit {
+    try! close(fd)
+  }
+}
+
+let foo = try FileHandle(reading: "foo.txt")
+let bar = try FileHandle(reading: "bar.md")
+
+var a = UniqueArray<FileHandle>()
+a.append(foo) // OK, consumes `foo`
+a.append(bar) // OK, consumes `bar`
+
+var b = a // OK, consumes `a`, moving the array instance into `b`
+
+b.append(try FileHandle(reading: "baz.swift")) // OK
+// `b` now contains open handles for foo.txt, bar.md, and baz.swift
+
+a.append(try FileHandle(reading: "Info.plist")) // error: `a` used after consume (used here)
 ```
 
-This is an extremely important detail. Performance critical contexts that
-cannot sacrifice an implicit allocation from underneath their feet would greatly
-prefer to use `RigidArray` where it's possible to do so. Solutions that try to
-carefully use `UniqueArray` without implicitly allocating will almost certainly
-be met with bugs. `RigidArray` provides this guarantee at the type level. These
-semantics come with concrete time and space complexity guarantees that aren't
-present with `UniqueArray`.
+By virtue of being noncopyable itself, `UniqueArray` is naturally able to hold
+noncopyable elements like the (strictly illustrative) file handles in the 
+example above. Array operations that take elements have been carefully designed
+to take ownership into account, and they have been annotated with 
+`consuming` or `borrowing` keywords to explain how they interact with element 
+ownership. 
+
+As expected of any proper dynamically resizing container, `UniqueArray` relies 
+on a geometric growth curve to ensure acceptable (amortized) performance: when 
+it needs to resize itself, it does so by multiplying its previous capacity by 
+some constant factor, rather than simply growing itself linearly to cover the 
+operation at hand. The growth factor is an internal implementation detail and
+it is subject to change between environments, platforms and Swift releases; it 
+is not user-configurable. 
+
+### `RigidArray`  
+
+For the lowest-level use cases (such as core systems programming, 
+memory-constrained embedded platforms, or realtime contexts), `UniqueArray` is 
+not quite enough: we also have a clear need for a fixed-capacity noncopyable 
+array type.
+
+For example, when we are trying to write Swift code for an environment where 
+available memory is measured in _kilobytes_, we want every allocation to be 
+explicit in the source, so that we are forced to precisely account and budget 
+for it. In these contexts, there is no room for container types that helpfully 
+resize or copy their storage whenever they feel like it -- we are quite happy 
+to give up that flexibility in exchange for careful, pedantic control. 
+`RigidArray` is intended to cater to such use cases; its name reflects its 
+inflexible, _rigid_ nature. 
+
+`RigidArray` instances are always allocated with a specific capacity, and they 
+must operate entirely within that. Consequently, they can become full, when 
+they are no longer able to accommodate any new items. Attempting to add a new 
+value to a full `RigidArray` results in a runtime trap:
+
+```swift
+var c = RigidArray<Int>(capacity: 2)
+print(c.isFull)       // => false
+print(c.freeCapacity) // => 2
+
+c.append(23)
+print(c.isFull)       // => false
+print(c.freeCapacity) // => 1
+
+c.append(42)
+print(c.isFull)       // => true
+print(c.freeCapacity) // => 0
+
+c.append(7) // runtime error: RigidArray capacity overflow 
+```
+
+Treating this as a precondition violation rather than a recoverable error allows
+`RigidArray` to provide the same basic operations as `UniqueArray`. This 
+preserves a path towards unifying them under [an ownership-aware 
+`RangeReplaceableCollection`-like abstraction][RangeReplaceableContainer]. It 
+also avoids the need to over-complicate `RigidArray`'s operations by forcing 
+them to report failure in some recoverable way. 
+
+[RangeReplaceableContainer]: https://github.com/apple/swift-collections/blob/1.4.1/Sources/ContainersPreview/Protocols/Container/RangeReplaceableContainer.swift)),
+
+In practice, overflowing `RigidArray` storage indeed feels like a programmer 
+error: it indicates a misuse of the type, rather than a routine issue. Trying to
+remove the last item from an empty `Array` results in a trap -- and so trying 
+to append one to a full `RigidArray` also naturally results in one.
+
+While `RigidArray` never resizes itself automatically, its capacity is not
+actually part of its type: rigid array instances are in fact arbitrarily 
+resizable using a `reallocate` operation that can be explicitly invoked
+to grow (or shrink) the array's storage: 
+
+```swift
+var d = RigidArray<Int>(capacity: 2)
+d.append(10)
+d.append(20)
+print(d.isFull)       // => true
+print(d.freeCapacity) // => 0
+
+d.reallocate(capacity: 10)
+print(d.isFull)       // => false
+print(d.freeCapacity) // => 8
+
+d.append(30) // OK!
+```
+
+The array allocates precisely as much storage as requested -- neither more nor 
+less. This operation lets us use `RigidArray` to implement wrapper types that 
+implement arrays with arbitrary, custom resizing logic. In fact, `UniqueArray`
+is itself implemented as such.
+
 
 ## Detailed design
 
@@ -175,6 +322,7 @@ present with `UniqueArray`.
 /// For use cases outside of these narrow domains, we generally recommmend
 /// the use of ``UniqueArray`` rather than `RigidArray`. (For copyable elements,
 /// the standard `Array` is an even more convenient choice.)
+@frozen
 public struct RigidArray<Element: ~Copyable>: ~Copyable {}
 
 extension RigidArray: Sendable where Element: Sendable & ~Copyable {}
@@ -208,6 +356,7 @@ extension RigidArray: Sendable where Element: Sendable & ~Copyable {}
 /// resizing array types as a matter of policy. The type `RigidArray` provides
 /// a fixed-capacity array variant that caters specifically for these use cases,
 /// trading ease-of-use for more consistent/predictable execution.
+@frozen
 public struct UniqueArray<Element: ~Copyable>: ~Copyable {}
 
 extension UniqueArray: Sendable where Element: Sendable & ~Copyable {}
@@ -1427,16 +1576,20 @@ extension UniqueArray where Element: ~Copyable {
 
 ## Source compatibility
 
-`RigidArray` and `UniqueArray` are new types within the Standard Library, so
-source should still be compatible. For developers using these types from
-[swift-collections](https://github.com/apple/swift-collections), those versions
-of these types will still be preferred by the compiler due to the shadowing
-rule for Standard Library type names.
+`RigidArray` and `UniqueArray` are new types within the Standard Library; adding
+them is a source compatible change. Developers who currently import these 
+types from [swift-collections] (or define their own types with the same names), 
+the imported/custom types will still work, due to the shadowing rule for 
+Standard Library type names.
 
 ## ABI compatibility
 
-The API introduced in this proposal are purely additive to the Standard Library's
-ABI; thus existing ABI is compatible.
+This proposal is purely additive to the Standard Library's ABI; the addition 
+does not break any existing binary.
+
+The types are proposed to be frozen; this prevents future changes to their 
+representation. (This may be relevant for `UniqueArray`, which may want to 
+keep track of its reserved capacity to implement shrinking.)
 
 ## Implications on adoption
 
@@ -1451,14 +1604,16 @@ deployment nature of having the source from a package.
 
 ### `Clonable`
 
-This proposal, like the [`UniqueBox`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0517-uniquebox.md)
+This proposal, like the [`UniqueBox`][UniqueBox]
 proposal, introduces `clone()` (and `clone(capacity:)`) for both `RigidArray`
 and `UniqueArray`. Clone is an explicit deep copy returning an owned array
 instance for the caller. Note that this API currently requires
 `Element: Copyable`, but this disallows nested 2d arrays
 `UniqueArray<UniqueArray<Int>>` for example. As mentioned in the `UniqueBox`
-proposal, there is a hidden protocol here `Cloneable` that would enable such
-functionality:
+proposal, there is room for a potential `Clonable` protocol here that would 
+enable such functionality:
+
+[UniqueBox]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0517-uniquebox.md
 
 ```swift
 public protocol Cloneable: ~Copyable {
@@ -1466,39 +1621,81 @@ public protocol Cloneable: ~Copyable {
 }
 ```
 
-### Rigid and Unique variants of other standard data structures
+### Rigid and unique variants of other standard data structures
 
-The [swift-collections](https://github.com/apple/swift-collections) package
-defines other flavors of `Set` and `Dictionary` that correlate to the `Rigid`
-and `Unique` semantics defined for the proposed array types here. There's also
-`Deque` variants that would be a potentially welcome change to the standard
-library as well.
+The `Rigid` and `Unique` naming prefixes proposed by this proposal are 
+intended to establish a general naming pattern for container types with similar
+behavior.
 
-* `RigidDeque` and `UniqueDeque`
+The [swift-collections] package
+defines `RigidDeque` and `UniqueDeque` types, implementing ring buffers with
+the same semantics (and intended target audience) as `RigidArray` and 
+`UniqueArray`. The package also comes with ownership-aware prototypes of the 
+standard hashed `Set` and `Dictionary` container types, also using the `Rigid`
+and `Unique` prefixes this way.
 
-* `RigidSet` and `UniqueSet`
-
-* `RigidDictionary` and `UniqueDictionary`
+`RigidDeque`, `UniqueDeque`, `RigidSet`, `UniqueSet`, `RigidDictionary` and 
+`UniqueDictionary` are all potential future additions to the Swift Standard 
+Library.
 
 ### Container protocols
 
 While this proposal does add the `BorrowingSequence` conformance for both of
 the proposed array types, we still aren't ready to propose any container
-protocols on top of it. [swift-collections](https://github.com/apple/swift-collections)
-is currently exploring designs for such a protocol here: https://github.com/apple/swift-collections/blob/main/Sources/ContainersPreview/Protocols/Container.swift
+protocols on top of it. [swift-collections]
+is currently [exploring design approaches for such abstractions][containers]
+
+[containers]: https://github.com/apple/swift-collections/tree/1.4.1/Sources/ContainersPreview/Protocols/Container
 
 ### Literal initialization
 
-The proposed array types are explicitly not `ExpressibleByArrayLiteral`
-regardless of if the element is copyable or not. It feels strange that it would
-work for some cases and not in others. We would need to overhaul the expressible
-protocol for noncopyable elements since that protocol traffics in an `Array`
-which can never support such elements. We could also do a macro based solution
-that desugars to insertions.
+The proposed array types do not conform to `ExpressibleByArrayLiteral`,
+regardless of whether the element is copyable or not. The existing protocol is 
+built around the construction of an `Array` instance through a variadic 
+initializer; this does not (easily) lend itself to generalization, and forcing
+`RigidArray`/`UniqueArray` initialization to go through a temporary `Array` 
+instance would not satisfy the performance goals of these types, even if
+the conformance would be restricted to copyable elements.
+
+One potentially workable way to reformulate array literal initialization 
+would be to express it in terms of the in-place initialization 
+of storage, through populating `OutputSpan` instances over the target type's 
+storage buffer(s):
+
+```swift
+protocol ArrayLiterable: ~Copyable {
+  associatedtype ArrayLiteralElement: ~Copyable
+
+  init<E: Error>(
+    arrayLiteralCount count: Int, 
+    initializingWith initializer: (inout OutputSpan<Element>) throws(E) -> Void
+  ) throws(E)
+}
+```
+
+In this approach, an array initialization expression like `[a, b, c, d]` in 
+type context `T` would get expanded into something like the following 
+pseudocode: 
+
+```swift
+T(arrayLiteralCount: 4) { target in
+  target.append(a)
+  target.append(b)
+  target.append(c)
+  target.append(d)
+}
+```
+
+(This assumes that T has contiguous storage. Allow the initialization of potentially 
+discontiguous target storage is a little trickier, involving an inline array
+of item-returning functions.)
+
+Exploring this or other approaches is expected to be the subject of subsequent
+work. 
 
 ## Alternatives considered
 
-### Allocator arguments
+### Allocator arguments and similar configuration knobs
 
 Since we're proposing new array types, we have the unique (pun intended)
 opportunity to allow these data structures to be allocated with custom allocators.
@@ -1507,8 +1704,8 @@ opportunity to allow these data structures to be allocated with custom allocator
 public struct UniqueArray<Element: ~Copyable, Alloc: Allocator>: ~Copyable {}
 ```
 
-Adding an allocator generic argument is very reminiscent of how it works with
-`std::vector` in C++ and `Vec` in Rust.
+Adding an allocator generic argument is very reminiscent of how container types
+work in C++ and Rust.
 
 This approach would require an `Allocator` protocol that custom allocators could
 conform to and provide some `SystemAllocator` that comes by default in the
@@ -1516,76 +1713,107 @@ Standard Library (similar to SystemRandomNumberGenerator):
 
 ```swift
 protocol Allocator {
-  func allocate<T>(_: T.Type) -> UnsafePointer<T>
+  func allocate<T>(_: T.Type) -> UnsafeMutablePointer<T>
 
-  func deallocate<T>(_: UnsafePointer<T>)
+  func deallocate<T>(_: UnsafeMutablePointer<T>)
 
   ...
 }
 ```
 
-However, this makes working with these types a little more awkward:
+A similar idea would be for `UniqueArray` to support custom growth/shrink rates
+by taking a type argument describing these parameters, perhaps by rolling these
+into static property requirements in a refinement of the `Allocator` protocol. 
+
+However, such type arguments make working with these types quite a bit more 
+awkward:
 
 ```swift
-func foo(with x: borrowing Unique<Int>)
-
-error: generic type 'UniqueArray' specialized with too few type parameters (got 1, but expected 2)
-1 | protocol Allocator {}
-2 | 
-3 | struct UniqueArray<Element: ~Copyable, Alloc: Allocator>: ~Copyable {
-  |        `- note: generic struct 'UniqueArray' declared here
-4 | 
-5 | }
-6 | 
-7 | func foo(with x: borrowing UniqueArray<Int>) {}
-  |                            `- error: generic type 'UniqueArray' specialized with too few type parameters (got 1, but expected 2)
-8 | 
+func foo(_ x: borrowing UniqueArray<Int>)
+// error: generic type 'UniqueArray' specialized with too few type parameters (got 1, but expected 2)
 ```
 
-You could alleviate this with `UniqueArray<Int, some Allocator>` (or an explicit
-generic parameter), but you’ve made working with this type much harder than it
-needs to be. C++ and Rust solve this particular issue with default values for
-generic parameters. So in our original Unique definition we could have:
+C++ and Rust solve this particular issue by allowing generic type parameters
+to provide default values. So in our original Unique definition we could have:
 
 ```swift
-public struct UniqueArray<Element: ~Copyable, Alloc: Allocator = SystemAllocator>: ~Copyable
+public struct UniqueArray<Element: ~Copyable, Alloc: Allocator = SystemAllocator>: ~Copyable {
+  init(allocator: Alloc) { ... }
+}
+
+extension UniqueArray where Allocator == SystemAllocator {
+  init() { self.init(allocator: SystemAllocator()) }
+}
 ```
 
-Which helps working with this type significantly. Again, this is reliant on
-language features that unfortunately do not exist at the time.
+At first glance, this would let us to work with such types with minimal pain. 
+However, this assumes the implementation of a major new language feature that 
+does not currently exist.
 
-All that said, some folks are very hesitant to add default generic parameters
-for a few reasons:
+But an even worse issue has to do with the function `foo(_:)` above. With 
+default type arguments, it would indeed become a valid declaration; but it would
+typically overconstrain its parameter by requiring it to use the system 
+allocator. In fact, that is generally the wrong choice! Functions that borrow
+a unique array have no reason to care what allocator it uses, as they have no
+way to mutate them anyway. `foo` would need to become generic:
 
-* Forgetting to be generic over the allocator could lead to situations where you
-provide API for only the system allocator (which isn’t that bad!). ABI stable
-libraries wouldn’t be able to modify this function definition unless they
-deprecate the old symbol and add a new one (or used `@export(implementation)` to
-begin with).
-* Default values for generic parameters could lead to a worse developer
-experience especially when debugging stack traces. C++ is pretty infamous for
-having ridiculously long specializations that while in source are easy to grok,
-its output in a stack trace is less so.
-* Being generic over an `Allocator` specifically means you now need to care about
-the copyability of the allocator you’re storing. For `SystemAllocator`, it would
-just be a zero sized type that is a wrapper over `UnsafeMutablePointer.allocate`
-and deallocate, so we can easily copy it. However, in Rust especially there are
-many places where API is only available when the allocator is clonable which
-makes writing the most generic API possible a little more difficult. While the
-folks on the Standard Library are happy to deal with these challenges, we can’t
-guarantee that the community at a whole will. It’s very possible folks extending
-`UniqueArray` (or other potential future collections) won’t deal with it and
-just provide the API where `Alloc = SystemAllocator` which like I mentioned
-earlier, is a great default.
+```swift
+func foo(_ x: borrowing UniqueArray<Int, some Allocator>)
+```
+
+So we'd effectively have to spell out the allocator arguments anyway, with the
+extra twist of a new undiagnosed issue if we forget to do that.
+
+For functions that want to consume or mutate arrays, these allocator arguments
+would often need to be named and propagated throughout the code base, 
+polluting interface definitions and obfuscating work. 
+Indeed, such viral type argument pollution is a frequent complaint of C++ 
+programmers. 
+
+Generic type configuration parameters would lead to a worse developer
+experience when debugging code unless we implement major debugger improvements, 
+as stack traces would spell out the full type names, including defaulted 
+arguments. (This is also a frequent issue with C++.)
+
+The `Allocator` abstraction also raises the question of whether conforming 
+implementations need to be copyable, whether their allocate/deallocate methods 
+are marked mutating (and therefore incompatible with concurrent use), and 
+how exactly we expect Swift programmers to implement allocators, anyway. Perhaps
+most crucially, allocators traffic in unsafe pointers -- they would be a very
+prominent plot hole in Swift's memory safety story.  
+
+### Making `RigidArray`/`UniqueArray` share their storage representation with `Array`
+
+As `UniqueArray` is simply a thin wrapper type around a `RigidArray` instance,
+their instances are trivially cross-convertible: we can turn a `RigidArray` into
+`UniqueArray` (or vice versa) with 𝛩(1) complexity initializers.
+
+It would be wonderful if the classic `Array` type would also be part of this
+cross-convertible family. Unfortunately, `Array`'s storage representation is 
+part of its ABI, and is not amenable to changes. It would be inappropriate
+for `RigidArray`/`UniqueArray` to borrow the same representation, as it was built
+around a particular generic class with tail-allocated storage. Using the same
+representation would introduce unnecessary performance overhead in the new 
+low-level types, making them less competitive with similar types in competing
+systems programming languages. Therefore, converting an `Array` instance to
+one of the new types (or vice versa) requires copying/moving elements to newly
+allocated storage in linear time. We do not expect this will be a major issue
+in practice.
 
 ### Generalizing `Array` to support noncopyable elements
 
-In the motivation section of the proposal it was explained that `Array`'s copy
-on write behavior is fundamentally incompatible with noncopyable elements.
-However, some folks expressed that `Array` could not have copy on write behavior
-when the element type happened to be noncopyable. From an implementation
-perspective, we don't think we can generalize `Array` at all. Even if we could
-however, `RigidArray` and `UniqueArray` are still useful even with copyable
-elements. These types do not introduce any reference counting, uniqueness
-checks, or implicit copies (on write). The noncopyable nature of these types
-makes them much more predictable for performance.
+The authors consider copy-on-write value semantics to be a major feature of 
+`Array` and its fellow standard Collection types, and of Swift itself. We 
+currently believe that the idea of dismantling this feature by allowing `Array` 
+to become conditionally noncopyable (or otherwise conditionalizing its 
+copy-on-write behavior) would in fact be working against the goals of Swift's 
+Ownership Manifesto, and it would be wholly impractical in practice.
+
+Any such work would also not negate the need for dedicated the fixed-capacity and
+guaranteed-noncopyable array variants that we propose in this document, either: 
+it would not be appropriate to force developers to use the dynamically 
+resizing, copy-on-write `Array` type just because their `Element` happens to be 
+copyable. There is real, pressing need for a `RigidArray` of integers, or a 
+`UniqueArray` of floats, whether or not `Array` eventually ends up supporting 
+noncopyable contents. That said, this proposal does nothing to rule out such 
+work in the future.   
