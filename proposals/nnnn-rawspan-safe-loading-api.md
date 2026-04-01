@@ -663,8 +663,6 @@ extension CollectionOfOne: ConvertibleFromBytes where Element: ConvertibleFromBy
 
 extension ClosedRange: ConvertibleToBytes where Bound: ConvertibleToBytes {}
 extension Range: ConvertibleToBytes where Bound: ConvertibleToBytes {}
-extension IndexingIterator: ConvertibleFromBytes
-  where Elements: ConvertibleFromBytes, Elements.Index: ConvertibleFromBytes {}
 
 extension PartialRangeFrom: ConvertibleToBytes where Bound: ConvertibleToBytes {}
 extension PartialRangeFrom.Iterator: ConvertibleToBytes
