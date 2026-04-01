@@ -105,24 +105,29 @@ literal-expression → '(' literal-expression ')'
 literal-expression → identifier
 ```
 
-The supported binary operators are the arithmetic operators `+`, `-`, `*`, `/`, `%`, the bitwise operators `&`, `|`, `^`, and the shift operators `<<`, `>>`. The supported unary prefix operators are `-`, and `~`. Only the standard library definitions of these operators are recognized; user-defined operators and overloads do not participate in literal expression folding. Operator precedence and associativity follow Swift's standard rules.
+The supported binary operators are the arithmetic operators `+`, `-`, `*`, `/`, `%`, the wrapping arithmetic operators `&+`, `&-`, `&*`, the bitwise operators `&`, `|`, `^`, the shift operators `<<`, `>>`, and the masking shift operators `&<<`, `&>>`. The supported unary prefix operators are `+`, `-`, and `~`. The non-wrapping arithmetic operators diagnose integer overflow at compile time, while the wrapping forms silently reduce the result modulo the declared type's bit width. The masking shift operators reduce the shift amount modulo the bit width of the result type, matching Swift's runtime semantics. Operator precedence and associativity follow Swift's standard rules.
 
-The result type must be one of the standard library integer types: `Int`, `Int8`, `Int16`, `Int32`, `Int64`, `UInt`, `UInt8`, `UInt16`, `UInt32`, or `UInt64`.
+Operator resolution for literal expressions follows Swift's ordinary name lookup. The compiler identifies the operator callee as it would for any other expression, then verifies that the chosen declaration is a standard library operator on a standard library integer type. If lookup resolves to a user-defined overload, the expression is rejected, even when a matching standard library overload is also in scope. This keeps the fold consistent with runtime execution: a literal expression reduces to the same value that the expression would compute at runtime, and no parallel lookup rule needs to be maintained alongside the standard one.
+
+The result type must be one of the standard library integer types: `Int`, `Int8`, `Int16`, `Int32`, `Int64`, `Int128`, `UInt`, `UInt8`, `UInt16`, `UInt32`, `UInt64`, or `UInt128`.
 
 ```swift
 let a = 4 * 1024                  // ✅ arithmetic
 let b = 1 << 12                   // ✅ bitwise shift
 let c = (0xFF & mask) | base      // ✅ bitwise operators and parentheses
 let d = -1                        // ✅ unary negation
+let w: UInt8 = 250 &+ 10          // ✅ wrapping addition, folds to 4
 let e = Int.max / 2               // ❌ property access
 let f = a +% b                    // ❌ user-defined operator
 ```
 
 ### Variable references in literal expressions
 
-A literal expression may reference another variable by name, given that the referenced variable is a Swift `let` binding with a default initializer which is itself a literal expression. This includes variables declared with `@section`, module-scope and static `let` bindings, and constants imported from C-family languages. For C imports, values visible to the Swift compiler as constant-initialized are resolved to their value so `static const int` declarations and simple `#define` integer macros can participate directly.
+A literal expression may reference another variable by name, given that the referenced variable is a Swift `let` binding with a default initializer which is itself a literal expression. This includes module-scope and static `let` bindings, variables declared with `@section`, `@objc`, or `@c`, and constants imported from C-family languages. For C imports, values visible to the Swift compiler as constant-initialized are resolved to their value so `static const int` declarations and simple `#define` integer macros can participate directly.
 
-References are resolved recursively: when a literal expression references a variable, the compiler folds that variable's initializer to a literal value, then uses the result. A chain of references is followed until a root literal is reached or an initializer is encountered which cannot be constant-folded. No explicit `@const` annotation is required on referenced variables. The compiler infers the constant-foldable property by inspecting the variable's initializer.
+References to variables with `public`, `package`, or `open` access are not permitted in a literal expression. Folding the reference would cause the referenced variable's initializer to become part of the module's ABI surface at every client of the module, which conflicts with this proposal's position that literal expressions introduce no ABI changes. Variables with `internal`, `fileprivate`, or `private` access are all eligible. Lifting the restriction on publicly-visible references is left to a future proposal that introduces an explicit opt-in mechanism, so that authors can choose to publish an initializer as part of their ABI.
+
+References are resolved recursively: when a literal expression references a variable, the compiler folds that variable's initializer to a literal value, then uses the result. A chain of references is followed until a root literal is reached or an initializer is encountered which cannot be constant-folded. No annotation is required on the referenced variable. The compiler infers the constant-foldable property by inspecting the variable's initializer.
 
 ```swift
 let pageSize = 4 * 1024
@@ -249,7 +254,30 @@ let runtimeValue = Int.random(in: 0...100)                // ❌ error: not supp
 
 ## Source compatibility
 
-This proposal is purely additive. It expands the set of accepted expressions in `@section` variable initializers, enum raw values, and integer generic arguments. No existing valid Swift code changes meaning.
+This proposal extends three expression contexts and does not remove or alter any expression form accepted elsewhere. In the common case existing Swift code retains its previous meaning. Two cases deserve explicit discussion.
+
+### Generic argument list disambiguation
+
+The grammar extension that admits `'(' literal-expression ')'` in generic-argument position widens the set of token sequences the parser can accept as a generic argument list. Consider a call site such as:
+
+```swift
+Foo<(a < b, c > .d)>(x)
+```
+
+Under the rules prior to this proposal, `<...>` cannot parse as a generic argument list because the content between the angle brackets is not a bare integer literal. The parser falls back to chained comparison: `(Foo < (a < b, c > .d)) > (x)`. Under the new rule, the parser attempts to interpret the parenthesized content as a type expression first (a tuple type), and only on failure as a literal expression. The tuple-type interpretation fails here because `a < b` and `c > .d` are not types, and the literal-expression interpretation also fails because a tuple is not a literal expression. The parse falls through to the prior behavior, so existing code of this shape continues to mean what it meant before.
+
+Type-expression forms introduced by [SE-0452](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0452-integer-generic-parameters.md), such as `S<(S<()>.X)>`, continue to parse as type arguments under the tuple-first rule.
+
+### Value bindings shadowing type names
+
+A local `let` binding that shadows a type name does not change how a parenthesized identifier resolves in generic-argument position:
+
+```swift
+let Int = 0
+let a: Array<(Int)>    // '(Int)' resolves to the type 'Int', not the local value
+```
+
+The tuple-first disambiguation tries `(Int)` as a type first and succeeds, so the generic argument is the type `Int` and the local `let` binding plays no role. The literal-expression interpretation is only attempted when the parenthesized content cannot be resolved as a type.
 
 ## ABI compatibility
 
@@ -295,9 +323,13 @@ For literal expressions the annotation adds no information the compiler does not
 
 ### Use the term "constant expression" instead of "literal expression"
 
-"Constant expression" is the established term in C and C++, and [SE-0492](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0492-section-control.md) used it for the restricted initializer expressions it introduced. The term "literal expression" was chosen instead because every context this proposal extends currently accepts only a literal value, and the compiler reduces each expression to a single literal value for use in generated code. The name reflects this scoping.
+"Constant expression" is the established term in C and C++, and [SE-0492](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0492-section-control.md) used it for the restricted initializer expressions it introduced. The term "literal expression" was chosen here for two reasons.
 
-"Constant expression" would suggest broader capabilities than this proposal provides. In C++, `constexpr` encompasses function calls, control flow, and user-defined types. Using the term here would set expectations the feature does not meet and create ambiguity with an eventual hypothetical compile-time computation system with a broader set of constant expressions.
+The first is scoping. Every context this proposal extends accepts only a literal value today: an `@section` initializer, an enum case raw value, an integer generic argument. The compiler reduces each expression covered by this proposal to a single literal value, which is then used in generated code in exactly the same way a bare literal would have been. The feature's surface is fundamentally literal-valued, and the name reflects this.
+
+The second is the risk of overpromising. "Constant expression" has a broader meaning in C++, where `constexpr` encompasses user-defined functions, control flow, object construction, and a growing body of standard library operations. Swift is likely to want a term that corresponds to that larger notion once it exists: a general compile-time expression that may reduce to an integer, a floating-point value, a string, a tuple, a frozen struct, or some other compile-time value. Reserving "constant expression" for that broader notion leaves room to describe it precisely when it arrives. Adopting the term for this proposal's feature would anchor it at the narrow end of the spectrum and force later proposals to either repurpose the term or introduce a new one.
+
+The name also communicates what is *not* in scope. A literal expression is an expression that folds to a literal value; control flow, user-defined operators, and compound types are out of scope by construction. A reader who encounters a diagnostic of the form "not a literal expression" receives a concrete description of the restriction, rather than the more elastic promise that "constant expression" would carry.
 
 ## Acknowledgments
 
