@@ -147,6 +147,12 @@ be partially initialized, with initialized items collected at the front -- in a
 nutshell, they implement the classic variable-sized array data structure, just 
 like the preexisting `Array` and `ContiguousArray` types.
 
+These types come included in a new module in the Swift toolchain named
+`Containers`. Like `Collections` from [swift-collections], this module will be
+a home for future data structure implementations like ring buffers. More
+examples of potential data structures are included in
+[future directions](#Rigid-and-unique-variants-of-other-standard-data-structures).
+
 ### `UniqueArray`
 
 `UniqueArray` is a great choice for general high-performance contexts where we
@@ -164,6 +170,8 @@ original, rendering it unusable/uninitialized. For example, the `var b = a`
 statement in the example below is a move operation, not a copy:  
 
 ```swift
+import Containers
+
 struct FileHandle: ~Copyable {
   let fd: UInt32
 
@@ -1817,3 +1825,10 @@ copyable. There is real, pressing need for a `RigidArray` of integers, or a
 `UniqueArray` of floats, whether or not `Array` eventually ends up supporting 
 noncopyable contents. That said, this proposal does nothing to rule out such 
 work in the future.   
+
+### Move these types into the default Swift module
+
+We don't feel as if these types should be included in the default namespace of
+Swift programmers because `Array` should still be everyone's first choice. The
+inclusion of these array types do not supersede `Array`, but are merely
+alternative tools when working in more constrained environments.
