@@ -700,7 +700,7 @@ With the two protocols we have defined, we gain the ability to define a safe fun
 ///   - type: The type to cast `x` to. `type` and the type of `x` must have the
 ///     same size of memory representation and compatible memory layout.
 /// Returns: A new instance of type `U`, cast from `x`.
-func bitCast<T, U>(_ original: T, to: U.self) -> U
+func bitCast<T, U>(_ original: T, to: U.Type) -> U
   where T: ConvertibleToBytes, U: ConvertibleFromBytes
 ```
 
