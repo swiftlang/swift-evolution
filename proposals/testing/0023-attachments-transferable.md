@@ -1,12 +1,11 @@
 # `Transferable` Attachments
 
-* Proposal: [ST-NNNN](NNNN-coretransferable-attachments.md)
+* Proposal: [ST-0023](0023-coretransferable-attachments.md)
 * Authors: [Julia Vashchenko](https://github.com/aronskaya), [Jonathan Grynspan](https://github.com/grynspan)
-* Review Manager: 
-* Status: **Draft**
-* Bug: 
+* Review Manager: [Stuart Montgomery](https://github.com/stmontgomery)
+* Status: **Active review (April 3...April 13, 2026)**
 * Implementation: [swiftlang/swift-testing#1519](https://github.com/swiftlang/swift-testing/pull/1519/)
-* Review: [pitch](https://forums.swift.org/t/pitch-transferable-attachments/85104)
+* Review: ([pitch](https://forums.swift.org/t/pitch-transferable-attachments/85104))
 
 ## Introduction
 
@@ -18,7 +17,7 @@
 
 [ST-0009](https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0009-attachments.md) states: 
 
-> Default implementations are provided for types when they conform to Attachable and either Encodable or NSSecureCoding (or both.)
+> Default implementations are provided for types when they conform to `Attachable` and either `Encodable` or `NSSecureCoding` (or both.)
 
 `Transferable` is similar to `Encodable` and `NSSecureCoding` in a way that it also provides functionality to convert values into data blobs, which makes it a perfect candidate to also have a default implementation in order to simplify the testing logic and move some boilerplate code out of it.
 
@@ -51,7 +50,7 @@ struct Menu: Transferable {
 The new `Attachment` initializer is defined as follows:
 
 ```swift
-@available(macOS 15.2, iOS 18.2, tvOS 18.2, visionOS 2.2, watchOS 11.2, *)
+@available(macOS 15.2, iOS 18.2, tvOS 18.2, visionOS 2.2, watchOS 11.2, visionOS 2.2, *)
 extension Attachment {
   /// Initialize an instance of this type that encloses the given transferable
   /// value.
@@ -108,10 +107,10 @@ None.
 
 * Doing nothing: `Transferable` protocol is adopted widely enough for us to know we want to provide the default implementation for it.
 * An alternative would have been to put this functionality into `CoreTransferable` instead of `Testing`. Since `CoreTransferable` is a closed-source project, it would mean that this implementation's source would be closed as well. We preferred to make it open-source by amending` Testing`.
-* New overload on `Issue.record(_:sourceLocation:)`. Rather than introducing a new initializer on `Attachment`, we considered adding a new overload on `record(_:sourceLocation:)`. This approach was ultimately rejected for the following reasons.
-  Converting a `Transferable` value to an attachable value requires going through `exported(as:)`, which is both async and throwing. Consequently, any overload of `record(_:sourceLocation:)` accepting a `Transferable` value would itself need to be async throws, diverging from the synchronous, non-throwing character of the existing `record(_:sourceLocation:)` API family and placing a burden on call sites that do not require this functionality.
-  The asynchronous nature of `exported(as:)` is intentional: encoding a value into its binary representation can be a costly, time-consuming operation, and performing it synchronously would risk blocking the calling actor. Similarly, the throwing behavior reflects the reality that this conversion can fail for a variety of reasons, which must be surfaced to the caller. Representative failure cases include:
-    * Unsupported content type. The value cannot be encoded into the requested format.
-    * Disk I/O failure. When a value is backed by an on-disk file, materializing it as in-memory data involves file system access, which is inherently fallible.
+* New overload on `Issue.record(_:sourceLocation:)`. Rather than introducing a new initializer on `Attachment`, we considered adding a new overload on `record(_:sourceLocation:)`. This approach was ultimately rejected for the following reasons:
+  * Converting a `Transferable` value to an attachable value requires going through `exported(as:)`, which is both async and throwing. Consequently, any overload of `record(_:sourceLocation:)` accepting a `Transferable` value would itself need to be async throws, diverging from the synchronous, non-throwing character of the existing `record(_:sourceLocation:)` API family and placing a burden on call sites that do not require this functionality.
+  * The asynchronous nature of `exported(as:)` is intentional: encoding a value into its binary representation can be a costly, time-consuming operation, and performing it synchronously would risk blocking the calling actor. Similarly, the throwing behavior reflects the reality that this conversion can fail for a variety of reasons, which must be surfaced to the caller. Representative failure cases include:
+     * Unsupported content type. The value cannot be encoded into the requested format.
+     * Disk I/O failure. When a value is backed by an on-disk file, materializing it as in-memory data involves file system access, which is inherently fallible.
 
-By encapsulating this complexity inside an `Attachment` initializer, the failure and its reason remain local to the site of attachment construction, keeping `record(_:sourceLocation:)` itself simple and uniformly synchronous.
+  By encapsulating this complexity inside an `Attachment` initializer, the failure and its reason remain local to the site of attachment construction, keeping `record(_:sourceLocation:)` itself simple and uniformly synchronous.
