@@ -624,6 +624,23 @@ parameter. This approach was rejected because it severely limited composability.
 difficult to use in isolated contexts. The final design uses
 `nonisolated(nonsending)` to enable better composition while maintaining safety.
 
+### Naming 
+
+Some feedback was posed to name this function around the cancellation behavior;
+along the lines of `withAutomaticTaskCancellation`. This naming does not focus 
+upon the time related qualities of the concept of deadlines, which is the primary
+behavioral aspect of this API. The cancellation behavior is part of the realities
+of how the langauge level concept of cooperative cancellation works and in reading
+the code at a potential call site it is more menaingful to convey the temporal
+nature of a deadline than to convey the cancellation being automatic. Immediately
+the question that would be posed by folks unaware of this new API would be:
+"What automatic mechanism makes that cancellation happen?" rather than realizing
+without ambiguity that a concept of time is involved by knowing it is a deadline.
+
+Since the closure may itself use `withTaskCancellationHandler` or catch cancellation
+errors to return a nullable result or some other partial result it then makes the most
+sense to even avoid names like `withCancellationDeadline`.
+
 ### Previous Incarnations
 
 The clock was originally suggested as a generic clock originally, however when 
