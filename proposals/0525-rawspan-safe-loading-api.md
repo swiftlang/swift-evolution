@@ -1,19 +1,18 @@
 # Safe loading API for `RawSpan`
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0525](0525-rawspan-safe-loading-api.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
-* Previous Proposal: follows [SE-0447][SE-0447]
-* Previous Revision: [pitch 1](https://github.com/glessard/swift-evolution/blob/fdd9b855befea7071c43b774330a02b9cc173174/proposals/nnnn-rawspan-safe-loading-api.md)
-* Review: ([pitch 1](https://forums.swift.org/t/83966)), ([pitch 2](https://forums.swift.org/t/84144))
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Active review (Apr 3...16, 2026)**
+* Related Proposals: [SE-0447](0447-span-access-shared-contiguous-storage.md)
+* Review: ([pitch 1](https://forums.swift.org/t/83966)) ([pitch 2](https://forums.swift.org/t/84144))
 
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
 [swift-binary-parsing]: https://github.com/apple/swift-binary-parsing
 
-## Introduction
+## Summary of changes
 
-We propose the introduction of a set of safe API to load and store values of certain safe types from the memory represented by `RawSpan`, `MutableSpan` and `OutputRawSpan` instances. This will bolster the value of Swift in contexts where a process needs the ability to send data to other running processes via untyped buffers, as well as provide a set of building blocks for parsing utilities.
+We introduce a set of safe API to load and store values of certain safe types from the memory represented by `RawSpan`, `MutableSpan` and `OutputRawSpan` instances. This will bolster the value of Swift in contexts where a process needs the ability to send data to other running processes via untyped buffers, as well as provide a set of building blocks for parsing utilities.
 
 ## Motivation
 
