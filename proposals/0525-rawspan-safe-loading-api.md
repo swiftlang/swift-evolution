@@ -3,7 +3,7 @@
 * Proposal: [SE-0525](0525-rawspan-safe-loading-api.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Active Review (Apr 3...16, 2026)**
+* Status: **Active Review (April 3...16, 2026)**
 * Implementation: [swiftlang/swift#88304](https://github.com/swiftlang/swift/pull/88304)
 * Related Proposals: [SE-0447](0447-span-access-shared-contiguous-storage.md)
 * Review: ([pitch 1](https://forums.swift.org/t/83966)) ([pitch 2](https://forums.swift.org/t/84144)) ([review](https://forums.swift.org/t/se-0525-safe-loading-api-for-rawspan/85811))
