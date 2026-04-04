@@ -1,6 +1,6 @@
 # `Transferable` Attachments
 
-* Proposal: [ST-0023](0023-coretransferable-attachments.md)
+* Proposal: [ST-0023](0023-attachments-transferable.md)
 * Authors: [Julia Vashchenko](https://github.com/aronskaya), [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Stuart Montgomery](https://github.com/stmontgomery)
 * Status: **Active review (April 3...April 13, 2026)**
