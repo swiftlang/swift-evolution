@@ -5,7 +5,7 @@
 * Review Manager: [Stuart Montgomery](https://github.com/stmontgomery)
 * Status: **Active review (April 3...April 13, 2026)**
 * Implementation: [swiftlang/swift-testing#1519](https://github.com/swiftlang/swift-testing/pull/1519/)
-* Review: ([pitch](https://forums.swift.org/t/pitch-transferable-attachments/85104))
+* Review: ([pitch](https://forums.swift.org/t/pitch-transferable-attachments/85104)) ([review](https://forums.swift.org/t/st-0023-transferable-attachments/85815))
 
 ## Introduction
 
