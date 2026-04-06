@@ -377,10 +377,10 @@ without needing the deadline to be directly passed.
 
 ### Implementation Details
 
-The implementation uses structured concurrency with task groups to race the
+The current implementation uses structured concurrency with task groups to race the
 operation against a deadline timer:
 
-1. Two tasks are created: one executes the operation, the other sleeps until the
+1. Two child tasks are created: one executes the operation, the other sleeps until the
    deadline.
 2. The first task to complete determines the result.
 3. When either task completes, `cancelAll()` cancels the other task.
@@ -388,11 +388,17 @@ operation against a deadline timer:
    waits for it to return.
 5. The function handles both the operation's result and any errors thrown.
 
-**Important behavioral note:** The function cancels the operation when the
-deadline expires, but waits for the operation to return. This means
-`withDeadline` may run longer than the time until the deadline if the operation
-doesn't respond to cancellation immediately. This design ensures proper cleanup
-and prevents resource leaks from abandoned tasks.
+**Important behavioral notes:** 
+ - The function cancels the operation when the deadline expires, but waits for the 
+operation to return. This means `withDeadline` may run longer than the time until 
+the deadline if the operation doesn't respond to cancellation immediately. This 
+esign ensures proper cleanup and prevents resource leaks from abandoned tasks.
+ - The current implementation is replacable with a version that would work with 
+lower level intrinsics. This is outlined in the future directions section around
+the interoperation with executors.
+ - The currnt behavior is not exposed as ABI (not inlined) so that can be modified 
+at any point in time since the only behavior constraint is upon the behavior of 
+the user provided closure that is executed.
 
 Users who wish to adjust behaviors can use the task cancellation shields to 
 alter the behavior of the return values along with task cancellation handlers.
