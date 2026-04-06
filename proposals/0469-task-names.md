@@ -3,9 +3,9 @@
 * Proposal: [SE-0469](0469-task-names.md)
 * Authors: [Konrad Malawski](https://github.com/ktoso), [Harjas Monga](https://github.com/Harjas12)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Implemented (Swift 6.2)**
+* Status: **Implemented (Swift 6.2)** except for the amendment
 * Implementation: [swiftlang/swift#79600](https://github.com/swiftlang/swift/pull/79600)
-* Review: ([pitch](https://forums.swift.org/t/pitch-task-naming-api/76115)) ([review](https://forums.swift.org/t/se-0469-task-naming/78509)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0469-task-naming/79438))
+* Review: ([pitch](https://forums.swift.org/t/pitch-task-naming-api/76115)) ([review](https://forums.swift.org/t/se-0469-task-naming/78509)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0469-task-naming/79438)) ([amendment pitch](https://forums.swift.org/t/amend-se-0469-task-names-to-include-instance-property/85460)) ([amendment acceptance](https://forums.swift.org/t/amended-se-0469-task-naming/85841))
 
 ## Introduction
 
@@ -94,17 +94,33 @@ These APIs would be added to all kinds of task groups, including throwing, disca
 > Concurrently under review with this proposal is the `Task.startSynchronously` (working name, pending changes) proposal;
 > If both this and the synchronous starting tasks proposals are accepted, these APIs would also gain the additional `name: String? = nil` parameter.
 
-In addition to that, it will be possible to read a name off a task, similar to how the current task's priority is possible to be read:
+### Accessing task names
+
+In addition to that, it will be possible to read a name off a task, similar to how the current task's priority is possible to be read.
+
+A static property is introduced on Task to get the name of the current task:
 
 ```swift
 extension Task {
   static var name: String? { get } 
+}
+```
+
+And properties on `Task` and `UnsafeCurrentTask` allow reading names off task references:
+
+```swift
+extension Task { 
+  var name: String? { get }
 }
 
 extension UnsafeCurrentTask { 
   var name: String? { get }
 }
 ```
+
+It is always safe to access the name of a `Task`, and the name remains available even if the task's execution has "completed". 
+
+Safety guarantees of the `UnsafeCurrentTask.name` are the same as all other properties on the unsafe task type: the unsafe task reference does not keep alive the underlying task object, and therefore attempting to access the name of a deallocated task may result in undefined behavior (as the `Unsafe...` prefix implies). 
 
 ### `UnsafeCurrentTask` access from `UnownedJob`
 
@@ -270,3 +286,9 @@ Task(category: "Networking", name: "download profile image for \(userID)) { ... 
 Then a debugger than wanted to print all the tasks running when a break point is hit, it could group them by this optional “Networking” category.
 
 This is not in the actual proposal in order to keep the API simple and doesn’t add much additional value over a simple name.
+
+## Changelog
+
+### Amendment: `name` property on Task
+
+- The original proposal missed to introduce a `name` property. This was determined an oversight and later applied as an amendment.
