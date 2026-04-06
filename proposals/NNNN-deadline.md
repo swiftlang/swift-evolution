@@ -382,7 +382,7 @@ of the deadline.
 2. The first event between the closure and the timing determines the result.
 3. When either the expiration happens such that the deadline is hit or the user 
 specified closure is done, the unfinished part of the execution is cancelled.
-4. If the dedine expires first, the operation is cancelled but the function waits
+4. If the deadline expires first, the operation is cancelled but the function waits
  for it to return.
 5. The function handles both the operation's result and any errors thrown.
 
@@ -578,7 +578,7 @@ some modification around cancellation of jobs could be added to allow
 executors to more efficiently handle deadlines.
 
 There are potentials of exposing the underlying structured concurrency primitives
-to enable APIs like `withDeadline`. This has a precident in other langauges
+to enable APIs like `withDeadline`. This has a precedent in other languages
 and is often called `race`. Introducing the `withDeadline` API does not preclude
 that as an eventuality and lends credence to the utility of having that as 
 a general purpose feature, however offering the more primitive functionality 
@@ -627,8 +627,8 @@ Some feedback was posed to name this function around the cancellation behavior;
 along the lines of `withAutomaticTaskCancellation`. This naming does not focus 
 upon the time related qualities of the concept of deadlines, which is the primary
 behavioral aspect of this API. The cancellation behavior is part of the realities
-of how the langauge level concept of cooperative cancellation works and in reading
-the code at a potential call site it is more menaingful to convey the temporal
+of how the language level concept of cooperative cancellation works and in reading
+the code at a potential call site it is more meaningful to convey the temporal
 nature of a deadline than to convey the cancellation being automatic. Immediately
 the question that would be posed by folks unaware of this new API would be:
 "What automatic mechanism makes that cancellation happen?" rather than realizing
@@ -645,5 +645,5 @@ moving to a composable interface the clock was made to be concrete to the
 `ContinousClock`. This ended up being too restrictive so that was relaxed to
 where a generic clock was used but restricted to a clock with the `Instant.Duration`
 that is `Swift.Duration`. This constraint allows for the composition of expirations
-and in the cases of differing clocks an aproximation of the expiry is made by
+and in the cases of differing clocks an approximation of the expiry is made by
 using the delta from now as an offset.
