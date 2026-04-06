@@ -375,35 +375,26 @@ Both of these APIs have the intent to be used for composition, for example if a 
 to communicate a deadline to some other system it can use these properties to relay that information 
 without needing the deadline to be directly passed.
 
-### Implementation Details
+### Behavioral Details
 
-The current implementation uses structured concurrency with task groups to race the
-operation against a deadline timer:
-
-1. Two child tasks are created: one executes the operation, the other sleeps until the
-   deadline.
-2. The first task to complete determines the result.
-3. When either task completes, `cancelAll()` cancels the other task.
-4. If the deadline expires first, the operation is cancelled but the function
-   waits for it to return.
+1. The user specified closure runs concurrently to the timing of the expiration 
+of the deadline.
+2. The first event between the closure and the timing determines the result.
+3. When either the expiration happens such that the deadline is hit or the user 
+specified closure is done, the unfinished part of the execution is cancelled.
+4. If the dedine expires first, the operation is cancelled but the function waits
+ for it to return.
 5. The function handles both the operation's result and any errors thrown.
 
-**Important behavioral notes:** 
- - The function cancels the operation when the deadline expires, but waits for the 
+The function cancels the operation when the deadline expires, but waits for the 
 operation to return. This means `withDeadline` may run longer than the time until 
 the deadline if the operation doesn't respond to cancellation immediately. This 
-esign ensures proper cleanup and prevents resource leaks from abandoned tasks.
- - The current implementation is replacable with a version that would work with 
-lower level intrinsics. This is outlined in the future directions section around
-the interoperation with executors.
- - The currnt behavior is not exposed as ABI (not inlined) so that can be modified 
-at any point in time since the only behavior constraint is upon the behavior of 
-the user provided closure that is executed.
+design ensures proper cleanup and prevents resource leaks from abandoned tasks.
 
-Users who wish to adjust behaviors can use the task cancellation shields to 
-alter the behavior of the return values along with task cancellation handlers.
-These in conjunction with manual processing of do/catch clauses can compose 
-to complex behaviors needed for many specialized scenarios.
+Users who wish to adjust behaviors can use the task cancellation shields and/or 
+task cancellation handlers to alter the behavior of the return values. These in 
+conjunction with manual processing of do/catch clauses can compose to complex 
+behaviors needed for many specialized scenarios.
 
 #### Behaviors for Cancellation and Expiration
 
