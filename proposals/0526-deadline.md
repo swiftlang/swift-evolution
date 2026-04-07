@@ -1,10 +1,11 @@
 # Deadline
 
-* Proposal: [NNNN](NNNN-deadline.md)
+* Proposal: [SE-0526](0526-deadline.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch), [Philippe Hausler](https://github.com/phausler), [Konrad Malawski](https://github.com/ktoso)
-* Status: **Awaiting implementation**
-* Review Manager: TBD
-* Pitch Thread: https://forums.swift.org/t/pitch-withdeadline/85262
+* Status: **Awaiting review**
+* Implementation: https://github.com/swiftlang/swift/pull/88323
+* Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
+* Review: ([pitch](https://forums.swift.org/t/pitch-withdeadline/85262))
 
 ## Introduction
 
