@@ -3,9 +3,9 @@
 * Proposal: [SE-0516](0516-borrowing-sequence.md)
 * Authors: [Nate Cook](https://github.com/natecook1000), [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Active review (March 3 - March 17, 2026)**
+* Status: **Returned for revision**
 * Implementation: [swiftlang/swift#86811](https://github.com/swiftlang/swift/pull/86811), [swiftlang/swift#87483](https://github.com/swiftlang/swift/pull/87483)
-* Review: ([pitch](https://forums.swift.org/t/pitch-borrowing-sequence/84332)) ([review](https://forums.swift.org/t/se-0516-borrowing-sequence/85122))
+* Review: ([pitch](https://forums.swift.org/t/pitch-borrowing-sequence/84332)) ([review](https://forums.swift.org/t/se-0516-borrowing-sequence/85122)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0516-borrowing-sequence/85846))
 
 ## Summary of changes
 
