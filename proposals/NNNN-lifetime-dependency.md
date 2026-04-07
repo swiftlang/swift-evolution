@@ -343,7 +343,7 @@ We've discussed how a non-`Escapable` result must be destroyed before the source
   let a1: [Int] = ...
   var span = a1.span
   let a2: [Int] = ...
-  mayReassign(span: &span, to: a2)
+  mayReassign(span: &span, to: a2.span)
   // 'span' now depends on both 'a1' and 'a2'.
 ```
 
