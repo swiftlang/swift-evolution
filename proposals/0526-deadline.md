@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0526](0526-deadline.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch), [Philippe Hausler](https://github.com/phausler), [Konrad Malawski](https://github.com/ktoso)
-* Status: **Awaiting review**
+* Status: **Active Review (April 6...20, 2026)**
 * Implementation: https://github.com/swiftlang/swift/pull/88323
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
 * Review: ([pitch](https://forums.swift.org/t/pitch-withdeadline/85262)) ([review](https://forums.swift.org/t/se-0526-withdeadline/85850))
