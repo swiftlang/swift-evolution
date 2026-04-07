@@ -3,7 +3,7 @@
 * Proposal: [SE-0509](0509-swift-sboms-via-swiftpm.md)
 * Authors: [Ev Cheng](https://github.com/echeng3805)
 * Review Manager: [Franz Busch](https://github.com/FranzBusch)
-* Status: **Accepted**
+* Status:  **Implemented (Swift 6.4)**
 * Implementation: [swiftlang/swift-package-manager#9633](https://github.com/swiftlang/swift-package-manager/pull/9633)
 * Review: ([pitch](https://forums.swift.org/t/pitch-software-bill-of-materials-sbom-generation-for-swift-package-manager/83499)) ([review](https://forums.swift.org/t/se-0509-software-bill-of-materials-sbom-generation-for-swift-package-manager/84516)) ([acceptance](https://forums.swift.org/t/accepted-se-0509-software-bill-of-materials-sbom-generation-for-swift-package-manager/85045))
 
@@ -105,8 +105,8 @@ Additionally, users can specify the following optional flags (which must appear 
 SBOM filters help address the following use cases:
 
 - **All packages and products**: The SBOM is an exhaustive inventory of packages and products for a root product or root package. Developers who need to know what products are used and also what packages the products come from (e.g., provenance information) can use these comprehesive SBOMs, since they provide more information.
-- **Package-only**: Some CVE vulnerabilities are disclosed at a package-level. For developers who are trying to remediate vulnerabilities, the package-only SBOM is advantageous because it's less noisy. Also, packages are the unit that are updated, so SBOMs can help developers plan which packages need to be updated. 
-- **Product-only**: Product-only SBOMs help developers understand what products an application depends on at runtime; they can see which specific products from dependent packages are built and shipped with their own applications. 
+- **Package-only**: Some CVE vulnerabilities are disclosed at a package-level. For developers who are trying to remediate vulnerabilities, the package-only SBOM is advantageous because it's less noisy. Also, packages are the unit that are updated, so SBOMs can help developers plan which packages need to be updated.
+- **Product-only**: Product-only SBOMs help developers understand what products an application depends on at runtime; they can see which specific products from dependent packages are built and shipped with their own applications.
 
 #### Configuration
 
@@ -135,8 +135,8 @@ warning: "`generate-sbom` subcommand creates SBOM(s) based on modules graph only
 ```
 
 The user will have the option to pass `--disable-automatic-resolution` to force SBOM generation to fail if the `Package.resolved` is not up-to-date.
- 
-Note: Using the package subcommand without `--disable-automatic-resolution` can result in dependency resolution timing issues. There is an edge case where an artifact is built, the dependency graph changes, and then the SBOM is generated. In that case, the SBOM will not accurately reflect the built artifact’s components and dependencies. 
+
+Note: Using the package subcommand without `--disable-automatic-resolution` can result in dependency resolution timing issues. There is an edge case where an artifact is built, the dependency graph changes, and then the SBOM is generated. In that case, the SBOM will not accurately reflect the built artifact’s components and dependencies.
 
 #### CLI Examples
 
@@ -187,7 +187,7 @@ If `SwiftBuild` is specified and the build dependency graph is used, then only u
 **Components**
 * Component CycloneDX type or package SPDX purpose (application or library)
   * For a Swift package, if there is at least one product that is an executable, the package is considered an SBOM `application` component; else it is an SBOM `library` component. Test products are not considered.
-  * For a Swift product, if it is a Swift executable product, it will be considered an SBOM `application` component; else the product is an SBOM `library` component. 
+  * For a Swift product, if it is a Swift executable product, it will be considered an SBOM `application` component; else the product is an SBOM `library` component.
 * Name
 * Version, either a version tag or SHA
 * Package URL (PURL) for unique identification
@@ -568,7 +568,7 @@ Some future features that can be added include:
 * **[Additional information](https://github.com/swiftlang/swift-package-manager/issues/9718)**: Maintainers’ contact information, commit/forking history, additional build metadata (e.g., host, operating system)
 * **[Additional file formats](https://github.com/swiftlang/swift-package-manager/issues/9719)**: XML, TV, YAML. XML is a format supported by both specs; however, XML is not the preferred format for either CycloneDX or SPDX.
 * **Additional spec versions**: CycloneDX 2, SPDX 4 when available
-* **[Merged SBOMs](https://github.com/swiftlang/swift-package-manager/issues/9720)**: Generate one SBOM for multiple products/targets, merge or link existing SBOM (e.g., from a third-party SDK) into output SBOM. At the least, this requires a common output location for SBOMs, as well as SBOM parsing capabilities. 
+* **[Merged SBOMs](https://github.com/swiftlang/swift-package-manager/issues/9720)**: Generate one SBOM for multiple products/targets, merge or link existing SBOM (e.g., from a third-party SDK) into output SBOM. At the least, this requires a common output location for SBOMs, as well as SBOM parsing capabilities.
 * **Independent CycloneDX and SPDX libraries**: For parsing CycloneDX/SPDX files, or supporting other fields besides the bare minimum
 * **[Package.resolved generation](https://github.com/swiftlang/swift-package-manager/issues/9721)**: Generate a `Package.resolved` file based on an SBOM in order to reproduce a dependency graph (e.g., for debugging)
 * **[SBOM signing](https://github.com/swiftlang/swift-package-manager/issues/9722)**: Sign the SBOM cryptographically to link it to an artifact
@@ -600,7 +600,7 @@ Then, for either the specified product, or for all products in the root package:
    - While `productsToProcess` is not empty:
      - Remove product from queue and add to `processedProducts`. This is the `currentlyProcessedProduct`.
      - Add relationship: root package depends on `currentlyProcessedProduct`'s package (if it's not the root package -- products within the same root package shouldn't depend on each other)
-     - Get `currentlyProcessedProduct`'s dependencies based on the SwiftBuild build graph. If the build graph isn't available, fall back to the resolved modules graph. 
+     - Get `currentlyProcessedProduct`'s dependencies based on the SwiftBuild build graph. If the build graph isn't available, fall back to the resolved modules graph.
      - For each dependency:
        - **If it's a product `dependentProduct`**: If not in `processedProducts`, then add `dependentProduct` to `productsToProcess` (so its own dependencies can be processed). Also:
           - Add relationship:`currentlyProcessedProduct` → `dependentProduct` (if from different packages)
