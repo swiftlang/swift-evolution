@@ -389,8 +389,27 @@ extension MutableRawSpan {
   ///   - count: The number of copies of `value` to append to this span.
   ///   - type: The type of the instance to store.
   mutating func storeBytes<T>(
-    repeating repeatedValue: T, count: Int, as type: T.Type
+    repeating repeatedValue: T,
+    count: Int,
+    as type: T.Type
   ) where T: BitwiseCopyable
+
+  /// Stores a value's bytes repeatedly into this span's memory.
+  ///
+  /// There must be at least `count * MemoryLayout<T>.stride` bytes
+  /// available in the span.
+  ///
+  /// - Parameters:
+  ///   - repeatedValue: The value to store as raw bytes.
+  ///   - count: The number of copies of `value` to append to this span.
+  ///   - type: The type of the instance to store.
+  ///   - byteOrder: The order in which the bytes will be encoded to the span.
+  mutating func storeBytes<T>(
+    repeating repeatedValue: T,
+    count: Int,
+    as type: T.Type,
+    _ byteOrder: ByteOrder
+  ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
 
   /// Returns a value constructed from the raw memory at the specified offset.
   ///
@@ -470,7 +489,8 @@ extension OutputRawSpan {
   ///   - value: The value to store as raw bytes.
   ///   - type: The type of the instance to create.
   mutating func append<T>(
-    _ value: T, as type: T.Type,
+    _ value: T,
+    as type: T.Type
   ) where T: ConvertibleToBytes & BitwiseCopyable
 
   /// Appends a value's bytes to the span's memory.
@@ -483,7 +503,9 @@ extension OutputRawSpan {
   ///   - type: The type of the instance to create.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
   mutating func append<T>(
-    _ value: T, as type: T.Type, _ byteOrder: ByteOrder
+    _ value: T,
+    as type: T.Type,
+    _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
   
   /// Appends the given value's bytes repeatedly to this span's bytes.
@@ -496,9 +518,28 @@ extension OutputRawSpan {
   ///   - count: The number of copies of `value` to append to this span.
   ///   - type: The type of the instance to create.
   mutating func append<T>(
-    repeating repeatedValue: T, count: Int, as type: T.Type
+    repeating repeatedValue: T,
+    count: Int,
+    as type: T.Type
   ) where T: ConvertibleToBytes & BitwiseCopyable
 
+  /// Appends the given value's bytes repeatedly to this span's bytes.
+  ///
+  /// There must be at least `count * MemoryLayout<T>.stride` bytes
+  /// available in the span.
+  ///
+  /// - Parameters:
+  ///   - value: The value to store as raw bytes.
+  ///   - count: The number of copies of `value` to append to this span.
+  ///   - type: The type of the instance to create.
+  ///   - byteOrder: The order in which the bytes will be encoded to the span.
+  mutating func append<T>(
+    repeating repeatedValue: T,
+    count: Int,
+    as type: T.Type,
+    _ byteOrder: ByteOrder
+  ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
+  
   /// Append to the span as elements of a specific type.
   ///
   /// There must be at least `n * MemoryLayout<T>.stride` bytes
@@ -700,7 +741,7 @@ With the two protocols we have defined, we gain the ability to define a safe fun
 ///   - type: The type to cast `x` to. `type` and the type of `x` must have the
 ///     same size of memory representation and compatible memory layout.
 /// Returns: A new instance of type `U`, cast from `x`.
-func bitCast<T, U>(_ original: T, to: U.self) -> U
+func bitCast<T, U>(_ original: T, to: U.Type) -> U
   where T: ConvertibleToBytes, U: ConvertibleFromBytes
 ```
 
