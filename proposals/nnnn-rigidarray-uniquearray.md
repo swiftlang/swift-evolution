@@ -256,7 +256,7 @@ preserves a path towards unifying them under [an ownership-aware
 also avoids the need to over-complicate `RigidArray`'s operations by forcing 
 them to report failure in some recoverable way. 
 
-[RangeReplaceableContainer]: https://github.com/apple/swift-collections/blob/1.4.1/Sources/ContainersPreview/Protocols/Container/RangeReplaceableContainer.swift)),
+[RangeReplaceableContainer]: https://github.com/apple/swift-collections/blob/1.4.1/Sources/ContainersPreview/Protocols/Container/RangeReplaceableContainer.swift
 
 In practice, overflowing `RigidArray` storage indeed feels like a programmer 
 error: it indicates a misuse of the type, rather than a routine issue. Trying to
@@ -701,7 +701,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
   /// - Parameter index: A valid index of the array. On return, `index` is
-  ///    set to `limit` if
+  ///    set to the resulting position.
   /// - Parameter n: The distance to offset `index`.
   ///    On return, `n` is set to zero if the operation succeeded without
   ///    hitting the limit; otherwise, `n` reflects the number of steps that
@@ -728,7 +728,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// If the rigid array does not have sufficient capacity to hold any more
   /// elements, then this triggers a runtime error.
   ///
-  /// If the unqiue array does not have sufficient capacity to hold any more
+  /// If the unique array does not have sufficient capacity to hold any more
   /// elements, then this reallocates the array's storage to grow its capacity,
   /// using a geometric growth rate.
   ///
@@ -743,7 +743,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// If the rigid array does not have sufficient capacity to store the new items in
   /// the buffer, then this triggers a runtime error.
   ///
-  /// If the unqieu array does not have sufficient capacity to hold the requested
+  /// If the unique array does not have sufficient capacity to hold the requested
   /// number of new elements, then this reallocates the array's storage to
   /// grow its capacity, using a geometric growth rate.
   ///
@@ -828,7 +828,7 @@ extension [Rigid|Unique]Array where Element: Copyable {
   /// If the rigid array does not have sufficient capacity to hold all items in
   /// the buffer, then this triggers a runtime error.
   ///
-  /// If the unqiue array does not have sufficient capacity to hold enough elements,
+  /// If the unique array does not have sufficient capacity to hold enough elements,
   /// then this reallocates the array's storage to extend its capacity, using
   /// a geometric growth rate.
   ///
@@ -887,7 +887,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// If the rigid array does not have sufficient capacity to hold any more elements,
   /// then this triggers a runtime error.
   ///
-  /// If the unqieu array does not have sufficient capacity to hold any more elements,
+  /// If the unique array does not have sufficient capacity to hold any more elements,
   /// then this reallocates storage to extend its capacity, using a geometric
   /// growth rate.
   ///
@@ -965,7 +965,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// If the capacity of the rigid array isn't sufficient to accommodate the new
   /// elements, then this method triggers a runtime error.
   ///
-  /// If the unqiue array does not have sufficient capacity to hold enough elements,
+  /// If the unique array does not have sufficient capacity to hold enough elements,
   /// then this reallocates the array's storage to extend its capacity, using a
   /// geometric growth rate.
   ///
@@ -1008,7 +1008,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
 }
 
 extension [Rigid|Unique]Array where Element: Copyable {
-  /// Copyies the elements of a fully initialized buffer pointer into this
+  /// Copies the elements of a fully initialized buffer pointer into this
   /// array at the specified position.
   ///
   /// The new elements are inserted before the element currently at the
@@ -1036,7 +1036,7 @@ extension [Rigid|Unique]Array where Element: Copyable {
     copying newElements: UnsafeBufferPointer<Element>, at index: Int
   )
 
-  /// Copyies the elements of a fully initialized buffer pointer into this
+  /// Copies the elements of a fully initialized buffer pointer into this
   /// array at the specified position.
   ///
   /// The new elements are inserted before the element currently at the
@@ -1049,7 +1049,7 @@ extension [Rigid|Unique]Array where Element: Copyable {
   /// If the capacity of the rigid array isn't sufficient to accommodate the new
   /// elements, then this method triggers a runtime error.
   ///
-  /// If the unqiue array does not have sufficient capacity to hold enough elements,
+  /// If the unique array does not have sufficient capacity to hold enough elements,
   /// then this reallocates the array's storage to extend its capacity, using a
   /// geometric growth rate.
   ///
@@ -1218,7 +1218,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// If the rigid array does not have sufficient capacity to accommodate the new
   /// elements, then this method triggers a runtime error.
   ///
-  /// If the unqiue array does not have sufficient capacity to perform the replacement,
+  /// If the unique array does not have sufficient capacity to perform the replacement,
   /// then this reallocates storage to extend its capacity, using a geometric
   /// growth rate.
   ///
@@ -1368,7 +1368,7 @@ extension [Rigid|Unique]Array where Element: Copyable {
   /// If the capacity of the rigid array isn't sufficient to accommodate the new
   /// elements, then this method triggers a runtime error.
   ///
-  /// If the capacity of the unqiue array isn't sufficient to perform the replacement,
+  /// If the capacity of the unique array isn't sufficient to perform the replacement,
   /// then this reallocates the array's storage to extend its capacity, using a
   /// geometric growth rate.
   ///
