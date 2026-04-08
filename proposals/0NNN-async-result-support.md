@@ -18,7 +18,7 @@ The existing `Result.init(catching:)` initializer is a useful tool for transform
 Such an initializer would make the following possible:
 
 ```swift
-let result = Result {
+let result = await Result {
   try await asyncWork()
 }
 ```
