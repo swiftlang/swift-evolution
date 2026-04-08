@@ -1470,11 +1470,17 @@ extension [Rigid|Unique]Array: Equatable where Element: Equatable & ~Copyable {
   public static func ==(left: borrowing Self, right: borrowing Self) -> Bool
 }
 
-extension [Rigid|Unique]Array: Hashable where Element: Hashable & ~Copyable {}
+extension [Rigid|Unique]Array: Hashable where Element: Hashable & ~Copyable {
+  public func hash(into hasher: inout Hasher)
+}
 
-extension [Rigid|Unique]Array: CustomStringConvertible where Element: ~Copyable {}
+extension [Rigid|Unique]Array: CustomStringConvertible where Element: ~Copyable {
+  public var description: String { get }
+}
 
-extension [Rigid|Unique]Array: CustomDebugStringConvertible where Element: ~Copyable {}
+extension [Rigid|Unique]Array: CustomDebugStringConvertible where Element: ~Copyable {
+  public var debugDescription: String { get }
+}
 
 extension [Rigid|Unique]Array: BorrowingSequence where Element: ~Copyable {
   @lifetime(borrow self)
@@ -1482,10 +1488,11 @@ extension [Rigid|Unique]Array: BorrowingSequence where Element: ~Copyable {
 }
 ```
 
-It's important to note that these array types will conform to the newly introduced
-`BorrowingSequence` proposed [here](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0516-borrowing-sequence.md).
-They will use the `SpanIterator` defined in that proposal as their iterators as
-well.
+Note that these array types will conform to the newly introduced
+`BorrowingSequence` proposed in [SE-0516]. They will use the `SpanIterator` 
+defined in that proposal as their iterators.
+
+[SE-0516]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0516-borrowing-sequence.md
 
 ### API _only_ on `RigidArray`
 
