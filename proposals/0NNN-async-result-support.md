@@ -13,7 +13,7 @@ The `Result` type is a very useful tool for managing code that can throw. Howeve
 
 ## Motivation
 
-The existing `Result.init(catching:)` initializer is a useful tool for transforming throwing code into a `Result` instance. However, there's no equivalent overload that can do this for asynchronous code. While this isn't particularly difficult to write, because the utility, it ends up being manually duplicated in many code bases.
+The existing `Result.init(catching:)` initializer is a useful tool for transforming throwing code into a `Result` instance. However, there's no equivalent overload that can do this for asynchronous code. While this isn't particularly difficult to write, because of the utility, it ends up being manually duplicated in many code bases.
 
 Such an initializer would make the following possible:
 
