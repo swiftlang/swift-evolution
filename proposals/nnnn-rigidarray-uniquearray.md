@@ -1494,6 +1494,13 @@ defined in that proposal as their iterators.
 
 [SE-0516]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0516-borrowing-sequence.md
 
+While this proposal lists conformances to `CustomStringConvertible` and 
+`CustomDebugStringConvertible`, these conformances can only be shipped once
+[SE-0499] gets implemented. Meanwhile, the types still provide (for now, rudimentary) 
+implementations of the two `description` properties.
+
+[SE-0499]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0499-support-non-copyable-simple-protocols.md
+
 ### API _only_ on `RigidArray`
 
 #### Basics
