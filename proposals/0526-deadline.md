@@ -7,7 +7,7 @@
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
 * Review: ([pitch](https://forums.swift.org/t/pitch-withdeadline/85262)) ([review](https://forums.swift.org/t/se-0526-withdeadline/85850))
 
-## Introduction
+## Summary of changes
 
 This proposal introduces `withDeadline`, a function that executes asynchronous
 operations with a composable absolute time limit. The function accepts a 
