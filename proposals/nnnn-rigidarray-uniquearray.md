@@ -1134,12 +1134,6 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// - Complexity: O(1)
   public mutating func popLast() -> Element?
 
-  /// Removes all elements from the array, optionally preserving its
-  /// allocated capacity.
-  ///
-  /// - Complexity: O(*n*), where *n* is the original count of the array.
-  public mutating func removeAll(keepingCapacity keepCapacity: Bool = false)
-
   /// Removes and returns the last element of the array.
   ///
   /// The array must not be empty.
@@ -1559,6 +1553,18 @@ extension RigidArray where Element: ~Copyable {
 }
 ```
 
+#### Removals
+
+```swift
+extension RigidArray where Element: ~Copyable {
+  /// Removes all elements from the array, preserving its allocated capacity.
+  ///
+  /// - Complexity: O(*n*), where *n* is the original count of the array.
+  @inlinable
+  public mutating func removeAll()
+}
+```
+
 ### API _only_ on `UniqueArray`
 
 #### Initializers
@@ -1581,6 +1587,19 @@ extension UniqueArray where Element: ~Copyable {
   public init(minimumCapacity: Int)
 }
 ```
+
+#### Removals
+
+```swift
+extension UniqueArray where Element: ~Copyable {
+  /// Removes all elements from the array, optionally preserving its
+  /// allocated capacity.
+  ///
+  /// - Complexity: O(*n*), where *n* is the original count of the array.
+  public mutating func removeAll(keepingCapacity keepCapacity: Bool = false)
+}
+```
+
 
 ## Source compatibility
 
