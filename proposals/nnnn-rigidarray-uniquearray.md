@@ -407,6 +407,8 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
     mutating get
   }
 
+  public func isTriviallyIdentical(to: borrowing Self) -> Bool
+
   /// Arbitrarily edit the storage underlying this array by invoking a
   /// user-supplied closure with a mutable `OutputSpan` view over it.
   /// This method calls its function argument at most once, allowing it to
@@ -1472,8 +1474,6 @@ extension [Rigid|Unique]Array where Element: Copyable {
 ```swift
 extension [Rigid|Unique]Array: Equatable where Element: Equatable & ~Copyable {
   public static func ==(left: borrowing Self, right: borrowing Self) -> Bool
-
-  public func isTriviallyIdentical(to: borrowing Self) -> Bool
 }
 
 extension [Rigid|Unique]Array: Hashable where Element: Hashable & ~Copyable {}
