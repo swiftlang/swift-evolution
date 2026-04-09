@@ -10,6 +10,8 @@ Today, Swift offers multiple networking APIs with overlapping capabilities. Deve
 
 Meanwhile, Swift itself has evolved significantly. The introduction of Swift Concurrency, featuring async/await, structured concurrency, actors, Sendable, and non-copyable types, has transformed how we write asynchronous and performant code. These modern language features open new possibilities for networking APIs: natural expression of asynchronous I/O, safer concurrent access to network resources, and clearer lifecycle management for connections and streams. However, most existing networking APIs predate these capabilities, built around completion handlers, delegates, or reactive patterns that don't leverage Swift's modern strengths.
 
+This vision is intended to span all of Swift's supported platforms, including Apple platforms (iOS, iPadOS, macOS, watchOS, tvOS, and visionOS), Linux, Android, FreeBSD, Windows, WebAssembly, and embedded Swift. Networking is fundamental across all of these environments, and the improvements described here are designed to work everywhere Swift does.
+
 This document proposes a vision for networking in Swift that addresses fragmentation and embraces modern Swift. We outline goals, describe design considerations that guide the solution space, and present an approach.
 
 ## Goals
@@ -48,6 +50,8 @@ The networking stack needs to be modular and configurable. A layered architectur
 Today, Swift developers face overlapping solutions at every layer: Network.framework and SwiftNIO for transport, URLSession and AsyncHTTPClient for HTTP clients, multiple competing server implementations, and various WebSocket and streaming libraries. Each combination requires different expertise and offers different trade-offs.
 
 The vision is a coherent architecture where responsibilities are clear and layers compose naturally:
+
+![A layered networking architecture: Client & Server APIs at the top, shared Protocol Implementations in the middle, and I/O Primitives & Buffer Types at the foundation, with Currency Types spanning all layers and Platform Support at the base](resources/networking_architecture.png)
 
 At the foundation, shared I/O primitives and buffer types provide a common vocabulary for how data moves through the system. These types work across platforms and enable libraries to exchange data without conversion overhead.
 
