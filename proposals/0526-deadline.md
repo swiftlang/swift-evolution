@@ -223,7 +223,7 @@ now and 10 seconds from now (being 5 seconds from now as the "current" deadline)
 Constructing an instant every time is not per-se the most terse; so a simple extension offers the ease of construction 
 with the same compositional advantage as the primary entry point.
 
-```
+```swift
 nonisolated(nonsending) public func withDeadline<Return, Failure: Error, C: Clock>(
   in timeout: C.Instant.Duration,
   tolerance: C.Instant.Duration? = nil,
@@ -240,7 +240,7 @@ nonisolated(nonsending) public func withDeadline<Return, Failure: Error>(
 
 The implementation of this is trivially:
 
-```
+```swift
 try await withDeadline(clock.now.advanced(by: timeout), tolerance: tolerance, clock: clock, body: body)
 ```
 
@@ -344,7 +344,7 @@ context about the time measurement used and the specific deadline that was set.
 
 #### Accessing the current Task's deadline expiration
 
-```
+```swift
 extension Task where Success == Never, Failure == Never {
   public static var currentDeadline: any InstantProtocol? { get }
 }
@@ -356,7 +356,7 @@ extension UnsafeCurrentTask {
 
 The safe current deadline accessor is trivially the following:
 
-```
+```swift
 extension Task where Success == Never, Failure == Never {
   public static var currentDeadline: any InstantProtocol? { 
     unsafe withUnsafeCurrentTask { unsafeTask in
@@ -401,7 +401,7 @@ behaviors needed for many specialized scenarios.
 
 The following examples should outline common composition and cancellation behaviors.
 
-```
+```swift
 struct LocalError: Error { }
 
 print("====== EXAMPLE 0 ======")
