@@ -256,7 +256,7 @@ preserves a path towards unifying them under [an ownership-aware
 also avoids the need to over-complicate `RigidArray`'s operations by forcing 
 them to report failure in some recoverable way. 
 
-[RangeReplaceableContainer]: https://github.com/apple/swift-collections/blob/1.4.1/Sources/ContainersPreview/Protocols/Container/RangeReplaceableContainer.swift)),
+[RangeReplaceableContainer]: https://github.com/apple/swift-collections/blob/1.4.1/Sources/ContainersPreview/Protocols/Container/RangeReplaceableContainer.swift
 
 In practice, overflowing `RigidArray` storage indeed feels like a programmer 
 error: it indicates a misuse of the type, rather than a routine issue. Trying to
@@ -406,6 +406,8 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   public var mutableSpan: MutableSpan<Element> {
     mutating get
   }
+
+  public func isTriviallyIdentical(to: borrowing Self) -> Bool
 
   /// Arbitrarily edit the storage underlying this array by invoking a
   /// user-supplied closure with a mutable `OutputSpan` view over it.
@@ -701,7 +703,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
   /// - Parameter index: A valid index of the array. On return, `index` is
-  ///    set to `limit` if
+  ///    set to the resulting position.
   /// - Parameter n: The distance to offset `index`.
   ///    On return, `n` is set to zero if the operation succeeded without
   ///    hitting the limit; otherwise, `n` reflects the number of steps that
@@ -728,7 +730,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// If the rigid array does not have sufficient capacity to hold any more
   /// elements, then this triggers a runtime error.
   ///
-  /// If the unqiue array does not have sufficient capacity to hold any more
+  /// If the unique array does not have sufficient capacity to hold any more
   /// elements, then this reallocates the array's storage to grow its capacity,
   /// using a geometric growth rate.
   ///
@@ -743,7 +745,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// If the rigid array does not have sufficient capacity to store the new items in
   /// the buffer, then this triggers a runtime error.
   ///
-  /// If the unqieu array does not have sufficient capacity to hold the requested
+  /// If the unique array does not have sufficient capacity to hold the requested
   /// number of new elements, then this reallocates the array's storage to
   /// grow its capacity, using a geometric growth rate.
   ///
@@ -828,7 +830,7 @@ extension [Rigid|Unique]Array where Element: Copyable {
   /// If the rigid array does not have sufficient capacity to hold all items in
   /// the buffer, then this triggers a runtime error.
   ///
-  /// If the unqiue array does not have sufficient capacity to hold enough elements,
+  /// If the unique array does not have sufficient capacity to hold enough elements,
   /// then this reallocates the array's storage to extend its capacity, using
   /// a geometric growth rate.
   ///
@@ -887,7 +889,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// If the rigid array does not have sufficient capacity to hold any more elements,
   /// then this triggers a runtime error.
   ///
-  /// If the unqieu array does not have sufficient capacity to hold any more elements,
+  /// If the unique array does not have sufficient capacity to hold any more elements,
   /// then this reallocates storage to extend its capacity, using a geometric
   /// growth rate.
   ///
@@ -965,7 +967,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// If the capacity of the rigid array isn't sufficient to accommodate the new
   /// elements, then this method triggers a runtime error.
   ///
-  /// If the unqiue array does not have sufficient capacity to hold enough elements,
+  /// If the unique array does not have sufficient capacity to hold enough elements,
   /// then this reallocates the array's storage to extend its capacity, using a
   /// geometric growth rate.
   ///
@@ -1008,7 +1010,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
 }
 
 extension [Rigid|Unique]Array where Element: Copyable {
-  /// Copyies the elements of a fully initialized buffer pointer into this
+  /// Copies the elements of a fully initialized buffer pointer into this
   /// array at the specified position.
   ///
   /// The new elements are inserted before the element currently at the
@@ -1036,7 +1038,7 @@ extension [Rigid|Unique]Array where Element: Copyable {
     copying newElements: UnsafeBufferPointer<Element>, at index: Int
   )
 
-  /// Copyies the elements of a fully initialized buffer pointer into this
+  /// Copies the elements of a fully initialized buffer pointer into this
   /// array at the specified position.
   ///
   /// The new elements are inserted before the element currently at the
@@ -1049,7 +1051,7 @@ extension [Rigid|Unique]Array where Element: Copyable {
   /// If the capacity of the rigid array isn't sufficient to accommodate the new
   /// elements, then this method triggers a runtime error.
   ///
-  /// If the unqiue array does not have sufficient capacity to hold enough elements,
+  /// If the unique array does not have sufficient capacity to hold enough elements,
   /// then this reallocates the array's storage to extend its capacity, using a
   /// geometric growth rate.
   ///
@@ -1132,12 +1134,6 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// - Complexity: O(1)
   public mutating func popLast() -> Element?
 
-  /// Removes all elements from the array, optionally preserving its
-  /// allocated capacity.
-  ///
-  /// - Complexity: O(*n*), where *n* is the original count of the array.
-  public mutating func removeAll(keepingCapacity keepCapacity: Bool = false)
-
   /// Removes and returns the last element of the array.
   ///
   /// The array must not be empty.
@@ -1218,7 +1214,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// If the rigid array does not have sufficient capacity to accommodate the new
   /// elements, then this method triggers a runtime error.
   ///
-  /// If the unqiue array does not have sufficient capacity to perform the replacement,
+  /// If the unique array does not have sufficient capacity to perform the replacement,
   /// then this reallocates storage to extend its capacity, using a geometric
   /// growth rate.
   ///
@@ -1368,7 +1364,7 @@ extension [Rigid|Unique]Array where Element: Copyable {
   /// If the capacity of the rigid array isn't sufficient to accommodate the new
   /// elements, then this method triggers a runtime error.
   ///
-  /// If the capacity of the unqiue array isn't sufficient to perform the replacement,
+  /// If the capacity of the unique array isn't sufficient to perform the replacement,
   /// then this reallocates the array's storage to extend its capacity, using a
   /// geometric growth rate.
   ///
@@ -1472,15 +1468,19 @@ extension [Rigid|Unique]Array where Element: Copyable {
 ```swift
 extension [Rigid|Unique]Array: Equatable where Element: Equatable & ~Copyable {
   public static func ==(left: borrowing Self, right: borrowing Self) -> Bool
-
-  public func isTriviallyIdentical(to: borrowing Self) -> Bool
 }
 
-extension [Rigid|Unique]Array: Hashable where Element: Hashable & ~Copyable {}
+extension [Rigid|Unique]Array: Hashable where Element: Hashable & ~Copyable {
+  public func hash(into hasher: inout Hasher)
+}
 
-extension [Rigid|Unique]Array: CustomStringConvertible where Element: ~Copyable {}
+extension [Rigid|Unique]Array: CustomStringConvertible where Element: ~Copyable {
+  public var description: String { get }
+}
 
-extension [Rigid|Unique]Array: CustomDebugStringConvertible where Element: ~Copyable {}
+extension [Rigid|Unique]Array: CustomDebugStringConvertible where Element: ~Copyable {
+  public var debugDescription: String { get }
+}
 
 extension [Rigid|Unique]Array: BorrowingSequence where Element: ~Copyable {
   @lifetime(borrow self)
@@ -1488,10 +1488,18 @@ extension [Rigid|Unique]Array: BorrowingSequence where Element: ~Copyable {
 }
 ```
 
-It's important to note that these array types will conform to the newly introduced
-`BorrowingSequence` proposed [here](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0516-borrowing-sequence.md).
-They will use the `SpanIterator` defined in that proposal as their iterators as
-well.
+Note that these array types will conform to the newly introduced
+`BorrowingSequence` proposed in [SE-0516]. They will use the `SpanIterator` 
+defined in that proposal as their iterators.
+
+[SE-0516]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0516-borrowing-sequence.md
+
+While this proposal lists conformances to `CustomStringConvertible` and 
+`CustomDebugStringConvertible`, these conformances can only be shipped once
+[SE-0499] gets implemented. Meanwhile, the types still provide (for now, rudimentary) 
+implementations of the two `description` properties.
+
+[SE-0499]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0499-support-non-copyable-simple-protocols.md
 
 ### API _only_ on `RigidArray`
 
@@ -1559,6 +1567,18 @@ extension RigidArray where Element: ~Copyable {
 }
 ```
 
+#### Removals
+
+```swift
+extension RigidArray where Element: ~Copyable {
+  /// Removes all elements from the array, preserving its allocated capacity.
+  ///
+  /// - Complexity: O(*n*), where *n* is the original count of the array.
+  @inlinable
+  public mutating func removeAll()
+}
+```
+
 ### API _only_ on `UniqueArray`
 
 #### Initializers
@@ -1581,6 +1601,19 @@ extension UniqueArray where Element: ~Copyable {
   public init(minimumCapacity: Int)
 }
 ```
+
+#### Removals
+
+```swift
+extension UniqueArray where Element: ~Copyable {
+  /// Removes all elements from the array, optionally preserving its
+  /// allocated capacity.
+  ///
+  /// - Complexity: O(*n*), where *n* is the original count of the array.
+  public mutating func removeAll(keepingCapacity keepCapacity: Bool = false)
+}
+```
+
 
 ## Source compatibility
 
