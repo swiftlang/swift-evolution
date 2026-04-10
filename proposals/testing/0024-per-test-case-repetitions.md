@@ -1,9 +1,9 @@
 # Per-test-case repetition
 
-* Proposal: [ST-NNNN](NNNN-filename.md)
+* Proposal: [ST-0024](0024-per-test-case-repetitions.md)
 * Authors: [Harlan Haskins](https://github.com/harlanhaskins)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Brian Croom](https://github.com/briancroom)
+* Status: **Active Review (April 10-20, 2026)**
 * Bugs: [swiftlang/swift-testing#1392](https://github.com/swiftlang/swift-testing/issues/1392), rdar://130508488
 * Implementation: [swiftlang/swift-testing#1528](https://github.com/swiftlang/swift-testing/pull/1528)
 * Review: ([pitch](https://forums.swift.org/t/pitch-make-test-repetition-per-test-case-instead-of-global/85552))
