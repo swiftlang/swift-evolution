@@ -88,7 +88,11 @@ It's worth noting that string `tag:` can only appear in symbol names when using 
 
 ## Future Directions
 
-N/A
+Filtering based on tags is quite broad and general purpose. Because you can define any tag to stick on any test or suite, and because tags exists orthogonally to the test graph, you can arbitrarily include/skip any test based solely on the semantics of your tags. However, this change does raise the question of what _else_ we could filter/skip on and how we can be more expressive about it.
+
+For example, you may wish to filter/skip tests based on protocol conformance and/or inheritance. A suite's ancestor types can be a useful, and perhaps more natural, signal indicating whether it should run in a given context or not because the ancestor types carry with them behaviors and contracts that have powerful semantic meaning. In the future, we may seek to expand the prefix operators we allow beyong just `tag:`.
+
+Additionally, internally, the test suite already supports arbitrary boolean groupings of test filters. It may not be unreasonable to attempt to expose that on the CLI.
 
 ## Alternatives Considered
 
@@ -98,7 +102,7 @@ An alternate path is to create a separate command line option for filtering and 
 swift test --skipTag uiTest
 ```
 
-While this approach may seem simpler, it has a few disadvantages:
+This approach may seem simpler, and indeed one important advantage is that we would forgo the need to have a well-defined syntax for filtering/skipping if we decide to enhance it further. However, it has a few disadvantages:
 
 1. We would need to make changes to the ABI between SwiftPM and Swift Testing.
 2. A separate flag means a separate line in the `--help` text, making it easier to miss that filtering/skipping based on tags is possible.
