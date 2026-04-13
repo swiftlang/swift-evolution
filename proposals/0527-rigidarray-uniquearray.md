@@ -1,9 +1,9 @@
 # RigidArray and UniqueArray
 
-* Proposal: [SE-NNNN](NNNN-rigidarray-uniquearray.md)
+* Proposal: [SE-0527](0527-rigidarray-uniquearray.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey), [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Steve Canon](https://github.com/stephentyrone)
+* Status: **Active Review (April 13...27, 2026)**
 * Implementation: [swiftlang/swift#87521](https://github.com/swiftlang/swift/pull/87521)
 * Review: ([pitch](https://forums.swift.org/t/pitch-rigidarray-and-uniquearray/85455))
 
