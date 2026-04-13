@@ -6,6 +6,7 @@
 * Status: **Active Review (April 13...27, 2026)**
 * Implementation: [swiftlang/swift#87521](https://github.com/swiftlang/swift/pull/87521)
 * Review: ([pitch](https://forums.swift.org/t/pitch-rigidarray-and-uniquearray/85455))
+          ([review](https://forums.swift.org/t/se-0527-rigidarray-and-uniquearray/85985))
 
 [swift-collections]: https://github.com/apple/swift-collections
 
