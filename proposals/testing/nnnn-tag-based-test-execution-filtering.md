@@ -68,13 +68,14 @@ It is not currently possible to create a filter/skip based on _all_ tags specifi
 
 To continue to allow matching for such function names, we will also allow the colon character to be escaped such that the entire argument will be treated as a single regular expression:
 
-```
+```sh
 swift test --skip 'tag\:uiTest'
 ```
 
 The example above would behave as though the string `tag:uiTest` were passed as a regular expression, omitting the escaping backslash in the final regular expression.
 
-> **Note**: Most shells treat the backslash character `\` as a special character used for escaping. In order for the application to receive it, the argument needs to either be wrapped in quotes like `'tag\:uiTest'`, or the backslash itself needs to be escaped, `tag\\:uiTest`.
+> [!Note]
+> Most shells treat the backslash character `\` as a special character used for escaping. In order for the application to receive it, the argument needs to either be wrapped in quotes like `'tag\:uiTest'`, or the backslash itself needs to be escaped, `tag\\:uiTest`.
 
 ## Source Compatibility
 
