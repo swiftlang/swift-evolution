@@ -77,15 +77,33 @@ The example above would behave as though the string `tag:uiTest` were passed as 
 > [!Note]
 > Most shells treat the backslash character `\` as a special character used for escaping. In order for the application to receive it, the argument needs to either be wrapped in quotes like `'tag\:uiTest'`, or the backslash itself needs to be escaped, `tag\\:uiTest`.
 
+
+The converse here also applies. It is possible to apply a tag that uses a raw identifier as its name. For example:
+
+```swift
+extension Tag {
+    @Tag static var `some tag with spaces`: Self
+}
+
+@Test(.tags(.`some tag with spaces`))
+func myTest() { /* ... */ }
+```
+
+In this scenario, you would wrap the argument in single quotes and the entirity of the text supplied after the `tag:` prefix would be interpreted the name of a single tag. So for a tag named `some tag with spaces`, you could filter for it as follows:
+
+```sh
+swift test --filter 'tag:some tag with spaces'
+```
+
 ## Source Compatibility
-
-The change is an implementation detail and makes no changes to source compatibility.
-
-## Integration with Supporting Tools
 
 If a codebase has test functions or suites that contain the string `tag:`, then any filtering/skipping arguments that begin with `tag:` behave differently with this proposal. They are treated as tags rather than regular expressions.
 
 It's worth noting that string `tag:` can only appear in symbol names when using raw identifiers as described above. I feel that this scenario is relatively rare and that this improvement is worth the edge case.
+
+## Integration with Supporting Tools
+
+This introduces a new mechanism that can be used by any existing tools to filter/skip based on tags, and has the same backwards compatibility concerns associated with the source compatibility section above. That is, if a tool that calls `swift test` is filtering/skipping for a test with a name containing `tag:`, this will cause unexpected behavior. Otherwise, this change is additive.
 
 ## Future Directions
 
