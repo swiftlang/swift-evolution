@@ -4,7 +4,7 @@
 * Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Matt Massicotte](https://github.com/mattmassicotte)
 * Review Manager: TBD
 * Status: **Pending implementation**
-* Implementation: TBD
+* Implementation: [swiftlang/swift#88465](https://github.com/swiftlang/swift/pull/88465)
 * Review: ([First Pitch](https://forums.swift.org/t/pitch-result-codable-conformance-and-async-catching-init/78566))
 
 ## Introduction
