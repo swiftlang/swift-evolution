@@ -3,7 +3,7 @@
 * Proposal: [SE-0524](0524-span-temporary-allocation.md)
 * Authors: [Max Desiatov](https://github.com/MaxDesiatov)
 * Review Manager: [Doug Gregor](https://github.com/douggregor)
-* Status: **Active Review (March 31...April 14, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#85866](https://github.com/swiftlang/swift/pull/85866)
 * Review: ([pitch](https://forums.swift.org/t/pitch-add-withtemporaryallocation-using-output-raw-span/84923)) ([review](https://forums.swift.org/t/se-0524-add-withtemporaryallocation-using-output-raw-span/85745))
 
