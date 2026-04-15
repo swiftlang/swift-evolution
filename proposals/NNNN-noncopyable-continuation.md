@@ -221,6 +221,8 @@ In these situations, it may be necessary to convert an **existing** `Continuatio
 ```swift
 try await withContinuation(of: Int.self, throws: (any Error).self) { c in
   let checked = CheckedContinuation(c)
+  // or:   
+  //   let unsafeCC = UnsafeContinuation(c)
   someLib.onSuccess { checked.resume(returning: $0) } // OK! Safe use is checked at runtime
   someLib.onFailure { checked.resume(throwing: $0) }
 }
@@ -264,10 +266,6 @@ Because `Continuation` is `~Copyable`, some code patterns that implicitly copy t
 If and when Swift gains gained "called once" closures, such uses of continuations may slowly move over to `Continuation` 
 
 ## Future Directions
-
-### Capturing Noncopyable types in closures
-
-Currently, Swift does not support capturing non Copyable types in closures. The reason for this is, that Swift currently does not have an annotation that allows closures to just be called once. In those cases users should continue to use the existing Continuation types.
 
 ### Introduction of `~Discardable` protocol
 
