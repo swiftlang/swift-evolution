@@ -4,7 +4,7 @@
 - **Authors:** [Fabian Fett](https://github.com/fabianfett), [Konrad Malawski](https://github.com/ktoso)
 - **Review Manager:** TBD
 - **Status:** Pitch
-- **Implementation:** [PR in Swift Async Algorithms](https://github.com/apple/swift-async-algorithms/pull/404)
+- **Implementation:** [PR #88182](https://github.com/swiftlang/swift/pull/88182)
 - **Related Proposals:** 
     - [SE-0300: Continuations for interfacing async tasks with synchronous code](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0300-continuation.md)
     - [SE-0390: Noncopyable structs and enums](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0390-noncopyable-structs-and-enums.md)
@@ -84,79 +84,65 @@ When the stored continuation is overwritten or the actor is deallocated without 
 
 ## Detailed Design
 
-### `Continuation` struct
+### The `Continuation` type
+
+The new continuation type is defined as follows:
 
 ```swift
 @frozen
 public struct Continuation<Success: ~Copyable, Failure: Error>: ~Copyable, Sendable {
-
-    @usableFromInline
-    let unsafeContinuation: UnsafeContinuation<Success, Failure>
-    @usableFromInline
-    let file: StaticString
-    @usableFromInline
-    let line: Int
-
-    @inlinable
-    init(_ unsafeContinuation: UnsafeContinuation<Success, Failure>, file: StaticString, line: Int) {
-        self.unsafeContinuation = unsafeContinuation
-        self.file = file
-        self.line = line
-    }
-
+		// ... 
+  
     deinit {
-        fatalError("The continuation created in \(self.file):\(self.line) was dropped.")
+        fatalError("The continuation was dropped without resuming.")
     }
 
     @inlinable
-    public consuming func resume() where Success == Void {
-        self.unsafeContinuation.resume()
-        discard self // prevent deinit
-    }
+    public consuming func resume(returning value: consuming sending Success) { ... }
 
     @inlinable
-    public consuming func resume(returning value: consuming sending Success) {
-        self.unsafeContinuation.resume(returning: value)
-        discard self // prevent deinit
-    }
-
-    @inlinable
-    public consuming func resume(throwing error: Failure) {
-        self.unsafeContinuation.resume(throwing: error)
-        discard self // prevent deinit
-    }
-
-    @inlinable
-    public consuming func resume(with result: consuming sending Result<Success, Failure>) {
-        self.unsafeContinuation.resume(with: result)
-        discard self // prevent deinit
-    }
+    public consuming func resume(throwing error: Failure) { ... }
 }
 ```
 
 **Key design points:**
 
-- **`Sendable`** — `Continuation` is `Sendable` because `UnsafeContinuation` is `Sendable`. This allows passing the continuation across isolation boundaries, which is essential for bridging callbacks from other threads.
+- **`Sendable`** — `Continuation` is `Sendable` because its purpose is to be resumed form different tasks/threads and therefore "wake up" the task that was suspended on it. This allows passing the continuation across isolation boundaries, which is essential for bridging callbacks from other threads.
 - **`consuming`** — Each `resume` method consumes `self`, transferring ownership into the method and preventing subsequent use.
 - **`sending Success`** — The `value` parameter is marked `sending`, matching the semantics of `UnsafeContinuation.resume(returning:)` and enabling safe transfer of non-`Sendable` values into the async task.
 - **`consuming Success`** — The `value` parameter allows the use of noncopyable types.
-- **`discard self`** — Suppresses the `deinit` on the success path. This is critical: without it, every successful resume would trigger `fatalError`. The `discard self` statement tells the compiler that the value has been fully consumed and no cleanup is needed.
+- **`discard self`** — Suppresses the `deinit` on the success path. 
+  - This is critical: without it, every successful resume would trigger `fatalError`. The `discard self` statement tells the compiler that the value has been fully consumed and no cleanup is needed.
+
 - **`deinit`** — Acts as the safety net for the missing-resume case. If control flow drops a `Continuation` without calling `resume`, the `deinit` fires and traps immediately with a clear diagnostic message.
 
-### Free function
+We also offer two convenience `resume` functions, accepting void or a Result type:
+
+```swift
+extension Continuation {  
+    @inlinable
+    public consuming func resume() where Success == Void { ... }
+
+    @inlinable
+    public consuming func resume(with result: consuming sending Result<Success, Failure>) { ... }
+}
+```
+
+### Suspending on a continuation
+
+It is not possible to directly instantiate a `Continuation` type, and instead one has to use the `withContinuation` function to obtain one, and at the same time, potentially suspend the calling task.
 
 ```swift
 public nonisolated(nonsending) func withContinuation<Success: ~Copyable, Failure: Error>(
     of: Success.Type,
-    throws: Failure.Type = Never.self,
-    file: StaticString = #file,
-    line: Int = #line,
+    throws: Failure.Type,
     _ body: (consuming Continuation<Success, Failure>) -> Void
-) async throws(Failure) -> Success {
-    await withUnsafeContinuation { (continuation: UnsafeContinuation<Success, Failure>) in
-        body(Continuation(continuation, file: file, line: line))
-    }
-}
+) async throws(Failure) -> Success { ... }
+
+public nonisolated(nonsending) func withContinuation<Success: ~Copyable>(
+    of: Success.Type,
+    _ body: (consuming Continuation<Success, Never>) -> Void
+) async -> Success { ... }
 ```
 
 **The `of:` parameter:**
@@ -165,7 +151,7 @@ The `of:` label serves both a practical and an ergonomic purpose. With the exist
 
 ```swift
 // Today: type annotation required inside the closure
-let data = await withUnsafeContinuation { (continuation: UnsafeContinuation<Data, Never>) in
+let data = await withCheckedContinuation { (continuation: UnsafeContinuation<Data, Never>) in
     bridge.store(continuation)
 }
 ```
@@ -213,9 +199,34 @@ let data = try await withContinuation(of: Data.self, throws: (any Error).self) {
 
 Two separate functions (`withContinuation` / `withThrowingContinuation`) would cover only the `Never` and `any Error` cases, forcing an API design that is already obsolete. A typed-throws API like `withNetworkContinuation` would be impossible to express without the unified form. The single parameterized function is both more expressive and forwards-compatible.
 
-**Capturing file and line:**
+### Converting to CheckedContinuation
 
-File and line are captured to enable a better developer experience. This allows us to inform developers where a `Continuation` was created that leaked.
+Not all use-cases can make use of the non-copyable Continuation type. For example, situations where the continuation must be passed to multiple callbacks, where some library guarantees that only one of the callbacks is executed, e.g.:
+
+```swift
+try await withContinuation(of: Int.self, throws: (any Error).self) { c in // ❌ (2): 'c' consumed more than once
+  // not guaranteed at compile time that these closures execute exactly once (!)
+  // ❌ (1): noncopyable 'c' cannot be consumed when captured by an escaping closure
+  someLib.onSuccess { c.resume(returning: $0) } // note (2): consumed here
+  
+  // not guaranteed at compile time that only ONE of those callbacks executes (!)
+  someLib.onFailure { c.resume(throwing: $0) } // note (2): consumed again here
+}
+```
+
+In general, callbacks are not guaranteed to run exactly-one, so even for this reason the above code is not compatible with the new non-copyable continuation type.
+
+In these situations, it may be necessary to convert an **existing** `Continuation` (e.g. passed to you through another function), to a `CheckedContinuation`, which will allow this use case to be handled with dynamic safety checks in place:
+
+```swift
+try await withContinuation(of: Int.self, throws: (any Error).self) { c in
+  let checked = CheckedContinuation(c)
+  someLib.onSuccess { checked.resume(returning: $0) } // OK! Safe use is checked at runtime
+  someLib.onFailure { checked.resume(throwing: $0) }
+}
+```
+
+For this reason, `CheckedContinuation` and `UnsafeContinuation` remain available and will _not_ be deprecated, as they still serve an important use-case when the non-copyable continuation simply cannot be used.
 
 ### Behavior guarantees
 
@@ -248,7 +259,9 @@ Migrating from `CheckedContinuation` to `Continuation` is mechanical:
 | `withCheckedThrowingContinuation { … }` | `withContinuation(of: T.self, throws: (any Error).self) { … }` |
 | `CheckedContinuation<T, E>` | `Continuation<T, E>` |
 
-Because `Continuation` is `~Copyable`, some code patterns that implicitly copy the continuation (e.g., capturing it in a closure) will produce compile-time errors after migration. In those cases developers have to use the existing Checked/UnsafeContinuation syntax, depending on their use-case. Once Swift has gained call once closures, theses use of Checked/UnsafeContinuation can be migrated to the new Continuation syntax as well.
+Because `Continuation` is `~Copyable`, some code patterns that implicitly copy the continuation (e.g., capturing it in a closure) will produce compile-time errors after migration. In those cases developers have to use the existing `Checked/UnsafeContinuation` syntax, depending on their use-case. 
+
+If and when Swift gains gained "called once" closures, such uses of continuations may slowly move over to `Continuation` 
 
 ## Future Directions
 
