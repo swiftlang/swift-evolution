@@ -31,7 +31,7 @@ Furthermore, the recent landing of new collection types that allow noncopyable E
 
 ## Proposed Solution
 
-We introduce `Continuation<Success: ~Copyable, Failure: Error>`, a `~Copyable` struct that wraps `UnsafeContinuation` and enforces correct usage through three complementary mechanisms:
+We introduce `Continuation<Success: ~Copyable, Failure: Error>`, a `~Copyable` struct that enforces correct usage through three complementary mechanisms:
 
 1. **Move-only semantics (`~Copyable`)**: The continuation cannot be copied, so it is impossible to resume it from two different code paths. Attempting to use a continuation after it has been moved is a compile-time error.
 
@@ -113,8 +113,6 @@ public struct Continuation<Success: ~Copyable, Failure: Error>: ~Copyable, Senda
 - **`consuming Success`** — The `value` parameter allows the use of noncopyable types.
 - **`discard self`** — Suppresses the `deinit` on the success path. 
   - This is critical: without it, every successful resume would trigger `fatalError`. The `discard self` statement tells the compiler that the value has been fully consumed and no cleanup is needed.
-
-- **`deinit`** — Acts as the safety net for the missing-resume case. If control flow drops a `Continuation` without calling `resume`, the `deinit` fires and traps immediately with a clear diagnostic message.
 
 We also offer two convenience `resume` functions, accepting void or a Result type:
 
