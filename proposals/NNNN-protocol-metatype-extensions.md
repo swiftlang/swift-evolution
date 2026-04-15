@@ -9,7 +9,9 @@
 
 ## Summary of changes
 
-Allows `extension P.Protocol`, where `P` is a protocol, to declare static members that live on the protocol itself and are not inherited by conforming types.
+Allows `extension P.Protocol`, where `P` is a protocol, to declare members
+that live on the protocol metatype itself and are not inherited by conforming
+types.
 
 ## Motivation
 
@@ -73,7 +75,7 @@ metatype:
 
 ```swift
 extension Plugin.Protocol {
-  static var searchPaths: [String] { ["/usr/lib/plugins", "~/.plugins"] }
+  var searchPaths: [String] { ["/usr/lib/plugins", "~/.plugins"] }
 }
 ```
 
@@ -83,20 +85,27 @@ Members declared in `extension P.Protocol` are:
 - Not inherited by conforming types: `MyPlugin.searchPaths` is an error.
 - Statically dispatched: the extension provides the implementation directly,
   with no witness table involvement and no concrete conforming type in scope.
-- Only static: instance members are out of scope for this proposal (see
-  [Scope](#scope) and [Future directions](#instance-members-on-protocol-metatypes)).
+
+Because `extension P.Protocol` extends the metatype type `(any P).Type`,
+members are declared as instance members of that metatype, without the `static`
+keyword. The protocol name is already a value of this metatype type (implicitly
+`P.self`), so `P.searchPaths` accesses the member directly.
 
 ### Example
 
 ```swift
 extension Plugin.Protocol {
-  static var searchPaths: [String] { ["/usr/lib/plugins", "~/.plugins"] }
-  static var apiVersion: Int { 2 }
+  var searchPaths: [String] { ["/usr/lib/plugins", "~/.plugins"] }
+  var apiVersion: Int { 2 }
 }
 
 Plugin.searchPaths   // ["/usr/lib/plugins", "~/.plugins"]
 Plugin.apiVersion    // 2
 // MyPlugin.apiVersion  // error: not inherited
+
+// Stored metatype values work too:
+let p = Plugin.self
+p.searchPaths        // ["/usr/lib/plugins", "~/.plugins"]
 ```
 
 ## Detailed design
@@ -131,6 +140,38 @@ This proposal extends `P.Protocol`, i.e. `(any P).Type`. The `.Protocol`
 spelling is used because it is the established syntax in Swift today and reads
 naturally in the `extension` context.
 
+### Members as instance members of the metatype
+
+Members in a protocol metatype extension are instance members of the metatype
+type `(any P).Type`. They are declared without the `static` keyword:
+
+```swift
+extension Plugin.Protocol {
+  var searchPaths: [String] { ["/usr/lib/plugins", "~/.plugins"] }
+  func describe() -> String { "Plugin protocol" }
+}
+```
+
+This is the natural declaration style: the extension is on a type
+(`(any P).Type`), and its members are instance members of that type. The `self`
+parameter has type `(any P).Type`, which is the protocol metatype value.
+
+Because the protocol name is itself a value of the metatype type (equivalent to
+`P.self`), members are accessed directly as `P.searchPaths` or
+`P.describe()`, with no `.self` required.
+
+Members are also accessible on any stored value of the metatype type:
+
+```swift
+let p = Plugin.self
+p.searchPaths        // works
+p.describe()         // works
+
+func info(_ p: (any Plugin).Type) {
+  p.searchPaths      // works
+}
+```
+
 ### Protocol refinement
 
 Metatype extension members do not propagate through protocol refinement:
@@ -139,7 +180,7 @@ Metatype extension members do not propagate through protocol refinement:
 protocol P {}
 protocol Q: P {}
 extension P.Protocol {
-  static func f() {}
+  func f() {}
 }
 
 P.f()  // OK
@@ -159,8 +200,8 @@ metatype extension members with the same name:
 ```swift
 protocol P {}
 protocol Q {}
-extension P.Protocol { static func f() {} }
-extension Q.Protocol { static func f() {} }
+extension P.Protocol { func f() {} }
+extension Q.Protocol { func f() {} }
 
 protocol R: P, Q {}
 R.f()  // error: type 'R' has no member 'f'
@@ -169,20 +210,6 @@ R.f()  // error: type 'R' has no member 'f'
 Because metatype extension members are not inherited through refinement, `R`
 does not see either `f`. There is no diamond problem to resolve. If `R` needs
 `f`, it declares its own metatype extension.
-
-### Scope
-
-This proposal is limited to static members. Only `static` functions,
-properties, and subscripts are permitted in a protocol metatype extension.
-
-Instance members are not addressed by this proposal. They are not inherently
-nonsensical; `P.Protocol` is itself a type whose values could in principle have
-instance members. However, because `P.Protocol` is a singleton type (there is
-exactly one value, `P.self`), instance members would be functionally equivalent
-to static members with a different calling convention. Instance members become
-significantly more interesting in the context of existential metatype extensions
-(`P.Type`), which we consider a natural future direction (see
-[Future directions](#instance-members-on-protocol-metatypes)).
 
 ### Restrictions
 
@@ -193,8 +220,8 @@ has the concrete type `(any P).Type` rather than the abstract `Self.Type`.
 
 ```swift
 extension Plugin.Protocol {
-  static var searchPaths: [String] { [...] }  // OK
-  static func make() -> Self { ... }          // error
+  var searchPaths: [String] { [...] }  // OK
+  func make() -> Self { ... }         // error
 }
 ```
 
@@ -220,7 +247,7 @@ Regular protocol extension members are generic over `Self` and require
 existential opening when accessed on a protocol metatype. Metatype extension
 members avoid this entirely because they are non-generic. The extension has no
 generic signature, and its members have concrete interface types. For example,
-a static method `f()` in `extension P.Protocol` has the type
+a method `f()` in `extension P.Protocol` has the type
 `((any P).Type) -> () -> Void`, not the generic
 `<Self where Self: P> (Self.Type) -> () -> Void` of a regular protocol
 extension member.
@@ -277,19 +304,13 @@ since it makes the member visible in strictly more contexts.
 
 ## Future directions
 
-### Instance members on protocol metatypes
+### Existential metatype extensions
 
-This proposal limits metatype extensions to static members. Instance members on
-protocol metatypes are not inherently nonsensical; a protocol metatype value
-(`P.Protocol`) is itself an instance of the metatype type and an instance member
-would operate on that value. However, because `P.Protocol` is a singleton type
-(there is exactly one value, `P.self`), instance members on it are functionally
-equivalent to static members with a different calling convention. We do not
-currently see a motivating use case that justifies the additional complexity.
-
-This becomes significantly more interesting if the feature generalises to
-existential metatype extensions (`P.Type`), where different conforming types'
-metatypes are distinct values and instance members would dispatch meaningfully:
+This proposal extends the protocol metatype `(any P).Type`, which is a
+singleton: the only value is `P.self`. A natural generalisation would be
+extending the existential metatype `any P.Type`, where each concrete type
+conforming to `P` contributes a distinct metatype value (`MyPlugin.self`,
+`OtherPlugin.self`, etc.) and members dispatch on `self`:
 
 ```swift
 extension Plugin.Type {
@@ -299,6 +320,15 @@ extension Plugin.Type {
 // ConcreteA.self.instantiate() vs ConcreteB.self.instantiate()
 // dispatch differently because self is a different metatype value
 ```
+
+Instance members are not merely a stylistic choice for `P.Type` extensions;
+they are necessary. Because different conforming metatypes are distinct values,
+members need to dispatch on `self`, which requires them to be instance members.
+
+By using instance members for `P.Protocol` extensions in this proposal, we
+establish a uniform model: metatype extensions add instance members to metatype
+values. The only difference between `P.Protocol` and `P.Type` extensions is how
+many values the metatype has, one for `P.Protocol`, many for `P.Type`.
 
 We consider this a natural future direction but out of scope for this proposal.
 
@@ -310,11 +340,11 @@ conform to other protocols:
 
 ```swift
 protocol Identifiable {
-  static var id: String { get }
+  var id: String { get }
 }
 
 extension Plugin.Protocol: Identifiable {
-  static var id: String { "Plugin" }
+  var id: String { "Plugin" }
 }
 ```
 
@@ -334,7 +364,7 @@ enable richer patterns:
 
 ```swift
 extension Collection.Protocol where Self.Element: Hashable {
-  static var supportsDeduplication: Bool { true }
+  var supportsDeduplication: Bool { true }
 }
 ```
 
@@ -343,13 +373,32 @@ is left as a future direction.
 
 ## Alternatives considered
 
+### `static` members instead of instance members
+
+An earlier design required the `static` keyword on all members in a metatype
+extension:
+
+```swift
+extension Plugin.Protocol {
+  static var searchPaths: [String] { [...] }
+}
+```
+
+This was rejected because it conflates two levels of indirection. The extension
+is on the metatype type `(any P).Type`, so its members are naturally instance
+members of that type. Requiring `static` would make them static members of the
+metatype, which is the metatype-of-the-metatype, a level that has no practical
+meaning. More importantly, instance members work naturally with stored metatype
+values (e.g. `let p = P.self; p.searchPaths`), while static members would only
+be accessible on the protocol name directly.
+
 ### `metatype extension P`
 
 An earlier design used a `metatype` contextual keyword:
 
 ```swift
 metatype extension Plugin {
-  static var searchPaths: [String] { [...] }
+  var searchPaths: [String] { [...] }
 }
 ```
 
@@ -366,7 +415,7 @@ An alternative spelling uses `.Type` instead of `.Protocol`:
 
 ```swift
 extension Plugin.Type {
-  static var searchPaths: [String] { [...] }
+  var searchPaths: [String] { [...] }
 }
 ```
 
