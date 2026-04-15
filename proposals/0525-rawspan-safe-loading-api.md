@@ -151,6 +151,7 @@ extension MutableRawSpan {
     _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
   
+  @unsafe
   mutating func storeBytes<T>(
     repeating repeatedValue: T,
     count: Int,
@@ -165,7 +166,7 @@ extension MutableRawSpan {
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
 }
 ```
-The existing `storeBytes` function constrained to `T: BitwiseCopyable` does not need to be marked `@unsafe`, since all the underlying bytes are already initialized. Compiler optimizations therefore cannot result in uninitialized bytes. The addition of a repeating variant corrects an omission.
+The existing `storeBytes` function constrained to `T: BitwiseCopyable` will be marked `@unsafe`, as it is possible for compiler optimizations to result in uninitialized bytes. The addition of a repeating variant corrects an omission; it is also marked `@unsafe`.
 
 `OutputRawSpan` will have matching `append()` functions:
 
@@ -211,11 +212,11 @@ extension Span where Element: ConvertibleFromBytes {
 extension MutableSpan {
   @_lifetime(&mutableBytes)
   init(mutating mutableBytes: inout MutableRawSpan)
-    where Element: ConvertibleFromBytes & ConvertibleToBytes
+    where Element: ConvertibleToBytes & ConvertibleFromBytes
 
   @_lifetime(copy mutableBytes)
   init(_ mutableBytes: consuming MutableRawSpan)
-    where Element: ConvertibleFromBytes
+    where Element: ConvertibleToBytes & ConvertibleFromBytes
 }
 ```
 
@@ -274,7 +275,7 @@ A `ConvertibleFromBytes` type has a valid value for every bit pattern of every b
 
 Custom types will be allowed to declare an unsafe conformance to `ConvertibleFromBytes`.
 
-Types that do not fully use a byte, such as `Bool`, are disallowed. Undefined behaviour can result when an invalid bit pattern is loaded as such a value.
+Types that do not fully use a byte, such as `Bool`, are disallowed. Undefined behaviour can result when an invalid bit pattern is interpreted as such a value.
 
 ##### `ByteOrder`
 
@@ -354,7 +355,7 @@ extension RawSpan {
   /// Unsafely view a typed span as a raw span.
   @unsafe
   @_lifetime(copy unsafeElements)
-	init<T>(unsafeElements: consuming Span<T>)  
+  init<T>(unsafeElements: consuming Span<T>)  
 }
 ```
 ##### `MutableRawSpan`
@@ -388,6 +389,7 @@ extension MutableRawSpan {
   ///   - repeatedValue: The value to store as raw bytes.
   ///   - count: The number of copies of `value` to append to this span.
   ///   - type: The type of the instance to store.
+  @unsafe
   mutating func storeBytes<T>(
     repeating repeatedValue: T,
     count: Int,
@@ -464,11 +466,12 @@ extension MutableRawSpan {
   /// Mutate the elements of a typed span as bytes.
   @_lifetime(&mutableSpan)
   init<T>(mutating mutableSpan: inout MutableSpan<T>)
-    where T: ConvertibleFromBytes & ConvertibleToBytes
+    where T: ConvertibleToBytes & ConvertibleFromBytes
 
   /// Convert a typed span to a raw span.
   @_lifetime(copy elements)
-  init<T: ConvertibleToBytes>(elements: consuming MutableSpan<T>)
+  init<T>(elements: consuming MutableSpan<T>)
+    where T: ConvertibleToBytes & ConvertibleFromBytes
   
   /// Unsafely convert a typed span to a raw span.
   @unsafe
@@ -647,7 +650,7 @@ extension MutableSpan {
   /// this initializer will trap at runtime.
   @_lifetime(&mutableBytes)
   init(mutating mutableBytes: inout MutableRawSpan)
-    where Element: ConvertibleFromBytes & ConvertibleToBytes
+    where Element: ConvertibleToBytes & ConvertibleFromBytes
 
   /// Convert a raw span to a typed span.
   ///
@@ -657,7 +660,7 @@ extension MutableSpan {
   /// this initializer will trap at runtime.
   @_lifetime(copy bytes)
   init(bytes: consuming MutableRawSpan)
-    where Element: ConvertibleFromBytes
+    where Element: ConvertibleToBytes & ConvertibleFromBytes
 }
 
 extension MutableSpan where Element: ConvertibleToBytes & ConvertibleFromBytes {
