@@ -1,14 +1,16 @@
 # `Continuation` — Safe and Performant Async Continuations
 
-- Proposal: [SE-0528](0528-noncopyable-continuation.md)
-- Authors: [Fabian Fett](https://github.com/fabianfett), [Konrad Malawski](https://github.com/ktoso)
-- Review Manager: [Joe Groff](https://github.com/jckarter)
-- Status: **Active Review (April 15...28, 2026)** 
-- Implementation: [swiftlang/swift#88182](https://github.com/swiftlang/swift/pull/88182)
-- Related Proposals: 
+* Proposal: [SE-0528](0528-noncopyable-continuation.md)
+* Authors: [Fabian Fett](https://github.com/fabianfett), [Konrad Malawski](https://github.com/ktoso)
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Active Review (April 15...28, 2026)** 
+* Implementation: [swiftlang/swift#88182](https://github.com/swiftlang/swift/pull/88182)
+* Related Proposals: 
     - [SE-0300: Continuations for interfacing async tasks with synchronous code](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0300-continuation.md)
     - [SE-0390: Noncopyable structs and enums](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0390-noncopyable-structs-and-enums.md)
     - [SE-0413: Typed throws](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0413-typed-throws.md)
+* Review: ([pitch](https://forums.swift.org/t/pitch-rigidarray-and-uniquearray/85455))
+    ([review](https://forums.swift.org/t/se-0528-non-copyable-continuation/86055))
 
 ## Summary
 
