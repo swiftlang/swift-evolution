@@ -65,7 +65,7 @@ var points = Array<CGPoint>(unsafeUninitializedCapacity: count/2) {
 
 We could do better with an improved version of `withMemoryRebound`.
 Since `CGPoint` values consist of a pair of `CGFloat` values,
-and `CGFloat` values are themselves layout-equivalent with `Double` (when executing on a 64-bit platform):
+and `CGFloat` values are themselves layout-compatible with `Double` (when executing on a 64-bit platform):
 ```swift
 var points = Array<CGPoint>(unsafeUninitializedCapacity: data.count/2) {
   buffer, initializedCount in
@@ -127,26 +127,26 @@ These types do not yet have a formal name in Swift,
 but are referred to as "trivial" types in some API documentation.
 
 In order to safely use `withMemoryRebound`, the current rule
-is that the destination type, `T`, must be _layout equivalent_ with `Pointee`.
+is that the destination type, `T`, must be _layout compatible_ with `Pointee`.
 To this we add that, as an alternative, `T` can be a homogeneous aggregate of `Pointee`, or `Pointee` can be a homogeneous aggregate of `T`.
 
-Two types A and B are layout equivalent when they are, for example:
+Two types A and B are layout compatible when they are, for example:
 - identical types;
 - one is a typealias for the other;
 - trivial scalar types with the same size and alignment, such as floating-point, integer and pointer types;
 - one is a class type, and the other is one of its superclass types, or `AnyObject`;
-- optional references whose underlying types are layout equivalent;
+- optional references whose underlying types are layout compatible;
 - pointer types, such as `UnsafePointer` and `OpaquePointer`;
 - optional pointer types, such as `UnsafePointer?` and `UnsafeRawPointer?`;
 - one is a struct with a single stored property, the other is the type of its stored property;
 
-Homogeneous aggregate types (tuples, array storage, and frozen structs) are layout equivalent if they have the same number of layout-equivalent elements.
+Homogeneous aggregate types (tuples, array storage, and frozen structs) are layout compatible if they have the same number of layout-compatible elements.
 
 
 ### Instance methods of `UnsafePointer<Pointee>` and `UnsafeMutablePointer<Pointee>`
 
 We propose to lift the restriction that the strides of `T` and `Pointee` must be equal when calling `withMemoryRebound`.
-`T` and `Pointee` must either be layout equivalent (see above,)
+`T` and `Pointee` must either be layout compatible (see above,)
 or one must be a homogeneous aggregate of the other.
 The function declarations remain the same on these two types,
 though given the updated rules, 
@@ -203,7 +203,7 @@ extension UnsafeMutableRawPointer {
 ### Instance methods of `UnsafeBufferPointer` and `UnsafeMutableBufferPointer`
 
 We propose to lift the restriction that the strides of `T` and `Element` must be equal when calling `withMemoryRebound`.
-`T` and `Element` must either be layout equivalent (see above,)
+`T` and `Element` must either be layout compatible (see above,)
 or one must be a homogeneous aggregate of the other.
 The function declarations remain the same on these two types.
 The capacity of the buffer to the temporary type will be calculated using the capacity of the `UnsafeBufferPointer<Element>` and the stride of the temporary type.
@@ -300,7 +300,7 @@ extension UnsafePointer {
   /// `Pointee` type.
   ///
   /// - Note: Only use this method to rebind the pointer's memory to a type `T`
-  ///   that is layout equivalent with the `Pointee` type, or a type `T` that 
+  ///   that is layout compatible with the `Pointee` type, or a type `T` that 
   ///   is an aggregate of `Pointee` instances, or a type `T` such that `Pointee`
   ///   is an aggregate of `T` instances. As such, the stride of the
   ///   temporary type (`T`) may be an integer multiple or a whole fraction
@@ -369,7 +369,7 @@ extension UnsafeMutablePointer {
   /// `Pointee` type.
   ///
   /// - Note: Only use this method to rebind the pointer's memory to a type `T`
-  ///   that is layout equivalent with the `Pointee` type, or a type `T` that 
+  ///   that is layout compatible with the `Pointee` type, or a type `T` that 
   ///   is an aggregate of `Pointee` instances, or a type `T` such that `Pointee`
   ///   is an aggregate of `T` instances. As such, the stride of the
   ///   temporary type (`T`) may be an integer multiple or a whole fraction
@@ -433,7 +433,7 @@ extension UnsafeBufferPointer {
   /// `Element` type.
   ///
   /// - Note: Only use this method to rebind the pointer's memory to a type `T`
-  ///   that is layout equivalent with the `Element` type, or a type `T` that 
+  ///   that is layout compatible with the `Element` type, or a type `T` that 
   ///   is an aggregate of `Element` instances, or a type `T` such that `Element`
   ///   is an aggregate of `T` instances. As such, the stride of the
   ///   temporary type (`T`) may be an integer multiple or a whole fraction
@@ -499,7 +499,7 @@ extension UnsafeMutableBufferPointer {
   /// `Element` type.
   ///
   /// - Note: Only use this method to rebind the pointer's memory to a type `T`
-  ///   that is layout equivalent with the `Element` type, or a type `T` that 
+  ///   that is layout compatible with the `Element` type, or a type `T` that 
   ///   is an aggregate of `Element` instances, or a type `T` such that `Element`
   ///   is an aggregate of `T` instances. As such, the stride of the
   ///   temporary type (`T`) may be an integer multiple or a whole fraction
@@ -568,7 +568,7 @@ extension UnsafeRawPointer {
   ///
   /// - Note: The region of memory starting at this pointer may have been
   ///   bound to a type (the prebound type). If that is the case, then `T` must be
-  ///   layout equivalent with the prebound type, or `T` must be an aggregate of
+  ///   layout compatible with the prebound type, or `T` must be an aggregate of
   ///   the prebound type, or the the prebound type is an aggregate of `T`.
   ///   This requirement does not apply if the region of memory
   ///   has not been bound to any type.
@@ -628,7 +628,7 @@ extension UnsafeMutableRawPointer {
   ///
   /// - Note: The region of memory starting at this pointer may have been
   ///   bound to a type (the prebound type). If that is the case, then `T` must be
-  ///   layout equivalent with the prebound type, or `T` must be an aggregate of
+  ///   layout compatible with the prebound type, or `T` must be an aggregate of
   ///   the prebound type, or the the prebound type is an aggregate of `T`.
   ///   This requirement does not apply if the region of memory
   ///   has not been bound to any type.
@@ -684,7 +684,7 @@ extension UnsafeRawBufferPointer {
   ///
   /// - Note: A raw buffer may represent memory that has been bound to a type.
   ////  (the prebound type). If that is the case, then `T` must be
-  ///   layout equivalent with the prebound type, or `T` must be an aggregate of
+  ///   layout compatible with the prebound type, or `T` must be an aggregate of
   ///   the prebound type, or the the prebound type is an aggregate of `T`.
   ///   This requirement does not apply if the region of memory
   ///   has not been bound to any type.
@@ -759,7 +759,7 @@ extension UnsafeMutableRawBufferPointer {
   ///
   /// - Note: A raw buffer may represent memory that has been bound to a type.
   ////  (the prebound type). If that is the case, then `T` must be
-  ///   layout equivalent with the prebound type, or `T` must be an aggregate of
+  ///   layout compatible with the prebound type, or `T` must be an aggregate of
   ///   the prebound type, or the the prebound type is an aggregate of `T`.
   ///   This requirement does not apply if the region of memory
   ///   has not been bound to any type.
