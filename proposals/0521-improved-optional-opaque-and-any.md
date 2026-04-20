@@ -29,13 +29,15 @@ Likewise, implicitly unwrapped optionals receive the same treatment wherever the
 
 Protocol compositions are also supported if the composition itself is wrapped in parentheses. Today, a developer must write `(any P & Q)?`. That would continue to be valid, but for consistency with the single constraint case, `any (P & Q)?` would also become valid. The same composition without parentheses, `any P & Q?`, would continue to be an error (see [Potentially confusing optional compositions](#potentially-confusing-optional-compositions) below).
 
+Additionally, we propose prioritizing protocol suppressions over optionality when parsing a type preceded by `some/any`. For example, `any ~Copyable?` would be parsed as `(any (~Copyable))?`, not `any (~(Copyable?))` as it is today.
+
 ## Detailed design
 
 ### Parser changes
 
 The current type parser implements the following precedence relationships:
 
-_Prec_(`?`) > _Prec_(`&`) > _Prec_({`some`, `any`})
+_Prec_(`?`) > _Prec_(`~`) > _Prec_(`&`) > _Prec_({`some`, `any`})
 
 We propose modifying these rules to hoist up a trailing optional `?`/`!` operator to encompass the entire `some`/`any` type. The following table shows how some examples parse today vs. how they would parse under the new rules in this proposal. The ✅ or ❌ next to each example indicates whether they are currently/will be valid Swift under the new rules.
 
@@ -48,6 +50,7 @@ We propose modifying these rules to hoist up a trailing optional `?`/`!` operato
 | `some P?.R & Q`  | ✅ `some (((P?).R) & Q)`    | ✅ **same**                 |
 | `some P?.R & Q?` | ❌ `some (((P?).R) & (Q?))` | ❌ `(some (((P?).R) & Q))?` |
 | `some P?.R?`     | ❌ `some (((P?).R)?)`       | ✅ `(some ((P?).R))?`       |
+| `some ~P?`       | ❌ `some (~(P?))`           | ✅ `(some (~P))?`           |
 
 #### Potentially confusing optional compositions
 
@@ -76,6 +79,26 @@ warning: use of protocol 'P' as a type must be written 'any P'; this will be an 
 
 This proposal changes the fix-it replacement to be `any P` rather than `(any P)`.
 
+### Protocol suppressions without `some/any`
+
+Since existential types can still be spelled without `any` today, it is possible to write `~Copyable?`, which is parsed as `~(Copyable?)` (an impossible type). However, we observe that the compiler unconditionally emits a warning when suppressions are used without `any`, even when the `ExistentialAny` upcoming feature is not being used:
+
+```swift
+let x: ~Copyable
+       `- warning: constraint that suppresses conformance requires 'any';
+          this will be an error in a future Swift language mode [#ExistentialAny]
+```
+
+Parsing bare `~Copyable?` as `(~Copyable)?` would require deeper changes to the parser and type checker due to the fact that the type can appear in expression contexts where it is parsed as an expression and then later converted to the equivalent type. Consider this example:
+
+```swift
+let x = [() -> ~Copyable?]()
+```
+
+The type `~Copyable?` here is parsed as the expression `PrefixOperatorExpr("~", OptionalChainingExpr(DeclReferenceExpr("Copyable"), "?"))`. This _cannot_ be changed at the parser level; the precedence of postfix operators over prefix operators is a fundamental parsing rule. Since the compiler _already_ warns that this form is deprecated and supporting it would be non-trivial, we do not propose changing how it is interpreted.
+
+`let x = [() -> any ~Copyable?]()` does not suffer from the same issue because the compiler parses the tokens following `any` in a type context, not an expression context.
+
 ## Source compatibility
 
 This is a purely additive change to the valid syntax of the language. Code that previously failed to compile (e.g., `some P?`) will now compile with the expected semantics.
@@ -88,7 +111,7 @@ This proposal has no effect on ABI stability. The types `some/any P?` and `(some
 
 ## Effect on API resilience
 
-This proposal has no effect on API resilience.
+This proposal has no effect on API resilience. Types written into `.swiftinterface` files for resilient modules will continue to be spelled with parentheses to ensure that files written with newer compilers can still be parsed by older compilers.
 
 ## Alternatives considered
 
