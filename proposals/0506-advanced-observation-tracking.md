@@ -52,7 +52,7 @@ public struct ObservationTracking { }
 
 The options parameter to the two new functions have 3 non-exclusive variations that specify which kinds of events the observer is interested in. These control when events are passed to the event closure and support the `.willSet`, `.didSet`, or `.deinit` side of events.
 
-If an observation is setup such that it tracks all three, then a mutation of a property will fire two events (a `.willSet` and a `.didSet`) per setting of the property and one event when the observable type that is tracked is deinitialized. 
+If an observation is set up such that it tracks all three, then a mutation of a property will fire two events (a `.willSet` and a `.didSet`) per setting of the property and one event when the observable type that is tracked is deinitialized. 
 
 ```swift
 extension ObservationTracking {
@@ -71,7 +71,7 @@ extension ObservationTracking.Options: Sendable { }
 
 Note: `ObservationTracking.Options` is a near miss of `OptionSet`; since its internals are a private detail, `SetAlgebra` was chosen instead. Altering this would potentially expose implementation details that may not be ABI stable or sustainable for API design.
 
-When an observation closure is invoked there are four potential events that can occur: a `.willSet` or `.didSet` when a property is changed, an `.initial` when the continuous events are setup, or a `.deinit` when an `@Observable` type is deallocated. These are derived by the existing language level property observers and behaviors around observation. 
+When an observation closure is invoked there are four potential events that can occur: a `.willSet` or `.didSet` when a property is changed, an `.initial` when the continuous events are set up, or a `.deinit` when an `@Observable` type is deallocated. These are derived by the existing language level property observers and behaviors around observation. 
 
 Beyond the kind of event, the event can also be matched to a given known key path. This allows for detecting which property changed without violating the access control of types.
 
@@ -95,7 +95,7 @@ extension ObservationTracking {
 }
 ```
 
-The event matching function can be used to determine which property was responsible for the event. The following sample tracks both the properties `foo` and `bar`, when `bar` is then changed the onChange event will match that specific keypath. 
+The event matching function can be used to determine which property was responsible for the event. The following sample tracks both the properties `foo` and `bar`, when `bar` is then changed the onChange event will match that specific key path. 
 
 ```swift
 withObservationTracking(options: [.willSet]) {
@@ -214,7 +214,7 @@ The `ObservationTracking.Options` type reflects the interactions of properties f
 
 ## Alternatives considered
 
-The `withContinuousObservationTracking` could have a default parameter of `.willSet` to mimic the quasi default behavior of `withObservationTracking` - in that the existing non-options version of that function acts in the same manner as the new version passing `.willSet` and no other options (excluding the closure signature being different). Since the closure makes that signature only a near miss this default behavior was dismissed and the users of the `withContiuousObservation` API then should pass the explicit options as needed.
+The `withContinuousObservationTracking` could have a default parameter of `.willSet` to mimic the quasi default behavior of `withObservationTracking` - in that the existing non-options version of that function acts in the same manner as the new version passing `.willSet` and no other options (excluding the closure signature being different). Since the closure makes that signature only a near miss this default behavior was dismissed and the users of the `withContinuousObservation` API then should pass the explicit options as needed.
 
 It was initially considered to promote the existing SPI to API and call it a day, this was dismissed since it is missing the flexibility of being able to extend via the options parameter (for example to the `deinit`). Also doing so poses potential confusion around the suggested paths of progressive disclosure around transactions, willSet and didSet semantics. Since specifying an option is definitely a more specific design requirement that is a considerably more favored public exposition.
 
