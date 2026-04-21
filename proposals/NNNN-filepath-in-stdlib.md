@@ -212,8 +212,6 @@ Windows paths fall into three styles, distinguished by their leading bytes.
 
 - **Verbatim-component.** Paths beginning with `\\?\`, which pass to the kernel with minimal normalization. `/` is a legal component-name character rather than a separator, and `.` and `..` are literal names rather than directory references. Three sub-forms are recognized: verbatim disk (`\\?\C:\...`), verbatim UNC (`\\?\UNC\server\share\...`), and verbatim plain (`\\?\name\...`).
 
-> Note: these are not formally established terms, but we need... TODO: better phrasing, something along the lines of we need a way to talk about them and this proposal is establishing these terms for the purposes of Swift talking about them, but paraphrased
-
 ##### Darwin anchor canonicalization
 
 Certain Darwin anchor forms have equivalent spellings that `FilePath` canonicalizes on construction, so that semantically-identical paths compare byte-wise equal.
@@ -223,11 +221,8 @@ Certain Darwin anchor forms have equivalent spellings that `FilePath` canonicali
 
 Other resolve-flag numbers (`/.resolve/3/`, `/.resolve/5/`, etc.) and other inode numbers inside `/.vol/NNNN/MMMM/` are preserved as written.
 
-> TODO: do we need a section separator now?
-
 Potential future platforms may have their own anchors and interpretations. For instance, POSIX allows implementation-defined meaning for paths beginning with _exactly_ two slashes (and no more). Linux chooses to treat two slashes the same as a single slash, but Cygwin uses this form for Windows interoperability: on Cygwin, `//server/share` maps to UNC paths and `//cygdrive/c` maps to the `C:` drive. This proposal's decomposition model would naturally and directly extend to supporting more platforms. E.g., under theoretical Cygwin support, `//cygdrive/c/foo/bar` would have an anchor of `//cygdrive/c/` (with a drive letter of `"c"`) and components `[foo, bar]`.
 
-> TODO: do we need a section separator now?
 
 All paths are relative to some reference point. We use the term "absolute" to refer to paths that are only "relative" to the root of a named volume. That is, they do not depend on the current working directory or current working drive (on Windows), environment variables (such as `$HOME`), the contents of `/etc/passwd`, etc. Absoluteness is a property of a path's anchor.
 
@@ -394,8 +389,6 @@ extension FilePath {
   public var components: ComponentView { get set }
 }
 ```
-
-> TODO: I think it makes sense now to have a super-section on "suffixes" and then the two that follow are subsections. We use the term "suffix" throughout without as much of a description as to what it means.
 
 #### Trailing separators
 
@@ -576,8 +569,6 @@ The following table illustrates path decomposition.
 | `\\?\C:\foo\.\bar` | `\\?\C:\` | `[foo, ., bar]` | no |
 
 
-> TODO: question and todo what does `\\.\UNC\server\share\foo\bar` decompose to? so far we talk about devices having a single name. also, what would rust parse out?
-
 In the last Windows example, `.` appears as a component with `kind == .regular` because it is inside a verbatim-component path where `.` has no special meaning.
 
 Note that the `\` in `\\server\share\` or other UNC forms is a trailing separator on Windows, because the named volume itself (`\\server\share`) is considered a complete root (see `PathCchIsRoot` on Windows). Similarly, the final `/` in `/.vol/1234/5678/` on Darwin is a trailing separator, as the named volume (`/.vol/1234/5678`) is also a complete root.
@@ -722,8 +713,6 @@ A file path is analogous to a sequence of directions that instruct the kernel on
 `Comparable` provides a deterministic ordering suitable for sorted collections. The ordering is lexicographic over the path's normalized byte representation, which is platform-specific (see "Path decomposition" above): anchor bytes first, then component bytes in sequence, with trailing separator or resource fork suffix as a final tiebreaker.
 
 `ComponentView` also conforms to `Hashable` and `Comparable`. Its comparison and hashing consider only the relative component portion of the path, not the anchor or suffix.
-
-> TODO: add a note or at least we should think about what this means for verbatim-component and `.` and `..` members. I think we don't hash the isverbatim bit because they are subsitutable for path reconstruction and we don't consider `.kind` behavior to be semantically important enough. Or we just leave this unspecified and let the reader ask us...
 
 Support for other comparison modes (case-insensitive, filesystem-aware equivalence) is future work and likely belongs in a dedicated library or as a comparator parameter. `FilePath` is a resilient type and comparison is non-inlinable, so the ABI accommodates changes to internal representation if they prove necessary.
 
