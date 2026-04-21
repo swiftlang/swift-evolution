@@ -88,7 +88,7 @@ print(untrusted)                       // /etc/passwd
 
 ### `FilePath`
 
-`FilePath` stores a null-terminated sequence of platform characters (`CChar` on Unix, `UInt16` on Windows).
+`FilePath` stores a null-terminated sequence of platform characters (`CChar` on Linux and Darwin, `UInt16` on Windows).
 
 ```swift
 /// A file path is a null-terminated sequence of bytes that represents
@@ -99,7 +99,7 @@ public struct FilePath: Sendable {
 
   /// The platform directory separator character.
   ///
-  /// On Unix platforms (including Darwin), this is `"/"`.
+  /// On Linux and Darwin, this is `"/"`.
   /// On Windows, this is `"\"`.
   public static var separator: Character { get }
 
@@ -189,12 +189,15 @@ extension FilePath {
   ///
   /// Returns `nil` for purely relative paths.
   ///
-  /// Linux / Darwin:
+  /// Linux and Darwin:
   ///
   ///     /usr/bin                   => /
+  ///     foo/bar                    => nil
+  ///
+  /// Darwin additionally:
+  ///
   ///     /.nofollow/foo             => /.nofollow/
   ///     /.vol/1234/5678/foo        => /.vol/1234/5678
-  ///     foo/bar                    => nil
   ///
   /// Windows:
   ///
@@ -250,7 +253,7 @@ extension FilePath {
   /// Returns true if this path uniquely identifies the location of
   /// a file without reference to an additional starting location.
   ///
-  /// On Unix platforms, absolute paths begin with a `/`.
+  /// On Linux and Darwin, absolute paths begin with `/`.
   ///
   /// On Windows, absolute paths are fully qualified: they begin with
   /// a drive letter followed by `:\` (e.g. `C:\`), or with a UNC,
@@ -261,7 +264,7 @@ extension FilePath {
   /// environment variables; paths beginning with `~` are considered relative.
   ///
   /// Examples:
-  /// * Unix:
+  /// * Linux and Darwin:
   ///   * `/usr/local/bin`
   ///   * `/tmp/foo.txt`
   ///   * `/`
@@ -274,7 +277,7 @@ extension FilePath {
   /// Returns true if this path is not absolute (see `isAbsolute`).
   ///
   /// Examples:
-  /// * Unix:
+  /// * Linux and Darwin:
   ///   * `~/bar`
   ///   * `tmp/foo.txt`
   /// * Windows:
@@ -499,7 +502,7 @@ extension FilePath {
 
 #### Path reconstruction
 
-An inverse of decomposition: construct a path from an anchor, a sequence of components, and a trailing separator flag. Useful when transplanting an anchor onto existing components, when assembling a path from independently-computed parts, or when a developer wants explicit control over each axis of the decomposition.
+An inverse of decomposition: construct a path from an anchor, a sequence of components, and a suffix (a trailing separator or, on Darwin, a resource fork). Useful when transplanting an anchor onto existing components, when assembling a path from independently-computed parts, or when a developer wants explicit control over each axis of the decomposition.
 
 The reconstructed path parses and normalizes exactly as if the equivalent string literal had been provided. Duplicate separators between components are not possible (components cannot contain separators); interior `.` components, if any, are dropped by normalization in non-verbatim paths; `..` components are preserved.
 
@@ -543,7 +546,7 @@ extension FilePath {
 
 The following table illustrates path decomposition.
 
-**Unix / Darwin:**
+**Linux and Darwin:**
 
 | Input | Anchor | Components | Trailing separator? |
 |-------|--------|------------|:---:|
@@ -744,43 +747,43 @@ Support for other comparison modes (case-insensitive, filesystem-aware equivalen
 
 ```swift
 extension String {
-  /// Creates a string by interpreting the path's content as UTF-8 on Unix
-  /// and UTF-16 on Windows.
+  /// Creates a string by interpreting the path's content as UTF-8 on Linux
+  /// and Darwin and UTF-16 on Windows.
   ///
   /// If the content of the path isn't well-formed Unicode,
   /// this replaces invalid bytes with U+FFFD. See `String.init(decoding:)`.
   public init(decoding path: FilePath)
 
   /// Creates a string from a file path, validating its content as UTF-8
-  /// on Unix and UTF-16 on Windows.
+  /// on Linux and Darwin and UTF-16 on Windows.
   ///
   /// If the content of the path isn't well-formed Unicode,
   /// this initializer returns `nil`.
   public init?(validating path: FilePath)
 
-  /// Creates a string by interpreting the anchor's content as UTF-8 on Unix
-  /// and UTF-16 on Windows.
+  /// Creates a string by interpreting the anchor's content as UTF-8 on Linux
+  /// and Darwin and UTF-16 on Windows.
   ///
   /// If the content of the anchor isn't well-formed Unicode,
   /// this replaces invalid bytes with U+FFFD. See `String.init(decoding:)`.
   public init(decoding anchor: FilePath.Anchor)
 
   /// Creates a string from an anchor, validating its content as UTF-8
-  /// on Unix and UTF-16 on Windows.
+  /// on Linux and Darwin and UTF-16 on Windows.
   ///
   /// If the content of the anchor isn't well-formed Unicode,
   /// this initializer returns `nil`.
   public init?(validating anchor: FilePath.Anchor)
 
   /// Creates a string by interpreting the path component's content as UTF-8 on
-  /// Unix and UTF-16 on Windows.
+  /// Linux and Darwin and UTF-16 on Windows.
   ///
   /// If the content of the path component isn't well-formed Unicode,
   /// this replaces invalid bytes with U+FFFD. See `String.init(decoding:)`.
   public init(decoding component: FilePath.Component)
 
   /// Creates a string from a path component, validating its content as UTF-8
-  /// on Unix and UTF-16 on Windows.
+  /// on Linux and Darwin and UTF-16 on Windows.
   ///
   /// If the content of the path component isn't well-formed Unicode,
   /// this initializer returns `nil`.
@@ -946,7 +949,7 @@ The [original pitch](https://forums.swift.org/t/pitch-add-filepath-to-the-standa
 
 ### Include `Codable` conformance
 
-`FilePath` intentionally does not conform to `Codable`. Serialized paths are inherently platform-specific: a path serialized on Unix is not meaningful on Windows. Furthermore, even if paths on the same platform may parse the same in different versions, the meaning of paths can differ version-to-version of the OS: Windows 10 and 11 differ in device name recognition and Darwin may add new resolve flag values. The existing `Codable` conformance on `System.FilePath` uses an awkward binary encoding that has been a source of friction. Rather than commit the standard library to a serialization format, we leave serialization to application-level code that can choose a format appropriate to its needs. `String(decoding:)` and `init(_ string:)` provide the necessary conversion.
+`FilePath` intentionally does not conform to `Codable`. Serialized paths are inherently platform-specific: a path serialized on Linux or Darwin is not meaningful on Windows. Furthermore, even if paths on the same platform may parse the same in different versions, the meaning of paths can differ version-to-version of the OS: Windows 10 and 11 differ in device name recognition and Darwin may add new resolve flag values. The existing `Codable` conformance on `System.FilePath` uses an awkward binary encoding that has been a source of friction. Rather than commit the standard library to a serialization format, we leave serialization to application-level code that can choose a format appropriate to its needs. `String(decoding:)` and `init(_ string:)` provide the necessary conversion.
 
 ### Do more: bring all of swift-system into the toolchain
 
@@ -960,7 +963,7 @@ As discussed in [system-in-the-toolchain](https://forums.swift.org/t/pitch-syste
 
 ### Use Foundation's `URL`
 
-Foundation's `URL` is designed for URI semantics, including scheme parsing and percent-encoding. File system paths and URIs have different structure and different invariants. For example, `URL(fileURLWithPath:)` and `URL.appendingPathComponent` make blocking file system calls, which is surprising for what appears to be a pure data type. On Unix, paths containing bytes that are not valid UTF-8 cannot survive conversion to a `file://` URL, which requires percent-encoding. Foundation also sits high in the dependency stack; the Swift runtime and toolchain components cannot depend on it.
+Foundation's `URL` is designed for URI semantics, including scheme parsing and percent-encoding. File system paths and URIs have different structure and different invariants. For example, `URL(fileURLWithPath:)` and `URL.appendingPathComponent` make blocking file system calls, which is surprising for what appears to be a pure data type. On Linux and Darwin, paths containing bytes that are not valid UTF-8 cannot survive conversion to a `file://` URL, which requires percent-encoding. Foundation also sits high in the dependency stack; the Swift runtime and toolchain components cannot depend on it.
 
 ### Do nothing
 
