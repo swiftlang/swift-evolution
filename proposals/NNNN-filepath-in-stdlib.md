@@ -145,14 +145,18 @@ extension FilePath {
   ///
   /// A path with no anchor is purely relative.
   public struct Anchor: Sendable {
-    /// Whether this anchor begins with a root separator.
+    /// Whether this anchor is rooted.
+    ///
+    /// An anchor is rooted if it fixes the path to a volume root rather
+    /// than to a working directory.
     ///
     /// On Linux and Darwin, all anchors are rooted.
     ///
-    /// On Windows, `\foo`, `C:\foo`, `\\server\share\foo`, `\\?\C:\foo`,
-    /// and `\\.\pipe` all have rooted anchors. `C:foo` does not: its
-    /// anchor (`C:`) names a drive but has no root separator.
-    public var isRoot: Bool { get }
+    /// On Windows, the anchors `\`, `C:\`, `\\server\share`, `\\?\C:\`,
+    /// and `\\.\pipe` are all rooted. `C:` is not: it names a drive but
+    /// resolves relative to that drive's current working directory rather
+    /// than the drive's root.
+    public var isRooted: Bool { get }
 
     /// The drive letter of this anchor, if any.
     ///
@@ -183,11 +187,17 @@ extension FilePath {
 
   /// The anchor of this path, if any.
   ///
-  /// Returns nil for purely relative paths.
+  /// Returns `nil` for purely relative paths.
+  ///
+  /// Linux / Darwin:
   ///
   ///     /usr/bin                   => /
   ///     /.nofollow/foo             => /.nofollow/
   ///     /.vol/1234/5678/foo        => /.vol/1234/5678
+  ///     foo/bar                    => nil
+  ///
+  /// Windows:
+  ///
   ///     C:\foo                     => C:\
   ///     C:foo                      => C:
   ///     \foo                       => \
@@ -196,7 +206,7 @@ extension FilePath {
   ///     \\.\NUL                    => \\.\NUL
   ///     \\?\C:\foo                 => \\?\C:\
   ///     \\?\UNC\server\share\foo   => \\?\UNC\server\share
-  ///     foo/bar                    => nil
+  ///     foo\bar                    => nil
   ///
   public var anchor: Anchor? { get set }
 }
@@ -212,6 +222,8 @@ Windows paths fall into three styles, distinguished by their leading bytes.
 
 - **Verbatim-component.** Paths beginning with `\\?\`, which pass to the kernel with minimal normalization. `/` is a legal component-name character rather than a separator, and `.` and `..` are literal names rather than directory references. Three sub-forms are recognized: verbatim disk (`\\?\C:\...`), verbatim UNC (`\\?\UNC\server\share\...`), and verbatim plain (`\\?\name\...`).
 
+> Note: Microsoft documentation does not give these styles canonical names. We introduce this terminology here so that this proposal and any follow-on work can refer to each style precisely. The boundary between conventional and device-namespace styles is fuzzy at the Win32 layer, where legacy device names such as `NUL` and `COM1` are rewritten to `\\.\NUL` and `\\.\COM1` before reaching the NT kernel. See the note on legacy device names below.
+
 ##### Darwin anchor canonicalization
 
 Certain Darwin anchor forms have equivalent spellings that `FilePath` canonicalizes on construction, so that semantically-identical paths compare byte-wise equal.
@@ -221,14 +233,17 @@ Certain Darwin anchor forms have equivalent spellings that `FilePath` canonicali
 
 Other resolve-flag numbers (`/.resolve/3/`, `/.resolve/5/`, etc.) and other inode numbers inside `/.vol/NNNN/MMMM/` are preserved as written.
 
+##### Potential future platforms
+
 Potential future platforms may have their own anchors and interpretations. For instance, POSIX allows implementation-defined meaning for paths beginning with _exactly_ two slashes (and no more). Linux chooses to treat two slashes the same as a single slash, but Cygwin uses this form for Windows interoperability: on Cygwin, `//server/share` maps to UNC paths and `//cygdrive/c` maps to the `C:` drive. This proposal's decomposition model would naturally and directly extend to supporting more platforms. E.g., under theoretical Cygwin support, `//cygdrive/c/foo/bar` would have an anchor of `//cygdrive/c/` (with a drive letter of `"c"`) and components `[foo, bar]`.
 
+##### Absolute, relative, and rooted
 
 All paths are relative to some reference point. We use the term "absolute" to refer to paths that are only "relative" to the root of a named volume. That is, they do not depend on the current working directory or current working drive (on Windows), environment variables (such as `$HOME`), the contents of `/etc/passwd`, etc. Absoluteness is a property of a path's anchor.
 
 On Linux and Darwin, absolute paths begin with `/`. On Windows, absolute paths begin with a drive letter and root separator (e.g. `C:\`) or a UNC/device anchor (e.g. `\\server\share\`, `\\?\`, `\\.\`). Windows paths such as `\foo` and `C:foo` are relative: the former is relative to the current drive, while the latter is relative to the current directory on drive `C`.
 
-Windows also has a notion of a path being "rooted" (see `Anchor.isRoot`) which is distinct from absolute. While all absolute paths are rooted, some rooted paths are relative. `\foo` is rooted in the sense that it is relative to the root of a volume, but that volume (i.e. the current drive) hasn't been named, so it is not absolute. On Linux and Darwin, rootedness is equivalent to absoluteness.
+Windows also has a notion of a path being "rooted" (see `Anchor.isRooted`) which is distinct from absolute. While all absolute paths are rooted, some rooted paths are relative. `\foo` is rooted in the sense that it is relative to the root of a volume, but that volume (i.e. the current drive) hasn't been named, so it is not absolute. On Linux and Darwin, rootedness is equivalent to absoluteness.
 
 ```swift
 extension FilePath {
@@ -238,8 +253,9 @@ extension FilePath {
   /// On Unix platforms, absolute paths begin with a `/`.
   ///
   /// On Windows, absolute paths are fully qualified: they begin with
-  /// a drive letter followed by `:\` (e.g. `C:\`), or with a UNC
-  /// or device anchor (e.g. `\\server\share\`, `\\?\`, `\\.\`).
+  /// a drive letter followed by `:\` (e.g. `C:\`), or with a UNC,
+  /// verbatim, or device anchor (e.g. `\\server\share\`, `\\?\C:\`,
+  /// `\\.\pipe`).
   ///
   /// This does not perform shell expansion or substitute
   /// environment variables; paths beginning with `~` are considered relative.
@@ -271,7 +287,7 @@ extension FilePath {
 
 > Note: Windows reserves certain legacy device names (e.g. `CON`, `NUL`, `COM1`) which it internally rewrites to device paths (e.g. `\\.\NUL`). This means that paths containing them could be treated as absolute by the NT kernel post Win32-canonicalization. Note that what "contains" means can vary by version of Windows (e.g. Windows 10 considers `COM1.txt` a device name while Windows 11 does not). FilePath does not emulate this rewriting and treats them as normal named components. See Future Directions for planned work around legacy device name handling.
 
-> **Rationale**: The original pitch included a `FilePath.Root` type. `Root` does not cleanly accommodate all platform anchor forms: `C:foo` has a named drive but no root separator, so it isn't "root" in any meaningful sense. `Anchor` is a better name for this initial region: it names a reference point without asserting that reference point is a root. Python's `pathlib` has used `.anchor` for this concept since 3.4. Rust uses the name "prefix" for an analogous concept, but "prefix" suffers from being too general. While "prefix" could refer to the whole region before the relative path components, it could also specifically refer to the metadata denoted by the fixed-length portion prior to the volume identifiers, such as the verbatim-component designator on Windows (`\\?\`) or resolve flags on Darwin (`/.nofollow`, `/.resolve/N`) prior to the actual volume or root. Also, `Sequence.prefix` already exists with a different meaning. "Anchor" better conveys the role the initial region plays in a path.
+> **Rationale**: The original pitch included a `FilePath.Root` type. `Root` does not cleanly accommodate all platform anchor forms: `C:foo` has a named drive but isn't rooted at the drive's root, so it isn't "root" in any meaningful sense. `Anchor` is a better name for this initial region: it names a reference point without asserting that reference point is a root. Python's `pathlib` has used `.anchor` for this concept since 3.4. Rust uses the name "prefix" for an analogous concept, but "prefix" suffers from being too general. While "prefix" could refer to the whole region before the relative path components, it could also specifically refer to the metadata denoted by the fixed-length portion prior to the volume identifiers, such as the verbatim-component designator on Windows (`\\?\`) or resolve flags on Darwin (`/.nofollow`, `/.resolve/N`) prior to the actual volume or root. Also, `Sequence.prefix` already exists with a different meaning. "Anchor" better conveys the role the initial region plays in a path.
 
 #### `FilePath.Component`
 
@@ -390,7 +406,13 @@ extension FilePath {
 }
 ```
 
-#### Trailing separators
+#### Suffixes
+
+A *suffix* is a platform directive that appears after the final relative component of a path and instructs the kernel what to do once the rest of the path has been resolved. Suffixes are not components and are not returned by `ComponentView`, but they are semantically meaningful and affect equality.
+
+Two suffix forms exist. *Trailing separators* (on Linux, Darwin, and Windows) assert that the path's final component names a directory and request symlink resolution at that final component. *Resource fork suffixes* (`/..namedfork/rsrc`, Darwin-only) select the resource fork of the named file. The two forms are mutually exclusive: a path has at most one suffix.
+
+##### Trailing separators
 
 A trailing separator is a directory separator at the end of a path that is not syntactically part of the path anchor. Trailing separators carry meaning at the syscall level: on POSIX, a trailing `/` is equivalent to appending `.`, which forces symlink resolution at the final component and asserts that the result is a directory. For example, if `/tmp/link` is a symlink to a directory, `lstat("/tmp/link")` examines the symlink itself, while `lstat("/tmp/link/")` follows it. And `open("/tmp/foo/", O_RDONLY)` will fail with `ENOTDIR` if `foo` is a regular file, whereas `open("/tmp/foo", O_RDONLY)` will succeed. Similar semantics apply on Windows.
 
@@ -428,13 +450,13 @@ extension FilePath {
 }
 ```
 
-#### (Darwin-only) Resource forks
+##### (Darwin-only) Resource forks
 
 On Darwin, a file may have both a data fork (its ordinary content) and a resource fork (an auxiliary data stream). The XNU kernel addresses a resource fork by appending the fixed suffix `/..namedfork/rsrc` to a path during path lookup. For example, given a file at `/foo/bar`, the path `/foo/bar/..namedfork/rsrc` identifies the resource fork of that file. The kernel recognizes this suffix only when it appears verbatim at the end of the path, right up to the null terminator.
 
 This suffix is directly analogous to a trailing separator: it is not a relative component but a directive to the kernel about what to do after resolving the final component. Like a trailing separator, it is semantically meaningful (it selects a different byte stream) and affects `==`. It is mutually exclusive with a trailing separator.
 
-`FilePath` recognizes this suffix during parsing and does not present `..namedfork` and `rsrc` as relative components, because they are not.
+`FilePath` recognizes this suffix during parsing and does not present `..namedfork` and `rsrc` as relative components, because they are part of the suffix directive rather than names on the filesystem.
 
 ```swift
 #if canImport(Darwin)
@@ -567,7 +589,7 @@ The following table illustrates path decomposition.
 | `\\?\pictures\kittens` | `\\?\pictures` | `[kittens]` | no |
 | `\\?\UNC\server\share\foo` | `\\?\UNC\server\share` | `[foo]` | no |
 | `\\?\C:\foo\.\bar` | `\\?\C:\` | `[foo, ., bar]` | no |
-
+| `\\.\UNC\server\share\foo` | `\\.\UNC` | `[server, share, foo]` | no |
 
 In the last Windows example, `.` appears as a component with `kind == .regular` because it is inside a verbatim-component path where `.` has no special meaning.
 
