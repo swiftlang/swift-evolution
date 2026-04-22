@@ -81,7 +81,7 @@ typealias FullyInhabited = ConvertibleToBytes & ConvertibleFromBytes
 ```swift
 extension RawSpan {
   func load<T: ConvertibleFromBytes>(
-    fromByteOffset: Int = 0,
+    fromByteOffset: Int,
     as: T.Type = T.self
   ) -> T
 }
@@ -92,7 +92,7 @@ Additionally, a special version of `load(as:)` will have an additional argument 
 ```swift
 extension RawSpan {
   func load<T: ConvertibleFromBytes & FixedWidthInteger>(
-    fromByteOffset: Int = 0,
+    fromByteOffset: Int,
     as: T.Type = T.self,
     _ byteOrder: ByteOrder
   ) -> T
@@ -146,7 +146,7 @@ extension OutputRawSpan {
 extension MutableRawSpan {
   mutating func storeBytes<T>(
     of value: T,
-    toByteOffset offset: Int = 0,
+    toByteOffset offset: Int,
     as type: T.Type,
     _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
@@ -310,7 +310,7 @@ extension RawSpan {
   ///   - type: The type of the instance to create.
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Int,
     as: T.Type = T.self
   ) -> T
 
@@ -327,7 +327,7 @@ extension RawSpan {
   ///   - byteOrder: The order in which the bytes should be decoded.
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes & FixedWidthInteger>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Int,
     as: T.Type = T.self,
     _ byteOrder: ByteOrder
   ) -> T
@@ -375,7 +375,7 @@ extension MutableRawSpan {
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
   mutating func storeBytes<T>(
     of value: T,
-    toByteOffset offset: Int = 0,
+    toByteOffset offset: Int,
     as type: T.Type,
     _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
@@ -425,7 +425,7 @@ extension MutableRawSpan {
   ///   - type: The type of the instance to create.
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Int,
     as: T.Type = T.self
   ) -> T
 
@@ -442,7 +442,7 @@ extension MutableRawSpan {
   ///   - byteOrder: The order in which the bytes should be decoded.
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes & FixedWidthInteger>(
-    fromByteOffset offset: Int = 0,
+    fromByteOffset offset: Int,
     as: T.Type = T.self,
     _ byteOrder: ByteOrder
   ) -> T
@@ -816,6 +816,10 @@ The standard library's `FixedWidthInteger` protocol includes computed properties
 #### Defaulting to aligned operations for the safe `load()` functions
 
 `UnsafeRawPointer`'s original `load()` function requires correct alignment, and the less restrictive  `loadUnaligned()` was added later. We have long considered this unfortunate, and this proposal seeks to improve on the status quo by making our new safe `load()` functions perform unaligned operations.
+
+#### Defaulting `toByteOffset` and `fromByteOffset` parameters to a value of zero
+
+The proposal originally included defaulted parameter values for these parameters for the new `load` and `storeBytes` functions. It was pointed out that defaulted parameters may give the impression that loading or storing a value using these functions must use the full length of the `RawSpan` or `MutableRawSpan`. Noting that defaulted parameters already exist on similar, pre-existing unsafe API, we may need to harmonize the decision at a later time.
 
 ## Acknowledgments
 
