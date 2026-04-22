@@ -3,7 +3,7 @@
 * Proposal: [SE-0521](0521-improved-optional-opaque-and-any.md)
 * Authors: [Tony Allevato](https://github.com/allevato)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Active Review (March 16 - March 30, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#87115](https://github.com/swiftlang/swift/pull/87115), [swiftlang/swift-syntax#3268](https://github.com/swiftlang/swift-syntax/pull/3268)
 * Review: ([pitch](https://forums.swift.org/t/pitch-allow-some-p-and-any-p-removing-the-need-for-parentheses/84656)) ([review](https://forums.swift.org/t/se-0521-improved-syntax-for-optionals-of-opaque-and-existential-types/85377)) ([accepted with modifications](https://forums.swift.org/t/accepted-with-modifications-se-0521-improved-syntax-for-optionals-of-opaque-and-existential-types/86115))
 
