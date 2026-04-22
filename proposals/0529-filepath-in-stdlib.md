@@ -1,44 +1,15 @@
 # Add `FilePath` to the Standard Library
 
-* Proposal: TBD
+* Proposal: [SE-0529](0529-filepath-in-stdlib.md)
 * Authors: [Michael Ilseman](https://github.com/milseman), [Saleem Abdulrasool](https://github.com/compnerd)
-* Review Manager: TBD
-* Status: **Pitch**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active Review (April 22nd...May 4th, 2026)
 * Implementation: TBD
-* Review: TBD
+* Review: ([first pitch](https://forums.swift.org/t/pitch-add-filepath-to-the-standard-library/84812)) ([second pitch](https://forums.swift.org/t/pitch-2-add-filepath-to-stdlib/85695))
 
 ## Introduction
 
-We propose adding `FilePath` and its essential operations to the Swift standard library. `FilePath` parses platform-specific path syntax on the developer's behalf, provides a normalized view of path components, and enables resolution against the filesystem. This proposal establishes the core types (`FilePath`, `FilePath.Anchor`, `FilePath.Component`, `FilePath.ComponentView`), their conformances, and the essential operations needed to adopt `FilePath` as a currency type. Additional syntactic convenience methods and platform-specific path decomposition API are planned as future additions. See Future Directions.
-
-### Changes from earlier versions
-
-**Summary of changes in proposal version 1.0**:
-
-- Added `FilePath.Anchor` as a fundamental decomposition primitive (and a replacement for swift-system's `Root` type), exposing `isRoot`, `driveLetter`, and `isVerbatimComponent`.
-- Added `FilePath.Component.init(verbatim:)` overloads for string and span (Windows-only).
-- Added Darwin-specific API for querying resource forks (akin to trailing separators).
-- Added `FilePath.init(anchor:_:hasTrailingSeparator:)` and expounded on path decomposition and reconstitution.
-
-**Summary of changes in pitch version 2**:
-
-[Thread](https://forums.swift.org/t/pitch-2-add-filepath-to-stdlib/85695/10)
-
-- Scoped to the essential core: the type, its conformances, `ComponentView`, and real filesystem `resolve()`. Convenience methods (`lastComponent`, `stem`, `extension`, `append`, `push`, etc.) are deferred, back-deployable via `ComponentView`.
-- Lexical operations deferred; real `func resolve() throws` added.
-- Trailing separators preserved and significant for equality.
-- Components are opaque byte bags with `Span`-based access; no `stem`/`extension`.
-- Platform prefix handling expanded: XNU resolve flags, volume identifiers, UNC trailing separators.
-- Added `var nullTerminatedCodeUnits: Span<FilePath.CodeUnit>` and removed `withCString` (no unsafe pointers anywhere!).
-- Added `typealias FilePath.CodeUnit = CChar/UInt16` to remove the conditionals around the spans.
-- Span properties and argument labels are now named `codeUnits`.
-- Added `OutputSpan<FilePath.CodeUnit>` init.
-- `ComponentView` normalization (coalescing separators, dropping interior `.`) specified explicitly.
-- `Comparable` added; `Codable` dropped. C interop (`withCString`) added directly.
-
-**Pitch version 1**: 
-
-[Thread](https://forums.swift.org/t/pitch-add-filepath-to-the-standard-library/84812)
+We propose adding `FilePath` and its essential operations to the Swift standard library. `FilePath` parses platform-specific path syntax on the developer's behalf, provides a normalized view of path components, and enables resolution against the filesystem. This proposal establishes the core types (`FilePath`, `FilePath.Anchor`, `FilePath.Component`, `FilePath.ComponentView`), their conformances, and the essential operations needed to adopt `FilePath` as a currency type. Additional syntactic convenience methods and platform-specific path decomposition API are planned as [future additions](#future-directions).
 
 ## Motivation
 
