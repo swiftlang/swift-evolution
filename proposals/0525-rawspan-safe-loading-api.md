@@ -306,7 +306,7 @@ extension RawSpan {
   ///
   /// - Parameters:
   ///   - offset: The offset from the beginning of this span, in bytes.
-  ///     `offset` must be nonnegative. The default is zero.
+  ///     `offset` must be nonnegative.
   ///   - type: The type of the instance to create.
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes>(
@@ -322,7 +322,7 @@ extension RawSpan {
   ///
   /// - Parameters:
   ///   - offset: The offset from the beginning of this span, in bytes.
-  ///     `offset` must be nonnegative. The default is zero.
+  ///     `offset` must be nonnegative.
   ///   - type: The type of the instance to create.
   ///   - byteOrder: The order in which the bytes should be decoded.
   /// - Returns: A new value of type `T`, read from `offset`.
@@ -370,7 +370,7 @@ extension MutableRawSpan {
   /// - Parameters:
   ///   - value: The value to store as raw bytes.
   ///   - offset: The offset in bytes into the buffer pointer's memory to begin
-  ///     writing bytes from the value. The default is zero.
+  ///     writing bytes from the value.
   ///   - type: The type of the instance to store.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
   mutating func storeBytes<T>(
@@ -421,7 +421,7 @@ extension MutableRawSpan {
   ///
   /// - Parameters:
   ///   - offset: The offset from the beginning of this span, in bytes.
-  ///     `offset` must be nonnegative. The default is zero.
+  ///     `offset` must be nonnegative.
   ///   - type: The type of the instance to create.
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes>(
@@ -437,7 +437,7 @@ extension MutableRawSpan {
   ///
   /// - Parameters:
   ///   - offset: The offset from the beginning of this span, in bytes.
-  ///     `offset` must be nonnegative. The default is zero.
+  ///     `offset` must be nonnegative.
   ///   - type: The type of the instance to create.
   ///   - byteOrder: The order in which the bytes should be decoded.
   /// - Returns: A new value of type `T`, read from `offset`.
