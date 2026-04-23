@@ -69,7 +69,7 @@ A conformance to `ConvertibleFromBytes` can only be declared by a type's contain
 ##### `FullyInhabited`
 
 ```swift
-typealias FullyInhabited = ConvertibleToBytes & ConvertibleFromBytes
+public typealias FullyInhabited = ConvertibleToBytes & ConvertibleFromBytes
 ```
 
 `FullyInhabited` is the intersection of `ConvertibleToBytes` and `ConvertibleFromBytes`.
@@ -110,7 +110,7 @@ The list of standard library types to conform to `ConvertibleFromBytes & FixedWi
 
 The `load(as:)` functions are not atomic operations.
 
-The `load(as:)` functions will not have equivalents with unchecked byte offset. If that functionality is needed, the `unsafeLoad(fromUncheckedByteOffset:as:)`function is already available.
+The `load(as:)` functions will not have equivalents with unchecked byte offset. If that functionality is needed, the `unsafeLoad(fromUncheckedByteOffset:as:)` function is already available.
 
 ##### Subscripts for the `RawSpan` family
 
@@ -232,12 +232,12 @@ extension OutputRawSpan {
   @_lifetime(copy self)
   mutating func append<T, E: Error>(
     elements n: Int,
-    as type: T.self,
+    as type: T.Type,
     initializingWith initializer: (inout OutputSpan<T>) throws(E) -> Void
   ) throws(E) where T: ConvertibleToBytes & BitwiseCopyable
 }
 ```
-`append(byteCount:as:initializingWith)` will perform bounds-checking and alignment-checking before executing the closure, trapping at runtime if the alignment is incorrect or if available space is insufficient.
+`append(elements:as:initializingWith:)` will perform bounds-checking and alignment-checking before executing the closure, trapping at runtime if the alignment is incorrect or if available space is insufficient.
 
 Similarly, `OutputSpan` will provide a way to initialize a portion of its uninitialized storage using an `OutputRawSpan`, when its `Element` type conforms to `ConvertibleFromBytes`.
 ```swift
@@ -627,7 +627,7 @@ extension Span where Element: ConvertibleFromBytes {
   /// of `Element`. If either of these requirements is not met, this initializer
   /// will trap at runtime.
   @_lifetime(copy bytes)
-  public init(viewing bytes: consuming RawSpan)
+  public init(viewing bytes: RawSpan)
 }
 
 extension Span where Element: ConvertibleToBytes {
@@ -659,7 +659,7 @@ extension MutableSpan {
   /// the type of `Element`. If either of these requirements is not met,
   /// this initializer will trap at runtime.
   @_lifetime(copy bytes)
-  init(bytes: consuming MutableRawSpan)
+  init(_ mutableBytes: consuming MutableRawSpan)
     where Element: ConvertibleToBytes & ConvertibleFromBytes
 }
 
@@ -795,7 +795,7 @@ Some functions and properties introduced in earlier proposals have since been an
 
 #### Encoding the name of the type being loaded into the function names
 
-Having a series of concrete functions such as `loadInt32(fromByteOffset:_:)` and `storeBytes(int32:toByteOffset:as:_:)` would be easier on the type checker, by avoiding the problem of overloaded symbols.
+Having a series of concrete functions such as `loadInt32(fromByteOffset:_:)` and `storeBytes(int32:toByteOffset:_:)` would be easier on the type checker, by avoiding the problem of overloaded symbols.
 
 #### Waiting for a compiler-validated `ConvertibleToBytes` layout constraint
 
