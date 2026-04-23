@@ -3,7 +3,7 @@
 * Proposal: [SE-0529](0529-filepath-in-stdlib.md)
 * Authors: [Michael Ilseman](https://github.com/milseman), [Saleem Abdulrasool](https://github.com/compnerd)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (April 22nd...May 4th, 2026)
+* Status: **Active Review (April 22nd...May 4th, 2026)**
 * Implementation: TBD
 * Review: ([first pitch](https://forums.swift.org/t/pitch-add-filepath-to-the-standard-library/84812)) ([second pitch](https://forums.swift.org/t/pitch-2-add-filepath-to-stdlib/85695)) ([review](https://forums.swift.org/t/se-0529-add-filepath-to-the-standard-library/86194))
 
