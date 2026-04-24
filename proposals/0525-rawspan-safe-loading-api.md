@@ -747,7 +747,7 @@ With the two protocols we have defined, we gain the ability to define a safe fun
 ///   - original: The instance to cast to `type`.
 ///   - type: The type to cast `original` to. `T` and `U` must have
 ///     same-sized memory representation and a compatible memory layout.
-/// Returns: A new instance of type `U`, cast from `original`.
+/// - Returns: A new instance of type `U`, cast from `original`.
 func bitCast<T, U>(_ original: T, to type: U.Type) -> U
   where T: ConvertibleToBytes, U: ConvertibleFromBytes
 ```
