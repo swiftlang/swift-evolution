@@ -590,7 +590,7 @@ extension OutputRawSpan {
 ##### `OutputSpan`
 
 ```swift
-extension OutputSpan where Element: ConvertibleFromBytes {
+extension OutputSpan {
   /// Append to the span as raw bytes.
   ///
   /// Inside the closure, initialize elements by appending to `rawSpan`.
@@ -603,7 +603,7 @@ extension OutputSpan where Element: ConvertibleFromBytes {
   /// until that point will remain initialized.
   ///
   /// - Parameters:
-  ///   - n: The number of `T` elements to initialize
+  ///   - n: The number of elements (of type `Element`) to initialize
   ///   - initializer: A closure that initializes new elements.
   ///     - Parameters:
   ///       - rawSpan: An `OutputRawSpan` with enough bytes to initialize
@@ -740,11 +740,11 @@ With the two protocols we have defined, we gain the ability to define a safe fun
 /// type.
 ///
 /// Parameters:
-///   - x: The instance to cast to `type`.
+///   - original: The instance to cast to `type`.
 ///   - type: The type to cast `x` to. `type` and the type of `x` must have the
 ///     same size of memory representation and compatible memory layout.
 /// Returns: A new instance of type `U`, cast from `x`.
-func bitCast<T, U>(_ original: T, to: U.Type) -> U
+func bitCast<T, U>(_ original: T, to type: U.Type) -> U
   where T: ConvertibleToBytes, U: ConvertibleFromBytes
 ```
 
