@@ -666,7 +666,7 @@ extension MutableSpan {
   /// the type of `Element`. If either of these requirements is not met,
   /// this initializer will trap at runtime.
   @_lifetime(copy mutableBytes)
-  init(_ mutableBytes: consuming MutableRawSpan)
+  init(mutableBytes: consuming MutableRawSpan)
     where Element: ConvertibleToBytes & ConvertibleFromBytes
 }
 
