@@ -498,7 +498,7 @@ extension OutputRawSpan {
     as type: T.Type
   ) where T: ConvertibleToBytes & BitwiseCopyable
 
-  /// Appends a value's bytes to the span's memory.
+  /// Appends a value's bytes to this span's bytes.
   ///
   /// There must be at least `MemoryLayout<T>.size` bytes available
   /// in the span.
@@ -547,7 +547,7 @@ extension OutputRawSpan {
     _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
   
-  /// Append to the span as elements of a specific type.
+  /// Appends to the span as elements of a specific type.
   ///
   /// There must be at least `n * MemoryLayout<T>.stride` bytes
   /// available in the span.
@@ -560,7 +560,7 @@ extension OutputRawSpan {
   /// until that point will remain initialized.
   ///
   /// - Parameters:
-  ///   - n: The number of `T` elements to initialize
+  ///   - n: The number of `T` elements to initialize.
   ///   - type: The type of the instances to store.
   ///   - initializer: A closure that initializes new elements.
   ///     - Parameters:
@@ -596,7 +596,7 @@ extension OutputRawSpan {
 
 ```swift
 extension OutputSpan {
-  /// Append to the span as raw bytes.
+  /// Appends to the span as raw bytes.
   ///
   /// Inside the closure, initialize elements by appending to `rawSpan`.
   /// If the available memory in `self` is less than `n`, this
@@ -608,7 +608,7 @@ extension OutputSpan {
   /// until that point will remain initialized.
   ///
   /// - Parameters:
-  ///   - n: The number of elements (of type `Element`) to initialize
+  ///   - n: The number of elements (of type `Element`) to initialize.
   ///   - initializer: A closure that initializes new elements.
   ///     - Parameters:
   ///       - rawSpan: An `OutputRawSpan` with enough bytes to initialize
