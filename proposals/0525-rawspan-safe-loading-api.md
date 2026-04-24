@@ -37,7 +37,7 @@ A type that conforms to `ConvertibleToBytes` must have:
 
 - one or more stored properties,
 - all of its stored properties have types conforming to `ConvertibleToBytes`,
-- its stored properties are stored contiguously in memory, with no padding.
+- its stored properties are stored contiguously in memory, with no padding,
 - none of its values disregards a subset of its bytes (this makes most enums ineligible.)
 
 Many basic types in the standard library will conform to this protocol, but types outside the standard library will not initially be able to conform to `ConvertibleToBytes`.
@@ -206,7 +206,7 @@ extension Span where Element: ConvertibleFromBytes {
 }
 ```
 
-`MutableSpan` will have new initializers to mutate the memory of  a `MutableRawSpan` as a typed `MutableSpan`, when its `Element` conforms to `ConvertibleFromBytes`. These conversions will check for alignment and bounds. When the `MutableRawSpan`'s pointer alignment is incorrect for `Element`, this initializer will trap. When the bounds are not a multiple of the stride, this initializer will trap.
+`MutableSpan` will have new initializers to mutate the memory of a `MutableRawSpan` as a typed `MutableSpan`, when its `Element` conforms to `ConvertibleFromBytes`. These conversions will check for alignment and bounds. When the `MutableRawSpan`'s pointer alignment is incorrect for `Element`, this initializer will trap. When the bounds are not a multiple of the stride, this initializer will trap.
 
 ```swift
 extension MutableSpan {
@@ -255,7 +255,7 @@ extension OutputSpan where Element: ConvertibleFromBytes {
 
 ##### `ConvertibleToBytes`
 
-A `ConvertibleToBytes` type has at least one stored property, and all its stored properties are values of  `ConvertibleToBytes` types. 
+A `ConvertibleToBytes` type has at least one stored property, and all its stored properties are values of `ConvertibleToBytes` types. 
 
 The memory representation of a `ConvertibleToBytes` type must include no padding. For example, `struct A { var v: [3 of Int8]; var n: Int64 }` has two stored properties, both `ConvertibleToBytes`, but it has five bytes of padding. <!-- `MemoryLayout<A>.stride - (MemoryLayout<[3 of Int8]>.stride + MemoryLayout<Int64>.stride)` equals 5 -->
 
@@ -564,7 +564,7 @@ extension OutputRawSpan {
   ///         the specified number of additional elements.
   mutating func append<T, E: Error>(
     elements n: Int,
-    as type: T.self,
+    as type: T.Type,
     initializingWith initializer:
       (_ typedSpan: inout OutputSpan<T>) throws(E) -> Void
   ) throws(E) where T: ConvertibleToBytes & BitwiseCopyable
@@ -658,7 +658,7 @@ extension MutableSpan {
   /// and the starting address of `mutableBytes` must be well-aligned for
   /// the type of `Element`. If either of these requirements is not met,
   /// this initializer will trap at runtime.
-  @_lifetime(copy bytes)
+  @_lifetime(copy mutableBytes)
   init(_ mutableBytes: consuming MutableRawSpan)
     where Element: ConvertibleToBytes & ConvertibleFromBytes
 }
@@ -815,14 +815,14 @@ The standard library's `FixedWidthInteger` protocol includes computed properties
 
 #### Defaulting to aligned operations for the safe `load()` functions
 
-`UnsafeRawPointer`'s original `load()` function requires correct alignment, and the less restrictive  `loadUnaligned()` was added later. We have long considered this unfortunate, and this proposal seeks to improve on the status quo by making our new safe `load()` functions perform unaligned operations.
+`UnsafeRawPointer`'s original `load()` function requires correct alignment, and the less restrictive `loadUnaligned()` was added later. We have long considered this unfortunate, and this proposal seeks to improve on the status quo by making our new safe `load()` functions perform unaligned operations.
 
 #### Defaulting `toByteOffset` and `fromByteOffset` parameters to a value of zero
 
-The proposal originally included defaulted parameter values for these parameters for the new `load` and `storeBytes` functions. It was pointed out that defaulted parameters may give the impression that loading or storing a value using these functions must use the full length of the `RawSpan` or `MutableRawSpan`. Noting that defaulted parameters already exist on similar, pre-existing unsafe API, we may need to harmonize the decision at a later time.
+The proposal originally included defaulted parameter values for these parameters for the new `load` and `storeBytes` functions. It was pointed out that defaulted parameters may give the impression that loading or storing a value using these functions must use the full length of the `RawSpan` or `MutableRawSpan`. Noting that defaulted parameters already exist on similar, pre-existing unsafe API, we may need to harmonize the decision at a later time.
 
 ## Acknowledgments
 
 Thanks to Karoy Lorentey, Nate Cook, and Stephen Canon for taking the time to discuss this topic.
 
-Enums to represent the byte order have previously been pitched by Michael Ilseman ([Unicode Processing APIs](https://forums.swift.org/t/69294)) and by [YOCKOW]([https://gist.github.com/YOCKOW) ([ByteOrder type](https://forums.swift.org/t/74027)).
+Enums to represent the byte order have previously been pitched by Michael Ilseman ([Unicode Processing APIs](https://forums.swift.org/t/69294)) and by [YOCKOW](https://gist.github.com/YOCKOW) ([ByteOrder type](https://forums.swift.org/t/74027)).
