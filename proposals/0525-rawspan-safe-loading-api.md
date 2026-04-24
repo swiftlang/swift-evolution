@@ -13,7 +13,7 @@
 
 ## Summary of changes
 
-We introduce a set of safe API to load and store values of certain safe types from the memory represented by `RawSpan`, `MutableSpan` and `OutputRawSpan` instances. This will bolster the value of Swift in contexts where a process needs the ability to send data to other running processes via untyped buffers, as well as provide a set of building blocks for parsing utilities.
+We introduce a set of safe API to load and store values of certain safe types from the memory represented by `RawSpan`, `MutableSpan`, `MutableRawSpan` and `OutputRawSpan` instances. This will bolster the value of Swift in contexts where a process needs the ability to send data to other running processes via untyped buffers, as well as provide a set of building blocks for parsing utilities.
 
 ## Motivation
 
@@ -206,7 +206,7 @@ extension Span {
 }
 ```
 
-`MutableSpan` will have new initializers to mutate the memory of a `MutableRawSpan` as a typed `MutableSpan`, when its `Element` conforms to `ConvertibleFromBytes`. These conversions will check for alignment and bounds. When the `MutableRawSpan`'s pointer alignment is incorrect for `Element`, this initializer will trap. When the bounds are not a multiple of the stride, this initializer will trap.
+`MutableSpan` will have new initializers to mutate the memory of a `MutableRawSpan` as a typed `MutableSpan`, when its `Element` conforms to `ConvertibleToBytes & ConvertibleFromBytes`. These conversions will check for alignment and bounds. When the `MutableRawSpan`'s pointer alignment is incorrect for `Element`, this initializer will trap. When the bounds are not a multiple of the stride, this initializer will trap.
 
 ```swift
 extension MutableSpan {
@@ -222,7 +222,7 @@ extension MutableSpan {
 
 The conversions from `RawSpan` to `Span` only support well-aligned views with the native byte order. The [swift-binary-parsing][swift-binary-parsing] package provides a more fully-featured `ParserSpan` type for use cases beyond reinterpreting memory in-place. We expect a future proposal to include functionality to help determine the memory alignment of a `RawSpan` instance.
 
-The existing `bytes` and `mutableBytes` accessors will have safe overloads for when `Element` conforms to `ConvertibleToBytes & ConvertibleFromBytes`.
+The existing `bytes` and `mutableBytes` accessors will have safe overloads for when `Element` conforms to `ConvertibleToBytes` (`bytes` accessor) and to `ConvertibleToBytes & ConvertibleFromBytes` (`mutableBytes` accessor).
 
 ##### `OutputRawSpan` and `OutputSpan`
 
