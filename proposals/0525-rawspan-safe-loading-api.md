@@ -324,7 +324,7 @@ extension RawSpan {
   ///   - offset: The offset from the beginning of this span, in bytes.
   ///     `offset` must be nonnegative.
   ///   - type: The type of the instance to create.
-  ///   - byteOrder: The order in which the bytes should be decoded.
+  ///   - byteOrder: The order in which the bytes will be decoded.
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes & FixedWidthInteger>(
     fromByteOffset offset: Int,
@@ -362,9 +362,10 @@ extension RawSpan {
 
 ```swift
 extension MutableRawSpan {
-  /// Stores a value's bytes to the specified offset into the span's memory.
+  /// Stores the given value's bytes to the specified offset into
+  /// the span's memory.
   ///
-  /// The range of bytes required to store a value of `T` starting at
+  /// The range of bytes required to store a value of type `T` starting at
   /// byte offset `offset` must be completely within the span.
   ///
   /// - Parameters:
@@ -380,7 +381,7 @@ extension MutableRawSpan {
     _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
 
-  /// Stores a value's bytes repeatedly into this span's memory.
+  /// Stores the given value's bytes repeatedly into this span's memory.
   ///
   /// There must be at least `count * MemoryLayout<T>.stride` bytes
   /// available in the span.
@@ -389,7 +390,7 @@ extension MutableRawSpan {
   ///   - repeatedValue: The value to store as raw bytes.
   ///   - count: The number of copies of `repeatedValue` to store
   ///      into this span.
-  ///   - type: The type of the instance to store.
+  ///   - type: The type of the instance to store repeatedly.
   @unsafe
   mutating func storeBytes<T>(
     repeating repeatedValue: T,
@@ -397,7 +398,7 @@ extension MutableRawSpan {
     as type: T.Type
   ) where T: BitwiseCopyable
 
-  /// Stores a value's bytes repeatedly into this span's memory.
+  /// Stores the given value's bytes repeatedly into this span's memory.
   ///
   /// There must be at least `count * MemoryLayout<T>.stride` bytes
   /// available in the span.
@@ -406,7 +407,7 @@ extension MutableRawSpan {
   ///   - repeatedValue: The value to store as raw bytes.
   ///   - count: The number of copies of `repeatedValue` to store
   ///      into this span.
-  ///   - type: The type of the instance to store.
+  ///   - type: The type of the instance to store repeatedly.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
   mutating func storeBytes<T>(
     repeating repeatedValue: T,
@@ -441,7 +442,7 @@ extension MutableRawSpan {
   ///   - offset: The offset from the beginning of this span, in bytes.
   ///     `offset` must be nonnegative.
   ///   - type: The type of the instance to create.
-  ///   - byteOrder: The order in which the bytes should be decoded.
+  ///   - byteOrder: The order in which the bytes will be decoded.
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes & FixedWidthInteger>(
     fromByteOffset offset: Int,
@@ -485,7 +486,7 @@ extension MutableRawSpan {
 ##### `OutputRawSpan`
 ```swift
 extension OutputRawSpan {
-  /// Appends a value's bytes to this span's bytes.
+  /// Appends the given value's bytes to this span's bytes.
   ///
   /// There must be at least `MemoryLayout<T>.size` bytes available
   /// in the span.
@@ -498,7 +499,7 @@ extension OutputRawSpan {
     as type: T.Type
   ) where T: ConvertibleToBytes & BitwiseCopyable
 
-  /// Appends a value's bytes to this span's bytes.
+  /// Appends the given value's bytes to this span's bytes.
   ///
   /// There must be at least `MemoryLayout<T>.size` bytes available
   /// in the span.
@@ -561,7 +562,7 @@ extension OutputRawSpan {
   ///
   /// - Parameters:
   ///   - n: The number of `T` elements to initialize.
-  ///   - type: The type of the instances to store.
+  ///   - type: The type of the elements to store.
   ///   - initializer: A closure that initializes new elements.
   ///     - Parameters:
   ///       - typedSpan: An `OutputSpan` over enough bytes to initialize
@@ -639,7 +640,7 @@ extension Span {
 extension Span where Element: ConvertibleToBytes {
   /// Construct a raw span over the memory represented by this span.
   ///
-  /// - Returns: a RawSpan over the memory represented by this span
+  /// - Returns: A RawSpan over the memory represented by this span.
   @_lifetime(copy self)
   var bytes: RawSpan { get }
 }
@@ -672,7 +673,7 @@ extension MutableSpan {
 extension MutableSpan where Element: ConvertibleToBytes & ConvertibleFromBytes {
   /// Construct a mutable raw span over the memory represented by this span.
   ///
-  /// - Returns: a MutableRawSpan over the memory represented by this span
+  /// - Returns: A MutableRawSpan over the memory represented by this span.
   @_lifetime(&self)
   var mutableBytes: MutableRawSpan { mutating get }
 }
