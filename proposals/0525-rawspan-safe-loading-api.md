@@ -231,25 +231,25 @@ The existing `bytes` and `mutableBytes` accessors will have safe overloads for w
 extension OutputRawSpan {
   @_lifetime(copy self)
   mutating func append<T, E: Error>(
-    elements n: Int,
+    elementCount n: Int,
     as type: T.Type,
     initializingWith initializer: (inout OutputSpan<T>) throws(E) -> Void
   ) throws(E) where T: ConvertibleToBytes & BitwiseCopyable
 }
 ```
-`append(elements:as:initializingWith:)` will perform bounds-checking and alignment-checking before executing the closure, trapping at runtime if the alignment is incorrect or if available space is insufficient.
+`append(elementCount:as:initializingWith:)` will perform bounds-checking and alignment-checking before executing the closure, trapping at runtime if the alignment is incorrect or if available space is insufficient.
 
 Similarly, `OutputSpan` will provide a way to initialize a portion of its uninitialized storage using an `OutputRawSpan`, when its `Element` type conforms to `ConvertibleFromBytes`.
 ```swift
 extension OutputSpan {
   @_lifetime(copy self)
   mutating func append<E: Error>(
-    elements n: Int,
+    elementCount n: Int,
     initializingWith initializer: (inout OutputRawSpan) throws(E) -> Void
   ) throws(E) where Element: ConvertibleFromBytes
 }
 ```
-`append(elements:initializingWith:)` will perform bounds-checking before executing the closure and, after it returns, will ensure that the number of bytes initialized is correct for the type of `Element`.
+`append(elementCount:initializingWith:)` will perform bounds-checking before executing the closure and, after it returns, will ensure that the number of bytes initialized is correct for the type of `Element`.
 
 ## Detailed design
 
@@ -569,7 +569,7 @@ extension OutputRawSpan {
   ///         the specified number of additional elements.
   @_lifetime(copy self)
   mutating func append<T, E: Error>(
-    elements n: Int,
+    elementCount n: Int,
     as type: T.Type,
     initializingWith initializer:
       (_ typedSpan: inout OutputSpan<T>) throws(E) -> Void
@@ -616,7 +616,7 @@ extension OutputSpan {
   ///         the specified number of additional elements.
   @_lifetime(copy self)
   mutating func append<E: Error>(
-    elements n: Int,
+    elementCount n: Int,
     initializingWith initializer:
       (_ rawSpan: inout OutputRawSpan) throws(E) -> Void
   ) throws(E) where Element: ConvertibleFromBytes
