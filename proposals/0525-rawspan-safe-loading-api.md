@@ -763,6 +763,8 @@ These functions require the existence of `Span`, and have a minimum deployment t
 
 ## Implications on adoption
 
+The additions described in this proposal require a new version of the Swift standard library.
+
 ## Future directions
 
 #### Validation for the `ConvertibleToBytes` protocol
