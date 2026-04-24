@@ -28,7 +28,7 @@ We propose two new protocols, supporting the conversion between initialized type
 When initializing memory to any value of a type conforming to `ConvertibleToBytes`, every byte underlying the type's [stride](https://developer.apple.com/documentation/swift/memorylayout/stride) must be initialized.
 
 ```swift
-@_marker public protocol ConvertibleToBytes: Copyable {}
+@_marker protocol ConvertibleToBytes: Copyable {}
 ```
 
 A type can conform to `ConvertibleToBytes` if its memory representation includes no padding. In other words, the sum of the size of its stored properties is equal to its stride. For example, an `Optional<Int16>` is stored in 3 bytes out of a stride of 4, and therefore `Optional<Int16>` cannot conform. A `struct Pair { var a, b: Int16 }` could conform to `ConvertibleToBytes`, as its size and stride are equal.
@@ -47,7 +47,7 @@ A conformance to `ConvertibleToBytes` can only be declared by a type's containin
 ##### `ConvertibleFromBytes`
 
 ```swift
-@_marker public protocol ConvertibleFromBytes: BitwiseCopyable {}
+@_marker protocol ConvertibleFromBytes: BitwiseCopyable {}
 ```
 
 A type can conform to `ConvertibleFromBytes` if every bit pattern for every byte of its stored properties is valid. Note that this allows conformances for types with internal or trailing padding. A conformer to `ConvertibleFromBytes` must not have semantic constraints on the values of its stored properties. All its stored properties must themselves conform to `ConvertibleFromBytes`.
@@ -69,7 +69,7 @@ A conformance to `ConvertibleFromBytes` can only be declared by a type's contain
 ##### `FullyInhabited`
 
 ```swift
-public typealias FullyInhabited = ConvertibleToBytes & ConvertibleFromBytes
+typealias FullyInhabited = ConvertibleToBytes & ConvertibleFromBytes
 ```
 
 `FullyInhabited` is the intersection of `ConvertibleToBytes` and `ConvertibleFromBytes`.
@@ -99,7 +99,7 @@ extension RawSpan {
 }
 
 @frozen
-public enum ByteOrder: Equatable, Hashable, Sendable {
+enum ByteOrder: Equatable, Hashable, Sendable {
   case bigEndian, littleEndian
   
   static var native: Self { get }
@@ -281,7 +281,7 @@ Types that do not fully use a byte, such as `Bool`, are disallowed. Undefined be
 
 ```swift
 @frozen
-public enum ByteOrder: Equatable, Hashable, Sendable {
+enum ByteOrder: Equatable, Hashable, Sendable {
   /// Bytes are ordered with the most significant bits
   /// starting at the lowest memory address
   case bigEndian
