@@ -283,11 +283,11 @@ Types that do not fully use a byte, such as `Bool`, are disallowed. Undefined be
 @frozen
 enum ByteOrder: Equatable, Hashable, Sendable {
   /// Bytes are ordered with the most significant bits
-  /// starting at the lowest memory address
+  /// starting at the lowest memory address.
   case bigEndian
   
   /// Bytes are ordered with the least significant bits
-  /// starting at the lowest memory address
+  /// starting at the lowest memory address.
   case littleEndian
 
   /// The native byte order of the runtime target.
