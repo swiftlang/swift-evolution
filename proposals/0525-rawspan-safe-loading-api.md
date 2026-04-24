@@ -114,7 +114,7 @@ The `load(as:)` functions will not have equivalents with unchecked byte offset. 
 
 ##### Subscripts for the `RawSpan` family
 
-As a convenience for the specific case of `UInt8`, we will define subscripts for `RawSpan`, `MutableRawSpan`, and `OutputRawSpan`, similar to the existing `Span`, `MutableSpan` and `OutputSpan` subscripts:
+As a convenience for the specific case of `UInt8`, we will define subscripts for `RawSpan`, `MutableRawSpan` and `OutputRawSpan`, similar to the existing `Span`, `MutableSpan` and `OutputSpan` subscripts:
 ```swift
 extension RawSpan {
   subscript(_ byteOffset: Int) -> UInt8 { get }
@@ -206,7 +206,7 @@ extension Span {
 }
 ```
 
-`MutableSpan` will have new initializers to mutate the memory of a `MutableRawSpan` as a typed `MutableSpan`, when its `Element` conforms to `ConvertibleToBytes & ConvertibleFromBytes`. These conversions will check for alignment and bounds. When the `MutableRawSpan`'s pointer alignment is incorrect for `Element`, this initializer will trap. When the bounds are not a multiple of the stride, this initializer will trap.
+`MutableSpan` will have new initializers to mutate the memory of a `MutableRawSpan` as a typed `MutableSpan`, when its `Element` conforms to `ConvertibleToBytes & ConvertibleFromBytes`. These conversions will check for alignment and bounds. When the `MutableRawSpan`'s pointer alignment is incorrect for `Element`, these initializers will trap. When the bounds are not a multiple of the stride, these initializers will trap.
 
 ```swift
 extension MutableSpan {
@@ -781,11 +781,11 @@ Alongside validation, we could consider automatically inserting stored null byte
 
 #### Partial validation for the `ConvertibleFromBytes` protocol
 
-`ConvertibleFromBytes` conformances may undergo some validation by the compiler at a later time. The compiler can enforce that all of a type's stored properties conform to `ConvertibleFromBytes`. It cannot directly enforce the absence of semantic constraints on the type's fields, but we may choose to accept a roundabout way of supporting its absence, such as if all the stored properties are `public` and mutable (`var` bindings).
+`ConvertibleFromBytes` conformances may undergo some validation by the compiler at a later time. The compiler can enforce that all of a type's stored properties conform to `ConvertibleFromBytes`. It cannot directly enforce the absence of semantic constraints on the type's stored properties, but we may choose to accept a roundabout way of supporting its absence, such as if all the stored properties are `public` and mutable (`var` bindings).
 
 #### Support for types imported from C
 
-The Clang importer could be taught which basic C types support these protocols. It would be useful to have a way to declare a conformance to these protocols for C types which are aggregates. For example, we could relax the restriction that these conformances can only be declared in a type's owning module, for imported C types only.
+The Clang importer could be taught which basic C types support these protocols. It would be useful to have a way to declare a conformance to these protocols for C types which are aggregates. For example, we could relax the restriction that these conformances can only be declared in a type's containing module, for imported C types only.
 
 #### Support for tuples and SIMD types
 
