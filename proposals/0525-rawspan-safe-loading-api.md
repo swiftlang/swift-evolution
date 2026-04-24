@@ -58,10 +58,10 @@ In contrast, `Range<Int>` could not conform to `ConvertibleFromBytes`, even thou
 
 Other examples of types that cannot conform to `ConvertibleFromBytes` are `UnicodeScalar` (some bit patterns are invalid,) a hypothetical UTF8-encoded `SmallString` (the sequencing of the constituent bytes matters for validity,) and `UnsafeRawPointer`. The case of pointers is illuminating: the semantic validity of a value is unknown until runtime, since the runtime environment determines the actual set of valid values.
 
-The compiler cannot enforce the semantic requirements of `ConvertibleFromBytes`, therefore types outside the standard library can only conform with an unsafe conformance.
+The compiler cannot enforce the semantic requirements of `ConvertibleFromBytes`, therefore types outside the standard library can only conform with an unchecked conformance.
 
 ```swift
-extension MyType: @unsafe ConvertibleFromBytes {}
+extension MyType: @unchecked ConvertibleFromBytes {}
 ```
 
 A conformance to `ConvertibleFromBytes` can only be declared by a type's containing module.
@@ -273,7 +273,7 @@ A `ConvertibleFromBytes` type has a valid value for every bit pattern of every b
 @_marker protocol ConvertibleFromBytes: BitwiseCopyable {}
 ```
 
-Custom types will be allowed to declare an unsafe conformance to `ConvertibleFromBytes`.
+Custom types will be allowed to declare an unchecked conformance to `ConvertibleFromBytes`.
 
 Types that do not fully use a byte, such as `Bool`, are disallowed. Undefined behaviour can result when an invalid bit pattern is interpreted as such a value.
 
