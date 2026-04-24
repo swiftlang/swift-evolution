@@ -200,9 +200,9 @@ The memory layout of many of the types eligible for `ConvertibleFromBytes` and/o
 `Span` will have a new initializer `init(viewing: RawSpan)` to allow viewing a range of untyped memory as a typed `Span`, when `Span.Element` conforms to `ConvertibleFromBytes`. These conversions will check for alignment and bounds. When the `RawSpan`'s pointer alignment is incorrect for `Element`, this initializer will trap. When the bounds are not a multiple of the stride, this initializer will trap.
 
 ```swift
-extension Span where Element: ConvertibleFromBytes {
+extension Span {
   @_lifetime(copy bytes)
-  init(viewing bytes: RawSpan)
+  init(viewing bytes: RawSpan) where Element: ConvertibleFromBytes
 }
 ```
 
@@ -241,12 +241,12 @@ extension OutputRawSpan {
 
 Similarly, `OutputSpan` will provide a way to initialize a portion of its uninitialized storage using an `OutputRawSpan`, when its `Element` type conforms to `ConvertibleFromBytes`.
 ```swift
-extension OutputSpan where Element: ConvertibleFromBytes {
+extension OutputSpan {
   @_lifetime(copy self)
   mutating func append<E: Error>(
     elements n: Int,
     initializingWith initializer: (inout OutputRawSpan) throws(E) -> Void
-  ) throws(E)
+  ) throws(E) where Element: ConvertibleFromBytes
 }
 ```
 `append(elements:initializingWith:)` will perform bounds-checking before executing the closure and, after it returns, will ensure that the number of bytes initialized is correct for the type of `Element`.
@@ -619,7 +619,7 @@ extension OutputSpan {
 ##### `Span`
 
 ```swift
-extension Span where Element: ConvertibleFromBytes {
+extension Span {
   /// View initialized raw memory as a typed span.
   ///
   /// The `byteCount` of `bytes` must be a multiple of `Element`'s stride,
@@ -627,7 +627,7 @@ extension Span where Element: ConvertibleFromBytes {
   /// of `Element`. If either of these requirements is not met, this initializer
   /// will trap at runtime.
   @_lifetime(copy bytes)
-  public init(viewing bytes: RawSpan)
+  init(viewing bytes: RawSpan) where Element: ConvertibleFromBytes
 }
 
 extension Span where Element: ConvertibleToBytes {
