@@ -3,9 +3,9 @@
 * Proposal: [ST-0023](0023-attachments-transferable.md)
 * Authors: [Julia Vashchenko](https://github.com/aronskaya), [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Stuart Montgomery](https://github.com/stmontgomery)
-* Status: **Active review (April 3...April 13, 2026)**
+* Status: **Implemented (Swift 6.4)**
 * Implementation: [swiftlang/swift-testing#1519](https://github.com/swiftlang/swift-testing/pull/1519/)
-* Review: ([pitch](https://forums.swift.org/t/pitch-transferable-attachments/85104)) ([review](https://forums.swift.org/t/st-0023-transferable-attachments/85815))
+* Review: ([pitch](https://forums.swift.org/t/pitch-transferable-attachments/85104)) ([review](https://forums.swift.org/t/st-0023-transferable-attachments/85815)) ([acceptance](https://forums.swift.org/t/accepted-st-0023-transferable-attachments/86218))
 
 ## Introduction
 
