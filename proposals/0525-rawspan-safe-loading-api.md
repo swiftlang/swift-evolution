@@ -344,7 +344,7 @@ extension RawSpan {
   /// with an invalid `byteOffset` results in undefined behaviour.
   ///
   /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
-  ///     must be greater or equal to zero, and less than `count`.
+  ///     must be greater or equal to zero, and less than `byteCount`.
   @unsafe
   subscript(unchecked byteOffset: Int) -> UInt8 { get }
   
@@ -461,7 +461,7 @@ extension MutableRawSpan {
   /// with an invalid `byteOffset` results in undefined behaviour.
   ///
   /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
-  ///     must be greater or equal to zero, and less than `count`.
+  ///     must be greater or equal to zero, and less than `byteCount`.
   @unsafe
   subscript(unchecked byteOffset: Int) -> UInt8 { get set }
   
@@ -585,7 +585,7 @@ extension OutputRawSpan {
   /// with an invalid `byteOffset` results in undefined behaviour.
   ///
   /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
-  ///     must be greater or equal to zero, and less than `count`.
+  ///     must be greater or equal to zero, and less than `byteCount`.
   @unsafe
   subscript(unchecked byteOffset: Int) -> UInt8 { get set }
 }
