@@ -76,7 +76,7 @@ public typealias FullyInhabited = ConvertibleToBytes & ConvertibleFromBytes
 
 ##### `RawSpan` and `MutableRawSpan`
 
-`RawSpan` and `MutableRawSpan` will have a new, generic `load(as:)` function that return `ConvertibleFromBytes` values read from the underlying memory, with no pointer-alignment restriction. Because the returned values are `ConvertibleFromBytes` and the request is bounds-checked, this `load(as:)` function is safe.
+`RawSpan` and `MutableRawSpan` will have a new, generic `load(as:)` function that returns `ConvertibleFromBytes` values read from the underlying memory, with no pointer-alignment restriction. Because the returned values are `ConvertibleFromBytes` and the request is bounds-checked, this `load(as:)` function is safe.
 
 ```swift
 extension RawSpan {
