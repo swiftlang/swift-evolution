@@ -566,6 +566,7 @@ extension OutputRawSpan {
   ///     - Parameters:
   ///       - typedSpan: An `OutputSpan` over enough bytes to initialize
   ///         the specified number of additional elements.
+  @_lifetime(copy self)
   mutating func append<T, E: Error>(
     elements n: Int,
     as type: T.Type,
@@ -612,6 +613,7 @@ extension OutputSpan {
   ///     - Parameters:
   ///       - rawSpan: An `OutputRawSpan` with enough bytes to initialize
   ///         the specified number of additional elements.
+  @_lifetime(copy self)
   mutating func append<E: Error>(
     elements n: Int,
     initializingWith initializer:
