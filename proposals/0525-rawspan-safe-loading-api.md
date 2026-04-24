@@ -222,7 +222,7 @@ extension MutableSpan {
 
 The conversions from `RawSpan` to `Span` only support well-aligned views with the native byte order. The [swift-binary-parsing][swift-binary-parsing] package provides a more fully-featured `ParserSpan` type for use cases beyond reinterpreting memory in-place. We expect a future proposal to include functionality to help determine the memory alignment of a `RawSpan` instance.
 
-The existing `bytes` and `mutableBytes` accessors will have safe overloads for when `Element` conforms to `ConvertibleToBytes`.
+The existing `bytes` and `mutableBytes` accessors will have safe overloads for when `Element` conforms to `ConvertibleToBytes & ConvertibleFromBytes`.
 
 ##### `OutputRawSpan` and `OutputSpan`
 
@@ -255,7 +255,7 @@ extension OutputSpan {
 
 ##### `ConvertibleToBytes`
 
-A `ConvertibleToBytes` type has at least one stored property, and all its stored properties are values of `ConvertibleToBytes` types. 
+A `ConvertibleToBytes` type has at least one stored property, and all its stored properties are values of `ConvertibleToBytes` types.
 
 The memory representation of a `ConvertibleToBytes` type must include no padding. For example, `struct A { var v: [3 of Int8]; var n: Int64 }` has two stored properties, both `ConvertibleToBytes`, but it has five bytes of padding. <!-- `MemoryLayout<A>.stride - (MemoryLayout<[3 of Int8]>.stride + MemoryLayout<Int64>.stride)` equals 5 -->
 
@@ -369,8 +369,8 @@ extension MutableRawSpan {
   ///
   /// - Parameters:
   ///   - value: The value to store as raw bytes.
-  ///   - offset: The offset in bytes into the buffer pointer's memory to begin
-  ///     writing bytes from the value.
+  ///   - offset: The offset in bytes into the span's memory at which to begin
+  ///       writing the bytes from the value.
   ///   - type: The type of the instance to store.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
   mutating func storeBytes<T>(
@@ -387,7 +387,8 @@ extension MutableRawSpan {
   ///
   /// - Parameters:
   ///   - repeatedValue: The value to store as raw bytes.
-  ///   - count: The number of copies of `value` to append to this span.
+  ///   - count: The number of copies of `repeatedValue` to store
+  ///      into this span.
   ///   - type: The type of the instance to store.
   @unsafe
   mutating func storeBytes<T>(
@@ -403,7 +404,8 @@ extension MutableRawSpan {
   ///
   /// - Parameters:
   ///   - repeatedValue: The value to store as raw bytes.
-  ///   - count: The number of copies of `value` to append to this span.
+  ///   - count: The number of copies of `repeatedValue` to store
+  ///      into this span.
   ///   - type: The type of the instance to store.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
   mutating func storeBytes<T>(
@@ -490,7 +492,7 @@ extension OutputRawSpan {
   ///
   /// - Parameters:
   ///   - value: The value to store as raw bytes.
-  ///   - type: The type of the instance to create.
+  ///   - type: The type of the instance to store.
   mutating func append<T>(
     _ value: T,
     as type: T.Type
@@ -503,7 +505,7 @@ extension OutputRawSpan {
   ///
   /// - Parameters:
   ///   - value: The value to store as raw bytes.
-  ///   - type: The type of the instance to create.
+  ///   - type: The type of the instance to store.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
   mutating func append<T>(
     _ value: T,
@@ -517,9 +519,10 @@ extension OutputRawSpan {
   /// available in the span.
   ///
   /// - Parameters:
-  ///   - value: The value to store as raw bytes.
-  ///   - count: The number of copies of `value` to append to this span.
-  ///   - type: The type of the instance to create.
+  ///   - repeatedValue: The value to store as raw bytes.
+  ///   - count: The number of copies of `repeatedValue` to append
+  ///       to this span.
+  ///   - type: The type of the instance to store repeatedly.
   mutating func append<T>(
     repeating repeatedValue: T,
     count: Int,
@@ -532,9 +535,10 @@ extension OutputRawSpan {
   /// available in the span.
   ///
   /// - Parameters:
-  ///   - value: The value to store as raw bytes.
-  ///   - count: The number of copies of `value` to append to this span.
-  ///   - type: The type of the instance to create.
+  ///   - repeatedValue: The value to store as raw bytes.
+  ///   - count: The number of copies of `repeatedValue` to append
+  ///       to this span.
+  ///   - type: The type of the instance to store repeatedly.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
   mutating func append<T>(
     repeating repeatedValue: T,
@@ -557,7 +561,7 @@ extension OutputRawSpan {
   ///
   /// - Parameters:
   ///   - n: The number of `T` elements to initialize
-  ///   - type: The type of the instance to create.
+  ///   - type: The type of the instances to store.
   ///   - initializer: A closure that initializes new elements.
   ///     - Parameters:
   ///       - typedSpan: An `OutputSpan` over enough bytes to initialize
@@ -739,11 +743,11 @@ With the two protocols we have defined, we gain the ability to define a safe fun
 /// Returns the bits of the given instance, interpreted as having the specified
 /// type.
 ///
-/// Parameters:
+/// - Parameters:
 ///   - original: The instance to cast to `type`.
-///   - type: The type to cast `x` to. `type` and the type of `x` must have the
-///     same size of memory representation and compatible memory layout.
-/// Returns: A new instance of type `U`, cast from `x`.
+///   - type: The type to cast `original` to. `T` and `U` must have
+///     same-sized memory representation and a compatible memory layout.
+/// Returns: A new instance of type `U`, cast from `original`.
 func bitCast<T, U>(_ original: T, to type: U.Type) -> U
   where T: ConvertibleToBytes, U: ConvertibleFromBytes
 ```
