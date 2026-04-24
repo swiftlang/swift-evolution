@@ -768,6 +768,8 @@ The functions in this proposal will be implemented in such a way as to avoid cre
 
 These functions require the existence of `Span`, and have a minimum deployment target on Darwin-based platforms, where the Swift standard library is distributed with the operating system.
 
+`ByteOrder` is a new type and, as such, will come with availability. The functions that use a `ByteOrder` argument will share that same availability.
+
 ## Implications on adoption
 
 The additions described in this proposal require a new version of the Swift standard library.
