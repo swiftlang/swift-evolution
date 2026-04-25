@@ -406,11 +406,11 @@ The following types in the standard library will gain the `BitwiseCopyable` cons
 - `Optional<T>` when `T` is `BitwiseCopyable`
 - The fixed-precision integer types:
   - `Bool`
-  - `Int8`, `Int16`, `Int32`, `Int64`, `Int`
-  - `UInt8`, `UInt16`, `UInt32`, `UInt64`, `UInt`
+  - `Int8`, `Int16`, `Int32`, `Int64`, `Int128`, `Int`
+  - `UInt8`, `UInt16`, `UInt32`, `UInt64`, `UInt128`, `UInt`
   - `StaticBigInt`
-  - `UInt8.Words`, `UInt16.Words`, `UInt32.Words`, `UInt64.Words`, `UInt.Words`
-  - `Int8.Words`, `Int16.Words`, `Int32.Words`, `Int64.Words`, `Int.Words`
+  - `UInt8.Words`, `UInt16.Words`, `UInt32.Words`, `UInt64.Words`, `UInt128.Words`, `UInt.Words`
+  - `Int8.Words`, `Int16.Words`, `Int32.Words`, `Int64.Words`, `Int128.Words`, `Int.Words`
 - The fixed-precision floating-point types:
   - `Float`, `Double`, `Float16`, `Float80`
   - `FloatingPointSign`, `FloatingPointClassification`
