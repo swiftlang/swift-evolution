@@ -3,7 +3,7 @@
 * Proposal: [SE-0523](0523-hashable-unownedtask-executor.md)
 * Authors: [Fabian Fett](https://github.com/fabianfett), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.4)**
 * Implementation: [apple/swift#73968](https://github.com/swiftlang/swift/pull/73968)
 * Review: ([pitch](https://forums.swift.org/t/pitch-hashable-conformance-for-unownedtaskexecutor/85143)) ([review](https://forums.swift.org/t/se-0523-hashable-conformance-for-unownedtaskexecutor/85593)) ([acceptance](https://forums.swift.org/t/accepted-se-0523-hashable-conformance-for-unownedtaskexecutor/85931))
 
