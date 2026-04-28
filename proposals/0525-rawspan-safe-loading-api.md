@@ -173,19 +173,27 @@ The existing `storeBytes` function constrained to `T: BitwiseCopyable` will be m
 ```swift
 extension OutputRawSpan {
   mutating func append<T>(
-    _ value: T, as type: T.Type
+    _ value: T,
+    as type: T.Type
   ) where T: ConvertibleToBytes & BitwiseCopyable
 
   mutating func append<T>(
-    _ value: T, as type: T.Type, _ byteOrder: ByteOrder
+    _ value: T,
+    as type: T.Type,
+    _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
   
   mutating func append<T>(
-    repeating repeatedValue: T, count: Int, as type: T.Type
+    repeating repeatedValue: T,
+    count: Int,
+    as type: T.Type
   ) where T: ConvertibleToBytes & BitwiseCopyable
   
   mutating func append<T>(
-    repeating repeatedValue: T, count: Int, as type: T.Type, _ byteOrder: ByteOrder
+    repeating repeatedValue: T,
+    count: Int,
+    as type: T.Type,
+    _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
 }
 ```
@@ -707,20 +715,29 @@ extension Float64: ConvertibleToBytes, ConvertibleFromBytes {} // `Double`
 
 extension Duration: ConvertibleToBytes, ConvertibleFromBytes {}
 
-extension InlineArray: ConvertibleToBytes where Element: ConvertibleToBytes {}
-extension InlineArray: ConvertibleFromBytes where Element: ConvertibleFromBytes {}
+extension InlineArray: ConvertibleToBytes
+  where Element: ConvertibleToBytes {}
+extension InlineArray: ConvertibleFromBytes
+  where Element: ConvertibleFromBytes {}
 
-extension CollectionOfOne: ConvertibleToBytes where Element: ConvertibleToBytes {}
-extension CollectionOfOne: ConvertibleFromBytes where Element: ConvertibleFromBytes {}
+extension CollectionOfOne: ConvertibleToBytes
+  where Element: ConvertibleToBytes {}
+extension CollectionOfOne: ConvertibleFromBytes
+  where Element: ConvertibleFromBytes {}
 
-extension ClosedRange: ConvertibleToBytes where Bound: ConvertibleToBytes {}
-extension Range: ConvertibleToBytes where Bound: ConvertibleToBytes {}
+extension ClosedRange: ConvertibleToBytes
+  where Bound: ConvertibleToBytes {}
+extension Range: ConvertibleToBytes
+  where Bound: ConvertibleToBytes {}
 
-extension PartialRangeFrom: ConvertibleToBytes where Bound: ConvertibleToBytes {}
+extension PartialRangeFrom: ConvertibleToBytes
+  where Bound: ConvertibleToBytes {}
 extension PartialRangeFrom.Iterator: ConvertibleToBytes
   where Bound: ConvertibleToBytes {}
-extension PartialRangeThrough: ConvertibleToBytes where Bound: ConvertibleToBytes {}
-extension PartialRangeUpTo: ConvertibleToBytes where Bound: ConvertibleToBytes {}
+extension PartialRangeThrough: ConvertibleToBytes
+  where Bound: ConvertibleToBytes {}
+extension PartialRangeUpTo: ConvertibleToBytes
+  where Bound: ConvertibleToBytes {}
 
 extension Bool: ConvertibleToBytes {}
 extension ObjectIdentifier: ConvertibleToBytes {}
