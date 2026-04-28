@@ -298,7 +298,7 @@ enum ByteOrder: Equatable, Hashable, Sendable {
   /// starting at the lowest memory address.
   case littleEndian
 
-  /// The native byte order of the runtime target.
+  /// The native byte ordering for the runtime target.
   static var native: Self { get }
 }
 ```
