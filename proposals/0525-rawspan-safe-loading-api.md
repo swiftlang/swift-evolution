@@ -599,6 +599,9 @@ extension OutputRawSpan {
   ///     must be greater than or equal to zero, and less than `byteCount`.
   @unsafe
   subscript(unchecked byteOffset: Int) -> UInt8 { get set }
+
+  /// The offsets valid for subscripting the span, in ascending order.
+  public var byteOffsets: Range<Int>
 }
 ```
 
