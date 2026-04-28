@@ -215,7 +215,7 @@ extension MutableSpan {
     where Element: ConvertibleToBytes & ConvertibleFromBytes
 
   @_lifetime(copy mutableBytes)
-  init(_ mutableBytes: consuming MutableRawSpan)
+  init(mutableBytes: consuming MutableRawSpan)
     where Element: ConvertibleToBytes & ConvertibleFromBytes
 }
 ```
@@ -311,7 +311,7 @@ extension RawSpan {
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes>(
     fromByteOffset offset: Int,
-    as: T.Type = T.self
+    as type: T.Type = T.self
   ) -> T
 
   /// Returns a value constructed from the raw memory at the specified offset.
@@ -328,7 +328,7 @@ extension RawSpan {
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes & FixedWidthInteger>(
     fromByteOffset offset: Int,
-    as: T.Type = T.self,
+    as type: T.Type = T.self,
     _ byteOrder: ByteOrder
   ) -> T
   
@@ -430,7 +430,7 @@ extension MutableRawSpan {
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes>(
     fromByteOffset offset: Int,
-    as: T.Type = T.self
+    as type: T.Type = T.self
   ) -> T
 
   /// Returns a value constructed from the raw memory at the specified offset.
@@ -447,7 +447,7 @@ extension MutableRawSpan {
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes & FixedWidthInteger>(
     fromByteOffset offset: Int,
-    as: T.Type = T.self,
+    as type: T.Type = T.self,
     _ byteOrder: ByteOrder
   ) -> T
 
