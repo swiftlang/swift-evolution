@@ -1,7 +1,5 @@
 #  A Vision for Networking in Swift
 
-> This vision document is currently out for [community feedback](https://forums.swift.org/t/prospective-vision-networking/85235/25) and is not yet endorsed by the Ecosystem Steering Group.
-
 ## Introduction
 
 Almost every Swift application touches a network, yet Swift developers face a fragmented landscape of overlapping solutions with no clear guidance on which to choose.
