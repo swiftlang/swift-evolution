@@ -367,6 +367,7 @@ extension MutableRawSpan {
   ///
   /// The range of bytes required to store a value of type `T` starting at
   /// byte offset `offset` must be completely within the span.
+  /// `offset` is not required to be aligned for `T`.
   ///
   /// - Parameters:
   ///   - value: The value to store as raw bytes.
@@ -600,8 +601,8 @@ extension OutputSpan {
   /// Appends to the span as raw bytes.
   ///
   /// Inside the closure, initialize elements by appending to `rawSpan`.
-  /// If the available memory in `self` is less than `n`, this
-  /// function will trap before calling the closure.
+  /// If the available storage in `self` is less than `n` elements,
+  /// this function will trap before calling the closure.
   /// After the closure returns, the number of bytes initialized
   /// determines the number of `Element` instances added to `self`.
   ///
@@ -638,7 +639,7 @@ extension Span {
 }
 
 extension Span where Element: ConvertibleToBytes {
-  /// Construct a raw span over the memory represented by this span.
+  /// A raw span over the memory represented by this span.
   ///
   /// - Returns: A RawSpan over the memory represented by this span.
   @_lifetime(copy self)
@@ -649,7 +650,7 @@ extension Span where Element: ConvertibleToBytes {
 
 ```swift
 extension MutableSpan {
-  /// Mutate the elements of this span as raw bytes.
+  /// Mutate untyped memory as a typed span.
   ///
   /// The `byteCount` of `mutableBytes` must be a multiple of `Element`'s stride,
   /// and the starting address of `mutableBytes` must be well-aligned for
@@ -671,7 +672,7 @@ extension MutableSpan {
 }
 
 extension MutableSpan where Element: ConvertibleToBytes & ConvertibleFromBytes {
-  /// Construct a mutable raw span over the memory represented by this span.
+  /// A mutable raw span over the memory represented by this span.
   ///
   /// - Returns: A MutableRawSpan over the memory represented by this span.
   @_lifetime(&self)
@@ -746,10 +747,12 @@ With the two protocols we have defined, we gain the ability to define a safe fun
 /// Returns the bits of the given instance, interpreted as having the specified
 /// type.
 ///
+/// `T` and `U` must have the same-sized memory representation.
+/// If they don't, this function will trap.
+///
 /// - Parameters:
 ///   - original: The instance to cast to `type`.
-///   - type: The type to cast `original` to. `T` and `U` must have
-///     same-sized memory representation and a compatible memory layout.
+///   - type: The type to cast `original` to.
 /// - Returns: A new instance of type `U`, cast from `original`.
 func bitCast<T, U>(_ original: T, to type: U.Type) -> U
   where T: ConvertibleToBytes, U: ConvertibleFromBytes
