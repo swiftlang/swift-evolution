@@ -1,25 +1,27 @@
-# Per-test-case repetitions
+# Test case repetition
 
 * Proposal: [ST-0024](0024-per-test-case-repetitions.md)
 * Authors: [Harlan Haskins](https://github.com/harlanhaskins)
 * Review Manager: [Brian Croom](https://github.com/briancroom)
-* Status: **Active Review (April 10-20, 2026)**
+* Status: **Returned for Revision**
 * Bugs: [swiftlang/swift-testing#1392](https://github.com/swiftlang/swift-testing/issues/1392), rdar://130508488
 * Implementation: [swiftlang/swift-testing#1528](https://github.com/swiftlang/swift-testing/pull/1528)
-* Review: ([pitch](https://forums.swift.org/t/pitch-make-test-repetition-per-test-case-instead-of-global/85552) [review](https://forums.swift.org/t/st-0024-per-test-case-repetition/85957))
+* Review: ([pitch](https://forums.swift.org/t/pitch-make-test-repetition-per-test-case-instead-of-global/85552)) ([review](https://forums.swift.org/t/st-0024-per-test-case-repetition/85957))
 
 ## Introduction
 
 Since its initial release, Swift Testing has supported [repeating tests](https://developer.apple.com/documentation/xcode/running-tests-and-interpreting-results#Run-testing-repeatedly-to-determine-reliability)
-for a number of iterations, or until a specific failure/success condition is reached.
+for a number of iterations, or until a specific failure/success condition is reached. This is not currently exposed
+through `swift test`, but we would like to make it available.
 
 Currently, when a repetition condition is met by any of the test cases in the test target, all of the tests in the
-test target are repeated.
-
-This proposal seeks to change this iteration behavior to apply the repetition behavior to only those test cases that
-met the repetition condition.
+test target are repeated. This proposal seeks to change this iteration behavior to apply the repetition behavior
+to only those test cases that met the repetition condition.
 
 ## Motivation
+
+Test repetition is a useful tool for debugging flaky tests or spurious failures, or dealing with unreliable
+external dependencies.
 
 The current behavior causes unnecessary additional test execution; if only one test case of a large parameterized
 test suite fails, it will cause all of the tests in the test target to run again. This also does not match the 
@@ -31,8 +33,16 @@ tests which have issues recorded will be repeated, but that is not the current b
 
 ## Proposed solution
 
-Swift Testing should instead only re-run test cases that meet the repetition condition. Further, iterations
-should be reported directly along with `testStarted`/`testEnded` events, not via global `iteration` events.
+### Swift Testing behavior
+
+First, change the repetition behavior for existing harnesses. Swift Testing will only re-run test cases that meet
+the repetition condition. Further, iterations should be reported directly along with `testStarted`/`testEnded` events,
+not via global `iteration` events.
+
+### `swift test` command
+
+Add two command-line flags to `swift test` to support this new behavior, `--maximum-repetitions` and `--repeat-until`.
+
 
 ## Detailed design
 
@@ -68,6 +78,15 @@ tests to be run _in order_, running some of them multiple times without running 
 break existing behavior. Such reliance, however, is an anti-pattern, and hidden dependencies
 like these between test functions should be avoided.
 
+### `swift test` flags
+
+The following flags will be added:
+
+| Flag                    | Description |
+| ======================= | =========== |
+| `--maximum-repetitions` | The maximum number of times a test should be repeated. |
+| `--repeat-until`        | The condition by which a test should be repeated. This accepts either `pass` or `fail`, and if it is not provided, repetition is unconditional (and all tests will repeat `maximum-iterations` times) |
+
 ## Source compatibility
 
 This is purely additive with regards to the JSON schema. Clients of existing Tools SPI will need to
@@ -77,7 +96,9 @@ be updated to use the updated SPI values.
 
 If tools intend to support test repetition, they can provide the repetition behavior by providing
 the existing `--repetitions` and `--repeat-until` command-line arguments in the Swift Testing
-entrypoint. If not provided, all `iteration` values provided in JSON events will be `1`.
+entrypoint. If not provided, all `iteration` values provided in JSON events will be `1`. Note
+that `swift test` will accept `--maximum-repetitions`, but the existing Swift Testing flag is
+`--repetitions`. We believe `maximum-repetitions` to be a clearer name for user-facing flags.
 
 ## Future directions
 
