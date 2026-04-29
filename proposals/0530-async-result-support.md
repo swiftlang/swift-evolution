@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/**DougGregor**)
 * Status: **Active Review** (April 28-May 12, 2026)**
 * Implementation: [swiftlang/swift#88465](https://github.com/swiftlang/swift/pull/88465)
-* Review: ([First Pitch](https://forums.swift.org/t/pitch-result-codable-conformance-and-async-catching-init/78566))
+* Review: ([First Pitch](https://forums.swift.org/t/pitch-result-codable-conformance-and-async-catching-init/78566))([Review](https://forums.swift.org/t/se-0530-async-result-support/86346))
 
 ## Introduction
 
