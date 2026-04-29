@@ -13,7 +13,7 @@
 
 ## Summary of changes
 
-We introduce a set of safe API to load and store values of certain safe types from the memory represented by `RawSpan`, `MutableSpan` and `OutputRawSpan` instances. This will bolster the value of Swift in contexts where a process needs the ability to send data to other running processes via untyped buffers, as well as provide a set of building blocks for parsing utilities.
+We introduce a set of safe API to load and store values of certain safe types from the memory represented by `RawSpan`, `MutableSpan`, `MutableRawSpan` and `OutputRawSpan` instances. This will bolster the value of Swift in contexts where a process needs the ability to send data to other running processes via untyped buffers, as well as provide a set of building blocks for parsing utilities.
 
 ## Motivation
 
@@ -28,7 +28,7 @@ We propose two new protocols, supporting the conversion between initialized type
 When initializing memory to any value of a type conforming to `ConvertibleToBytes`, every byte underlying the type's [stride](https://developer.apple.com/documentation/swift/memorylayout/stride) must be initialized.
 
 ```swift
-@_marker public protocol ConvertibleToBytes: Copyable {}
+@_marker protocol ConvertibleToBytes: Copyable {}
 ```
 
 A type can conform to `ConvertibleToBytes` if its memory representation includes no padding. In other words, the sum of the size of its stored properties is equal to its stride. For example, an `Optional<Int16>` is stored in 3 bytes out of a stride of 4, and therefore `Optional<Int16>` cannot conform. A `struct Pair { var a, b: Int16 }` could conform to `ConvertibleToBytes`, as its size and stride are equal.
@@ -37,7 +37,7 @@ A type that conforms to `ConvertibleToBytes` must have:
 
 - one or more stored properties,
 - all of its stored properties have types conforming to `ConvertibleToBytes`,
-- its stored properties are stored contiguously in memory, with no padding.
+- its stored properties are stored contiguously in memory, with no padding,
 - none of its values disregards a subset of its bytes (this makes most enums ineligible.)
 
 Many basic types in the standard library will conform to this protocol, but types outside the standard library will not initially be able to conform to `ConvertibleToBytes`.
@@ -47,7 +47,7 @@ A conformance to `ConvertibleToBytes` can only be declared by a type's containin
 ##### `ConvertibleFromBytes`
 
 ```swift
-@_marker public protocol ConvertibleFromBytes: BitwiseCopyable {}
+@_marker protocol ConvertibleFromBytes: BitwiseCopyable {}
 ```
 
 A type can conform to `ConvertibleFromBytes` if every bit pattern for every byte of its stored properties is valid. Note that this allows conformances for types with internal or trailing padding. A conformer to `ConvertibleFromBytes` must not have semantic constraints on the values of its stored properties. All its stored properties must themselves conform to `ConvertibleFromBytes`.
@@ -58,10 +58,10 @@ In contrast, `Range<Int>` could not conform to `ConvertibleFromBytes`, even thou
 
 Other examples of types that cannot conform to `ConvertibleFromBytes` are `UnicodeScalar` (some bit patterns are invalid,) a hypothetical UTF8-encoded `SmallString` (the sequencing of the constituent bytes matters for validity,) and `UnsafeRawPointer`. The case of pointers is illuminating: the semantic validity of a value is unknown until runtime, since the runtime environment determines the actual set of valid values.
 
-The compiler cannot enforce the semantic requirements of `ConvertibleFromBytes`, therefore types outside the standard library can only conform with an unsafe conformance.
+The compiler cannot enforce the semantic requirements of `ConvertibleFromBytes`, therefore types outside the standard library can only conform with an unchecked conformance.
 
 ```swift
-extension MyType: @unsafe ConvertibleFromBytes {}
+extension MyType: @unchecked ConvertibleFromBytes {}
 ```
 
 A conformance to `ConvertibleFromBytes` can only be declared by a type's containing module.
@@ -76,12 +76,12 @@ typealias FullyInhabited = ConvertibleToBytes & ConvertibleFromBytes
 
 ##### `RawSpan` and `MutableRawSpan`
 
-`RawSpan` and `MutableRawSpan` will have a new, generic `load(as:)` function that return `ConvertibleFromBytes` values read from the underlying memory, with no pointer-alignment restriction. Because the returned values are `ConvertibleFromBytes` and the request is bounds-checked, this `load(as:)` function is safe.
+`RawSpan` and `MutableRawSpan` will have a new, generic `load(as:)` function that returns `ConvertibleFromBytes` values read from the underlying memory, with no pointer-alignment restriction. Because the returned values are `ConvertibleFromBytes` and the request is bounds-checked, this `load(as:)` function is safe.
 
 ```swift
 extension RawSpan {
   func load<T: ConvertibleFromBytes>(
-    fromByteOffset: Int = 0,
+    fromByteOffset: Int,
     as: T.Type = T.self
   ) -> T
 }
@@ -92,14 +92,14 @@ Additionally, a special version of `load(as:)` will have an additional argument 
 ```swift
 extension RawSpan {
   func load<T: ConvertibleFromBytes & FixedWidthInteger>(
-    fromByteOffset: Int = 0,
+    fromByteOffset: Int,
     as: T.Type = T.self,
     _ byteOrder: ByteOrder
   ) -> T
 }
 
 @frozen
-public enum ByteOrder: Equatable, Hashable, Sendable {
+enum ByteOrder: Equatable, Hashable, Sendable {
   case bigEndian, littleEndian
   
   static var native: Self { get }
@@ -110,11 +110,11 @@ The list of standard library types to conform to `ConvertibleFromBytes & FixedWi
 
 The `load(as:)` functions are not atomic operations.
 
-The `load(as:)` functions will not have equivalents with unchecked byte offset. If that functionality is needed, the `unsafeLoad(fromUncheckedByteOffset:as:)`function is already available.
+The `load(as:)` functions will not have equivalents with unchecked byte offset. If that functionality is needed, the `unsafeLoad(fromUncheckedByteOffset:as:)` function is already available.
 
 ##### Subscripts for the `RawSpan` family
 
-As a convenience for the specific case of `UInt8`, we will define subscripts for `RawSpan`, `MutableRawSpan`, and `OutputRawSpan`, similar to the existing `Span`, `MutableSpan` and `OutputSpan` subscripts:
+As a convenience for the specific case of `UInt8`, we will define subscripts for `RawSpan`, `MutableRawSpan` and `OutputRawSpan`, similar to the existing `Span`, `MutableSpan` and `OutputSpan` subscripts:
 ```swift
 extension RawSpan {
   subscript(_ byteOffset: Int) -> UInt8 { get }
@@ -146,7 +146,7 @@ extension OutputRawSpan {
 extension MutableRawSpan {
   mutating func storeBytes<T>(
     of value: T,
-    toByteOffset offset: Int = 0,
+    toByteOffset offset: Int,
     as type: T.Type,
     _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
@@ -173,19 +173,27 @@ The existing `storeBytes` function constrained to `T: BitwiseCopyable` will be m
 ```swift
 extension OutputRawSpan {
   mutating func append<T>(
-    _ value: T, as type: T.Type
+    _ value: T,
+    as type: T.Type
   ) where T: ConvertibleToBytes & BitwiseCopyable
 
   mutating func append<T>(
-    _ value: T, as type: T.Type, _ byteOrder: ByteOrder
+    _ value: T,
+    as type: T.Type,
+    _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
   
   mutating func append<T>(
-    repeating repeatedValue: T, count: Int, as type: T.Type
+    repeating repeatedValue: T,
+    count: Int,
+    as type: T.Type
   ) where T: ConvertibleToBytes & BitwiseCopyable
   
   mutating func append<T>(
-    repeating repeatedValue: T, count: Int, as type: T.Type, _ byteOrder: ByteOrder
+    repeating repeatedValue: T,
+    count: Int,
+    as type: T.Type,
+    _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
 }
 ```
@@ -200,13 +208,13 @@ The memory layout of many of the types eligible for `ConvertibleFromBytes` and/o
 `Span` will have a new initializer `init(viewing: RawSpan)` to allow viewing a range of untyped memory as a typed `Span`, when `Span.Element` conforms to `ConvertibleFromBytes`. These conversions will check for alignment and bounds. When the `RawSpan`'s pointer alignment is incorrect for `Element`, this initializer will trap. When the bounds are not a multiple of the stride, this initializer will trap.
 
 ```swift
-extension Span where Element: ConvertibleFromBytes {
+extension Span {
   @_lifetime(copy bytes)
-  init(viewing bytes: RawSpan)
+  init(viewing bytes: RawSpan) where Element: ConvertibleFromBytes
 }
 ```
 
-`MutableSpan` will have new initializers to mutate the memory of  a `MutableRawSpan` as a typed `MutableSpan`, when its `Element` conforms to `ConvertibleFromBytes`. These conversions will check for alignment and bounds. When the `MutableRawSpan`'s pointer alignment is incorrect for `Element`, this initializer will trap. When the bounds are not a multiple of the stride, this initializer will trap.
+`MutableSpan` will have new initializers to mutate the memory of a `MutableRawSpan` as a typed `MutableSpan`, when its `Element` conforms to `ConvertibleToBytes & ConvertibleFromBytes`. These conversions will check for alignment and bounds. When the `MutableRawSpan`'s pointer alignment is incorrect for `Element`, these initializers will trap. When the bounds are not a multiple of the stride, these initializers will trap.
 
 ```swift
 extension MutableSpan {
@@ -215,14 +223,14 @@ extension MutableSpan {
     where Element: ConvertibleToBytes & ConvertibleFromBytes
 
   @_lifetime(copy mutableBytes)
-  init(_ mutableBytes: consuming MutableRawSpan)
+  init(mutableBytes: consuming MutableRawSpan)
     where Element: ConvertibleToBytes & ConvertibleFromBytes
 }
 ```
 
 The conversions from `RawSpan` to `Span` only support well-aligned views with the native byte order. The [swift-binary-parsing][swift-binary-parsing] package provides a more fully-featured `ParserSpan` type for use cases beyond reinterpreting memory in-place. We expect a future proposal to include functionality to help determine the memory alignment of a `RawSpan` instance.
 
-The existing `bytes` and `mutableBytes` accessors will have safe overloads for when `Element` conforms to `ConvertibleToBytes`.
+The existing `bytes` and `mutableBytes` accessors will have safe overloads for when `Element` conforms to `ConvertibleToBytes` (`bytes` accessor) and to `ConvertibleToBytes & ConvertibleFromBytes` (`mutableBytes` accessor).
 
 ##### `OutputRawSpan` and `OutputSpan`
 
@@ -231,31 +239,31 @@ The existing `bytes` and `mutableBytes` accessors will have safe overloads for w
 extension OutputRawSpan {
   @_lifetime(copy self)
   mutating func append<T, E: Error>(
-    elements n: Int,
-    as type: T.self,
+    elementCount n: Int,
+    as type: T.Type,
     initializingWith initializer: (inout OutputSpan<T>) throws(E) -> Void
   ) throws(E) where T: ConvertibleToBytes & BitwiseCopyable
 }
 ```
-`append(byteCount:as:initializingWith)` will perform bounds-checking and alignment-checking before executing the closure, trapping at runtime if the alignment is incorrect or if available space is insufficient.
+`append(elementCount:as:initializingWith:)` will perform bounds-checking and alignment-checking before executing the closure, trapping at runtime if the alignment is incorrect or if available space is insufficient.
 
 Similarly, `OutputSpan` will provide a way to initialize a portion of its uninitialized storage using an `OutputRawSpan`, when its `Element` type conforms to `ConvertibleFromBytes`.
 ```swift
-extension OutputSpan where Element: ConvertibleFromBytes {
+extension OutputSpan {
   @_lifetime(copy self)
   mutating func append<E: Error>(
-    elements n: Int,
+    elementCount n: Int,
     initializingWith initializer: (inout OutputRawSpan) throws(E) -> Void
-  ) throws(E)
+  ) throws(E) where Element: ConvertibleFromBytes
 }
 ```
-`append(elements:initializingWith:)` will perform bounds-checking before executing the closure and, after it returns, will ensure that the number of bytes initialized is correct for the type of `Element`.
+`append(elementCount:initializingWith:)` will perform bounds-checking before executing the closure and, after it returns, will ensure that the number of bytes initialized is correct for the type of `Element`.
 
 ## Detailed design
 
 ##### `ConvertibleToBytes`
 
-A `ConvertibleToBytes` type has at least one stored property, and all its stored properties are values of  `ConvertibleToBytes` types. 
+A `ConvertibleToBytes` type has at least one stored property, and all its stored properties are values of `ConvertibleToBytes` types.
 
 The memory representation of a `ConvertibleToBytes` type must include no padding. For example, `struct A { var v: [3 of Int8]; var n: Int64 }` has two stored properties, both `ConvertibleToBytes`, but it has five bytes of padding. <!-- `MemoryLayout<A>.stride - (MemoryLayout<[3 of Int8]>.stride + MemoryLayout<Int64>.stride)` equals 5 -->
 
@@ -273,7 +281,7 @@ A `ConvertibleFromBytes` type has a valid value for every bit pattern of every b
 @_marker protocol ConvertibleFromBytes: BitwiseCopyable {}
 ```
 
-Custom types will be allowed to declare an unsafe conformance to `ConvertibleFromBytes`.
+Custom types will be allowed to declare an unchecked conformance to `ConvertibleFromBytes`.
 
 Types that do not fully use a byte, such as `Bool`, are disallowed. Undefined behaviour can result when an invalid bit pattern is interpreted as such a value.
 
@@ -281,16 +289,16 @@ Types that do not fully use a byte, such as `Bool`, are disallowed. Undefined be
 
 ```swift
 @frozen
-public enum ByteOrder: Equatable, Hashable, Sendable {
+enum ByteOrder: Equatable, Hashable, Sendable {
   /// Bytes are ordered with the most significant bits
-  /// starting at the lowest memory address
+  /// starting at the lowest memory address.
   case bigEndian
   
   /// Bytes are ordered with the least significant bits
-  /// starting at the lowest memory address
+  /// starting at the lowest memory address.
   case littleEndian
 
-  /// The native byte order of the runtime target.
+  /// The native byte ordering for the runtime target.
   static var native: Self { get }
 }
 ```
@@ -306,12 +314,12 @@ extension RawSpan {
   ///
   /// - Parameters:
   ///   - offset: The offset from the beginning of this span, in bytes.
-  ///     `offset` must be nonnegative. The default is zero.
+  ///     `offset` must be nonnegative.
   ///   - type: The type of the instance to create.
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes>(
-    fromByteOffset offset: Int = 0,
-    as: T.Type = T.self
+    fromByteOffset offset: Int,
+    as type: T.Type = T.self
   ) -> T
 
   /// Returns a value constructed from the raw memory at the specified offset.
@@ -322,20 +330,20 @@ extension RawSpan {
   ///
   /// - Parameters:
   ///   - offset: The offset from the beginning of this span, in bytes.
-  ///     `offset` must be nonnegative. The default is zero.
+  ///     `offset` must be nonnegative.
   ///   - type: The type of the instance to create.
-  ///   - byteOrder: The order in which the bytes should be decoded.
+  ///   - byteOrder: The order in which the bytes will be decoded.
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes & FixedWidthInteger>(
-    fromByteOffset offset: Int = 0,
-    as: T.Type = T.self,
+    fromByteOffset offset: Int,
+    as type: T.Type = T.self,
     _ byteOrder: ByteOrder
   ) -> T
   
   /// Accesses the byte at the specified offset in the span.
   ///
   /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
-  ///     must be greater or equal to zero, and less than `byteCount`.
+  ///     must be greater than or equal to zero, and less than `byteCount`.
   subscript(_ byteOffset: Int) -> UInt8 { get }
 
   /// Accesses the byte at the specified offset in the span.
@@ -344,7 +352,7 @@ extension RawSpan {
   /// with an invalid `byteOffset` results in undefined behaviour.
   ///
   /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
-  ///     must be greater or equal to zero, and less than `count`.
+  ///     must be greater than or equal to zero, and less than `byteCount`.
   @unsafe
   subscript(unchecked byteOffset: Int) -> UInt8 { get }
   
@@ -362,33 +370,36 @@ extension RawSpan {
 
 ```swift
 extension MutableRawSpan {
-  /// Stores a value's bytes to the specified offset into the span's memory.
+  /// Stores the given value's bytes to the specified offset into
+  /// the span's memory.
   ///
-  /// The range of bytes required to store a value of `T` starting at
+  /// The range of bytes required to store a value of type `T` starting at
   /// byte offset `offset` must be completely within the span.
+  /// `offset` is not required to be aligned for `T`.
   ///
   /// - Parameters:
   ///   - value: The value to store as raw bytes.
-  ///   - offset: The offset in bytes into the buffer pointer's memory to begin
-  ///     writing bytes from the value. The default is zero.
+  ///   - offset: The offset in bytes into the span's memory at which to begin
+  ///       writing the bytes from the value.
   ///   - type: The type of the instance to store.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
   mutating func storeBytes<T>(
     of value: T,
-    toByteOffset offset: Int = 0,
+    toByteOffset offset: Int,
     as type: T.Type,
     _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
 
-  /// Stores a value's bytes repeatedly into this span's memory.
+  /// Stores the given value's bytes repeatedly into this span's memory.
   ///
   /// There must be at least `count * MemoryLayout<T>.stride` bytes
   /// available in the span.
   ///
   /// - Parameters:
   ///   - repeatedValue: The value to store as raw bytes.
-  ///   - count: The number of copies of `value` to append to this span.
-  ///   - type: The type of the instance to store.
+  ///   - count: The number of copies of `repeatedValue` to store
+  ///      into this span.
+  ///   - type: The type of the instance to store repeatedly.
   @unsafe
   mutating func storeBytes<T>(
     repeating repeatedValue: T,
@@ -396,15 +407,16 @@ extension MutableRawSpan {
     as type: T.Type
   ) where T: BitwiseCopyable
 
-  /// Stores a value's bytes repeatedly into this span's memory.
+  /// Stores the given value's bytes repeatedly into this span's memory.
   ///
   /// There must be at least `count * MemoryLayout<T>.stride` bytes
   /// available in the span.
   ///
   /// - Parameters:
   ///   - repeatedValue: The value to store as raw bytes.
-  ///   - count: The number of copies of `value` to append to this span.
-  ///   - type: The type of the instance to store.
+  ///   - count: The number of copies of `repeatedValue` to store
+  ///      into this span.
+  ///   - type: The type of the instance to store repeatedly.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
   mutating func storeBytes<T>(
     repeating repeatedValue: T,
@@ -421,12 +433,12 @@ extension MutableRawSpan {
   ///
   /// - Parameters:
   ///   - offset: The offset from the beginning of this span, in bytes.
-  ///     `offset` must be nonnegative. The default is zero.
+  ///     `offset` must be nonnegative.
   ///   - type: The type of the instance to create.
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes>(
-    fromByteOffset offset: Int = 0,
-    as: T.Type = T.self
+    fromByteOffset offset: Int,
+    as type: T.Type = T.self
   ) -> T
 
   /// Returns a value constructed from the raw memory at the specified offset.
@@ -437,20 +449,20 @@ extension MutableRawSpan {
   ///
   /// - Parameters:
   ///   - offset: The offset from the beginning of this span, in bytes.
-  ///     `offset` must be nonnegative. The default is zero.
+  ///     `offset` must be nonnegative.
   ///   - type: The type of the instance to create.
-  ///   - byteOrder: The order in which the bytes should be decoded.
+  ///   - byteOrder: The order in which the bytes will be decoded.
   /// - Returns: A new value of type `T`, read from `offset`.
   func load<T: ConvertibleFromBytes & FixedWidthInteger>(
-    fromByteOffset offset: Int = 0,
-    as: T.Type = T.self,
+    fromByteOffset offset: Int,
+    as type: T.Type = T.self,
     _ byteOrder: ByteOrder
   ) -> T
 
   /// Accesses the byte at the specified offset in the span.
   ///
   /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
-  ///     must be greater or equal to zero, and less than `byteCount`.
+  ///     must be greater than or equal to zero, and less than `byteCount`.
   subscript(_ byteOffset: Int) -> UInt8 { get set }
 
   /// Accesses the byte at the specified offset in the span.
@@ -459,7 +471,7 @@ extension MutableRawSpan {
   /// with an invalid `byteOffset` results in undefined behaviour.
   ///
   /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
-  ///     must be greater or equal to zero, and less than `count`.
+  ///     must be greater than or equal to zero, and less than `byteCount`.
   @unsafe
   subscript(unchecked byteOffset: Int) -> UInt8 { get set }
   
@@ -483,27 +495,27 @@ extension MutableRawSpan {
 ##### `OutputRawSpan`
 ```swift
 extension OutputRawSpan {
-  /// Appends a value's bytes to this span's bytes.
+  /// Appends the given value's bytes to this span's bytes.
   ///
   /// There must be at least `MemoryLayout<T>.size` bytes available
   /// in the span.
   ///
   /// - Parameters:
   ///   - value: The value to store as raw bytes.
-  ///   - type: The type of the instance to create.
+  ///   - type: The type of the instance to store.
   mutating func append<T>(
     _ value: T,
     as type: T.Type
   ) where T: ConvertibleToBytes & BitwiseCopyable
 
-  /// Appends a value's bytes to the span's memory.
+  /// Appends the given value's bytes to this span's bytes.
   ///
   /// There must be at least `MemoryLayout<T>.size` bytes available
   /// in the span.
   ///
   /// - Parameters:
   ///   - value: The value to store as raw bytes.
-  ///   - type: The type of the instance to create.
+  ///   - type: The type of the instance to store.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
   mutating func append<T>(
     _ value: T,
@@ -517,9 +529,10 @@ extension OutputRawSpan {
   /// available in the span.
   ///
   /// - Parameters:
-  ///   - value: The value to store as raw bytes.
-  ///   - count: The number of copies of `value` to append to this span.
-  ///   - type: The type of the instance to create.
+  ///   - repeatedValue: The value to store as raw bytes.
+  ///   - count: The number of copies of `repeatedValue` to append
+  ///       to this span.
+  ///   - type: The type of the instance to store repeatedly.
   mutating func append<T>(
     repeating repeatedValue: T,
     count: Int,
@@ -532,9 +545,10 @@ extension OutputRawSpan {
   /// available in the span.
   ///
   /// - Parameters:
-  ///   - value: The value to store as raw bytes.
-  ///   - count: The number of copies of `value` to append to this span.
-  ///   - type: The type of the instance to create.
+  ///   - repeatedValue: The value to store as raw bytes.
+  ///   - count: The number of copies of `repeatedValue` to append
+  ///       to this span.
+  ///   - type: The type of the instance to store repeatedly.
   ///   - byteOrder: The order in which the bytes will be encoded to the span.
   mutating func append<T>(
     repeating repeatedValue: T,
@@ -543,7 +557,7 @@ extension OutputRawSpan {
     _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
   
-  /// Append to the span as elements of a specific type.
+  /// Appends to the span as elements of a specific type.
   ///
   /// There must be at least `n * MemoryLayout<T>.stride` bytes
   /// available in the span.
@@ -556,15 +570,16 @@ extension OutputRawSpan {
   /// until that point will remain initialized.
   ///
   /// - Parameters:
-  ///   - n: The number of `T` elements to initialize
-  ///   - type: The type of the instance to create.
+  ///   - n: The number of `T` elements to initialize.
+  ///   - type: The type of the elements to store.
   ///   - initializer: A closure that initializes new elements.
   ///     - Parameters:
   ///       - typedSpan: An `OutputSpan` over enough bytes to initialize
   ///         the specified number of additional elements.
+  @_lifetime(copy self)
   mutating func append<T, E: Error>(
-    elements n: Int,
-    as type: T.self,
+    elementCount n: Int,
+    as type: T.Type,
     initializingWith initializer:
       (_ typedSpan: inout OutputSpan<T>) throws(E) -> Void
   ) throws(E) where T: ConvertibleToBytes & BitwiseCopyable
@@ -572,7 +587,7 @@ extension OutputRawSpan {
   /// Accesses the byte at the specified offset in the span.
   ///
   /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
-  ///     must be greater or equal to zero, and less than `byteCount`.
+  ///     must be greater than or equal to zero, and less than `byteCount`.
   subscript(_ byteOffset: Int) -> UInt8 { get set }
 
   /// Accesses the byte at the specified offset in the span.
@@ -581,21 +596,24 @@ extension OutputRawSpan {
   /// with an invalid `byteOffset` results in undefined behaviour.
   ///
   /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
-  ///     must be greater or equal to zero, and less than `count`.
+  ///     must be greater than or equal to zero, and less than `byteCount`.
   @unsafe
   subscript(unchecked byteOffset: Int) -> UInt8 { get set }
+
+  /// The offsets valid for subscripting the span, in ascending order.
+  public var byteOffsets: Range<Int>
 }
 ```
 
 ##### `OutputSpan`
 
 ```swift
-extension OutputSpan where Element: ConvertibleFromBytes {
-  /// Append to the span as raw bytes.
+extension OutputSpan {
+  /// Appends to the span as raw bytes.
   ///
   /// Inside the closure, initialize elements by appending to `rawSpan`.
-  /// If the available memory in `self` is less than `n`, this
-  /// function will trap before calling the closure.
+  /// If the available storage in `self` is less than `n` elements,
+  /// this function will trap before calling the closure.
   /// After the closure returns, the number of bytes initialized
   /// determines the number of `Element` instances added to `self`.
   ///
@@ -603,13 +621,14 @@ extension OutputSpan where Element: ConvertibleFromBytes {
   /// until that point will remain initialized.
   ///
   /// - Parameters:
-  ///   - n: The number of `T` elements to initialize
+  ///   - n: The number of elements (of type `Element`) to initialize.
   ///   - initializer: A closure that initializes new elements.
   ///     - Parameters:
   ///       - rawSpan: An `OutputRawSpan` with enough bytes to initialize
   ///         the specified number of additional elements.
+  @_lifetime(copy self)
   mutating func append<E: Error>(
-    elements n: Int,
+    elementCount n: Int,
     initializingWith initializer:
       (_ rawSpan: inout OutputRawSpan) throws(E) -> Void
   ) throws(E) where Element: ConvertibleFromBytes
@@ -619,7 +638,7 @@ extension OutputSpan where Element: ConvertibleFromBytes {
 ##### `Span`
 
 ```swift
-extension Span where Element: ConvertibleFromBytes {
+extension Span {
   /// View initialized raw memory as a typed span.
   ///
   /// The `byteCount` of `bytes` must be a multiple of `Element`'s stride,
@@ -627,13 +646,13 @@ extension Span where Element: ConvertibleFromBytes {
   /// of `Element`. If either of these requirements is not met, this initializer
   /// will trap at runtime.
   @_lifetime(copy bytes)
-  public init(viewing bytes: consuming RawSpan)
+  init(viewing bytes: RawSpan) where Element: ConvertibleFromBytes
 }
 
 extension Span where Element: ConvertibleToBytes {
-  /// Construct a raw span over the memory represented by this span.
+  /// A raw span over the memory represented by this span.
   ///
-  /// - Returns: a RawSpan over the memory represented by this span
+  /// - Returns: A RawSpan over the memory represented by this span.
   @_lifetime(copy self)
   var bytes: RawSpan { get }
 }
@@ -642,7 +661,7 @@ extension Span where Element: ConvertibleToBytes {
 
 ```swift
 extension MutableSpan {
-  /// Mutate the elements of this span as raw bytes.
+  /// Mutate untyped memory as a typed span.
   ///
   /// The `byteCount` of `mutableBytes` must be a multiple of `Element`'s stride,
   /// and the starting address of `mutableBytes` must be well-aligned for
@@ -658,15 +677,15 @@ extension MutableSpan {
   /// and the starting address of `mutableBytes` must be well-aligned for
   /// the type of `Element`. If either of these requirements is not met,
   /// this initializer will trap at runtime.
-  @_lifetime(copy bytes)
-  init(bytes: consuming MutableRawSpan)
+  @_lifetime(copy mutableBytes)
+  init(mutableBytes: consuming MutableRawSpan)
     where Element: ConvertibleToBytes & ConvertibleFromBytes
 }
 
 extension MutableSpan where Element: ConvertibleToBytes & ConvertibleFromBytes {
-  /// Construct a mutable raw span over the memory represented by this span.
+  /// A mutable raw span over the memory represented by this span.
   ///
-  /// - Returns: a MutableRawSpan over the memory represented by this span
+  /// - Returns: A MutableRawSpan over the memory represented by this span.
   @_lifetime(&self)
   var mutableBytes: MutableRawSpan { mutating get }
 }
@@ -699,20 +718,29 @@ extension Float64: ConvertibleToBytes, ConvertibleFromBytes {} // `Double`
 
 extension Duration: ConvertibleToBytes, ConvertibleFromBytes {}
 
-extension InlineArray: ConvertibleToBytes where Element: ConvertibleToBytes {}
-extension InlineArray: ConvertibleFromBytes where Element: ConvertibleFromBytes {}
+extension InlineArray: ConvertibleToBytes
+  where Element: ConvertibleToBytes {}
+extension InlineArray: ConvertibleFromBytes
+  where Element: ConvertibleFromBytes {}
 
-extension CollectionOfOne: ConvertibleToBytes where Element: ConvertibleToBytes {}
-extension CollectionOfOne: ConvertibleFromBytes where Element: ConvertibleFromBytes {}
+extension CollectionOfOne: ConvertibleToBytes
+  where Element: ConvertibleToBytes {}
+extension CollectionOfOne: ConvertibleFromBytes
+  where Element: ConvertibleFromBytes {}
 
-extension ClosedRange: ConvertibleToBytes where Bound: ConvertibleToBytes {}
-extension Range: ConvertibleToBytes where Bound: ConvertibleToBytes {}
+extension ClosedRange: ConvertibleToBytes
+  where Bound: ConvertibleToBytes {}
+extension Range: ConvertibleToBytes
+  where Bound: ConvertibleToBytes {}
 
-extension PartialRangeFrom: ConvertibleToBytes where Bound: ConvertibleToBytes {}
+extension PartialRangeFrom: ConvertibleToBytes
+  where Bound: ConvertibleToBytes {}
 extension PartialRangeFrom.Iterator: ConvertibleToBytes
   where Bound: ConvertibleToBytes {}
-extension PartialRangeThrough: ConvertibleToBytes where Bound: ConvertibleToBytes {}
-extension PartialRangeUpTo: ConvertibleToBytes where Bound: ConvertibleToBytes {}
+extension PartialRangeThrough: ConvertibleToBytes
+  where Bound: ConvertibleToBytes {}
+extension PartialRangeUpTo: ConvertibleToBytes
+  where Bound: ConvertibleToBytes {}
 
 extension Bool: ConvertibleToBytes {}
 extension ObjectIdentifier: ConvertibleToBytes {}
@@ -739,12 +767,14 @@ With the two protocols we have defined, we gain the ability to define a safe fun
 /// Returns the bits of the given instance, interpreted as having the specified
 /// type.
 ///
-/// Parameters:
-///   - x: The instance to cast to `type`.
-///   - type: The type to cast `x` to. `type` and the type of `x` must have the
-///     same size of memory representation and compatible memory layout.
-/// Returns: A new instance of type `U`, cast from `x`.
-func bitCast<T, U>(_ original: T, to: U.Type) -> U
+/// `T` and `U` must have the same-sized memory representation.
+/// If they don't, this function will trap.
+///
+/// - Parameters:
+///   - original: The instance to cast to `type`.
+///   - type: The type to cast `original` to.
+/// - Returns: A new instance of type `U`, cast from `original`.
+func bitCast<T, U>(_ original: T, to type: U.Type) -> U
   where T: ConvertibleToBytes, U: ConvertibleFromBytes
 ```
 
@@ -761,7 +791,11 @@ The functions in this proposal will be implemented in such a way as to avoid cre
 
 These functions require the existence of `Span`, and have a minimum deployment target on Darwin-based platforms, where the Swift standard library is distributed with the operating system.
 
+`ByteOrder` is a new type and, as such, will come with availability. The functions that use a `ByteOrder` argument will share that same availability.
+
 ## Implications on adoption
+
+The additions described in this proposal require a new version of the Swift standard library.
 
 ## Future directions
 
@@ -773,11 +807,11 @@ Alongside validation, we could consider automatically inserting stored null byte
 
 #### Partial validation for the `ConvertibleFromBytes` protocol
 
-`ConvertibleFromBytes` conformances may undergo some validation by the compiler at a later time. The compiler can enforce that all of a type's stored properties conform to `ConvertibleFromBytes`. It cannot directly enforce the absence of semantic constraints on the type's fields, but we may choose to accept a roundabout way of supporting its absence, such as if all the stored properties are `public` and mutable (`var` bindings).
+`ConvertibleFromBytes` conformances may undergo some validation by the compiler at a later time. The compiler can enforce that all of a type's stored properties conform to `ConvertibleFromBytes`. It cannot directly enforce the absence of semantic constraints on the type's stored properties, but we may choose to accept a roundabout way of supporting its absence, such as if all the stored properties are `public` and mutable (`var` bindings).
 
 #### Support for types imported from C
 
-The Clang importer could be taught which basic C types support these protocols. It would be useful to have a way to declare a conformance to these protocols for C types which are aggregates. For example, we could relax the restriction that these conformances can only be declared in a type's owning module, for imported C types only.
+The Clang importer could be taught which basic C types support these protocols. It would be useful to have a way to declare a conformance to these protocols for C types which are aggregates. For example, we could relax the restriction that these conformances can only be declared in a type's containing module, for imported C types only.
 
 #### Support for tuples and SIMD types
 
@@ -795,7 +829,7 @@ Some functions and properties introduced in earlier proposals have since been an
 
 #### Encoding the name of the type being loaded into the function names
 
-Having a series of concrete functions such as `loadInt32(fromByteOffset:_:)` and `storeBytes(int32:toByteOffset:as:_:)` would be easier on the type checker, by avoiding the problem of overloaded symbols.
+Having a series of concrete functions such as `loadInt32(fromByteOffset:_:)` and `storeBytes(int32:toByteOffset:_:)` would be easier on the type checker, by avoiding the problem of overloaded symbols.
 
 #### Waiting for a compiler-validated `ConvertibleToBytes` layout constraint
 
@@ -815,10 +849,14 @@ The standard library's `FixedWidthInteger` protocol includes computed properties
 
 #### Defaulting to aligned operations for the safe `load()` functions
 
-`UnsafeRawPointer`'s original `load()` function requires correct alignment, and the less restrictive  `loadUnaligned()` was added later. We have long considered this unfortunate, and this proposal seeks to improve on the status quo by making our new safe `load()` functions perform unaligned operations.
+`UnsafeRawPointer`'s original `load()` function requires correct alignment, and the less restrictive `loadUnaligned()` was added later. We have long considered this unfortunate, and this proposal seeks to improve on the status quo by making our new safe `load()` functions perform unaligned operations.
+
+#### Defaulting `toByteOffset` and `fromByteOffset` parameters to a value of zero
+
+The proposal originally included defaulted parameter values for these parameters for the new `load` and `storeBytes` functions. It was pointed out that defaulted parameters may give the impression that loading or storing a value using these functions must use the full length of the `RawSpan` or `MutableRawSpan`. Noting that defaulted parameters already exist on similar, pre-existing unsafe API, we may need to harmonize the decision at a later time.
 
 ## Acknowledgments
 
 Thanks to Karoy Lorentey, Nate Cook, and Stephen Canon for taking the time to discuss this topic.
 
-Enums to represent the byte order have previously been pitched by Michael Ilseman ([Unicode Processing APIs](https://forums.swift.org/t/69294)) and by [YOCKOW]([https://gist.github.com/YOCKOW) ([ByteOrder type](https://forums.swift.org/t/74027)).
+Enums to represent the byte order have previously been pitched by Michael Ilseman ([Unicode Processing APIs](https://forums.swift.org/t/69294)) and by [YOCKOW](https://gist.github.com/YOCKOW) ([ByteOrder type](https://forums.swift.org/t/74027)).
