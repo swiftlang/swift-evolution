@@ -80,7 +80,7 @@ The following production rules describe the grammar of `default` declarations:
 
 The `default` keyword can be followed by an attribute or a declaration modifier. This proposal only supports `default @MainActor`, `default nonisolated`, `default @available` and `default @diagnose`; any other attribute, modifier, or expression written after `default` is an error.
 
-The semantics of `default` are specified per attribute or modifier in the subsections below. In general, the intention is that `default` behaves like writing the attribute or modifier on each appropriate top level declaration, although exact propagation and inference rules are specific to each case.
+In general, the intention is that `default` behaves like writing the attribute or modifier on each appropriate top level declaration. This proposal inherits the existing propagation and inference rules for each default behavior; for example, [SE-0466]'s exception for `SendableMetatype`. The semantics of `default` are specified per attribute or modifier in the subsections below.
 
 Writing a `default` declaration is only valid at the top-level scope; it is an error to write `default` in any other scope:
 
@@ -195,6 +195,8 @@ struct S: P {}
 // Implicitly 'nonisolated'
 func f() {}
 ```
+
+The naive approach is discussed in [alternatives considered](#dont-inherit-se-0466-carve-outs-for-default-actor-isolation).
 
 > [!NOTE]
 > **Divergence from [SE-0466]:** When compiled in Swift 5 language mode, SE-0466's `-default-isolation MainActor` marks the inferred isolation as preconcurrency, which is serialized into the public module interface as `@preconcurrency` and downgrades cross-actor diagnostics in downstream consumers to warnings. `default @MainActor` does not inherit this behavior. Inferred `@MainActor` based on `default` is treated like an explicit annotation, and the public interface contains no implicit `@preconcurrency`.
@@ -346,7 +348,7 @@ It may be desirable to indicate these default behaviors in the positions where t
 
 ### Don't inherit [SE-0466] carve outs for default actor isolation
 
-Instead of inheriting SE-0466's semantics regarding inference, we could treat default actor isolation as though it was written on *every* legal top level declaration. SE-0466 semantics are surprising; writing `default @MainActor`, conforming to something with a `SendableMetatype`, and then getting errors in your implementation about accessing `MainActor` isolated state elsewhere in the file from a `nonisolated` context is not intuitive. However, we think these carve outs are valuable here for the same reason SE-0466 added them; without them any use of `Codable` or inheritance from protocols that want to be `nonisolated` would likely require writing `nonisolated`.
+Instead of inheriting SE-0466's semantics regarding inference, we could treat default actor isolation as though it was written on *every* legal top level declaration. SE-0466 semantics are surprising; writing `default @MainActor`, conforming to something with a `SendableMetatype`, and then getting errors in your implementation about accessing `MainActor` isolated state elsewhere in the file from a `nonisolated` context is not intuitive. However, we think these carve outs are valuable here for the same reason SE-0466 added them; these special cases are exactly where the naive default would have failed, and required adding an explicit modifier to override it.
 
 ### Do inherit [SE-0466] `@preconcurrency` behavior in Swift 5
 
