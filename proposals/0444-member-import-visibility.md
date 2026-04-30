@@ -103,6 +103,34 @@ A re-exported module is one that another module makes visible to any client that
 
 Note that there are some imports that are added to every source file implicitly by the compiler for normal programs. The implicitly imported modules include the standard library and the module being compiled. As a subtle consequence implicitly importing the current module, any module that the current module re-exports in any of its source files will be considered visible in every other source file.
 
+### Protocol conformances
+
+Types conforming to a protocol must have a witness for every requirement declared by that protocol. Witnesses to protocol requirements can be members that have been imported from other modules. Under the rules of this proposal, members must be visible in a source file in order to be discovered as viable witnesses of protocol requirements. However, a default implementation that is not visible from a source file may still satisfy a protocol requirement as long as it is defined in the same module as the extended protocol it belongs to. Suitable default implementations are inherited by conformances that do not provide an implementation of the requirement, rather than being looked up from the source file. This nuance is necessary in order to give library owners a way to preserve source compatibility when adding new requirements to protocols:
+
+```swift
+// External module: A
+
+public protocol P {
+  func existingRequirement()
+  func newRequirement()
+}
+
+extension P {
+  public func newRequirement() // default implementation
+}
+
+// File: Q.swift (imports A)
+import A
+
+internal protocol Q: P { }
+
+// File: S.swift (does not import A)
+struct S: Q {
+  func existingRequirement() { ... }
+  // newRequirement() is satisfied by inherited default implementation from A
+}
+```
+
 ## Source compatibility
 
 The proposed change in behavior is source breaking because it adds stricter requirements to name lookup. There is much existing Swift code that will need to be updated to adhere to these new requirements, either by introducing additional import statements in some source files or by reorganizing code among files. This change in behavior therefore must be opt-in, which is why it should be limited to a future language mode with an upcoming feature identifier that allows opt-in with previous language modes.
