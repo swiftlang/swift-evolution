@@ -6,7 +6,7 @@
 * Status: **Active Review (April 29 - May 8)**
 * Bugs: [swiftlang/swift-testing#1392](https://github.com/swiftlang/swift-testing/issues/1392), rdar://130508488
 * Implementation: [swiftlang/swift-testing#1528](https://github.com/swiftlang/swift-testing/pull/1528), [swiftlang/swift-package-manager#9944](https://github.com/swiftlang/swift-package-manager/pull/9944)
-* Review: ([pitch](https://forums.swift.org/t/pitch-make-test-repetition-per-test-case-instead-of-global/85552)) ([review](https://forums.swift.org/t/st-0024-per-test-case-repetition/85957))
+* Review: ([pitch](https://forums.swift.org/t/pitch-make-test-repetition-per-test-case-instead-of-global/85552)) ([review](https://forums.swift.org/t/st-0024-per-test-case-repetition/85957)) ([second review](https://forums.swift.org/t/st-0024-second-review-test-case-repetition/86352))
 
 ## Introduction
 
