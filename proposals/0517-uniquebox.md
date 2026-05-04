@@ -3,7 +3,7 @@
 * Proposal: [SE-0517](0517-uniquebox.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (March 2-13, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#86336](https://github.com/swiftlang/swift/pull/86336)
 * Review: ([pitch](https://forums.swift.org/t/pitch-box/84014)) ([review](https://forums.swift.org/t/se-0517-uniquebox/85107))
 
