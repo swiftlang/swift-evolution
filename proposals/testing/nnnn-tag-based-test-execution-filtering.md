@@ -72,7 +72,7 @@ swift test --skip 'id:tag:uiTest'
 
 The `id:` prefix doesn't introduce any new behavior. In fact, its behavior is the entirety of what Swift Testing supports today. However, we wanted a flexible way to disambiguate raw identifiers that also left the door open for other filtering/skipping mechanisms in the future.
 
-It will still be possible to omit the prefix entirely. So long as nothing prefix-shaped exists (i.e. roughly: non-colon characters followed by a colon), we will assume matching by `id:`.
+It will still be possible to omit the prefix entirely. So long as none of the known prefixes are present, we will assume matching by `id:`.
 
 With respect to raw identifiers, the converse here also applies. It is possible to apply a tag that uses a raw identifier as its name. For example:
 
