@@ -48,9 +48,7 @@ I propose we introduce a special syntax to the `--filter` and `--skip` command l
 swift test --skip tag:uiTest
 ```
 
-In this example, `uiTest` must be the _exact_ name of the tag. Tags _will not_ match fuzzily or by regular expression. This treatment would be applied to both the `--filter` and `--skip` options.
-
-As with regular usages of `--filter`/`--skip`, you can supply the option multiple times to filter/skip tests which match _any_ of the tags:
+In this example, `uiTest` is a regular expression that matches the tags that you want to filter/skip on. As with regular usages of `--filter`/`--skip`, you can supply the option multiple times to filter/skip tests which match _any_ of the tags:
 
 ```
 swift test --skip tag:uiTest --skip tag:integrationTest
@@ -66,19 +64,17 @@ It is not currently possible to create a filter/skip based on _all_ tags specifi
 @Test func `tag:uiTest`() { /* ... */ }
 ```
 
-To continue to allow matching for such function names, we will also allow the colon character to be escaped such that the entire argument will be treated as a single regular expression:
+To continue to allow matching for such function names, I propose introducing a _separate_ prefix called `id:` which behaves much like the `tag:` prefix in that everything that follows it is a regular expression. It's job, however, is to disambiguate and allow the user a mechanism to explicitly say "match on test symbol names please." 
 
 ```sh
-swift test --skip 'tag\:uiTest'
+swift test --skip 'id:tag:uiTest'
 ```
 
-The example above would behave as though the string `tag:uiTest` were passed as a regular expression, omitting the escaping backslash in the final regular expression.
+The `id:` prefix doesn't introduce any new behavior. In fact, its behavior is the entirety of what Swift Testing supports today. However, we wanted a flexible way to disambiguate raw identifiers that also left the door open for other filtering/skipping mechanisms in the future.
 
-> [!Note]
-> Most shells treat the backslash character `\` as a special character used for escaping. In order for the application to receive it, the argument needs to either be wrapped in quotes like `'tag\:uiTest'`, or the backslash itself needs to be escaped, `tag\\:uiTest`.
+It will still be possible to omit the prefix entirely. So long as nothing prefix-shaped exists (i.e. roughly: non-colon characters followed by a colon), we will assume matching by `id:`.
 
-
-The converse here also applies. It is possible to apply a tag that uses a raw identifier as its name. For example:
+With respect to raw identifiers, the converse here also applies. It is possible to apply a tag that uses a raw identifier as its name. For example:
 
 ```swift
 extension Tag {
