@@ -232,33 +232,6 @@ The conversions from `RawSpan` to `Span` only support well-aligned views with th
 
 The existing `bytes` and `mutableBytes` accessors will have safe overloads for when `Element` conforms to `ConvertibleToBytes` (`bytes` accessor) and to `ConvertibleToBytes & ConvertibleFromBytes` (`mutableBytes` accessor).
 
-##### `OutputRawSpan` and `OutputSpan`
-
-`OutputRawSpan` will provide a way to append to a portion of its uninitialized memory using a typed `OutputSpan`, for `Element` types which conform to `ConvertibleToBytes`.
-```swift
-extension OutputRawSpan {
-  @_lifetime(copy self)
-  mutating func append<T, E: Error>(
-    elementCount n: Int,
-    as type: T.Type,
-    initializingWith initializer: (inout OutputSpan<T>) throws(E) -> Void
-  ) throws(E) where T: ConvertibleToBytes & BitwiseCopyable
-}
-```
-`append(elementCount:as:initializingWith:)` will perform bounds-checking and alignment-checking before executing the closure, trapping at runtime if the alignment is incorrect or if available space is insufficient.
-
-Similarly, `OutputSpan` will provide a way to initialize a portion of its uninitialized storage using an `OutputRawSpan`, when its `Element` type conforms to `ConvertibleFromBytes`.
-```swift
-extension OutputSpan {
-  @_lifetime(copy self)
-  mutating func append<E: Error>(
-    elementCount n: Int,
-    initializingWith initializer: (inout OutputRawSpan) throws(E) -> Void
-  ) throws(E) where Element: ConvertibleFromBytes
-}
-```
-`append(elementCount:initializingWith:)` will perform bounds-checking before executing the closure and, after it returns, will ensure that the number of bytes initialized is correct for the type of `Element`.
-
 ## Detailed design
 
 ##### `ConvertibleToBytes`
@@ -557,33 +530,6 @@ extension OutputRawSpan {
     _ byteOrder: ByteOrder
   ) where T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
   
-  /// Appends to the span as elements of a specific type.
-  ///
-  /// There must be at least `n * MemoryLayout<T>.stride` bytes
-  /// available in the span.
-  ///
-  /// Inside the closure, initialize elements by appending to `typedSpan`.
-  /// After the closure returns, the number of bytes initialized will be
-  /// correctly updated.
-  ///
-  /// If the closure throws an error, the bytes for the elements appended
-  /// until that point will remain initialized.
-  ///
-  /// - Parameters:
-  ///   - n: The number of `T` elements to initialize.
-  ///   - type: The type of the elements to store.
-  ///   - initializer: A closure that initializes new elements.
-  ///     - Parameters:
-  ///       - typedSpan: An `OutputSpan` over enough bytes to initialize
-  ///         the specified number of additional elements.
-  @_lifetime(copy self)
-  mutating func append<T, E: Error>(
-    elementCount n: Int,
-    as type: T.Type,
-    initializingWith initializer:
-      (_ typedSpan: inout OutputSpan<T>) throws(E) -> Void
-  ) throws(E) where T: ConvertibleToBytes & BitwiseCopyable
-
   /// Accesses the byte at the specified offset in the span.
   ///
   /// - Parameter byteOffset: The offset of the byte to access. `byteOffset`
@@ -602,36 +548,6 @@ extension OutputRawSpan {
 
   /// The offsets valid for subscripting the span, in ascending order.
   public var byteOffsets: Range<Int>
-}
-```
-
-##### `OutputSpan`
-
-```swift
-extension OutputSpan {
-  /// Appends to the span as raw bytes.
-  ///
-  /// Inside the closure, initialize elements by appending to `rawSpan`.
-  /// If the available storage in `self` is less than `n` elements,
-  /// this function will trap before calling the closure.
-  /// After the closure returns, the number of bytes initialized
-  /// determines the number of `Element` instances added to `self`.
-  ///
-  /// If the closure throws an error, the elements appended
-  /// until that point will remain initialized.
-  ///
-  /// - Parameters:
-  ///   - n: The number of elements (of type `Element`) to initialize.
-  ///   - initializer: A closure that initializes new elements.
-  ///     - Parameters:
-  ///       - rawSpan: An `OutputRawSpan` with enough bytes to initialize
-  ///         the specified number of additional elements.
-  @_lifetime(copy self)
-  mutating func append<E: Error>(
-    elementCount n: Int,
-    initializingWith initializer:
-      (_ rawSpan: inout OutputRawSpan) throws(E) -> Void
-  ) throws(E) where Element: ConvertibleFromBytes
 }
 ```
 
@@ -824,6 +740,14 @@ The `Span` initializers require a correctly-aligned `RawSpan`; there should be u
 #### Renaming of `@unsafe` functions and properties that do not explicitly include an unsafety marker
 
 Some functions and properties introduced in earlier proposals have since been annotated as unsafe, but their names did not indicate unsafety. We should identify names that involve unsafety even when strict memory safety mode is disabled. We should plan carefully for the renaming of these symbols, and doing so in a separate proposal will be most conducive to a successful and minimally disruptive outcome.
+
+#### Appending to `OutputSpan` using `OutputRawSpan` and vice-versa
+
+The proposal originally included a function to append to a portion of an `OutputSpan` using an `OutputRawSpan` when `Element` conforms to `ConvertibleFromBytes`:
+
+`span.append(upTo: capacity) { for _ in 0..<$0.capacity { $0.append(UInt8.zero) } }`
+
+The argument label for the capacity (here "`upTo`") is a difficult topic. We note that this shape of API is also necessary on `UniqueArray`, and applies to `insert` and `replace` as well as `append`. We should discuss the naming of these API in a context where they will get sufficient attention, namely [SE-0527](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0527-rigidarray-uniquearray.md) (`UniqueArray` and `RigidArray`), and once that is settled we can propose to add them to `OutputSpan` and `OutputRawSpan`, along with appropriate variants.
 
 ## Alternatives considered
 
