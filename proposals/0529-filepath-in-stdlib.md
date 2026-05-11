@@ -7,7 +7,7 @@
 * Implementation: TBD
 * Review: ([first pitch](https://forums.swift.org/t/pitch-add-filepath-to-the-standard-library/84812)) ([second pitch](https://forums.swift.org/t/pitch-2-add-filepath-to-stdlib/85695)) ([review](https://forums.swift.org/t/se-0529-add-filepath-to-the-standard-library/86194))
 
-## Introduction
+## Summary of changes
 
 We propose adding `FilePath` and its essential operations to the Swift standard library. `FilePath` parses platform-specific path syntax on the developer's behalf, provides a normalized view of path components, and enables resolution against the filesystem. This proposal establishes the core types (`FilePath`, `FilePath.Anchor`, `FilePath.Component`, `FilePath.ComponentView`), their conformances, and the essential operations needed to adopt `FilePath` as a currency type. Additional syntactic convenience methods and platform-specific path decomposition API are planned as [future additions](#future-directions).
 
