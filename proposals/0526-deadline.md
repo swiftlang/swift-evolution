@@ -15,6 +15,12 @@ continuous clock instant representing the deadline by which the operation must
 complete. If the operation completes before the deadline, the function returns 
 the result; if the deadline expires first, the operation is cancelled.
 
+The typed throws signature was altered to avoid an extra error type, in conjunction
+with removing the restriction around the instant requiring the duration type
+to be `Swift.Duration`, the accessor for the current deadline was removed,
+and a new interface on CancellationError was added to handle the reasons
+for why a task or child task is cancelled (including a deadline exceeded reason).
+
 ## Motivation
 
 Asynchronous operations in Swift can run indefinitely, which creates several
@@ -42,8 +48,12 @@ the operation and timer.
 
 This proposal introduces `withDeadline`, a function that executes an
 asynchronous operation with an absolute time limit specified as a clock instant.
-The solution provides a clean, composable API that handles cancellation and
-error propagation automatically:
+This builds upon the clock, instant, and duration types introduced in
+[SE-0329](0329-clock-instant-duration.md), the structured concurrency and
+cooperative cancellation model from [SE-0304](0304-structured-concurrency.md),
+and composes naturally with the task cancellation shields from
+[SE-0504](0504-task-cancellation-shields.md). The solution provides a clean, 
+composable API that handles cancellation and error propagation automatically:
 
 ```swift
 let clock = ContinuousClock()
@@ -54,12 +64,7 @@ do {
     }
     print("Data received: \(result)")
 } catch {
-    switch error.cause {
-    case .deadlineExceeded(let operationError):
-        print("Request exceeded deadline: \(operationError)")
-    case .operationFailed(let operationError):
-        print("Request failed: \(operationError)")
-    }
+    print("Request failed: \(error)")
 }
 ```
 
@@ -70,7 +75,6 @@ behavior.
 
 ## Detailed design
 
-
 #### Executing work with a given deadline
 
 The fundamental entry point for working with deadlines is a single function: `withDeadline`.
@@ -80,8 +84,8 @@ The fundamental entry point for working with deadlines is a single function: `wi
 ///
 /// Use this function to limit the execution time of an asynchronous operation to a specific instant.
 /// If the operation completes before the deadline expires, this function returns the result. If the
-/// deadline expires first, this function cancels the operation and if the operation then throws the 
-/// error then will be used to construct a ``DeadlineError`` with the ``.deadlineExceeded`` cause. 
+/// deadline expires first, this function cancels the operation. The `withDeadline` function will
+/// return or throw according to how the operation returns or throws as a response to the cancellation.
 ///
 /// The following example demonstrates using a deadline to limit a network request:
 ///
@@ -94,12 +98,7 @@ The fundamental entry point for working with deadlines is a single function: `wi
 ///     }
 ///     print("Data received: \(result)")
 /// } catch {
-///     switch error.cause {
-///     case .deadlineExceeded:
-///         print("Deadline exceeded and operation threw: \(error.underlyingError)")
-///     case .operationFailed:
-///         print("Operation failed before deadline: \(error.underlyingError)")
-///     }
+///     print("Operation failed")
 /// }
 /// ```
 ///
@@ -107,12 +106,10 @@ The fundamental entry point for working with deadlines is a single function: `wi
 ///
 /// The function exhibits the following behavior based on deadline and operation completion:
 ///
-/// - If the operation completes successfully before deadline: Returns the operation's result.
-/// - If the operation throws an error before deadline: Throws ``DeadlineError`` with cause
-///  ``DeadlineError/Cause/operationFailed``.
-/// - If deadline expires and operation completes successfully: Returns the operation's result.
-/// - If deadline expires and operation throws an error: Throws ``DeadlineError`` with cause
-///  ``DeadlineError/Cause/deadlineExceeded.
+/// - If the operation completes successfully before deadline: Returns the operation result.
+/// - If the operation throws an error before deadline: Throws the operation error.
+/// - If deadline expires and operation completes successfully: Returns the operation result
+/// - If deadline expires and operation throws an error: Throws the operation error.
 ///
 /// ## Coordinating multiple operations
 ///
@@ -143,25 +140,23 @@ The fundamental entry point for working with deadlines is a single function: `wi
 ///   - deadline: The instant by which the operation must complete.
 ///   - tolerance: The tolerance used for the sleep.
 ///   - clock: The clock to use for measuring time.
-///   - body: The asynchronous operation to execute before the deadline.
+///   - body: The asynchronous operation to complete before the deadline.
 ///
 /// - Returns: The result of the operation if it completes successfully before or after the deadline expires.
 ///
-/// - Throws: A ``DeadlineError`` indicating whether the operation failed before deadline
-/// (``DeadlineError/Cause/operationFailed``) or was cancelled due to deadline expiration
-/// (``DeadlineError/Cause/deadlineExceeded``).
+/// - Throws: The error thrown by the operation
 nonisolated(nonsending) public func withDeadline<Return, Failure: Error, C: Clock>(
   _ expiration: C.Instant,
   tolerance: C.Instant.Duration? = nil,
   clock: C,
   body: nonisolated(nonsending) () async throws(Failure) -> Return
-) async throws(DeadlineError<Failure>) -> Return where C.Instant.Duration == Swift.Duration
+) async throws(Failure) -> Return
 
 nonisolated(nonsending) public func withDeadline<Return, Failure: Error>(
   _ expiration: ContinuousClock.Instant,
   tolerance: ContinuousClock.Instant.Duration? = nil,
   body: nonisolated(nonsending) () async throws(Failure) -> Return
-) async throws(DeadlineError<Failure>) -> Return
+) async throws(Failure) -> Return
 ```
 
 The deadline-based API accepts a generic `Clock.Instant`, allowing multiple operations
@@ -183,7 +178,7 @@ let (userData, prefsData) = try await (user, prefs)
 
 These absolute deadlines are composable and nestable to any set scope of a deadline. This means that when more than 
 one `withDeadline` is nested the minimum of the expiration is taken. If any nested cases are differing clocks the 
-deadline is adjusted to the minimum by aproximating the current deadline with the offset of the proposed expiration.
+deadline is adjusted to the minimum by approximating the current deadline with the offset of the proposed expiration.
 
 
 ```swift
@@ -198,7 +193,7 @@ let userAndPrefs = try await withDeadline(userAndPrefsDeadline, clock: clock) {
 func fetchPrefs() async throws(FetchFailure) -> Prefs {
   let prefsDeadline = clock.now.advanced(by: .seconds(10))
   do {
-    return try await withDeadline(prefsDeadline. clock: clock) {
+    return try await withDeadline(prefsDeadline, clock: clock) {
       try await fetchPreferences()
     }
   } catch {
@@ -209,38 +204,33 @@ func fetchPrefs() async throws(FetchFailure) -> Prefs {
 
 Particularly in this case the composition can be made such that two independent regions can participate in a composed 
 deadline across library boundaries and still result in the correct deadline for the composed expectation of the caller. 
-This is the underlying reason for the clock to be distinctly used as the continuous clock since those instants can be 
-composed within the process across those boundaries. Any case that needs to communicate beyond that boundary needs to 
-have some sort of serialization anyways so those uses of the communications channels need to manage the conversions 
-between the expiration measured against the continuous clock and whatever other clock mechanism that is suitable for 
-that communication.
-
-In short the deadline is composed by the minimum. The previous example would execute with the minimum of 5 seconds from 
-now and 10 seconds from now (being 5 seconds from now as the "current" deadline).
+This is achieved due to the fact that each nesting of `withDeadline` will independently apply a deadline expiration.
+The first to cancel will be the composition of the effective minimum no matter the clock specified. This means that 
+there is no need for a current deadline for the service of calculating which is the minimum execution deadline.
 
 #### Shorthand for quickly using common deadline construction
 
-Constructing an instant every time is not per-se the most terse; so a simple extension offers the ease of construction 
+Constructing an instant every time is not per se the most terse; so a simple extension offers the ease of construction 
 with the same compositional advantage as the primary entry point.
 
-```swift
+```
 nonisolated(nonsending) public func withDeadline<Return, Failure: Error, C: Clock>(
   in timeout: C.Instant.Duration,
   tolerance: C.Instant.Duration? = nil,
   clock: C,
   body: nonisolated(nonsending) () async throws(Failure) -> Return
-) async throws(DeadlineError<Failure>) -> Return
+) async throws(Failure) -> Return
 
 nonisolated(nonsending) public func withDeadline<Return, Failure: Error>(
-  in timeout: ContinousClock.Instant.Duration,
-  tolerance: ContinousClock.Instant.Duration? = nil,
+  in timeout: ContinuousClock.Instant.Duration,
+  tolerance: ContinuousClock.Instant.Duration? = nil,
   body: nonisolated(nonsending) () async throws(Failure) -> Return
-) async throws(DeadlineError<Failure>) -> Return
+) async throws(Failure) -> Return
 ```
 
 The implementation of this is trivially:
 
-```swift
+```
 try await withDeadline(clock.now.advanced(by: timeout), tolerance: tolerance, clock: clock, body: body)
 ```
 
@@ -273,108 +263,91 @@ If the closure were `@Sendable`, it couldn't access actor-isolated state like
 with surrounding code regardless of isolation context, while maintaining safety
 guarantees.
 
-#### Failures and expiration
+#### Cancellation
 
-The mechanism this API uses to communicate the expiration or the failure of an executing deadline 
-is through a generic concrete error type: `DeadlineError`. This allows the throwing of the specific
-underlying error but also containing the applied deadline and reasoning for the failure.
+This API uses the base cancellation error to communicate the expiration of the deadline. 
+The information to differentiate a cancellation due to normal task cancellation is
+expanded to handle two new forms of cancellation; a cancellation due to deadline expiration,
+and a custom cancellation with a specified string for a reason. Since this is not a closed
+set of possible reasons for future development, this reason is left as an open enumeration.
 
-```swift
-/// An error that indicates whether an operation failed due to deadline expiration or threw an error during
-/// normal execution.
-///
-/// This error type distinguishes between two failure scenarios:
-/// - The operation threw an error before the deadline expired.
-/// - The operation was cancelled due to deadline expiration and then threw an error.
-///
-/// Use pattern matching to handle each case appropriately:
-///
-/// ```swift
-/// do {
-///     let result = try await withDeadline(in: .seconds(5)) {
-///         try await fetchDataFromServer()
-///     }
-///     print("Data received: \(result)")
-/// } catch {
-///     switch error.cause {
-///     case .deadlineExpired:
-///         print("Deadline exceeded and operation threw: \(error.underlyingError)")
-///     case .operationFailed:
-///         print("Operation failed before deadline: \(error.underlyingError)")
-///     }
-/// }
-/// ```
-public struct DeadlineError<OperationError: Error>: Error, CustomStringConvertible, CustomDebugStringConvertible {
-  /// The underlying cause of the deadline error.
-  public enum Cause: Sendable, CustomStringConvertible, CustomDebugStringConvertible {
-    /// The operation was cancelled due to deadline expiration and subsequently threw an error.
+Today `CancellationError` is an empty type with no payload or information conveyed to indicate
+the reasoning for cancellation. [SE-0304](0304-structured-concurrency.md) originally noted that
+"no information is passed to the task about why it was cancelled," treating cancellation as a
+lightweight, uniform signal. With the introduction of deadlines, however, differentiating between
+a cancellation due to deadline expiration and a cancellation from an explicit `Task.cancel()` call
+becomes practically necessary for correct error reporting and recovery. A new sub-type will be 
+added to represent the reason for the cancellation, a new initializer for `CancellationError` will
+be added for constructing a `CancellationError` with a given reason, and a new property will be 
+added for determining what the reason of the cancellation was. This modification not only allows 
+for developers to express the difference between a cancellation due to deadline expiration versus 
+normal task cancellation, but also express a custom reason for indicating why something might be 
+cancelled.
+
+```
+public struct CancellationError: Error {
+  public enum Reason {
+    case taskCancelled
     case deadlineExpired
-
-    /// The operation threw an error before the deadline expired.
-    case operationFailed
+    case custom(String)
   }
 
-  /// The underlying cause of the deadline error, indicating whether the operation
-  /// failed before the deadline or was cancelled due to deadline expiration.
-  public var cause: Cause
+  public var reason: Reason { get }
+  public init(reason: Reason)
 
-  /// The deadline expiration that was specified for the operation.
-  public var expiration: any InstantProtocol 
-
-  /// The error thrown by the operation either in cases of expiration or failure
-  public var underlyingError: OperationError
-
-  /// Creates a deadline error with the specified cause and deadline expiration.
-  public init<C: Clock>(cause: Cause, expiration: C.Instant, clock: C, underlyingError: OperationError)
+  // This is shorthand for `CancellationError(reason: .taskCancelled)`
+  public init()
 }
 ```
 
-`DeadlineError` is a struct that contains the cause of the failure, the clock
-used for time measurement, and the deadline instant. The `Cause` enum
-distinguishes between two failure scenarios:
-- The operation threw an error before the deadline expired
-  (`Cause.operationFailed`)
-- The operation was cancelled due to deadline expiration and then threw an error
-  (`Cause.deadlineExceeded`)
+Switching upon the reason specifically will require the developer to handle unknown cases since
+there may be situations in which additional cases may be added at a future point. Because 
+`CancellationError.Reason` is defined in the Concurrency module (which ships as part of the 
+standard library and is a resilient module), the enum is non-frozen by default and switch 
+statements require an `@unknown default` case. Since previous cancellation was something that 
+has been already written the developer already has handled the cases of cancellation without a 
+given reason; this will continue to be the case.
 
-This allows callers to determine whether an error occurred due to deadline
-expiration or due to the operation failing on its own, enabling different
-recovery strategies. The additional `expiration` and `underlyingError` properties provide
-context about the time measurement used and the specific deadline that was set.
+To aid in the population of cancellation errors, new APIs will be added. These will all be cases
+where a task or child task is cancelled and a CancellationError would normally be created.
 
-#### Accessing the current Task's deadline expiration
-
-```swift
-extension Task where Success == Never, Failure == Never {
-  public static var currentDeadline: any InstantProtocol? { get }
+```
+extension Task {
+  public func cancel(reason: CancellationError.Reason)
 }
 
 extension UnsafeCurrentTask {
-  public var deadline: any InstantProtocol? { get }
+  public func cancel(reason: CancellationError.Reason)
+}
+
+extension TaskGroup {
+  public func cancelAll(reason: CancellationError.Reason)
+}
+
+extension ThrowingTaskGroup {
+  public func cancelAll(reason: CancellationError.Reason)
+}
+
+extension DiscardingTaskGroup {
+  public func cancelAll(reason: CancellationError.Reason)
+}
+
+extension ThrowingDiscardingTaskGroup {
+  public func cancelAll(reason: CancellationError.Reason)
 }
 ```
 
-The safe current deadline accessor is trivially the following:
+#### Failures and expiration
 
-```swift
-extension Task where Success == Never, Failure == Never {
-  public static var currentDeadline: any InstantProtocol? { 
-    unsafe withUnsafeCurrentTask { unsafeTask in
-      if let unsafeTask = unsafe unsafeTask {
-        return unsafe unsafeTask.deadline
-      }
-      return nil
-    }
-}
-```
+The withDeadline throwing behavior is that of the operation's throwing behavior. If the operation throws a
+specific type then the withDeadline will throw that same type, this permits the case where a cancellation aware
+throwing behavior is then respected with the most information possible and specifically does not throw away
+the potential failure information. This means that if a developer wishes to communicate a failure solely due to
+deadline expiration, the cancellation error that is thrown should then contain the reason of `.deadlineExpired`.
 
-The deadline property of the `UnsafeCurrentTask` is an accessor to the task specific 
-data for the deadline. When a scope of a withDeadline is active that property will represent
-the minimum of the current (if present) and the applied expiration of the deadline.
-
-Both of these APIs have the intent to be used for composition, for example if a system needs 
-to communicate a deadline to some other system it can use these properties to relay that information 
-without needing the deadline to be directly passed.
+This error is propagated from whenever the task (or child task) is cancelled via the `cancel(reason:)` method.
+The reason specified will then be available to the `CancellationError` and can be retrieved from the `reason`
+property on the cancellation error.
 
 ### Behavioral Details
 
@@ -399,9 +372,16 @@ behaviors needed for many specialized scenarios.
 
 #### Behaviors for Cancellation and Expiration
 
-The following examples should outline common composition and cancellation behaviors.
+The following examples outline common composition and cancellation behaviors.
 
-```swift
+- **Example 0**: Operation completes before deadline - returns successfully with no error.
+- **Example 1**: Operation throws before deadline - the thrown error propagates.
+- **Example 2**: Inner deadline (2s) expires before outer deadline (3s) - only the inner cancellation handler fires, and the operation's thrown error propagates.
+- **Example 3**: Outer deadline (2s) expires before inner deadline (3s) - both cancellation handlers fire because cancellation propagates inward through the task tree.
+- **Example 4**: Outer deadline (2s) expires before inner deadline (10s), but the sleep is shorter (3s) - both handlers still fire at the 2s mark because the outer deadline governs.
+- **Example 5**: Demonstrates that `withDeadline` waits for the operation to return even after cancellation. The busy-loop ignores cancellation and runs for the full 10 seconds despite the 2s inner deadline.
+
+```
 struct LocalError: Error { }
 
 print("====== EXAMPLE 0 ======")
@@ -423,7 +403,7 @@ do {
   print("caught \(error)")
 }
 // ====== EXAMPLE 1 ======
-// caught DeadlineError(cause: .operationFailed, expiration: Instant(_value: 1737016.436590875 seconds), underlyingError: LocalError()
+// caught LocalError()
 
 print("====== EXAMPLE 2 ======")
 do {
@@ -450,7 +430,7 @@ do {
 // ====== EXAMPLE 2 ======
 // cancel inner
 // 2.001315 seconds elapsed
-// caught DeadlineError(cause: .operationFailed, expiration: Instant(_value: 1736722.0348198751 seconds), underlyingError: DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736721.0351736662 seconds), underlyingError: LocalError()
+// caught LocalError()
 
 print("====== EXAMPLE 3 ======")
 do {
@@ -478,7 +458,7 @@ do {
 // cancel inner
 // cancel outer
 // 2.00507375 seconds elapsed
-// caught DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736723.037342833 seconds), underlyingError: DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736723.037342833 seconds), underlyingError: LocalError()
+// caught LocalError()
 
 print("====== EXAMPLE 4 ======")
 do {
@@ -506,7 +486,7 @@ do {
 // cancel inner
 // cancel outer
 // 2.005246625 seconds elapsed
-// caught DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736725.042865291 seconds), underlyingError: DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736725.042865291 seconds), underlyingError: LocalError()
+// caught LocalError()
 
 print("====== EXAMPLE 5 ======")
 do {
@@ -538,7 +518,7 @@ do {
 // cancel inner
 // cancel outer
 // 10.000002291000001 seconds elapsed
-// caught DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736728.048390583 seconds), underlyingError: DeadlineError(cause: .deadlineExpired, expiration: Instant(_value: 1736727.048450916 seconds), underlyingError: LocalError()
+// caught LocalError()
 ```
 
 ## Source compatibility
@@ -551,10 +531,14 @@ to adjust for the new deadline semantics.
 ## Effect on ABI compatibility
 
 Since this is an additive proposal there is no change to any existing ABI.
-The proposed APIs are capable of being implemented in less performant manners
-to the introduction of typed throws. Back porting this feature is not a proposed
-part of the pitch but no technical limitation is added except the burden of 
-making the implementation fragmented upon deployment.
+The modification to `CancellationError` adds a new stored property and initializer 
+but preserves the existing default initializer with identical behavior - existing 
+code that constructs `CancellationError()` will continue to produce an error with 
+the equivalent of `.taskCancelled` as its reason. The proposed APIs are capable of 
+being implemented in less performant manners prior to the introduction of typed throws. 
+Back porting this feature is not a proposed part of the pitch but no technical 
+limitation is added except the burden of making the implementation fragmented upon 
+deployment.
 
 ## Effect on API resilience
 
@@ -608,7 +592,20 @@ composability and semantics. Duration-based timeouts accumulate drift when
 passed through multiple call layers, making it impossible to guarantee that
 nested operations complete within a precise time window, whereas absolute
 deadlines allow multiple operations to coordinate on the same completion
-instant. 
+instant. Consider a function that applies a 10-second timeout and then calls 
+two sub-operations each with the remaining time: the overhead of each call 
+layer (scheduling, argument evaluation, function prologues) silently erodes 
+the budget, and the second sub-operation receives a shorter effective timeout 
+than intended. With an absolute deadline, every layer in the stack sees the 
+same instant and no time is lost in translation.
+
+This is the same reasoning behind Go's `context.WithDeadline` - Go provides
+both `WithTimeout` (relative) and `WithDeadline` (absolute), but recommends 
+deadlines for composable, multi-layer operations because the absolute instant 
+propagates without drift. Kotlin's `withTimeout` is duration-based, but 
+Kotlin's coroutine scope carries a single deadline internally and computes the 
+minimum against any new timeout, which is effectively what the nested 
+`withDeadline` composition in this proposal achieves explicitly.
 
 The rejection however does not apply when the funnel point of the deadline
 functionality is sent to an entry point handling the composition by using 
@@ -623,6 +620,14 @@ difficult to use in isolated contexts. The final design uses
 `nonisolated(nonsending)` to enable better composition while maintaining safety.
 
 ### Naming 
+
+The naming of this API has a notable lineage: during the development of 
+[SE-0329](0329-clock-instant-duration.md), the type now called `Instant` was 
+originally named `Deadline` (v1.1), and was later renamed to `Instant` because 
+that name better describes a general-purpose point in time. The name `Deadline` 
+is now reclaimed for its original intended purpose - expressing a temporal bound 
+by which work must complete - while `Instant` serves as the underlying type that 
+represents the point in time.
 
 Some feedback was posed to name this function around the cancellation behavior;
 along the lines of `withAutomaticTaskCancellation`. This naming does not focus 
@@ -639,12 +644,69 @@ Since the closure may itself use `withTaskCancellationHandler` or catch cancella
 errors to return a nullable result or some other partial result it then makes the most
 sense to even avoid names like `withCancellationDeadline`.
 
+One proposed name that does make some sense to infer the cooperative cancellation nature 
+of `withDeadline` was a name of `withTaskDeadline` to infer the interoperation with
+the Concurrency primitive Task (and TaskGroup's child tasks). Even though that naming
+wise this has more appeal than other alternative names the major issue is that
+there is no real potential of any other deadline being introduced. So the `Task` portion
+of that name is extraneous.
+
+From a nomenclature standpoint, `withDeadline` would be a term of art for Swift. By its
+nature has an implication of cooperative cancellation due to the design of Swift's 
+concurrency runtime and by that implication also interacts solely with tasks. This 
+follows suit with other languages like Kotlin - the naming in that case is withTimeout
+because the timeout in that case is an elapsed duration instead of a deadline instant.
+The name `withDeadline` also reads naturally at the call site - `try await withDeadline(...)` 
+immediately communicates to the reader that a temporal bound is in effect, which aids code 
+review and debugging. Names centered on the mechanism (`withAutomaticTaskCancellation`) 
+require the reader to infer the temporal aspect, while names centered on the concept 
+(`withDeadline`) let the reader infer the mechanism from context.
+
 ### Previous Incarnations
 
 The clock was originally suggested as a generic clock originally, however when 
 moving to a composable interface the clock was made to be concrete to the 
-`ContinousClock`. This ended up being too restrictive so that was relaxed to
+`ContinuousClock`. This ended up being too restrictive so that was relaxed to
 where a generic clock was used but restricted to a clock with the `Instant.Duration`
 that is `Swift.Duration`. This constraint allows for the composition of expirations
 and in the cases of differing clocks an approximation of the expiry is made by
 using the delta from now as an offset.
+
+### Separate DeadlineExceededError type
+
+An alternative design would introduce a distinct `DeadlineExceededError` type rather
+than extending `CancellationError` with a `Reason`. This was considered and rejected
+for several reasons:
+
+1. **Typed throws compatibility**: Because `withDeadline` preserves the typed failure 
+   of the operation closure via `throws(Failure)`, introducing a new error type would 
+   require a wrapper like `TimeoutError<Failure>` that conflates two concerns - the 
+   deadline expiration and the operation's own error domain. This forces every caller 
+   to destructure a wrapper type even in the common case where they simply want to 
+   know whether the operation failed.
+2. **Composability with existing cancellation handlers**: Code that already uses 
+   `withTaskCancellationHandler` or checks `Task.isCancelled` would not observe a 
+   `DeadlineExceededError` - it would appear as an ordinary error rather than a 
+   cancellation. By expressing deadline expiration as a reason on `CancellationError`, 
+   all existing cancellation-aware code automatically participates in deadline behavior.
+3. **Consistency with the cooperative cancellation model**: Deadline expiration is 
+   mechanically a cancellation - the task is cancelled and the operation responds 
+   cooperatively. Using the same error type with an enriched reason preserves this 
+   semantic identity rather than introducing a parallel concept.
+
+### Task-installed deadlines
+
+[SE-0304](0304-structured-concurrency.md) originally envisioned that "a deadline can 
+be installed on a task and naturally propagate through arbitrary levels of API, including 
+to child tasks." An alternative design following this model would attach a deadline 
+directly to the task, making it implicitly visible to all child tasks without explicit 
+nesting. This approach was not taken because:
+
+1. Implicit propagation through task-local state would make it difficult to reason about 
+   which deadline is in effect at any given point, especially when library code installs 
+   its own deadlines.
+2. The explicit nesting model composes transparently - each `withDeadline` scope is 
+   visible in the source code, and the minimum-expiration composition rule is easy to 
+   reason about.
+3. Nothing in this proposal precludes a future task-installed deadline mechanism; the 
+   explicit `withDeadline` API would remain useful even if such a mechanism were added.
