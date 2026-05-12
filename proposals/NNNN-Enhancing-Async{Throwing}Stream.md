@@ -258,7 +258,7 @@ extension AsyncThrowingStream {
 
 extension AsyncStream: Hashable {
   public static func == (lhs: Self, rhs: Self) -> Bool {
-    return lhs.context === rhs.context
+    // ... 
   }
 
   public func hash(into hasher: inout Hasher) {
