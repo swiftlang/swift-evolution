@@ -105,7 +105,7 @@ Note that there are some imports that are added to every source file implicitly 
 
 ### Protocol conformances
 
-* Amendment status: ''Active review (May 12...18, 2026)''
+* Amendment status: **Active review (May 12...18, 2026)**
 * Amendment review: ([pitch](https://forums.swift.org/t/amending-se-0444-exempt-default-implementations-of-protocol-requirements-from-member-import-visibility-rules/86127)) ([review](https://forums.swift.org/t/se-0444-amendment-exempt-default-implementations-of-protocol-requirements-from-member-import-visibility-rules/86683))
 * Amendment implementation: [swiftlang/swift#88489](https://github.com/swiftlang/swift/pull/88489)
 
