@@ -15,12 +15,6 @@ continuous clock instant representing the deadline by which the operation must
 complete. If the operation completes before the deadline, the function returns 
 the result; if the deadline expires first, the operation is cancelled.
 
-The typed throws signature was altered to avoid an extra error type, in conjunction
-with removing the restriction around the instant requiring the duration type
-to be `Swift.Duration`, the accessor for the current deadline was removed,
-and a new interface on CancellationError was added to handle the reasons
-for why a task or child task is cancelled (including a deadline exceeded reason).
-
 ## Motivation
 
 Asynchronous operations in Swift can run indefinitely, which creates several
@@ -145,16 +139,10 @@ The fundamental entry point for working with deadlines is a single function: `wi
 /// - Returns: The result of the operation if it completes successfully before or after the deadline expires.
 ///
 /// - Throws: The error thrown by the operation
-nonisolated(nonsending) public func withDeadline<Return, Failure: Error, C: Clock>(
+nonisolated(nonsending) public func withDeadline<Return: ~Copyable, Failure: Error, C: Clock>(
   _ expiration: C.Instant,
   tolerance: C.Instant.Duration? = nil,
-  clock: C,
-  body: nonisolated(nonsending) () async throws(Failure) -> Return
-) async throws(Failure) -> Return
-
-nonisolated(nonsending) public func withDeadline<Return, Failure: Error>(
-  _ expiration: ContinuousClock.Instant,
-  tolerance: ContinuousClock.Instant.Duration? = nil,
+  clock: C = ContinuousClock(),
   body: nonisolated(nonsending) () async throws(Failure) -> Return
 ) async throws(Failure) -> Return
 ```
@@ -178,7 +166,11 @@ let (userData, prefsData) = try await (user, prefs)
 
 These absolute deadlines are composable and nestable to any set scope of a deadline. This means that when more than 
 one `withDeadline` is nested the minimum of the expiration is taken. If any nested cases are differing clocks the 
-deadline is adjusted to the minimum by approximating the current deadline with the offset of the proposed expiration.
+deadline expires determined by the clock, so no inter-clock conversions need to be computed. This nesting case works
+by the outer executing with a given deadline expiration while the inner also executes with its own given deadline
+expiration. These two expirations will execute independently to whichever cancels the operation first. Practically
+this means that the expiration then is the minimum of the two deadlines, without needing to compare or calculate 
+between them.
 
 
 ```swift
@@ -214,14 +206,14 @@ Constructing an instant every time is not per se the most terse; so a simple ext
 with the same compositional advantage as the primary entry point.
 
 ```
-nonisolated(nonsending) public func withDeadline<Return, Failure: Error, C: Clock>(
+nonisolated(nonsending) public func withDeadline<Return: ~Copyable, Failure: Error, C: Clock>(
   in timeout: C.Instant.Duration,
   tolerance: C.Instant.Duration? = nil,
-  clock: C,
+  clock: C = ContinuousClock(),
   body: nonisolated(nonsending) () async throws(Failure) -> Return
 ) async throws(Failure) -> Return
 
-nonisolated(nonsending) public func withDeadline<Return, Failure: Error>(
+nonisolated(nonsending) public func withDeadline<Return: ~Copyable, Failure: Error>(
   in timeout: ContinuousClock.Instant.Duration,
   tolerance: ContinuousClock.Instant.Duration? = nil,
   body: nonisolated(nonsending) () async throws(Failure) -> Return
@@ -231,7 +223,7 @@ nonisolated(nonsending) public func withDeadline<Return, Failure: Error>(
 The implementation of this is trivially:
 
 ```
-try await withDeadline(clock.now.advanced(by: timeout), tolerance: tolerance, clock: clock, body: body)
+try await withDeadline(clock.now.advanced(by: timeout), tolerance: tolerance, body: body)
 ```
 
 #### Non-escaping nonisolated(nonsending) operation closure 
@@ -265,7 +257,7 @@ guarantees.
 
 #### Cancellation
 
-This API uses the base cancellation error to communicate the expiration of the deadline. 
+This API uses the base cancellation to communicate the expiration of the deadline.
 The information to differentiate a cancellation due to normal task cancellation is
 expanded to handle two new forms of cancellation; a cancellation due to deadline expiration,
 and a custom cancellation with a specified string for a reason. Since this is not a closed
@@ -286,6 +278,7 @@ cancelled.
 
 ```
 public struct CancellationError: Error {
+  @nonexhaustive
   public enum Reason {
     case taskCancelled
     case deadlineExpired
@@ -710,3 +703,11 @@ nesting. This approach was not taken because:
    reason about.
 3. Nothing in this proposal precludes a future task-installed deadline mechanism; the 
    explicit `withDeadline` API would remain useful even if such a mechanism were added.
+
+## Changelog
+- 1.1 Returned for revision
+  - The typed throws signature was altered to avoid an extra error type
+  - Removed the restriction around the instant requiring the duration type to be `Swift.Duration`
+  - The accessor for the current deadline was removed due to difficulty for using any InstantProtocol
+  - A new interface on CancellationError was added to handle the reasons for why a task or child task is cancelled (including a deadline exceeded reason).
+ - 1.0 Initial revision
