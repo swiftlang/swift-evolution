@@ -88,7 +88,7 @@ public init(
 
 However, the `AsyncThrowingStream` variant was never implemented with an `onCancel` parameter, creating a discrepancy between the two APIs. 
 
-Furthermore, [SE-0338](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0338-clarify-execution-non-actor-async.md#proposed-solution) clarified the execution semantics of `nonisolated` asynchronous functions by specifying that such functions formally run on the Global Concurrent Executor (GCE), potentially introducing unnecessary actor hops. 
+Furthermore, [SE-0338](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0338-clarify-execution-non-actor-async.md#proposed-solution) clarified the execution semantics of `nonisolated` asynchronous functions by specifying that such functions formally run on the global concurrent executor, potentially introducing unnecessary actor hops. 
 
 Additionally, the `@Sendable` requirement on `onCancel` is overly restrictive, as `onCancel` is invoked at most once and never concurrently with itself.
 
