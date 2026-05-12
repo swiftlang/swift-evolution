@@ -5,7 +5,7 @@
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Returned for revision, partially implemented**
 * Vision: [Improving the approachability of data-race safety](/visions/approachable-concurrency.md)
-* Implementation: [swiftlang/swift#81863](https://github.com/swiftlang/swift/pull/81863), [swiftlang/swift-syntax#3087](https://github.com/swiftlang/swift-syntax/pull/3087)
+* Implementation: [swiftlang/swift#81863](https://github.com/swiftlang/swift/pull/81863), [swiftlang/swift-syntax#3087](https://github.com/swiftlang/swift-syntax/pull/3087) [swiftlang/swift#8903](https://github.com/swiftlang/swift/pull/89023)
 * Experimental Feature Flag: `DefaultIsolationPerFile` (currently ships `using` syntax; this revision proposes `default`)
 * Previous Proposal: [SE-0466: Control default actor isolation inference][SE-0466]
 * Review: ([pitch](https://forums.swift.org/t/pitch-a-typealias-for-per-file-default-actor-isolation/79150))([review](https://forums.swift.org/t/se-0478-default-actor-isolation-typealias/79436))([return for revision](https://forums.swift.org/t/returned-for-revision-se-0478-default-actor-isolation-typealias/80253))([pitch 2](https://forums.swift.org/t/pitch-2-default-actor-isolation-per-file/80243))
@@ -80,7 +80,7 @@ The following production rules describe the grammar of `default` declarations:
 
 The `default` keyword can be followed by an attribute or a declaration modifier. This proposal only supports `default @MainActor`, `default nonisolated`, `default @available` and `default @diagnose`; any other attribute, modifier, or expression written after `default` is an error.
 
-In general, the intention is that `default` behaves like writing the attribute or modifier on each appropriate top level declaration. This proposal inherits the existing propagation and inference rules for each default behavior; for example, [SE-0466]'s exception for `SendableMetatype`. The semantics of `default` are specified per attribute or modifier in the subsections below.
+In general, the intention is that `default` behaves like writing the attribute or modifier on each appropriate top level declaration, but with a lower priority than explicit attributes on the declaration. This proposal inherits the existing propagation and inference rules for each default behavior; for example, [SE-0466]'s exception for `SendableMetatype`. The semantics of `default` are specified per attribute or modifier in the subsections below.
 
 Writing a `default` declaration is only valid at the top-level scope; it is an error to write `default` in any other scope:
 
@@ -118,8 +118,6 @@ default nonisolated
 default @available(swift, introduced: 5.1)
 default @MainActor // error
 ```
-
-In cases that are not errors (like for attributes), the compiler should emit warnings where a default attribute is identically repeated, and its repetition would have no effect.
 
 ### Actor isolation
 
@@ -258,12 +256,16 @@ default @available(*, noasync, message: "holding a lock across suspension may de
 
 // Implicitly '@available(*, noasync, message: "holding a lock across suspension may deadlock")'
 public final class LockedEventLog {
+  public func lock() { ... }
+  public func unlock() { ... }
   public func append(_ event: String) { ... }
   public func entries() -> [String] { ... }
 }
 
 // Implicitly '@available(*, noasync, message: "holding a lock across suspension may deadlock")'
 public final class LockedCache<Key: Hashable, Value> {
+  public func lock() { ... }
+  public func unlock() { ... }
   public func get(_ key: Key) -> Value? { ... }
   public func set(_ key: Key, to value: Value) { ... }
 }
@@ -277,21 +279,20 @@ Repeated `default @available(...)` declarations are permitted, and follow the sa
 For example if you write an extension of a less-available type in the same file, the extension will still have the more constrained availability:
 
 ```swift
-default @available(SwiftStdlib 5.1, *)
+default @available(macOS 12, *)
 
-// Has default Swift 5.1 availability
-public protocol Actor { ... }
+// Has default macOS 12 availability
+public protocol Widget { ... }
 
-// Has default Swift 5.1 availability
-@globalActor
-public actor MainActor { ... }
+// Has default macOS 12 availability
+public struct BasicWidget: Widget { ... }
 
-// Has explicit Swift 6.0 availability
-@available(SwiftStdlib 6.0, *)
-public protocol TaskExecutor { ... }
+// Has explicit macOS 14 availability
+@available(macOS 14, *)
+public protocol AdvancedWidget { ... }
 
-// Inherits Swift 6.0 availability from the extended protocol
-extension TaskExecutor { ... }
+// Inherits macOS 14 availability from the extended protocol
+extension AdvancedWidget { ... }
 ```
 
 ## Source compatibility
@@ -382,7 +383,7 @@ We did not choose this direction for two reasons:
 Further, consider support for attributes:
 
 ```swift
-using @available(SwiftStdlib 5.1, *)
+using @available(swift 5.1)
 
 // Has default Swift 5.1 availability
 public protocol Actor { ... }
@@ -393,7 +394,7 @@ public protocol Actor { ... }
 It is immediately clear that what's being specified is availability, so having to include an additional "availability" in the syntax is repetitive:
 
 ```swift
-using defaultAvailability("@available(SwiftStdlib 5.1, *)")
+using defaultAvailability("@available(swift 5.1)")
 ```
 
 Not all attributes have a value representation in Swift code, so we'd likely end up having to write attributes and modifiers in string literals, which is not as nice as writing a plain attribute or modifier.
