@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation** or **Awaiting review**
 * Implementation: TBD
-* Upcoming Feature Flag: StreamContinuationTracking
+* Upcoming Feature Flag: `AsyncStreamCancelOnContinuationDeinit`
 * Review: ([pitch](https://forums.swift.org/t/pitch-enhancing-async-throwing-stream/86339))
 
 ## Summary of changes
@@ -21,7 +21,7 @@ This proposal introduces the following changes:
 
 ### Typed Throws
 
-Thrown errors are type-erased to `any Error`, requiring additional boilerplate to preserve the thrown error's type and integrate into typed contexts.
+Currently errors are type-erased to `any Error` when `AsyncThrowingStream` is finished with an error (`finish(throwing:)` or when the `unfolding` closure throws), requiring additional boilerplate to preserve the thrown error's type and integrate into typed contexts.
 
 ```swift
 let locationStream = AsyncThrowingStream<Location, LocationError> { ... } // Error: Initializer 'init(_:bufferingPolicy:_:)' requires the types 'LocationError' and 'any Error' be equivalent
@@ -172,7 +172,7 @@ Additionally, this proposal adopts `nonisolated(nonsending)`. As described in [S
 The `@Sendable` requirement on the `onCancel` closure is removed and replaced with the `sending` keyword.
 
 ```swift
-let locationStream = Async{Throwing}Stream { // consistent API
+let locationStream = Async{Throwing}Stream {
   ...
 } onCancel: {
   ...
@@ -187,9 +187,11 @@ for {try} await location in locationStream { // executes on the caller's actor
 
 The continuation-based variant is updated to track outstanding references to the stream’s continuation, including the continuation itself and any copies of it. When the last reference to the continuation is discarded, the stream is canceled. 
 
-The change is staged in via an upcoming feature flag (`StreamContinuationTracking`).
+The change is staged in via an upcoming feature flag (`AsyncStreamCancelOnContinuationDeinit`).
 
 ```swift
+// with `AsyncStreamCancelOnContinuationDeinit`
+
 let stream = AsyncStream<Int> { continuation in
   continuation.onTermination = { reason in 
     print(reason)
@@ -253,6 +255,8 @@ extension AsyncThrowingStream {
 
 `Hashable` conformance:
 
+For `Async{Throwing}Stream` specifically, `Hashable` conformance is identity-based. Although it is a struct, it wraps a `context` class that is unique to each instance but shared across its copies.
+
 ```swift
 // AsyncStream
 
@@ -274,11 +278,11 @@ extension AsyncStream.Continuation.YieldResult: Equatable, Hashable where Elemen
 
 extension AsyncThrowingStream: Hashable {
   public static func == (lhs: Self, rhs: Self) -> Bool {
-    return lhs.context === rhs.context
+    // ...
   }
 
   public func hash(into hasher: inout Hasher) {
-    hasher.combine(ObjectIdentifier(self.context))
+    // ...
   }
 }
 
@@ -291,17 +295,17 @@ extension AsyncThrowingStream.Continuation.Termination: Equatable, Hashable wher
 
 ## Source compatibility
 
-This proposal changes the behavior around stream termination when the stream’s continuation is discarded. To avoid silently changing behavior, this change is gated behind an upcoming feature flag (`StreamContinuationTracking`).
+This proposal changes the behavior around stream termination when the stream’s continuation is discarded. To avoid silently changing behavior, this change is gated behind an upcoming feature flag (`AsyncStreamCancelOnContinuationDeinit`).
 
-The `sending` keyword on `onCancel` will allow a wider range of functions and closures to be passed to it.
+The `sending` keyword on `onCancel` broadens the set of functions and closures that can be passed to it.
 
 ## ABI compatibility
 
-Adopting `nonisolated(nonsending)` for `produce` and replacing `@Sendable` on `onCancel` is an ABI change. // TODO: Finish this
+The changes are additive.
 
 ## Implications on adoption
 
-Terminating the stream implicitly when the stream’s continuation is discarded would break code that relies on the current behavior, for example to create an indefinite suspension point.
+Implicitly terminating the stream when its continuation is discarded would break code that relies on the current behavior, for example to create an indefinite suspension point. That is the rationale for gating this change behind the upcoming feature flag (`AsyncStreamCancelOnContinuationDeinit`).
 
 ## Future directions
 
@@ -325,4 +329,4 @@ There are three problems with this approach:
 and the old, less verbose, API would eventually need to be deprecated.
 
 ## Acknowledgments
-I would like to thank @jamieQ for initial guidance and continued feedback, as well as @phausler and @FranzBusch for their feedback.
+I would like to thank @jamieQ for initial guidance and continued feedback, as well as @phausler, @FranzBusch, annd @ktoso for their feedback.
