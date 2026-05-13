@@ -222,4 +222,4 @@ Altering merging behavior, however, would be a source-incompatible change.
 
 ## Acknowledgments
 
-Max Desiatov provided some much-appreciated general guidance that helped get this idea off the ground. Boris G. immediately noticed and provided great feedback on the need for merging.
+Max Desiatov provided some much-appreciated general guidance that helped get this idea off the ground. Boris Buegling immediately noticed and provided great feedback on the need for merging.
