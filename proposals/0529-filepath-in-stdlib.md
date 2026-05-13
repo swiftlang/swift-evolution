@@ -188,7 +188,7 @@ extension FilePath {
 
 ##### Windows path styles
 
-Windows paths fall into three styles, distinguished by their leading bytes. 
+Windows paths fall into three styles, distinguished by their leading bytes.
 
 - **Conventional.** Drive-letter forms (`C:\...`, `C:...`), UNC forms (`\\server\share\...`), the current-drive root (`\...`), and rootless paths (`foo\bar`). Most code writes paths in this style. Here `/` is interchangeable with `\` as a separator, and `.` and `..` have their usual directory meaning.
 
@@ -244,18 +244,6 @@ extension FilePath {
   ///   * `\\?\UNC\server\share\bar.exe`
   ///   * `\\server\share\bar.exe`
   public var isAbsolute: Bool { get }
-
-  /// Returns true if this path is not absolute (see `isAbsolute`).
-  ///
-  /// Examples:
-  /// * Linux and Darwin:
-  ///   * `~/bar`
-  ///   * `tmp/foo.txt`
-  /// * Windows:
-  ///   * `bar\baz`
-  ///   * `C:Users\`
-  ///   * `\Users`
-  public var isRelative: Bool { get }
 }
 ```
 
@@ -585,9 +573,14 @@ extension FilePath {
   ///
   /// All intermediate components must exist. Throws if the path
   /// cannot be resolved.
+  ///
+  /// This operation is synchronous and may block.
+  @available(*, noasync)
   public func resolve() throws -> FilePath
 }
 ```
+
+`resolve()` is synchronous and blocking, so it is annotated `@available(*, noasync)` and is unavailable from async contexts. Non-blocking variants are future work; see [Future Directions](#future-directions).
 
 > Note: On Darwin, resolution may insert resolve flags into the anchor: `/.nofollow/foo/bar` means do-not-follow-symlinks for `/foo/bar`. Future API includes ways to suppress or modify this behavior.
 
@@ -600,7 +593,7 @@ True snapshot-in-time path equivalence (operations that account for things like 
 
 `FilePath` conforms to `CustomStringConvertible`. Its `description` prints the anchor (if any), followed by the components joined by the platform separator, followed by a trailing separator or resource fork suffix if present. You can also make a `FilePath` from a `String` or string literal expression.
 
-`FilePath.Anchor` and `FilePath.Component` also conform. Their unlabeled `String` initializers are failable, as the developer might not have passed in valid anchors or components. String literal inits will trap (currently at runtime, future work is to expose more of this as compile-time errors) if given invalid anchors or components.
+`FilePath.Anchor` and `FilePath.Component` also conform. Their unlabeled `String` initializers are failable, as the developer might not have passed in valid anchors or components. `FilePath`'s `String` initializer is likewise failable, returning `nil` for input containing `NUL`. String literal inits will trap (currently at runtime, future work is to expose more of this as compile-time errors) if given invalid input.
 
 ```swift
 extension FilePath:
@@ -618,10 +611,15 @@ extension FilePath:
   public var debugDescription: String { get }
 
   /// Creates a file path from a string literal.
+  ///
+  /// Traps if the literal contains `NUL` or is otherwise ill-formed.
   public init(stringLiteral: String)
 
   /// Creates a file path from a string.
-  public init(_ string: String)
+  ///
+  /// Returns `nil` if `string` contains `NUL`, which is not a valid
+  /// path byte on any supported platform.
+  public init?(_ string: String)
 }
 
 extension FilePath.Anchor:
@@ -640,13 +638,14 @@ extension FilePath.Anchor:
 
   /// Creates an anchor from a string literal.
   ///
-  /// Precondition: the literal is non-empty and forms a
-  /// valid anchor.
+  /// Precondition: the literal is non-empty, contains no `NUL`,
+  /// and forms a valid anchor.
   public init(stringLiteral: String)
 
   /// Creates an anchor from a string.
   ///
-  /// Returns `nil` if `string` is empty or is not a valid anchor.
+  /// Returns `nil` if `string` is empty, contains `NUL`, or is
+  /// not a valid anchor.
   public init?(_ string: String)
 }
 
@@ -666,13 +665,14 @@ extension FilePath.Component:
 
   /// Creates a file path component from a string literal.
   ///
-  /// Precondition: `stringLiteral` is non-empty and has only one component in it.
+  /// Precondition: `stringLiteral` is non-empty and contains no `NUL`
+  /// or directory separator.
   public init(stringLiteral: String)
 
   /// Creates a file path component from a string.
   ///
-  /// Returns `nil` if `string` is empty, a root, or has more than one component
-  /// in it.
+  /// Returns `nil` if `string` is empty or contains `NUL` or a
+  /// directory separator.
   public init?(_ string: String)
 }
 
@@ -766,7 +766,7 @@ extension String {
 
 ### Access to underlying bytes and C interop
 
-`FilePath` provides access to the underlying null-terminated platform bytes for C interoperability.
+`FilePath` provides access to the underlying null-terminated platform bytes for C interoperability via a closure-based `withCString(_:)` that tracks `String.withCString(_:)`.
 
 ```swift
 extension FilePath {
@@ -780,10 +780,15 @@ extension FilePath {
   public typealias CodeUnit = UInt16
 #endif
 
-  /// A span of the platform code units, including the null terminator, comprising this path.
+  /// Calls the given closure with a pointer to the path's contents,
+  /// represented as a null-terminated sequence of platform code units.
+  /// The pointer is valid only for the duration of the closure.
   ///
-  /// This is useful for C interoperability. For just the path-relevant bytes, see `var codeUnits`.
-  public var nullTerminatedCodeUnits: Span<FilePath.CodeUnit> { get }
+  /// On Windows the pointer is wide (`UnsafePointer<UInt16>`); see
+  /// also `String.withCString(encodedAs:_:)`.
+  public func withCString<Result, E: Error>(
+    _ body: (UnsafePointer<FilePath.CodeUnit>) throws(E) -> Result
+  ) throws(E) -> Result
 }
 ```
 
@@ -818,8 +823,10 @@ extension FilePath {
 
   /// Creates a file path from a span of platform code units.
   ///
-  /// The span should not include a null terminator.
-  public init(codeUnits: Span<FilePath.CodeUnit>)
+  /// The span should not include a null terminator. Returns `nil` if
+  /// the span contains `NUL`, which is not a valid path byte on any
+  /// supported platform.
+  public init?(codeUnits: Span<FilePath.CodeUnit>)
 
   /// Creates a file path with the specified capacity, and then calls the
   /// given closure with an output span covering the path's uninitialized
@@ -835,8 +842,6 @@ extension FilePath {
 ```
 
 > **Note**: There is no corresponding code units init on `FilePath.ComponentView`. That would be redundant with the code units init on `FilePath` for relative path code units, and would probably want to return `nil` for paths that have anchors. Instead, you can init a `FilePath` and ask for its component view.
-
-Future work includes adopting whatever standard library pattern emerges for null-terminated byte sequences.
 
 ## Source compatibility
 
@@ -874,10 +879,21 @@ For existing users of swift-system, `SystemPackage` (the SwiftPM package) can us
 
 Future API for `FilePath` could include additional syntactic operations, such as [originally pitched](https://forums.swift.org/t/pitch-add-filepath-to-the-standard-library/84812). This includes convenience accessors like `lastComponent`, `stem`, `extension`, `removingLastComponent()`, and mutation methods like `append`, `push`, `removePrefix`. These can be expressed in terms of the `ComponentView` and are back-deployable.
 
+A `/` operator for path append is also future work. The contested design question is what the right-hand operand should be: a single component, a sequence of components, or a path or string parsed and joined as a relative path. Each option has trade-offs around anchor handling and error behavior, and a future proposal would need to settle it explicitly.
+
 ### Lexical resolution and resolve-beneath
 
 Lexical operations that collapse `..` components without consulting the filesystem, and operations that ensure a subpath does not escape a base directory, are important for sandboxing and security-sensitive code. These were part of the original pitch and are planned as future additions. Real resolution (via `resolve()`) is provided in this proposal to ensure developers have the correct tool available from day one.
 
+### Non-blocking variants of `resolve()`
+
+`resolve()` as proposed is synchronous and blocking, annotated `@available(*, noasync)` so it cannot be called from `async` contexts. An async non-blocking form is future work, depending on a standard library I/O pool design. A sync non-blocking form is conceivable for environments where blocking is unacceptable, but is a secondary concern.
+
+`@available(*, noasync)` only diagnoses calls from async contexts, which is one specific case where blocking is wrong. A language-level effects system for blocking I/O would let the compiler track blocking as a property of functions and diagnose it more broadly.
+
+### Richer validation for degenerate path forms
+
+The failable string and code-unit inits for `FilePath` in this proposal reject only `NUL`, which is universally invalid as a path byte. Other forms of validation are application-specific: Windows legacy device names (see "Legacy device name handling" below), component-name and full-path length limits, restricted character sets, etc. Future API could expose validation as a configurable check rather than baking a single policy into the type.
 
 ### Platform-specific Anchor API
 
@@ -885,7 +901,9 @@ Lexical operations that collapse `..` components without consulting the filesyst
 
 ### Platform string APIs and `CInterop`
 
-swift-system defines a `CInterop` namespace with typealiases for platform-specific character types (`PlatformChar`, `PlatformUnicodeEncoding`) and provides `init(platformString:)` APIs on `FilePath` and its subtypes. This proposal provides `nullTerminatedCodeUnits` for passing paths to C APIs, and `Span`-based access on each of the path subtypes (`FilePath`, `Anchor`, `Component`, and `ComponentView`). Future work could include a `PlatformChar` typealias and more functionality along these lines.
+swift-system defines a `CInterop` namespace with typealiases for platform-specific character types (`PlatformChar`, `PlatformUnicodeEncoding`) and provides `init(platformString:)` APIs on `FilePath` and its subtypes. This proposal provides `withCString(_:)` for passing paths to C APIs, and `Span`-based access on each of the path subtypes (`FilePath`, `Anchor`, `Component`, and `ComponentView`). Future work could include a `PlatformChar` typealias and more functionality along these lines.
+
+If the language gains a standard story for null-terminated pointer types (lifetime-bound borrowed pointers or similar), `FilePath` could expose a property such as `var cString` rather than the closure-based `withCString(_:)` shipped here.
 
 ### Path parsing APIs and verbatim storage modes
 
@@ -904,7 +922,11 @@ Future work could include a paths library or package that adds:
 
 - Type-enforced invariants: `AbsolutePath`, `ResolvedPath`, etc.
 - Platform-specific foreign path types: `XNUPath`, `Win32Path`, `WinNTPath`, etc.
+- Failable cross-platform conversions between path types, e.g. converting a POSIX path to a Windows path and diagnosing what cannot be represented.
+- A generic-over-storage path type for use cases that need to parse paths without copying into a `FilePath`.
 - File-system specific (and configuration specific) functionality over components: case conversion, Unicode normalization, etc.
+
+`FilePath` is the currency type for paths on the running process's platform. A multi-platform path library would serve a distinct role: manipulating paths for a platform other than the one currently executing, e.g. a build tool on macOS working with Windows paths. These two roles have different design constraints, and separating them keeps the currency type simple.
 
 Testing Windows path behavior on Linux/macOS (and vice versa) is a known gap that platform-specific path types could address; these could conform to a common protocol while each implementing the semantics of its target platform.
 
@@ -918,9 +940,20 @@ On Windows, legacy device names (`CON`, `NUL`, `COM1`, etc.) receive special tre
 
 The [original pitch](https://forums.swift.org/t/pitch-add-filepath-to-the-standard-library/84812) included a `FilePath.Root` type, convenience methods (`lastComponent`, `stem`, `extension`, `starts(with:)`, `append`, `push`), and lexical resolution operations. We chose to defer these in favor of shipping the essential core: the type, its conformances, the component view, and real resolution. The deferred API can be added as extensions on `FilePath` and is back-deployable where expressed in terms of the component view. Shipping the type and conformances first is critical because those cannot be added retroactively without migration costs (e.g. someone conforming `FilePath` to `Hashable` themselves).
 
+### Other names for `resolve()`
+
+Resolution through blocking is a perfectly normal operation for an application or script to do, and future work is to have a non-blocking async variant also named `resolve()` available from async contexts. We picked the name `resolve()` to encourage developers to use a correct, kernel-backed implementation rather than rolling their own.
+
+- `resolveByBlocking()`. Makes the blocking nature explicit in the name. We prefer communicating this through `@available(*, noasync)` and documentation (and eventually through an effect).
+- `resolveFromFileSystem()`. Emphasizes that resolution consults the filesystem. We find this redundant: resolution against the filesystem is what `resolve()` means by default.
+- A sync/async pair under different names, such as `resolveSync()` and `resolveAsync()`, with the latter being future work. We're proposing to use the same name `resolve` overloaded for async contexts.
+- Namespaced free functions rather than a method. We prefer the member form for discoverability and for parity with similar operations on related types.
+
+The proposal uses `resolve()` as written, with the blocking nature communicated through `@available(*, noasync)` and documentation.
+
 ### Include `Codable` conformance
 
-`FilePath` intentionally does not conform to `Codable`. Serialized paths are inherently platform-specific: a path serialized on Linux or Darwin is not meaningful on Windows. Furthermore, even if paths on the same platform may parse the same in different versions, the meaning of paths can differ version-to-version of the OS: Windows 10 and 11 differ in device name recognition and Darwin may add new resolve flag values. The existing `Codable` conformance on `System.FilePath` uses an awkward binary encoding that has been a source of friction. Rather than commit the standard library to a serialization format, we leave serialization to application-level code that can choose a format appropriate to its needs. `String(decoding:)` and `init(_ string:)` provide the necessary conversion.
+`FilePath` intentionally does not conform to `Codable`. Serialized paths are inherently platform-specific: a path serialized on Linux or Darwin is not meaningful on Windows. Furthermore, even if paths on the same platform may parse the same in different versions, the meaning of paths can differ version-to-version of the OS: Windows 10 and 11 differ in device name recognition and Darwin may add new resolve flag values. The existing `Codable` conformance on `System.FilePath` uses an awkward binary encoding that has been a source of friction. Rather than commit the standard library to a serialization format, we leave serialization to application-level code that can choose a format appropriate to its needs. `String(decoding:)` and `init?(_ string:)` provide the necessary conversion.
 
 ### Do more: bring all of swift-system into the toolchain
 
