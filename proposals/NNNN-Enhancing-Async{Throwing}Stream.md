@@ -103,11 +103,11 @@ let throwingStream = AsyncThrowingStream {
   ...
 } // no `onCancel` parameter
 
-func process(on locationActor: isolated LocationActor) { // starts running on `locationActor`
+func process(on locationActor: isolated LocationActor) async { // starts running on `locationActor`
   let locationStream = AsyncStream<Location> { ... }
 
   for await location in locationStream { // implicit call to `produce`, hop off `locationActor`
-    locationActor.update(location) // hop back on `locationActor`
+    locationActor.update(to: location) // hop back on `locationActor`
   }
 }
 ```
