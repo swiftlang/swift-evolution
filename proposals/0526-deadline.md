@@ -259,9 +259,9 @@ guarantees.
 
 This API uses the base cancellation to communicate the expiration of the deadline.
 The information to differentiate a cancellation due to normal task cancellation is
-expanded to handle two new forms of cancellation; a cancellation due to deadline expiration,
-and a custom cancellation with a specified string for a reason. Since this is not a closed
-set of possible reasons for future development, this reason is left as an open enumeration.
+expanded to handle two new forms of cancellation; a cancellation due to normal task cancellation
+and a cancellation due to deadline expiration. Since this is not a closed set of possible reasons
+for future development, this reason is left as an open enumeration.
 
 Today `CancellationError` is an empty type with no payload or information conveyed to indicate
 the reasoning for cancellation. [SE-0304](0304-structured-concurrency.md) originally noted that
@@ -273,8 +273,7 @@ added to represent the reason for the cancellation, a new initializer for `Cance
 be added for constructing a `CancellationError` with a given reason, and a new property will be 
 added for determining what the reason of the cancellation was. This modification not only allows 
 for developers to express the difference between a cancellation due to deadline expiration versus 
-normal task cancellation, but also express a custom reason for indicating why something might be 
-cancelled.
+normal task cancellation.
 
 ```swift
 public struct CancellationError: Error {
@@ -282,7 +281,6 @@ public struct CancellationError: Error {
   public enum Reason {
     case taskCancelled
     case deadlineExpired
-    case custom(String)
   }
 
   public var reason: Reason { get }
@@ -654,6 +652,14 @@ immediately communicates to the reader that a temporal bound is in effect, which
 review and debugging. Names centered on the mechanism (`withAutomaticTaskCancellation`) 
 require the reader to infer the temporal aspect, while names centered on the concept 
 (`withDeadline`) let the reader infer the mechanism from context.
+
+### CancellationError custom reasons
+
+It was considered to allow custom error reasons. This would mean that the tasks would need
+to store a custom associated type to the enum. The lifetime of this variable would then be
+incredibly difficult to nail down, but also potentially guide developers into parsing
+strings in errors. The latter would not be an ideal scenario, and likely cause string 
+values within errors become quasi ABI.
 
 ### Previous Incarnations
 
