@@ -306,7 +306,7 @@ is itself implemented as such.
 ///      items.append(2)
 ///      items.append(3) // Runtime error: RigidArray capacity overflow
 ///
-/// Rigid arrays provide convenience properties to help verify that it has
+/// Rigid arrays provide convenience properties to help verify that they have
 /// enough available capacity: `isFull` and `freeCapacity`.
 ///
 ///     guard items.freeCapacity >= 4 else { throw CapacityOverflow() }
@@ -450,6 +450,8 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// If `capacity < n`, then this operation reallocates the {rigid|unique} array's
   /// storage to grow it; on return, the array's capacity becomes `n`.
   /// Otherwise the array is left as is.
+  ///
+  /// - Parameter n: The requested number of elements to store.
   ///
   /// - Complexity: O(`count`)
   public mutating func reserveCapacity(_ n: Int)
@@ -662,7 +664,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///
   /// - Parameter index: A valid index of the array.
   /// - Parameter n: The distance by which to offset `index`.
-  /// - Returns: An index offset by distance from `index`. If `n` is positive,
+  /// - Returns: An index offset by `n` from `index`. If `n` is positive,
   ///    this is the same value as the result of `n` calls to `index(after:)`.
   ///    If `n` is negative, this is the same value as the result of `abs(n)`
   ///    calls to `index(before:)`.
@@ -735,7 +737,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// elements, then this reallocates the array's storage to grow its capacity,
   /// using a geometric growth rate.
   ///
-  /// - Parameter item: The element to append to the collection.
+  /// - Parameter item: The element to append to the array.
   ///
   /// - Complexity: O(1)
   public mutating func append(_ item: consuming Element)
@@ -743,8 +745,8 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// Append a given number of items to the end of this array by populating
   /// an output span.
   ///
-  /// If the rigid array does not have sufficient capacity to store the new items in
-  /// the buffer, then this triggers a runtime error.
+  /// If the rigid array does not have sufficient capacity to accommodate the
+  /// specified number of new items, then this triggers a runtime error.
   ///
   /// If the unique array does not have sufficient capacity to hold the requested
   /// number of new elements, then this reallocates the array's storage to
@@ -790,8 +792,8 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// Moves the elements of an output span to the end of this array, leaving the
   /// span empty.
   ///
-  /// If the rigid array does not have sufficient capacity to hold all items in its
-  /// storage, then this triggers a runtime error.
+  /// If the rigid array does not have sufficient capacity to hold all items
+  /// from the span in its storage, then this triggers a runtime error.
   ///
   /// If the unique array does not have sufficient capacity to hold all new items,
   /// then this reallocates the array's storage to grow its capacity,
@@ -809,8 +811,8 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
 extension [Rigid|Unique]Array where Element: Copyable {
   /// Copies the elements of a buffer to the end of this array.
   ///
-  /// If the rigid array does not have sufficient capacity to hold all items in its
-  /// storage, then this triggers a runtime error.
+  /// If the rigid array does not have sufficient capacity to hold all items
+  /// from the buffer in its storage, then this triggers a runtime error.
   ///
   /// If the unique array does not have sufficient capacity to hold all items
   /// in the source buffer, then this automatically grows the array's
@@ -847,8 +849,8 @@ extension [Rigid|Unique]Array where Element: Copyable {
 
   /// Copies the elements of a span to the end of this array.
   ///
-  /// If the rigid array does not have sufficient capacity to hold all items in
-  /// the buffer, then this triggers a runtime error.
+  /// If the rigid array does not have sufficient capacity to hold all items
+  /// from the span in its storage, then this triggers a runtime error.
   ///
   /// If the unique array does not have sufficient capacity to hold enough elements,
   /// then this reallocates the array's storage to extend its capacity, using a
@@ -863,8 +865,8 @@ extension [Rigid|Unique]Array where Element: Copyable {
 
   /// Copies the elements of a sequence to the end of this array.
   ///
-  /// If the rigid array does not have sufficient capacity to hold all items in
-  /// the buffer, then this triggers a runtime error.
+  /// If the rigid array does not have sufficient capacity to hold all items
+  /// from the sequence in its storage, then this triggers a runtime error.
   ///
   /// If the unique array does not have sufficient capacity to hold enough elements,
   /// then this reallocates the array's storage to extend its capacity, using
@@ -1221,10 +1223,10 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///
   /// If the callback fails to fully populate its output span or if
   /// it throws an error, then the array keeps all items that were
-  /// successfully initialized before the callback terminated the prepend.
+  /// successfully initialized before the callback terminated the replacement.
   ///
-  /// Partial insertions create a gap in array storage that needs to be
-  /// closed by moving newly inserted items to their correct positions given
+  /// Partial replacements create a gap in array storage that needs to be
+  /// closed by moving subsequent items to their correct positions given
   /// the adjusted count. This adds some overhead compared to adding exactly as
   /// many items as promised.
   ///
@@ -1300,7 +1302,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// inserts the elements of `items` at `subrange.lowerBound`. Calling
   /// the `insert(moving:at:)` method instead is preferred in this case.
   ///
-  /// Likewise, if you pass a zero-length buffer as the `items`
+  /// Likewise, if you pass a zero-length span as the `items`
   /// parameter, this method removes the elements in the given subrange
   /// without replacement. Calling the `removeSubrange(_:)` method instead is
   /// preferred in this case.
