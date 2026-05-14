@@ -754,15 +754,15 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///
   /// If the callback fails to fully populate its output span or if
   /// it throws an error, then the array keeps all items that were
-  /// successfully initialized before the callback terminated the insertion.
+  /// successfully initialized before the callback terminated the operation.
   ///
   /// - Parameters:
   ///    - newItemCount: The number of items to append to the array.
   ///    - initializer: A callback that gets called at most once to directly
   ///       populate newly reserved storage within the array. The function
   ///       is allowed to initialize fewer than `newItemCount` items.
-  ///       The array is appended however many items the callback adds to
-  ///       the output span before it returns (or before it throws an error).
+  ///       The array is extended by however many items the callback appends to
+  ///       the output span before it returns (or throws an error).
   ///
   /// - Complexity: O(`newItemCount`)
   public mutating func append<E: Error>(
@@ -1026,9 +1026,9 @@ extension [Rigid|Unique]Array where Element: Copyable {
   /// If the capacity of the rigid array isn't sufficient to accommodate the new
   /// elements, then this method triggers a runtime error.
   ///
-  /// If the uniquearray does not have sufficient capacity to hold enough elements,
-  /// then this reallocates the array's storage to extend its capacity, using a
-  /// geometric growth rate.
+  /// If the `UniqueArray` does not have sufficient capacity to accommodate the
+  /// new elements, then this reallocates the array's storage to extend its
+  /// capacity, using a geometric growth rate.
   ///
   /// - Parameters:
   ///    - newElements: The new elements to insert into the array. The buffer
@@ -1211,7 +1211,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///       at: subrange.lowerBound,
   ///       initializingWith: initializer)
   ///
-  /// Except it performs faster (by a constant factor), by avoiding moving
+  /// However, it performs faster (by a constant factor) by avoiding moving
   /// some items in the array twice.
   ///
   /// If the rigid array does not have sufficient capacity to accommodate the new
@@ -1233,7 +1233,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// - Parameters:
   ///   - subrange: The subrange of the array to replace. The bounds of
   ///      the range must be valid indices in the array.
-  ///   - newItemCount: the maximum number of items to replace the old subrange.
+  ///   - newItemCount: The maximum number of new items to insert in place of the old subrange.
   ///   - initializer: A callback that gets called at most once to directly
   ///      populate newly reserved storage within the array. The function
   ///      is always called with an empty output span.
@@ -1500,7 +1500,7 @@ defined in that proposal as their iterators.
 While this proposal lists conformances to `CustomStringConvertible` and 
 `CustomDebugStringConvertible`, these conformances can only be shipped once
 [SE-0499] gets implemented. Meanwhile, the types still provide (for now, rudimentary) 
-implementations of the two `description` properties.
+implementations of the `description` and `debugDescription` properties.
 
 [SE-0499]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0499-support-non-copyable-simple-protocols.md
 
