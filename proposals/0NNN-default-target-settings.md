@@ -92,8 +92,8 @@ The package manifest API should provide a way to express this directly.
 ## Detailed design
 
 There are two core components to this change.
-The first is the ability to define and apply a base list of settings.
-The second is a well-defined and reasonable merging strategy to handle per-target overrides.
+The first is the ability to define and apply a base list of default settings.
+The second is mechanism to control how these defaults apply on a per-target basis.
 
 ### Manifest APIs
 
@@ -129,77 +129,95 @@ public final class Package {
 }
 ```
 
-### Settings Resolution
+With this in place, the default package template could look like this:
+
+```swift
+let package = Package(
+  // ...
+  targets: [
+    .target(
+      name: "MyPackage"
+    ),
+    .testTarget(
+      name: "MyPackageTests",
+      dependencies: ["MyPackage"]
+    ),
+  ],
+  defaultSwiftSettings: [
+    .enableUpcomingFeature("ApproachableConcurrency"),
+  ]
+)
+```
+
+### Settings Inheritance
 
 It is important that it be possible to control defaults on a per-target basis.
-There is a bit of subtly here because this merge operation requires some special logic.
+This is supported with a new `inherited` placeholder setting.
+When setting are evaluated, this placeholder is substituted with the corresponding default values.
 
-Handling some of these is straightforward, because the setting can have only one possible value.
-Examples of this are `interoperabilityMode`, `strictMemorySafety`, `swiftLanguageMode`, and `treatAllWarnings`.
-In these cases, a value defined by the target takes precedence and can simply overwrite any default.
+Here are four possible target configurations that demonstrate the functionality.
 
-Other settings are used to form a set of possible values.
-Here, forming a union of all values can often make intuitive sense.
-An example of this would be `headerSearchPath`.
-The default could be used to apply a common path to all targets,
-and then additional paths could be added targets as needed.
-This strategy can be used for `headerSearchPath`, `linkedLibrary`,
-`linkedFramework`, `enableUpcomingFeature`, and `enableExperimentalFeature`.
+```swift
+let package = Package(
+  // ...
+  targets: [
+    .target(
+      name: "A",
+    ),
+    .target(
+      name: "B",
+      swiftSettings: [
+        .inherited(),
+      ]
+    ),
+    .target(
+      name: "C",
+      swiftSettings: [
+      ]
+    ),
+    .target(
+      name: "D",
+      swiftSettings: [
+        .enableExperimentalFeature("Lifetimes"),
+        .inherited(),
+      ]
+    ),
+  ],
+  defaultSwiftSettings: [
+    .defaultIsolation(MainActor.self),
+  ]
+)
+```
 
-A very similar approach can be used to merge the four settings that apply a named value.
-The warnings controls work this way, and some examples can help visualize how it would work.
+- Target `A`: `swiftSettings` is omitted, so defaults apply
+- Target `B`: explicitly opts into inheriting the defaults
+- Target `C`: defines settings without inheriting, no defaults are applied
+- Target `D`: defines settings that control the order of the inheritance
 
-|: Default                         |: Target                        |: Resolved                        |
-|----------------------------------|--------------------------------|----------------------------------|
-| `.treatWarning("Foo", .warning)` | -                              | ["Foo": .warning]                |
-| `.treatWarning("Foo", .warning)` | `.treatWarning("Foo", .error)` | ["Foo": .error]                  |
-| `.treatWarning("Foo", .warning)` | `.treatWarning("Bar", .error)` | ["Foo": .warning, "Bar": .error] |
-| `.enableWarning("Foo")`          | -                              | ["Foo": .warning]                |
-| `.enableWarning("Foo")`          | `.disableWarning("Foo")        | []                               |
-| `.disableWarning("Foo")`         | -                              | ["Foo": .disabled]               |
-| `.disableWarning("Foo")`         | `.enableWarning("Foo")`        | ["Foo": .warning]                |
+The behavior is identical for the `cSettings`, `cxxSettings`, and `linkerSettings` properties.
 
-The `define` property presents more of a challenge.
-The argument to this setting is not really a truly free-form string,
-but any merging could require at least some parsing.
+For compatibility with conditional compilation,
+empty default settings arrays are accepted and do not have any special meaning.
 
-To side step this problem, `define` can be treated as a unconditional override.
-It is true that this could potentially require some duplication across defaults and targets.
-However, given the non-trivial nature, that seems much preferable to incorrect resolution.
+### Restrictions
 
-Here's a summary of the strategies by setting type:
+There are two cases that present extra complexity.
 
-|: Setting                    |: Merge Strategy  |
-|-----------------------------|------------------|
-| `headerSearchPath`          | Union            |
-| `define`                    | Union            |
-| `linkedLibrary`             | Union            |
-| `linkedFramework`           | Union            |
-| `interoperabilityMode`      | Override         |
-| `enableUpcomingFeature`     | Union            |
-| `enableExperimentalFeature` | Union            |
-| `strictMemorySafety`        | Override         |
-| `unsafeFlags`               | Override         |
-| `swiftLanguageMode`         | Override         |
-| `treatAllWarnings`          | Override         |
-| `treatWarning`              | Override by name |
-| `enableWarning`             | Override by name |
-| `disableWarning`            | Override by name |
-| `defaultIsolation`          | Override by name |
+The `unsafeFlags` setting has special semantic meaning and plays an important role in dependency resolution.
+Settings inheritance, even with its simplistic model,
+makes the existing implementation more complex.
+To avoid needing to update this logic, `unsafeFlags` are considered an invalid default.
 
-### Adding Settings
-
-This change does impose a constraint on any new settings types added to SwiftPM.
-New settings must carefully consider and implement an appropriate merge strategy.
-
-Given the breadth of existing settings, it seems likely that new settings will be able to use one of the existing approaches.
-However, if it turns out that a reasonable merge is impossible,
-a fallback should be to produce an error if such a conflict is detected.
+Another area of complexity is conditional inheritance.
+Default settings can have conditions, just like regular target settings.
+But the **inheritance** marker itself does not accept conditions.
 
 ## Source compatibility
 
-Because this is a purely additive change,
-there will be no impact on existing packages.
+Because this is a purely additive change.
+
+It is worth noting that there is now a semantic difference between a target omitting a settings array and an empty array.
+However, because this difference only matters when defaults are present, so it will not have any impact on existing package manifests.
 
 ## ABI compatibility
 
@@ -212,14 +230,25 @@ Authors will be able to adopt default settings freely without concern for compat
 
 ## Future directions
 
-The most obvious avenue for future work is more advanced merging strategies,
-particularly for `define`.
-Altering merging behavior, however, would be a source-incompatible change.
+It would be useful to allow `unsafeFlags` in default settings.
+Unsafe flags themselves already impose restrictions on package use,
+so this helps to limit the impact.
+But if this turns out to be an area of interest,
+support can be added without any API changes.
+
+Conditional inheritance could also be something that package authors find useful.
+And similarly, support for this can be added with the existing APIs.
 
 ## Alternatives considered
 
-?
+An earlier version of this proposal suggested an automatic,
+predefined merging strategy without the `inherited` placeholder.
+
+With some settings, such as `defaultIsolation`,
+the results of a merge seem quite unambiguous.
+But, this is not the case for all value, and the merging logic can be involved.
+The `inherited` mechanism is both intuitive and more powerful.
 
 ## Acknowledgments
 
-Max Desiatov provided some much-appreciated general guidance that helped get this idea off the ground. Boris Buegling immediately noticed and provided great feedback on the need for merging.
+Max Desiatov provided some much-appreciated general guidance that helped get this idea off the ground. Boris Buegling, Tony Allevato, Owen Voorhees, and Allen Humphreys all provided great feedback on the concept of inheritance.
