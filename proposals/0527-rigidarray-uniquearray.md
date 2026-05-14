@@ -1710,7 +1710,7 @@ protocol ArrayLiterable: ~Copyable {
 
   init<E: Error>(
     arrayLiteralCount count: Int, 
-    initializingWith initializer: (inout OutputSpan<Element>) throws(E) -> Void
+    initializingWith initializer: (inout OutputSpan<ArrayLiteralElement>) throws(E) -> Void
   ) throws(E)
 }
 ```
