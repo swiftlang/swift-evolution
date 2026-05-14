@@ -28,7 +28,7 @@ support noncopyable elements.
 
 As Swift developers, we reach for `Array` when we need to store a dynamically 
 resizable list of values with efficient operations for accessing them. 
-Unfortunately, the classic  `Array` does not support noncopyable values. There 
+Unfortunately, the classic `Array` does not support noncopyable values. There 
 are two ways we could try to shoehorn support for noncopyable elements onto it: 
 
 1. One idea is to keep `Array` copyable, and tweak its mutation operations to 
@@ -41,8 +41,8 @@ are two ways we could try to shoehorn support for noncopyable elements onto it:
 2. A (superficially) more attractive idea would be to make `Array` 
    _conditionally copyable_, depending on the copyability of its elements. 
    Mutation operations would then need to gain an additional runtime condition 
-   that dispatches to  the copy-on-write path if and only if `Element` happens 
-   to be copyable,  otherwise assuming uniqueness. There are two technical 
+   that dispatches to the copy-on-write path if and only if `Element` happens 
+   to be copyable, otherwise assuming uniqueness. There are two technical 
    issues here: 
 
     1. Swift code is currently unable to check whether a type argument is 
@@ -56,7 +56,7 @@ are two ways we could try to shoehorn support for noncopyable elements onto it:
    copyability needs to be a runtime condition in such contexts: we cannot have 
    `append` assume unique storage just because it is invoked in a context that 
    _allows_ noncopyable elements. Even if we decide to spend resources on 
-   improving the optimizer in this area, it wouldn't possible to optimize the 
+   improving the optimizer in this area, it wouldn't be possible to optimize the 
    condition away in every case, and consulting the Swift runtime every time
    a function needs to mutate an array instance seems unlikely to be acceptable.
 
@@ -99,7 +99,7 @@ using `Array`, its copy-on-write value semantics means that copies can be
 cheaply made, and functions are empowered to hold onto array instances whenever 
 they want, without having to change their interface, or even letting the caller 
 know about it. Similarly, dynamic sizing lets us avoid having to constantly
-think about what how much memory an operation will need to do its job.
+think about how much memory an operation will need to do its job.
 
 However, when we use Swift in contexts where we need to ensure 
 reliably high performance, then these features tend to get in the way of 
@@ -328,7 +328,7 @@ is itself implemented as such.
 /// time-constrained applications that cannot accommodate unexpected latency
 /// spikes due to a reallocation getting triggered at an inopportune moment.
 ///
-/// For use cases outside of these narrow domains, we generally recommmend
+/// For use cases outside of these narrow domains, we generally recommend
 /// the use of ``UniqueArray`` rather than `RigidArray`. (For copyable elements,
 /// the standard `Array` is an even more convenient choice.)
 @frozen
@@ -597,7 +597,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// endIndex. Passing the same index as both `i` and `j` has no effect.
   ///
   /// - Parameter i: The index of the first value to swap.
-  /// - Parameter j: The index of the second valud to swap.
+  /// - Parameter j: The index of the second value to swap.
   ///
   /// - Complexity: O(1)
   public mutating func swapAt(_ i: Int, _ j: Int)
@@ -658,7 +658,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// array.
   ///
   /// - Note: To improve performance, this method does not validate that the
-  ///    given index is valid before offseting it. Index validation is
+  ///    given index is valid before offsetting it. Index validation is
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
@@ -674,7 +674,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// Returns the distance between two indices.
   ///
   /// - Note: To improve performance, this method does not validate that the
-  ///    given index is valid before offseting it. Index validation is
+  ///    given index is valid before offsetting it. Index validation is
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
@@ -701,7 +701,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// those bounds.
   ///
   /// - Note: To improve performance, this method does not validate that the
-  ///    given index is valid before offseting it. Index validation is
+  ///    given index is valid before offsetting it. Index validation is
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
@@ -1853,7 +1853,7 @@ to become conditionally noncopyable (or otherwise conditionalizing its
 copy-on-write behavior) would in fact be working against the goals of Swift's 
 Ownership Manifesto, and it would be wholly impractical in practice.
 
-Any such work would also not negate the need for dedicated the fixed-capacity and
+Any such work would also not negate the need for dedicated fixed-capacity and
 guaranteed-noncopyable array variants that we propose in this document, either: 
 it would not be appropriate to force developers to use the dynamically 
 resizing, copy-on-write `Array` type just because their `Element` happens to be 
