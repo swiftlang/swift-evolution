@@ -1180,7 +1180,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///   of the range must be valid indices of the array.
   ///
   /// - Complexity: O(`self.count`)
-  public mutating func removeSubrange(_  bounds: Range<Int>)
+  public mutating func removeSubrange(_ bounds: Range<Int>)
 
   /// Removes the specified subrange of elements from the array.
   ///
@@ -1188,7 +1188,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///   of the range must be valid indices of the array.
   ///
   /// - Complexity: O(`self.count`)
-  public mutating func removeSubrange(_  bounds: some RangeExpression<Int>)
+  public mutating func removeSubrange(_ bounds: some RangeExpression<Int>)
 }
 ```
 
@@ -1280,7 +1280,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// - Complexity: O(`self.count` + `newElements.count`)
   public mutating func replace(
     removing subrange: Range<Int>,
-    moving newElements: UnsafeMutableBufferPointer<Element>,
+    moving newElements: UnsafeMutableBufferPointer<Element>
   )
 
   /// Replaces the specified range of elements by moving the contents of an
@@ -1487,7 +1487,7 @@ extension [Rigid|Unique]Array: CustomDebugStringConvertible where Element: ~Copy
 
 extension [Rigid|Unique]Array: BorrowingSequence where Element: ~Copyable {
   @lifetime(borrow self)
-  func makeBorrowingIterator() -> SpanIterator<Element>
+  public func makeBorrowingIterator() -> SpanIterator<Element>
 }
 ```
 
@@ -1577,7 +1577,6 @@ extension RigidArray where Element: ~Copyable {
   /// Removes all elements from the array, preserving its allocated capacity.
   ///
   /// - Complexity: O(*n*), where *n* is the original count of the array.
-  @inlinable
   public mutating func removeAll()
 }
 ```
