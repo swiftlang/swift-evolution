@@ -490,7 +490,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///
   /// - Parameters:
   ///   - capacity: The storage capacity of the new array.
-  ///   - body: A callback that gets called at most once to directly
+  ///   - initializer: A callback that gets called at most once to directly
   ///       populate newly reserved storage within the array. The function
   ///       is allowed to add fewer than `capacity` items. The array is
   ///       initialized with however many items the callback adds to the
@@ -607,9 +607,9 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
-  /// - Parameter index: A valid index of the array. `i` must be less
+  /// - Parameter index: A valid index of the array. `index` must be less
   ///     than `endIndex`.
-  /// - Returns: The index immediately following `i`.
+  /// - Returns: The index immediately following `index`.
   /// - Complexity: O(1)
   public func index(after index: Int) -> Int
   
@@ -620,9 +620,9 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
-  /// - Parameter index: A valid index of the array. `i` must be greater
+  /// - Parameter index: A valid index of the array. `index` must be greater
   ///     than `startIndex`.
-  /// - Returns: The index immediately preceding `i`.
+  /// - Returns: The index immediately preceding `index`.
   /// - Complexity: O(1)
   public func index(before index: Int) -> Int
 
@@ -633,7 +633,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
-  /// - Parameter index: A valid index of the array. `i` must be less
+  /// - Parameter index: A valid index of the array. `index` must be less
   ///     than `endIndex`.
   /// - Complexity: O(1)
   public func formIndex(after index: inout Int)
@@ -645,7 +645,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
-  /// - Parameter index: A valid index of the array. `i` must be greater than
+  /// - Parameter index: A valid index of the array. `index` must be greater than
   ///     `startIndex`.
   /// - Complexity: O(1)
   public func formIndex(before index: inout Int)
@@ -902,7 +902,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// make room for the new item.
   ///
   /// - Parameter item: The new element to insert into the array.
-  /// - Parameter i: The position at which to insert the new element.
+  /// - Parameter index: The position at which to insert the new element.
   ///   `index` must be a valid index in the array.
   ///
   /// - Complexity: O(`self.count`)
@@ -923,9 +923,9 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// geometric growth rate.
   ///
   ///     var buffer = RigidArray<Int>(capacity: 20)
-  ///     buffer.append([-999, 999])
+  ///     buffer.append(copying: [-999, 999])
   ///     var i = 0
-  ///     buffer.insert(capacity: 3, at: 1) { target in
+  ///     buffer.insert(addingCount: 3, at: 1) { target in
   ///       while !target.isFull {
   ///         target.append(i)
   ///         i += 1
@@ -1162,7 +1162,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// All the elements following the specified position are moved to close the
   /// gap.
   ///
-  /// - Parameter i: The position of the element to remove. `index` must be
+  /// - Parameter index: The position of the element to remove. `index` must be
   ///   a valid index of the array that is not equal to the end index.
   /// - Returns: The removed element.
   ///
@@ -1297,10 +1297,10 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// geometric growth rate.
   ///
   /// If you pass a zero-length range as the `subrange` parameter, this method
-  /// inserts the elements of `newElements` at `subrange.lowerBound`. Calling
+  /// inserts the elements of `items` at `subrange.lowerBound`. Calling
   /// the `insert(moving:at:)` method instead is preferred in this case.
   ///
-  /// Likewise, if you pass a zero-length buffer as the `newElements`
+  /// Likewise, if you pass a zero-length buffer as the `items`
   /// parameter, this method removes the elements in the given subrange
   /// without replacement. Calling the `removeSubrange(_:)` method instead is
   /// preferred in this case.
