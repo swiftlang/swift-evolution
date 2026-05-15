@@ -1,6 +1,6 @@
 # Default Target Settings
 
-* Proposal: [SE-0NNN](0NNN-default-target-sesttings.md)
+* Proposal: [SE-0NNN](0NNN-default-target-settings.md)
 * Authors: [Matt Massicotte](https://github.com/mattmassicotte)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
@@ -9,7 +9,7 @@
 
 ## Introduction
 
-It is very common for packages to using the same settings flags across all their targets.
+It is very common for Swift packages to using the same settings flags across all their targets.
 A built-in mechanism to apply these base settings
 offers improved readability and convenience for package manifests.
 
@@ -21,7 +21,7 @@ but single-target packages are quite rare.
 
 That same default template, as of Swift 6.4,
 also includes the same setting for both of these targets.
-Here's snippet of the code:
+Here's a snippet from the Package.swift file:
 
 ```swift
 let package = Package(
@@ -77,7 +77,11 @@ let package = Package(
 )
 ```
 
-These approaches are inconvenient, verbose, and error-prone.
+And, all of this is just discussing how a uniform list of settings could be applied.
+But there are packages that have much more complex requirements.
+Typically, this requires at least some logic within the manifest file.
+
+These existing solutiuons are inconvenient, verbose, and error-prone.
 And because of the subtleties that can arise from compiler behavior differences,
 errors here can be particularly painful.
 
@@ -85,7 +89,7 @@ errors here can be particularly painful.
 
 The desired configuration for the vast majority of package authors is the same.
 Begin with a core list of settings that define baseline behaviors,
-along with per-target refinements to that list, if needed.
+along with per-target refinements to that list as needed.
 
 The package manifest API should provide a way to express this directly.
 
@@ -129,7 +133,41 @@ public final class Package {
 }
 ```
 
-With this in place, the default package template could look like this:
+```swift
+struct SwiftSettings {
+  // ...
+  
+  public static func inherited() -> SwiftSettings {
+    // ...
+  }
+}
+
+struct CSettings {
+  // ...
+  
+  public static func inherited() -> CSettings {
+    // ...
+  }
+}
+
+struct CXXSettings {
+  // ...
+  
+  public static func inherited() -> CXXSettings {
+    // ...
+  }
+}
+
+struct LinkerSettings {
+  // ...
+  
+  public static func inherited() -> LinkerSettings {
+    // ...
+  }
+}
+```
+
+With these changes in place, the default package template could look like this:
 
 ```swift
 let package = Package(
@@ -199,25 +237,33 @@ The behavior is identical for the `cSettings`, `cxxSettings`, and `linkerSetting
 For compatibility with conditional compilation,
 empty default settings arrays are accepted and do not have any special meaning.
 
+This inheritance mechanism matches the existing behaivor of the settings definition APIs.
+This means that duplicates and invalid combinations are perimitted.
+This situations are handled either by later stages of package validation or by the build tools themselves.
+In many cases, this results in "last entry wins" semantics.
+
 ### Restrictions
 
-There are two cases that present extra complexity.
+There are two cases that present extra complexity: unsafe flags and conditions.
 
 The `unsafeFlags` setting has special semantic meaning and plays an important role in dependency resolution.
 Settings inheritance, even with its simplistic model,
-makes the existing implementation more complex.
-To avoid needing to update this logic, `unsafeFlags` are considered an invalid default.
+makes the existing implementation more complex and has nontrivial security implications.
+To avoid needing to rework this logic, `unsafeFlags` are considered an invalid default
+and are rejected during manifest validation.
 
 Another area of complexity is conditional inheritance.
 Default settings can have conditions, just like regular target settings.
-But the **inheritance** marker itself does not accept conditions.
+However, the `inherited` placeholder setting it self does not accept conditions.
 
 ## Source compatibility
 
 Because this is a purely additive change.
 
-It is worth noting that there is now a semantic difference between a target omitting a settings array and an empty array.
-However, because this difference only matters when defaults are present, so it will not have any impact on existing package manifests.
+It is worth noting that there is now a semantic difference between
+a target omitting a settings array and an empty array.
+However, because this difference only matters when defaults are present,
+it will not have any impact on existing package manifests.
 
 ## ABI compatibility
 
@@ -230,11 +276,12 @@ Authors will be able to adopt default settings freely without concern for compat
 
 ## Future directions
 
-It would be useful to allow `unsafeFlags` in default settings.
+The two most obvious avenues for future work are supporting `unsafeFlags` and inheritance conditions.
+
 Unsafe flags themselves already impose restrictions on package use,
-so this helps to limit the impact.
-But if this turns out to be an area of interest,
-support can be added without any API changes.
+so this helps to limit the impact of their omission.
+But if this limitation turns out to be a problem for package authors,
+support can be added in a source-compatible way.
 
 Conditional inheritance could also be something that package authors find useful.
 And similarly, support for this can be added with the existing APIs.
@@ -246,7 +293,7 @@ predefined merging strategy without the `inherited` placeholder.
 
 With some settings, such as `defaultIsolation`,
 the results of a merge seem quite unambiguous.
-But, this is not the case for all value, and the merging logic can be involved.
+But, this is not the case for all values, and the merging logic can be involved.
 The `inherited` mechanism is both intuitive and more powerful.
 
 ## Acknowledgments
