@@ -19,7 +19,7 @@ This proposal introduces the following changes:
 
 ## Motivation
 
-### Typed Throws
+### Typed throws
 
 Currently errors are type-erased to `any Error` when `AsyncThrowingStream` is finished with an error (`finish(throwing:)` or when the `unfolding` closure throws), requiring additional boilerplate to preserve the thrown error's type and integrate into typed contexts.
 
@@ -117,7 +117,7 @@ This means its formal isolation is that of the passed-in actor instance. However
 
 As a result, `process(on:)` continuously hops off and back onto `locationActor` for each iteration.
 
-### Continuation and Stream Termination
+### Continuation and stream termination
 
 When the continuation of an active stream is discarded, task cancellation becomes the only way to terminate the stream.
 
@@ -147,7 +147,7 @@ The inherited `Equatable` conformance from `Hashable` enables equality compariso
 
 ## Proposed solution
 
-### Typed Throws
+### Typed throws
 
 `AsyncThrowingStream` already defines a type parameter `Failure: Error`. Until now, `Failure` has been constrained to `any Error`. 
 
@@ -163,7 +163,7 @@ func processLocations() async throws(LocationError) {
 }
 ```
 
-### Unfolding Initializer
+### Unfolding initializer
 
 This proposal adds an `onCancel` parameter to the unfolding initializer of `AsyncThrowingStream`, aligning it with `AsyncStream` and with the original variant proposed in SE-0314.
 
@@ -309,7 +309,7 @@ Implicitly terminating the stream when its continuation is discarded would break
 
 ## Future directions
 
-### `~Copyable` Support
+### `~Copyable` support
 
 In principle, it should be possible to support `~Copyable` types. But, several blockers currently prevent their adoption. 
 The key issue is the lack of support for iterating over a `~Copyable` sequence. 
