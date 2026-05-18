@@ -5,7 +5,8 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift-testing#1115](https://github.com/swiftlang/swift-testing/pull/1115)
-* Review: ([Pitch 1](https://forums.swift.org/t/pitch-polling-expectations/79866), [Pitch 2](https://forums.swift.org/t/pitch-2-polling-confirmations-in-the-testing-library/81711))
+* Review: ([Pitch 1](https://forums.swift.org/t/pitch-polling-expectations/79866),
+[Pitch 2](https://forums.swift.org/t/pitch-2-polling-confirmations-in-the-testing-library/81711))
 
 ## Introduction
 
@@ -104,6 +105,10 @@ the duration stop point will mark the confirmation as failing.
 When `PollingStopCondition.stopsPassing` is specified, reaching the duration
 stop point will mark the confirmation as passing.
 
+To aid with deciphering polling failures, we will also add a new `PollResult`
+type. This contains both the result of a particular polling attempt, as well as
+an optional `Comment` describing what happened in that particular poll attempt.
+
 Tests will now be able to poll code updating in the background using either of
 the stop conditions. For the example of `Aquarium.raiseDolphins`, valid tests
 might look like:
@@ -132,7 +137,7 @@ might look like:
 
 ### New confirmation functions
 
-We will introduce 2 new members of the confirmation family of functions to the
+We will introduce 4 new members of the confirmation family of functions to the
 testing library:
 
 ```swift
@@ -180,6 +185,70 @@ public func confirmation(
   _ body: nonisolated(nonsending) @escaping () async throws -> Bool
 ) async throws
 
+/// Poll expression within the duration based on the given stop condition
+///
+/// - Parameters:
+///   - comment: A user-specified comment describing this confirmation.
+///   - stopCondition: When to stop polling.
+///   - duration: The expected length of time to continue polling for.
+///     This value does not incorporate the time to run `body`, and may not
+///     correspond to the wall-clock time that polling lasts for, especially on
+///     highly-loaded systems with a lot of tests running.
+///     If nil, this uses whatever value is specified under the last
+///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
+///     with a matching stopCondition.
+///     If no such trait has been added, then polling will be attempted for
+///     about 1 second before recording an issue.
+///     `duration` must be greater than or equal to `interval`.
+///   - interval: The minimum amount of time to wait between polling attempts.
+///     If nil, this uses whatever value is specified under the last
+///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
+///     with a matching stopCondition.
+///     If no such trait has been added, then polling will wait at least
+///     1 millisecond between polling attempts.
+///     `interval` must be greater than 0.
+///   - sourceLocation: The location in source where the confirmation was called.
+///   - body: The function to invoke. The expression is considered to pass if
+///     the `body` returns a ``PollResult`` where `value` is true. Similarly, the
+///     expression is considered to fail if `body` returns a ``PollResult``
+///     where `value` is false.
+///
+/// - Throws: A ``PollingFailedError`` if the `body` does not return true within
+///   the polling duration.
+///
+/// Use polling confirmations to check that an event while a test is running in
+/// complex scenarios where other forms of confirmation are insufficient. For
+/// example, waiting on some state to change that cannot be easily confirmed
+/// through other forms of `confirmation`.
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public func confirmation(
+  _ comment: Comment? = nil,
+  until stopCondition: PollingStopCondition,
+  within duration: Duration? = nil,
+  pollingEvery interval: Duration? = nil,
+  sourceLocation: SourceLocation = #_sourceLocation,
+  _ body: nonisolated(nonsending) @escaping () async throws -> PollResult<Bool>
+) async throws {
+  let poller = Poller(
+    stopCondition: stopCondition,
+    duration: stopCondition.duration(with: duration),
+    interval: stopCondition.interval(with: interval),
+    comment: comment,
+    sourceContext: SourceContext(
+      backtrace: .current(),
+      sourceLocation: sourceLocation
+    )
+  )
+  try await poller.evaluate() {
+    do {
+      return try await body()
+    } catch {
+      return false
+    }
+  }
+}
+
+
 /// Confirm that some expression eventually returns a non-nil value
 ///
 /// - Parameters:
@@ -226,6 +295,72 @@ public func confirmation<R>(
   sourceLocation: SourceLocation = #_sourceLocation,
   _ body: nonisolated(nonsending) @escaping () async throws -> sending R?
 ) async throws -> R
+
+/// Confirm that some expression eventually returns a non-nil value
+///
+/// - Parameters:
+///   - comment: A user-specified comment describing this confirmation.
+///   - stopCondition: When to stop polling.
+///   - duration: The expected length of time to continue polling for.
+///     This value does not incorporate the time to run `body`, and may not
+///     correspond to the wall-clock time that polling lasts for, especially on
+///     highly-loaded systems with a lot of tests running.
+///     If nil, this uses whatever value is specified under the last
+///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
+///     with a matching stopCondition.
+///     If no such trait has been added, then polling will be attempted for
+///     about 1 second before recording an issue.
+///     `duration` must be greater than or equal to `interval`.
+///   - interval: The minimum amount of time to wait between polling attempts.
+///     If nil, this uses whatever value is specified under the last
+///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
+///     with a matching stopCondition.
+///     If no such trait has been added, then polling will wait at least
+///     1 millisecond between polling attempts.
+///     `interval` must be greater than 0.
+///   - sourceLocation: The location in source where the confirmation was called.
+///   - body: The function to invoke. The expression is considered to pass if
+///     the `body` returns a ``PollResult`` where `value` is non-nil. Similarly, the
+///     expression is considered to fail if `body` returns a ``PollResult``
+///     where `value` is nil.
+///
+/// - Throws: A `PollingFailedError` if the `body` does not return true within
+///   the polling duration.
+///
+/// - Returns: The last non-nil value returned by `body`.
+///
+/// Use polling confirmations to check that an event while a test is running in
+/// complex scenarios where other forms of confirmation are insufficient. For
+/// example, waiting on some state to change that cannot be easily confirmed
+/// through other forms of `confirmation`.
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+@discardableResult
+public func confirmation<R>(
+  _ comment: Comment? = nil,
+  until stopCondition: PollingStopCondition,
+  within duration: Duration? = nil,
+  pollingEvery interval: Duration? = nil,
+  sourceLocation: SourceLocation = #_sourceLocation,
+  _ body: nonisolated(nonsending) @escaping () async throws -> sending PollResult<R>
+) async throws -> R {
+  let poller = Poller(
+    stopCondition: stopCondition,
+    duration: stopCondition.duration(with: duration),
+    interval: stopCondition.interval(with: interval),
+    comment: comment,
+    sourceContext: SourceContext(
+      backtrace: .current(),
+      sourceLocation: sourceLocation
+    )
+  )
+  return try await poller.evaluateOptional() {
+    do {
+      return try await body()
+    } catch {
+      return nil
+    }
+  }
+}
 ```
 
 ### New `PollingStopCondition` enum
@@ -254,7 +389,47 @@ public enum PollingStopCondition: Sendable, Equatable, Codable {
 }
 ```
 
-### New `PollingFailedError` Error Type and `PollingFailedError.Reason` enum
+### New `PollResult` type
+
+To aid with deciphering why a particular polling attempt failed, we will
+add the `PollResult` type. This helps test authors to debug their polling
+confirmations, and drastically improves the debuggability of polling
+confirmations.
+
+```swift
+/// The result of a polling body, with an attached comment.
+/// This allows test authors to include information about why a particular poll
+/// attempt failed (or didn't fail).
+public struct PollResult<T>: ExpressibleByNilLiteral {
+  /// The value to (potentially) return to the caller of the polling
+  /// confirmation.
+  public let value: T?
+  /// A message explaining what happened in this particular polling attempt.
+  /// These messages are only used when the polling confirmation fails
+  /// and only the comment from the last polling attempt is ever used.
+  public let comment: Comment?
+}
+
+extension PollResult: ExpressibleByBooleanLiteral where T == Bool {}
+```
+
+The `ExpressibleBy(Nil|Boolean)Literal` conformances exist to aid in the case
+where a poll attempt might fast fail for an obvious reason:
+
+```swift
+let subject = Aquarium()
+subject.hasFunding = true
+subject.raiseDolphins()
+confirmation(until: .firstPass) {
+  guard let subject.hasFunding else { return false }
+  return PollResult(
+    subject.isRaising,
+    "Subject: \(subject)"
+  )
+}
+```
+
+### New `PollingFailedError` Error type and `PollingFailedError.Reason` enum
 
 A new error type, `PollingFailedError` to be thrown when the polling
 confirmation doesn't pass. This contains a nested enum expressing the 2 reasons
@@ -274,7 +449,7 @@ public struct PollingFailedError: Error, Sendable {
   }
 
   /// A user-specified comment describing this confirmation
-  public var comment: Comment? { get }
+  public var comments: [Comment] { get }
 
   /// Why polling failed, either cancelled, or because the stop condition failed.
   public var reason: Reason { get }
