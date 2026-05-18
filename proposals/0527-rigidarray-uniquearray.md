@@ -28,7 +28,7 @@ support noncopyable elements.
 
 As Swift developers, we reach for `Array` when we need to store a dynamically 
 resizable list of values with efficient operations for accessing them. 
-Unfortunately, the classic  `Array` does not support noncopyable values. There 
+Unfortunately, the classic `Array` does not support noncopyable values. There 
 are two ways we could try to shoehorn support for noncopyable elements onto it: 
 
 1. One idea is to keep `Array` copyable, and tweak its mutation operations to 
@@ -41,8 +41,8 @@ are two ways we could try to shoehorn support for noncopyable elements onto it:
 2. A (superficially) more attractive idea would be to make `Array` 
    _conditionally copyable_, depending on the copyability of its elements. 
    Mutation operations would then need to gain an additional runtime condition 
-   that dispatches to  the copy-on-write path if and only if `Element` happens 
-   to be copyable,  otherwise assuming uniqueness. There are two technical 
+   that dispatches to the copy-on-write path if and only if `Element` happens 
+   to be copyable, otherwise assuming uniqueness. There are two technical 
    issues here: 
 
     1. Swift code is currently unable to check whether a type argument is 
@@ -56,7 +56,7 @@ are two ways we could try to shoehorn support for noncopyable elements onto it:
    copyability needs to be a runtime condition in such contexts: we cannot have 
    `append` assume unique storage just because it is invoked in a context that 
    _allows_ noncopyable elements. Even if we decide to spend resources on 
-   improving the optimizer in this area, it wouldn't possible to optimize the 
+   improving the optimizer in this area, it wouldn't be possible to optimize the 
    condition away in every case, and consulting the Swift runtime every time
    a function needs to mutate an array instance seems unlikely to be acceptable.
 
@@ -99,7 +99,7 @@ using `Array`, its copy-on-write value semantics means that copies can be
 cheaply made, and functions are empowered to hold onto array instances whenever 
 they want, without having to change their interface, or even letting the caller 
 know about it. Similarly, dynamic sizing lets us avoid having to constantly
-think about what how much memory an operation will need to do its job.
+think about how much memory an operation will need to do its job.
 
 However, when we use Swift in contexts where we need to ensure 
 reliably high performance, then these features tend to get in the way of 
@@ -306,7 +306,7 @@ is itself implemented as such.
 ///      items.append(2)
 ///      items.append(3) // Runtime error: RigidArray capacity overflow
 ///
-/// Rigid arrays provide convenience properties to help verify that it has
+/// Rigid arrays provide convenience properties to help verify that they have
 /// enough available capacity: `isFull` and `freeCapacity`.
 ///
 ///     guard items.freeCapacity >= 4 else { throw CapacityOverflow() }
@@ -328,7 +328,7 @@ is itself implemented as such.
 /// time-constrained applications that cannot accommodate unexpected latency
 /// spikes due to a reallocation getting triggered at an inopportune moment.
 ///
-/// For use cases outside of these narrow domains, we generally recommmend
+/// For use cases outside of these narrow domains, we generally recommend
 /// the use of ``UniqueArray`` rather than `RigidArray`. (For copyable elements,
 /// the standard `Array` is an even more convenient choice.)
 @frozen
@@ -451,6 +451,8 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// storage to grow it; on return, the array's capacity becomes `n`.
   /// Otherwise the array is left as is.
   ///
+  /// - Parameter n: The requested number of elements to store.
+  ///
   /// - Complexity: O(`count`)
   public mutating func reserveCapacity(_ n: Int)
 }
@@ -490,7 +492,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///
   /// - Parameters:
   ///   - capacity: The storage capacity of the new array.
-  ///   - body: A callback that gets called at most once to directly
+  ///   - initializer: A callback that gets called at most once to directly
   ///       populate newly reserved storage within the array. The function
   ///       is allowed to add fewer than `capacity` items. The array is
   ///       initialized with however many items the callback adds to the
@@ -595,7 +597,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// endIndex. Passing the same index as both `i` and `j` has no effect.
   ///
   /// - Parameter i: The index of the first value to swap.
-  /// - Parameter j: The index of the second valud to swap.
+  /// - Parameter j: The index of the second value to swap.
   ///
   /// - Complexity: O(1)
   public mutating func swapAt(_ i: Int, _ j: Int)
@@ -607,9 +609,9 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
-  /// - Parameter index: A valid index of the array. `i` must be less
+  /// - Parameter index: A valid index of the array. `index` must be less
   ///     than `endIndex`.
-  /// - Returns: The index immediately following `i`.
+  /// - Returns: The index immediately following `index`.
   /// - Complexity: O(1)
   public func index(after index: Int) -> Int
   
@@ -620,9 +622,9 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
-  /// - Parameter index: A valid index of the array. `i` must be greater
+  /// - Parameter index: A valid index of the array. `index` must be greater
   ///     than `startIndex`.
-  /// - Returns: The index immediately preceding `i`.
+  /// - Returns: The index immediately preceding `index`.
   /// - Complexity: O(1)
   public func index(before index: Int) -> Int
 
@@ -633,7 +635,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
-  /// - Parameter index: A valid index of the array. `i` must be less
+  /// - Parameter index: A valid index of the array. `index` must be less
   ///     than `endIndex`.
   /// - Complexity: O(1)
   public func formIndex(after index: inout Int)
@@ -645,7 +647,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
-  /// - Parameter index: A valid index of the array. `i` must be greater than
+  /// - Parameter index: A valid index of the array. `index` must be greater than
   ///     `startIndex`.
   /// - Complexity: O(1)
   public func formIndex(before index: inout Int)
@@ -656,13 +658,13 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// array.
   ///
   /// - Note: To improve performance, this method does not validate that the
-  ///    given index is valid before offseting it. Index validation is
+  ///    given index is valid before offsetting it. Index validation is
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
   /// - Parameter index: A valid index of the array.
   /// - Parameter n: The distance by which to offset `index`.
-  /// - Returns: An index offset by distance from `index`. If `n` is positive,
+  /// - Returns: An index offset by `n` from `index`. If `n` is positive,
   ///    this is the same value as the result of `n` calls to `index(after:)`.
   ///    If `n` is negative, this is the same value as the result of `abs(n)`
   ///    calls to `index(before:)`.
@@ -672,7 +674,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// Returns the distance between two indices.
   ///
   /// - Note: To improve performance, this method does not validate that the
-  ///    given index is valid before offseting it. Index validation is
+  ///    given index is valid before offsetting it. Index validation is
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
@@ -699,7 +701,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// those bounds.
   ///
   /// - Note: To improve performance, this method does not validate that the
-  ///    given index is valid before offseting it. Index validation is
+  ///    given index is valid before offsetting it. Index validation is
   ///    deferred until the resulting index is used to access an element.
   ///    This optimization may be removed in future versions; do not rely on it.
   ///
@@ -735,7 +737,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// elements, then this reallocates the array's storage to grow its capacity,
   /// using a geometric growth rate.
   ///
-  /// - Parameter item: The element to append to the collection.
+  /// - Parameter item: The element to append to the array.
   ///
   /// - Complexity: O(1)
   public mutating func append(_ item: consuming Element)
@@ -743,8 +745,8 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// Append a given number of items to the end of this array by populating
   /// an output span.
   ///
-  /// If the rigid array does not have sufficient capacity to store the new items in
-  /// the buffer, then this triggers a runtime error.
+  /// If the rigid array does not have sufficient capacity to accommodate the
+  /// specified number of new items, then this triggers a runtime error.
   ///
   /// If the unique array does not have sufficient capacity to hold the requested
   /// number of new elements, then this reallocates the array's storage to
@@ -752,15 +754,15 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///
   /// If the callback fails to fully populate its output span or if
   /// it throws an error, then the array keeps all items that were
-  /// successfully initialized before the callback terminated the insertion.
+  /// successfully initialized before the callback terminated the operation.
   ///
   /// - Parameters:
   ///    - newItemCount: The number of items to append to the array.
   ///    - initializer: A callback that gets called at most once to directly
   ///       populate newly reserved storage within the array. The function
   ///       is allowed to initialize fewer than `newItemCount` items.
-  ///       The array is appended however many items the callback adds to
-  ///       the output span before it returns (or before it throws an error).
+  ///       The array is extended by however many items the callback appends to
+  ///       the output span before it returns (or throws an error).
   ///
   /// - Complexity: O(`newItemCount`)
   public mutating func append<E: Error>(
@@ -790,8 +792,8 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// Moves the elements of an output span to the end of this array, leaving the
   /// span empty.
   ///
-  /// If the rigid array does not have sufficient capacity to hold all items in its
-  /// storage, then this triggers a runtime error.
+  /// If the rigid array does not have sufficient capacity to hold all items
+  /// from the span in its storage, then this triggers a runtime error.
   ///
   /// If the unique array does not have sufficient capacity to hold all new items,
   /// then this reallocates the array's storage to grow its capacity,
@@ -809,8 +811,8 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
 extension [Rigid|Unique]Array where Element: Copyable {
   /// Copies the elements of a buffer to the end of this array.
   ///
-  /// If the rigid array does not have sufficient capacity to hold all items in its
-  /// storage, then this triggers a runtime error.
+  /// If the rigid array does not have sufficient capacity to hold all items
+  /// from the buffer in its storage, then this triggers a runtime error.
   ///
   /// If the unique array does not have sufficient capacity to hold all items
   /// in the source buffer, then this automatically grows the array's
@@ -847,8 +849,8 @@ extension [Rigid|Unique]Array where Element: Copyable {
 
   /// Copies the elements of a span to the end of this array.
   ///
-  /// If the rigid array does not have sufficient capacity to hold all items in
-  /// the buffer, then this triggers a runtime error.
+  /// If the rigid array does not have sufficient capacity to hold all items
+  /// from the span in its storage, then this triggers a runtime error.
   ///
   /// If the unique array does not have sufficient capacity to hold enough elements,
   /// then this reallocates the array's storage to extend its capacity, using a
@@ -863,8 +865,8 @@ extension [Rigid|Unique]Array where Element: Copyable {
 
   /// Copies the elements of a sequence to the end of this array.
   ///
-  /// If the rigid array does not have sufficient capacity to hold all items in
-  /// the buffer, then this triggers a runtime error.
+  /// If the rigid array does not have sufficient capacity to hold all items
+  /// from the sequence in its storage, then this triggers a runtime error.
   ///
   /// If the unique array does not have sufficient capacity to hold enough elements,
   /// then this reallocates the array's storage to extend its capacity, using
@@ -902,7 +904,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// make room for the new item.
   ///
   /// - Parameter item: The new element to insert into the array.
-  /// - Parameter i: The position at which to insert the new element.
+  /// - Parameter index: The position at which to insert the new element.
   ///   `index` must be a valid index in the array.
   ///
   /// - Complexity: O(`self.count`)
@@ -923,9 +925,9 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// geometric growth rate.
   ///
   ///     var buffer = RigidArray<Int>(capacity: 20)
-  ///     buffer.append([-999, 999])
+  ///     buffer.append(copying: [-999, 999])
   ///     var i = 0
-  ///     buffer.insert(capacity: 3, at: 1) { target in
+  ///     buffer.insert(addingCount: 3, at: 1) { target in
   ///       while !target.isFull {
   ///         target.append(i)
   ///         i += 1
@@ -1024,9 +1026,9 @@ extension [Rigid|Unique]Array where Element: Copyable {
   /// If the capacity of the rigid array isn't sufficient to accommodate the new
   /// elements, then this method triggers a runtime error.
   ///
-  /// If the uniquearray does not have sufficient capacity to hold enough elements,
-  /// then this reallocates the array's storage to extend its capacity, using a
-  /// geometric growth rate.
+  /// If the `UniqueArray` does not have sufficient capacity to accommodate the
+  /// new elements, then this reallocates the array's storage to extend its
+  /// capacity, using a geometric growth rate.
   ///
   /// - Parameters:
   ///    - newElements: The new elements to insert into the array. The buffer
@@ -1162,7 +1164,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// All the elements following the specified position are moved to close the
   /// gap.
   ///
-  /// - Parameter i: The position of the element to remove. `index` must be
+  /// - Parameter index: The position of the element to remove. `index` must be
   ///   a valid index of the array that is not equal to the end index.
   /// - Returns: The removed element.
   ///
@@ -1178,7 +1180,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///   of the range must be valid indices of the array.
   ///
   /// - Complexity: O(`self.count`)
-  public mutating func removeSubrange(_  bounds: Range<Int>)
+  public mutating func removeSubrange(_ bounds: Range<Int>)
 
   /// Removes the specified subrange of elements from the array.
   ///
@@ -1186,7 +1188,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///   of the range must be valid indices of the array.
   ///
   /// - Complexity: O(`self.count`)
-  public mutating func removeSubrange(_  bounds: some RangeExpression<Int>)
+  public mutating func removeSubrange(_ bounds: some RangeExpression<Int>)
 }
 ```
 
@@ -1209,7 +1211,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///       at: subrange.lowerBound,
   ///       initializingWith: initializer)
   ///
-  /// Except it performs faster (by a constant factor), by avoiding moving
+  /// However, it performs faster (by a constant factor) by avoiding moving
   /// some items in the array twice.
   ///
   /// If the rigid array does not have sufficient capacity to accommodate the new
@@ -1221,17 +1223,17 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///
   /// If the callback fails to fully populate its output span or if
   /// it throws an error, then the array keeps all items that were
-  /// successfully initialized before the callback terminated the prepend.
+  /// successfully initialized before the callback terminated the replacement.
   ///
-  /// Partial insertions create a gap in array storage that needs to be
-  /// closed by moving newly inserted items to their correct positions given
+  /// Partial replacements create a gap in array storage that needs to be
+  /// closed by moving subsequent items to their correct positions given
   /// the adjusted count. This adds some overhead compared to adding exactly as
   /// many items as promised.
   ///
   /// - Parameters:
   ///   - subrange: The subrange of the array to replace. The bounds of
   ///      the range must be valid indices in the array.
-  ///   - newItemCount: the maximum number of items to replace the old subrange.
+  ///   - newItemCount: The maximum number of new items to insert in place of the old subrange.
   ///   - initializer: A callback that gets called at most once to directly
   ///      populate newly reserved storage within the array. The function
   ///      is always called with an empty output span.
@@ -1278,7 +1280,7 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// - Complexity: O(`self.count` + `newElements.count`)
   public mutating func replace(
     removing subrange: Range<Int>,
-    moving newElements: UnsafeMutableBufferPointer<Element>,
+    moving newElements: UnsafeMutableBufferPointer<Element>
   )
 
   /// Replaces the specified range of elements by moving the contents of an
@@ -1297,10 +1299,10 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   /// geometric growth rate.
   ///
   /// If you pass a zero-length range as the `subrange` parameter, this method
-  /// inserts the elements of `newElements` at `subrange.lowerBound`. Calling
+  /// inserts the elements of `items` at `subrange.lowerBound`. Calling
   /// the `insert(moving:at:)` method instead is preferred in this case.
   ///
-  /// Likewise, if you pass a zero-length buffer as the `newElements`
+  /// Likewise, if you pass a zero-length span as the `items`
   /// parameter, this method removes the elements in the given subrange
   /// without replacement. Calling the `removeSubrange(_:)` method instead is
   /// preferred in this case.
@@ -1485,7 +1487,7 @@ extension [Rigid|Unique]Array: CustomDebugStringConvertible where Element: ~Copy
 
 extension [Rigid|Unique]Array: BorrowingSequence where Element: ~Copyable {
   @lifetime(borrow self)
-  func makeBorrowingIterator() -> SpanIterator<Element>
+  public func makeBorrowingIterator() -> SpanIterator<Element>
 }
 ```
 
@@ -1498,7 +1500,7 @@ defined in that proposal as their iterators.
 While this proposal lists conformances to `CustomStringConvertible` and 
 `CustomDebugStringConvertible`, these conformances can only be shipped once
 [SE-0499] gets implemented. Meanwhile, the types still provide (for now, rudimentary) 
-implementations of the two `description` properties.
+implementations of the `description` and `debugDescription` properties.
 
 [SE-0499]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0499-support-non-copyable-simple-protocols.md
 
@@ -1575,7 +1577,6 @@ extension RigidArray where Element: ~Copyable {
   /// Removes all elements from the array, preserving its allocated capacity.
   ///
   /// - Complexity: O(*n*), where *n* is the original count of the array.
-  @inlinable
   public mutating func removeAll()
 }
 ```
@@ -1710,7 +1711,7 @@ protocol ArrayLiterable: ~Copyable {
 
   init<E: Error>(
     arrayLiteralCount count: Int, 
-    initializingWith initializer: (inout OutputSpan<Element>) throws(E) -> Void
+    initializingWith initializer: (inout OutputSpan<ArrayLiteralElement>) throws(E) -> Void
   ) throws(E)
 }
 ```
@@ -1851,7 +1852,7 @@ to become conditionally noncopyable (or otherwise conditionalizing its
 copy-on-write behavior) would in fact be working against the goals of Swift's 
 Ownership Manifesto, and it would be wholly impractical in practice.
 
-Any such work would also not negate the need for dedicated the fixed-capacity and
+Any such work would also not negate the need for dedicated fixed-capacity and
 guaranteed-noncopyable array variants that we propose in this document, either: 
 it would not be appropriate to force developers to use the dynamically 
 resizing, copy-on-write `Array` type just because their `Element` happens to be 
