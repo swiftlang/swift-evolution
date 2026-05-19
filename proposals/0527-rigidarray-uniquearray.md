@@ -1240,8 +1240,8 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///
   /// - Complexity: O(`self.count` + `newItemCount`) in addition to the complexity
   ///    of the callback invocations.
-  public mutating func replace<E: Error>(
-    removing subrange: Range<Int>,
+  public mutating func replaceSubrange<E: Error>(
+    _ subrange: Range<Int>,
     addingCount newItemCount: Int,
     initializingWith initializer: (inout OutputSpan<Element>) throws(E) -> Void
   ) throws(E) -> Void
@@ -1278,8 +1278,8 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///     the array.
   ///
   /// - Complexity: O(`self.count` + `newElements.count`)
-  public mutating func replace(
-    removing subrange: Range<Int>,
+  public mutating func replaceSubrange(
+    _ subrange: Range<Int>,
     moving newElements: UnsafeMutableBufferPointer<Element>
   )
 
@@ -1313,8 +1313,8 @@ extension [Rigid|Unique]Array where Element: ~Copyable {
   ///   - items: An output span whose contents are to be moved into the array.
   ///
   /// - Complexity: O(`self.count` + `items.count`)
-  public mutating func replace(
-    removing subrange: Range<Int>,
+  public mutating func replaceSubrange(
+    _ subrange: Range<Int>,
     moving items: inout OutputSpan<Element>
   )
 }
@@ -1351,8 +1351,8 @@ extension [Rigid|Unique]Array where Element: Copyable {
   ///
   /// - Complexity: O(*n* + *m*), where *n* is count of this array and
   ///   *m* is the count of `newElements`.
-  public mutating func replace(
-    removing subrange: Range<Int>,
+  public mutating func replaceSubrange(
+    _ subrange: Range<Int>,
     copying newElements: UnsafeBufferPointer<Element>
   )
 
@@ -1387,8 +1387,8 @@ extension [Rigid|Unique]Array where Element: Copyable {
   ///
   /// - Complexity: O(*n* + *m*), where *n* is count of this array and
   ///   *m* is the count of `newElements`.
-  public mutating func replace(
-    removing subrange: Range<Int>,
+  public mutating func replaceSubrange(
+    _ subrange: Range<Int>,
     copying newElements: UnsafeMutableBufferPointer<Element>
   )
 
@@ -1423,8 +1423,8 @@ extension [Rigid|Unique]Array where Element: Copyable {
   ///
   /// - Complexity: O(*n* + *m*), where *n* is count of this array and
   ///   *m* is the count of `newElements`.
-  public mutating func replace(
-    removing subrange: Range<Int>,
+  public mutating func replaceSubrange(
+    _ subrange: Range<Int>,
     copying newElements: Span<Element>
   )
 
@@ -1459,8 +1459,8 @@ extension [Rigid|Unique]Array where Element: Copyable {
   ///
   /// - Complexity: O(*n* + *m*), where *n* is count of this array and
   ///   *m* is the count of `newElements`.
-  public mutating func replace(
-    removing subrange: Range<Int>,
+  public mutating func replaceSubrange(
+    _ subrange: Range<Int>,
     copying newElements: consuming some Collection<Element>
   )
 }
