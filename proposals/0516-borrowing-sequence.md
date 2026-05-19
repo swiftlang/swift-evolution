@@ -6,6 +6,7 @@
 * Status: **Returned for revision**
 * Implementation: [swiftlang/swift#86811](https://github.com/swiftlang/swift/pull/86811), [swiftlang/swift#87483](https://github.com/swiftlang/swift/pull/87483)
 * Review: ([pitch](https://forums.swift.org/t/pitch-borrowing-sequence/84332)) ([review](https://forums.swift.org/t/se-0516-borrowing-sequence/85122)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0516-borrowing-sequence/85846))
+* Previous Revision: [1][prev1]
 
 ## Summary of changes
 
@@ -15,6 +16,14 @@ Types conforming to `Iterable` can be noncopyable or nonescapable,
 can have noncopyable or nonescapable elements, 
 and can throw during iteration. 
 The Swift compiler will support use of this protocol via the familiar `for`-`in` syntax.
+
+#### Changes from Original Version
+
+This version of the proposal includes the following changes from the [original `BorrowingSequence` proposal][prev1]:
+
+- *Renamed to `Iterable`:* The protocol and all associated types and methods have been renamed to reflect the protocol's more universal role.
+- *Nonescapable elements:* `Element` is now constrained to `~Copyable & ~Escapable`, instead of just `~Copyable`.
+- *Throwing iteration:* Both `Iterable` and `IterableIteratorProtocol` now include a `Failure: Error` associated type, enabling typed throws during iteration.
 
 ## Motivation
 
@@ -27,9 +36,9 @@ around copyable elements, posing a limitation on working with `Span` types, inli
 other types that use the newer noncopyable and nonescapable features.
 
 Protocols can have requirements loosened on them, such as with the introduction
-of `~Copyable` to `Equatable` in [SE-0499](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0499-support-non-copyable-simple-protocols.md), 
+of `~Copyable` to `Equatable` in [SE-0499][], 
 or using the proposed 
-[SE-0503](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0503-suppressed-associated-types.md),
+[SE-0503][],
 which would provide language support for associated types to be marked `~Copyable`
  or `~Escapable`.
 
@@ -723,4 +732,4 @@ Many thanks to Karoy Lorentey, Kavon Favardin, Joe Groff, Tony Parker, and Aleja
 
 [SE-0499]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0499-support-non-copyable-simple-protocols.md
 [SE-0503]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0503-suppressed-associated-types.md
-[reparenting]: https://forums.swift.org/t/pitch-reparenting-resilient-protocols/84189
+[prev1]: https://github.com/swiftlang/swift-evolution/commit/230fb0e4ace8ddf8e4867233251aa2e32bfe0a66
