@@ -36,7 +36,7 @@ let array = [1, 2, 3, 4]
 let span = array.span
 
 // This reference has borrowed lifetime from 'span'
-let spanRef = Ref(borrowing: span)
+let spanRef = Ref(span)
 
 // Getting the span back out of 'spanRef' copies the lifetime
 let reborrowedSpan = spanRef.value
@@ -126,7 +126,11 @@ The `Ref` type is a new addition in Swift 6.4, so ABI compatibility concerns do 
 
 ### Nonescapable elements in a `MutableSpan`, `OutputSpan`, and other `Span` types, or in `MutableRef`
 
-Support for `~Escapable` elements in mutable nonescapable containers is out of scope for this proposal.
+Support for `~Escapable` elements in mutable nonescapable containers is out of scope for this proposal. Mutating `~Escapable` elements in a referential container brings up questions about the lifetime requirements for those elements. We will need to address those questions as we finalize the design of the overall lifetimes feature.
+
+## Acknowledgments
+
+Many thanks to Kavon Favardin for his help with the implementation of this proposal!
 
 
 [SE-0446]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0446-non-escapable.md
