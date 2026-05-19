@@ -109,14 +109,6 @@ public struct Disconnected<Value: ~Copyable>: ~Copyable, Sendable {
     /// - Parameter value: The value to wrap in a disconnected region.
     public init(_ value: consuming sending Value)
 
-    /// Provides borrowing access to the wrapped value without consuming the
-    /// wrapper.
-    ///
-    /// Because this is a `borrow` accessor, the wrapped value cannot be
-    /// mutated or replaced through it, preserving the disconnected region
-    /// property of the wrapper.
-    public var value: Value { borrow }
-
     /// Consumes the disconnected wrapper and returns the underlying value.
     ///
     /// The returned value is `sending`, indicating it is in a disconnected
@@ -138,19 +130,18 @@ public struct Disconnected<Value: ~Copyable>: ~Copyable, Sendable {
 The `Disconnected` type conforms to `Sendable` because it guarantees its wrapped
 value is in a disconnected region. Since disconnected regions can be safely
 transferred across isolation boundaries, `Disconnected<T>` is safe to share
-regardless of whether `T` conforms to `Sendable`. The `value` borrow accessor
-is sound because it cannot mutate or replace the wrapped value, so the
-disconnection invariant is preserved for the duration of the borrow.
-Furthermore, all mutating methods on `Disconnected` are either `consuming` or
-`mutating` which means that the compiler will enforce static and dynamic
-exclusivity checking prohibiting overlapping and concurrent access.
+regardless of whether `T` conforms to `Sendable`. Furthermore, all methods on
+`Disconnected` are either `consuming` or `mutating` which means that the
+compiler will enforce static and dynamic exclusivity checking prohibiting
+overlapping and concurrent access.
 
-This shape also composes naturally with the borrowing accessors on generic
-containers introduced by
-[SE-0519](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0519-ref-mutableref-types.md).
-A container holding `Disconnected<Value>` elements can expose a `Ref<Element>`
-projection without any knowledge of `Disconnected`, and callers can drill
-through to the wrapped value via the `value` accessor.
+The API is intentionally restricted to atomic transfers at `sending`
+boundaries: `init` consumes a `sending` value, `take` consumes the wrapper and
+returns a `sending` value, and `swap` exchanges the wrapped value for another
+`sending` value. There is no accessor that exposes the wrapped value without
+consuming or replacing it. See the Alternatives considered section for why a
+borrow accessor would be unsound given the unconditional `Sendable`
+conformance.
 
 ## Source compatibility
 
@@ -191,47 +182,70 @@ would require proving that all values of conforming types are in disconnected
 regions, which cannot be enforced for mutable types. The wrapper type approach
 provides stronger guarantees by construction.
 
-### Exposing `Ref` and `MutableRef` projections
+### Exposing the wrapped value through a borrow accessor
 
-Rather than (or in addition to) the `value` borrow accessor, `Disconnected`
-could expose dedicated projections producing the reference types from
-[SE-0519](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0519-ref-mutableref-types.md):
+It would be ergonomic to let callers inspect the wrapped value without
+consuming the wrapper, for example by adding a `borrow` accessor:
 
 ```swift
 extension Disconnected where Value: ~Copyable {
-  public var ref: Ref<Value> { borrow }
-  public var mutableRef: MutableRef<Value> { mutate }   // unsound, see below
+  public var value: Value { borrow }
 }
 ```
 
-A `ref: Ref<Value>` projection would be sound for the same reason the `value`
-borrow accessor is sound: `Ref.value` is itself a `borrow` accessor, and
-`Ref<Value>` is `Sendable` only when `Value` is `Sendable`, so a
-`Ref<NonSendable>` cannot be exfiltrated to another isolation region. However,
-it is redundant: callers who want a `Ref` can construct one explicitly from the
-`value` accessor, and generic containers built on SE-0519 will naturally produce
-`Ref<Disconnected<Value>>` without `Disconnected` needing to participate. Adding
-a dedicated `ref` property would duplicate the existing borrow accessor without
-enabling anything new.
+This would also compose naturally with the borrowing accessors on generic
+containers introduced by
+[SE-0519](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0519-ref-mutableref-types.md):
+a container holding `Disconnected<Value>` elements would yield
+`Ref<Disconnected<Value>>` projections, and callers could drill through to the
+wrapped value via the borrow accessor.
 
-A `mutableRef: MutableRef<Value>` projection, by contrast, would be unsound.
-`Disconnected: Sendable` is unconditional, which means the type system trusts
-the wrapper to keep its contents in a disconnected region. The setter on
-`MutableRef.value` accepts any `Value` in the current region without a `sending`
-constraint, so it would allow code like:
+However, any such accessor is unsound given the unconditional `Sendable`
+conformance of `Disconnected`. The `Sendable` conformance tells the type checker
+that the wrapper can be transferred between isolation regions without region
+tracking. Reaching into the wrapper to copy out a non-`Sendable`,
+reference-bearing value creates an alias into the wrapper's storage that the
+compiler does not connect back to the wrapper:
 
 ```swift
-var disconnected = Disconnected(NonSendable())
-disconnected.mutableRef.value = nonDisconnectedValue   // silently merges regions
-// disconnected.take() now hands out a "sending" value that isn't disconnected
+final class Box { var state = 0 }
+struct Foo { let box: Box }
+
+actor A {
+  func test() {
+    let disconnected = Disconnected(Foo(box: Box()))
+    let escaped = disconnected.value.box   // copies the class reference
+                                           // into actor A's region
+
+    Task.detached {
+      var d = consume disconnected         // Sendable, so this is allowed
+      d.take().box.state += 1              // detached task touches the Box
+    }
+
+    escaped.state += 1                     // actor A touches the same Box
+    // race
+  }
+}
 ```
 
-Mutating methods reached through `mutableRef.value` could capture references
-into other regions in the same way. The existing `swap` method covers the sound
-version of "replace the wrapped value with a new one" by requiring `sending` for
-the replacement, and is the only mutating projection that can preserve the
-disconnection invariant without language-level support for `sending`-constrained
-mutation.
+The compiler permits transferring `disconnected` into the detached task because
+the type is `Sendable`, and it does not realize that `escaped` aliases storage
+inside the wrapper. The same hole exists for any projection that exposes the
+wrapped value without consuming it, including a dedicated `var ref: Ref<Value> {
+borrow }` projection built on
+[SE-0519](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0519-ref-mutableref-types.md).
+A `var mutableRef: MutableRef<Value> { mutate }` projection is unsound for an
+even stronger reason: the setter on `MutableRef.value` accepts any `Value` in
+the current region without a `sending` constraint, so it would also allow direct
+region merges via assignment.
+
+The proposed API avoids this entire class of problems by only permitting atomic
+transfers at `sending` boundaries: every operation either consumes the wrapper
+or replaces the wrapped value with another `sending` value, so no alias into the
+wrapper's storage can outlive a transfer. A sound borrow- or mutate-style API
+would require either making `Disconnected` conditionally `Sendable` (which
+defeats its purpose) or new language support for tracking the region of values
+projected out of an unconditionally `Sendable` wrapper.
 
 ### Support for `~Escapable` values
 
