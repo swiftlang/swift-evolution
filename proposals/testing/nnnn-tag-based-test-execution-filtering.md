@@ -34,6 +34,8 @@ FoodTruck/
 
 During local development, you may want to skip all UI tests across all your test packages. With current tooling, this isn't possible unless you have a consistent naming scheme for your UI tests across all your packages that don't overlap with any other tests—a tall order in larger codebases. For this purpose, it is clear that we need a better, user-defined, way of grouping tests together outside of the test graph.
 
+Additionally, it's worth noting that existing tools that support filtering by tags (like the Visual Studio Code plugin) do so by using the SourceKit index to search for tags and then collecting the test IDs that match those tags into a [giant regular expression](https://github.com/swiftlang/vscode-swift/blob/f56817494c1ea989dbeec894896be98dd8e25c8a/src/TestExplorer/TestRunArguments.ts#L99-L118). Adding a native ability to filter by tag would simplify this implementation (and that of any other tools hoping to implement the same).
+
 ## Proposed Solution
 
 I propose we introduce a special syntax to the `--filter` and `--skip` command line options. When you want to filter or skip tests by providing a tag, you will prefix the argument with `tag:`. 
@@ -89,6 +91,18 @@ In this scenario, you would wrap the argument in single quotes and the entirity 
 
 ```sh
 swift test --filter 'tag:some tag with spaces'
+```
+
+It's reasonable to expect some developers to attempt that filter by including the backticks used to delimit the symbol name for a raw identifier like so:
+
+```sh
+swift test --filter 'tag:`some tag with spaces`' # INVALID: This wouldn't match the symbol.
+```
+
+Backticks are not part of the symbol name of a raw identifier, so this filter wouldn't match anything. I believe it's reasonable to suggest that if some filter the user provides is surrounded by backticks (i.e. more preciesly, it matches the regex ```/^`[^`]*`$/```), then we can be reasonably sure the user means a raw identifier, and we should supply an error message and strip them for the user:
+
+```
+Backticks aren't a valid part of a Swift symbol. Replacing '`some tag with spaces`' with 'some tag with spaces'.
 ```
 
 ## Source Compatibility
