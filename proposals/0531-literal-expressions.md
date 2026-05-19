@@ -1,12 +1,14 @@
 # Literal Expressions
 
+* Proposal: [SE-0531](0531-literal-expressions.md)
 * Authors: [Artem Chikin](https://github.com/artemcm), [Doug Gregor](https://github.com/douggregor)
-* Review Manager: Ben Cohen
-* Status: Active Review (May 18...29, 2026)
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (May 18...29, 2026)**
 * Implementation: [swiftlang/swift#86500](https://github.com/swiftlang/swift/pull/86500), [swiftlang/swift#86934](https://github.com/swiftlang/swift/pull/86934), [swiftlang/swift#87006](https://github.com/swiftlang/swift/pull/87006)
 * Experimental Feature Flag: `LiteralExpressions`
+* Review: ([pitch](https://forums.swift.org/t/pitch-literal-expressions/85505))([review](https://forums.swift.org/t/se-0531-literal-expressions/86794))
 
-## Introduction
+## Summary of changes
 Several language constructs in Swift require the use of integer literal values: generic value arguments ([SE-0452](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0452-integer-generic-parameters.md)), variables attributed with `@section` ([SE-0492](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0492-section-control.md)), and enum raw values. This proposal builds on the notion of a "constant expression" introduced in [SE-0492](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0492-section-control.md), renaming it *literal expression*, and expanding it to include integer arithmetic, bitwise, and unary operations on literal values of standard library integer types, as well as references to other compile-time-known integer variables. Literal expressions are constant-folded to a single literal value result at compile time. The change is strictly additive with no API or ABI impact.
 
 ## Motivation
