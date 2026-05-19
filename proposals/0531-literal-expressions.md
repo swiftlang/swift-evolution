@@ -1,6 +1,8 @@
 # Literal Expressions
 
 * Authors: [Artem Chikin](https://github.com/artemcm), [Doug Gregor](https://github.com/douggregor)
+* Review Manager: Ben Cohen
+* Status: Active Review (May 18...29, 2026)
 * Implementation: [swiftlang/swift#86500](https://github.com/swiftlang/swift/pull/86500), [swiftlang/swift#86934](https://github.com/swiftlang/swift/pull/86934), [swiftlang/swift#87006](https://github.com/swiftlang/swift/pull/87006)
 * Experimental Feature Flag: `LiteralExpressions`
 
