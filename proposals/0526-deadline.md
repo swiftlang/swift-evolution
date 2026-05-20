@@ -299,6 +299,11 @@ statements require an `@unknown default` case. Since previous cancellation was s
 has been already written the developer already has handled the cases of cancellation without a 
 given reason; this will continue to be the case.
 
+Note: For now the `Reason` type is restricted to known simple enumeration values without any
+associated values. This is due to the unknown impacts of what that type of size increase to 
+tasks would entail. Any future proposals to modify that would require research to determine
+specific impact.
+
 To aid in the population of cancellation errors, new APIs will be added. These will all be cases
 where a task or child task is cancelled and a CancellationError would normally be created.
 
@@ -327,6 +332,19 @@ extension ThrowingDiscardingTaskGroup {
   public func cancelAll(reason: CancellationError.Reason)
 }
 ```
+
+This also means that when a task is cancelled it communicates with any task cancellation handlers
+and passes that information to the appropriate handler. 
+
+```swift
+public nonisolated(nonsending) func withTaskCancellationHandler<Return, Failure>(
+  operation: nonisolated(nonsending) () async throws(Failure) -> Return,
+  onCancel handler: sending (CancellationError.Reason) -> Void
+) async throws(Failure) -> Return 
+```
+
+This function works exactly as the existing `withTaskCancellationHandler` does today, 
+except that the `onCancel` handler is passed the reason for cancellation.
 
 #### Failures and expiration
 
