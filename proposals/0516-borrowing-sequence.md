@@ -530,6 +530,56 @@ for the following kinds of iteration:
   in a dictionary. For those types, particularly those that generate noncopyable values, a 
   different iteration model would be more performant than the borrowing iteration 
   proposed here.
+  
+### `Container` and other protocols
+
+As [prototyped][container-prototype] in the [`swift-collections` package][collections], 
+a future `Container` protocol models types that store their elements in memory. 
+In the same way `Iterable` functions like a generalized `Sequence`, 
+`Container` functions like a generalized `Collection`, 
+providing indexed access to its elements. 
+Importantly, because `Container` types store their elements in memory, 
+the element accesses can have lifetimes that are borrowed 
+against the container that stores them,
+a much broader lifetime than accesses via the `Iterable` protocol.
+
+The following is a draft of the `Container` protocol and its requirements:
+
+```swift
+protocol Container<Element>: Iterable, ~Copyable, ~Escapable {
+  associatedtype Element: ~Copyable & ~Escapable
+  associatedtype Index: Equatable, Hashable
+
+  var count: Int { get }
+
+  var startIndex: Index { get }
+  var endIndex: Index { get }
+  
+  func index(after index: Index) -> Index
+  func formIndex(after index: inout Index)
+  func index(_ index: Index, offsetBy n: Int) -> Index
+  func formIndex(
+    _ index: inout Index, offsetBy n: inout Int, limitedBy limit: Index
+  )
+  func index(alignedDown index: Index) -> Index
+  func index(alignedUp index: Index) -> Index
+
+  func distance(from start: Index, to end: Index) -> Int
+
+  @_lifetime(borrow self)
+  func nextSpan(after index: inout Index, maximumCount: Int) -> Span<Element>
+
+  subscript(index: Index) -> Element { 
+    @_lifetime(borrow self) borrow 
+  }
+}
+```
+
+Other protocols support some of the different kinds of iteration described above, enabling the consuming behavior required for moving noncopyable elements from container to container.
+
+- The `Producer` protocol models types that supply their values by populating a client-supplied series of `OutputSpan` instances.
+- The `Drain` protocol models types that can provide an in-place consumable sequence through a series of `InputSpan` instances, allowing direct consumption of elements from some container's storage, in bulk, without requiring them to be moved into any temporary buffer.
+
 
 ## Alternatives considered
 
@@ -733,3 +783,5 @@ Many thanks to Karoy Lorentey, Kavon Favardin, Joe Groff, Tony Parker, and Aleja
 [SE-0499]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0499-support-non-copyable-simple-protocols.md
 [SE-0503]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0503-suppressed-associated-types.md
 [prev1]: https://github.com/swiftlang/swift-evolution/commit/230fb0e4ace8ddf8e4867233251aa2e32bfe0a66
+[collections]: https://github.com/apple/swift-collections/
+[container-prototype]: https://github.com/apple/swift-collections/blob/main/Sources/ContainersPreview/Protocols/Container/Container.swift
