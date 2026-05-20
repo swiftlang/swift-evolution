@@ -5,7 +5,7 @@
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Returned for revision, partially implemented**
 * Vision: [Improving the approachability of data-race safety](/visions/approachable-concurrency.md)
-* Implementation: [swiftlang/swift#81863](https://github.com/swiftlang/swift/pull/81863), [swiftlang/swift-syntax#3087](https://github.com/swiftlang/swift-syntax/pull/3087) [swiftlang/swift#8903](https://github.com/swiftlang/swift/pull/89023)
+* Implementation: [swiftlang/swift#81863](https://github.com/swiftlang/swift/pull/81863), [swiftlang/swift-syntax#3087](https://github.com/swiftlang/swift-syntax/pull/3087), [swiftlang/swift#89023](https://github.com/swiftlang/swift/pull/89023)
 * Experimental Feature Flag: `DefaultIsolationPerFile` (currently ships `using` syntax; this revision proposes `default`)
 * Previous Proposal: [SE-0466: Control default actor isolation inference][SE-0466]
 * Review: ([pitch](https://forums.swift.org/t/pitch-a-typealias-for-per-file-default-actor-isolation/79150))([review](https://forums.swift.org/t/se-0478-default-actor-isolation-typealias/79436))([return for revision](https://forums.swift.org/t/returned-for-revision-se-0478-default-actor-isolation-typealias/80253))([pitch 2](https://forums.swift.org/t/pitch-2-default-actor-isolation-per-file/80243))
@@ -28,7 +28,7 @@ In each of these cases, it is repetitive and error-prone to repeat the same attr
 
 ## Proposed solution
 
-This proposal allows writing a new kind of declaration at the top of a file, to specify default file-level behaviors. The default behavior is specified with the `default` keyword, followed by the default attribute or isolation. For example, writing `default @available(*, deprecated, message: "this logging system uses global state")` specifies that all top level declarations in the file are deprecated:
+This proposal allows writing a new kind of declaration at the top of a file, to specify default file-level behaviors. The default behavior is specified with the `default` keyword, followed by the default attribute or isolation. For example, writing `default @available(*, deprecated, message: "this logging system uses global state")` specifies that all top-level declarations in the file are deprecated:
 
 ```swift
 // LegacyLogger.swift
@@ -42,7 +42,7 @@ func log(message: String) { ... }
 func initLogging() { ... }
 ```
 
-Writing `default @MainActor` specifies that all top level declarations in the file default to main actor isolated, even when the module uses `-default-isolation nonisolated`:
+Writing `default @MainActor` specifies that all top-level declarations in the file default to main actor isolated, even when the module uses `-default-isolation nonisolated`:
 
 ```swift
 // Data.swift
@@ -56,7 +56,7 @@ class Profile { ... }
 class Settings { ... }
 ```
 
-Writing `default nonisolated` specifies that all top level declarations in the file default to `nonisolated`, even when the module uses `-default-isolation MainActor`:
+Writing `default nonisolated` specifies that all top-level declarations in the file default to `nonisolated`, even when the module uses `-default-isolation MainActor`:
 
 ```swift
 // Point.swift
@@ -78,9 +78,9 @@ The following production rules describe the grammar of `default` declarations:
 > default-declaration -> `default` attribute \
 > default-declaration -> `default` declaration-modifier
 
-The `default` keyword can be followed by an attribute or a declaration modifier. This proposal only supports `default @MainActor`, `default nonisolated`, `default @available` and `default @diagnose`; any other attribute, modifier, or expression written after `default` is an error.
+The `default` keyword can be followed by an attribute or a declaration modifier. This proposal only supports `default @MainActor`, `default nonisolated`, `default @available`, and `default @diagnose`; any other attribute, modifier, or expression written after `default` is an error.
 
-In general, the intention is that `default` behaves like writing the attribute or modifier on each appropriate top level declaration, but with a lower priority than explicit attributes on the declaration. This proposal inherits the existing propagation and inference rules for each default behavior; for example, [SE-0466]'s exception for `SendableMetatype`. The semantics of `default` are specified per attribute or modifier in the subsections below.
+`default` behaves like writing the attribute or modifier on each appropriate top-level declaration, but with a lower priority than explicit attributes on the declaration. This proposal inherits the existing propagation and inference rules that each attribute or modifier has when written in this position. The semantics of `default` are specified per attribute or modifier in the subsections below.
 
 Writing a `default` declaration is only valid at the top-level scope; it is an error to write `default` in any other scope:
 
@@ -106,7 +106,7 @@ default nonisolated // error
 
 This choice aims to avoid the ambiguity of `default` written after a declaration; a reader should never need to search for per-file defaults.
 
-The `default` keyword can be repeated at the top of the file to specify multiple defaults. For attribute defaults, multiple instances compose following the semantics of that attribute, as though the defaults were written before any per-decl attributes. For declaration-modifier defaults like isolation, repetition follows the underlying modifier's rules: since `@MainActor @MainActor struct ...` and `nonisolated @MainActor class ...` are errors, repeating those defaults with identical or conflicting values is likewise an error:
+The `default` keyword can be repeated at the top of the file to specify multiple defaults. For attribute defaults, multiple instances compose following the semantics of that attribute, as though the defaults were written before any per-declaration attributes. For declaration-modifier defaults like isolation, repetition follows the underlying modifier's rules: since `@MainActor @MainActor struct ...` and `nonisolated @MainActor class ...` are errors, repeating those defaults with identical or conflicting values is likewise an error:
 
 ```swift
 default @MainActor
@@ -126,7 +126,7 @@ A common use for default actor isolation is to override the module-level `-defau
 > [!NOTE]
 > [SE-0343]'s rule that global variables and top-level code run on `@MainActor` in script mode is independent of default isolation, whether from file-level `default` or module-level `-default-isolation`.
 
-Specifying `default nonisolated` at the top of the file will instruct the compiler to use `nonisolated` as the default isolation for unspecified top level declarations:
+Specifying `default nonisolated` at the top of the file will instruct the compiler to use `nonisolated` as the default isolation for unspecified top-level declarations:
 
 ```swift
 default nonisolated
@@ -150,7 +150,7 @@ extension S {
 @MainActor struct T {}
 ```
 
-Specifying `default @MainActor` at the top of the file will instruct the compiler to use `@MainActor` as the default isolation for unspecified top level declarations:
+Specifying `default @MainActor` at the top of the file will instruct the compiler to use `@MainActor` as the default isolation for unspecified top-level declarations:
 
 ```swift
 default @MainActor
@@ -174,34 +174,48 @@ nonisolated extension S {
 nonisolated struct T {}
 ```
 
-`default` follows the same isolation inference rules as [SE-0466]. An isolation specified by `default` is only used as a default, meaning that all other isolation inference rules from an explicit annotation on a declaration are preferred. For example, inference from a protocol conformance is preferred over default actor isolation:
+This is a different mechanism from [SE-0466]'s `-default-isolation`. The file-level default isolation is placed on every legal top-level declaration, with no complex inference rules or adjustments. Module-level defaults can be understood as a preference that may be adjusted in cases the compiler is aware of (like `SendableMetatype`) to help code compile, but a file-level default is much more intentional. This means that there are cases where module-level default isolation will be suppressed to avoid an error, but file-level isolation will produce an error:
+
+```swift
+default @MainActor
+
+// Implicitly '@MainActor'
+class S { ... }
+
+// Implicitly '@MainActor'
+extension S: Hashable { ... } // error: Conformance of 'S' to protocol 'Hashable' crosses into main actor-isolated code and can cause data races
+```
+
+As a consequence of applying to every unspecified top-level declaration, `default nonisolated` goes further than just turning off `-default-isolation MainActor`. For example, with no default an extension would inherit the extended type's isolation, but `default nonisolated` would override this regardless of the isolation of the extended type:
 
 ```swift
 // In MyLibrary
 
 @MainActor
-protocol P {}
+class S { ... }
 
-// In MyClient
+// In MyClient compiled with -default-isolation MainActor
 import MyLibrary
 
 default nonisolated
 
-// '@MainActor' inferred from 'P'
-struct S: P {}
-
-// Implicitly 'nonisolated'
-func f() {}
+// Implicitly nonisolated, even though S is isolated to @MainActor
+extension S {
+  // Accessing @MainActor isolated state from S would be an error
+}
 ```
 
-The naive approach is discussed in [alternatives considered](#dont-inherit-se-0466-carve-outs-for-default-actor-isolation).
+This means that a programmer is alerted when their default causes issues, and can override it per declaration (by writing `@MainActor extension S`) or move the offending code to a different file.
 
 > [!NOTE]
-> **Divergence from [SE-0466]:** When compiled in Swift 5 language mode, SE-0466's `-default-isolation MainActor` marks the inferred isolation as preconcurrency, which is serialized into the public module interface as `@preconcurrency` and downgrades cross-actor diagnostics in downstream consumers to warnings. `default @MainActor` does not inherit this behavior. Inferred `@MainActor` based on `default` is treated like an explicit annotation, and the public interface contains no implicit `@preconcurrency`.
+> **Associated flags:** `-default-isolation` currently also enables `InferIsolatedConformances` and `NoExplicitNonIsolated`; file-level `default` does not. They improve aspects of the concurrency system but may be source breaking and would be extremely surprising to enable per-file (default isolation could no longer be freely adopted and un-adopted).
+
+> [!NOTE]
+> **@preconcurrency:** When compiled in Swift 5 language mode, SE-0466's `-default-isolation MainActor` marks the inferred isolation as preconcurrency, which is serialized into the public module interface as `@preconcurrency` and downgrades cross-actor diagnostics in downstream consumers to warnings. `default @MainActor` does not inherit this behavior. Inferred `@MainActor` based on `default` is treated like an explicit annotation, and the public interface contains no implicit `@preconcurrency` even in Swift 5.
 
 ### Source warning control
 
-Specifying `default @diagnose(...)` at the top of the file will instruct the compiler to apply `@diagnose(...)` to all top level declarations:
+Specifying `default @diagnose(...)` at the top of the file will instruct the compiler to apply `@diagnose(...)` to all top-level declarations:
 
 ```swift
 // Legacy.swift
@@ -237,7 +251,7 @@ default @diagnose(DiagGroupID, as: error)
 
 // implicit @diagnose(DiagGroupID, as: warning)
 // implicit @diagnose(DiagGroupID, as: error)
-public func foo() // DiagGroupID diagnoses as an error
+public func foo() // DiagGroupID is diagnosed as an error
 
 // implicit @diagnose(DiagGroupID, as: warning)
 // implicit @diagnose(DiagGroupID, as: error)
@@ -247,7 +261,7 @@ public func bar() // DiagGroupID is ignored
 
 ### API availability
 
-Specifying `default @available(...)` at the top of the file will instruct the compiler to apply `@available(...)` to all top level declarations:
+Specifying `default @available(...)` at the top of the file will instruct the compiler to apply `@available(...)` to all top-level declarations:
 
 ```swift
 // LockedCollections.swift
@@ -274,9 +288,9 @@ public final class LockedCache<Key: Hashable, Value> {
 Repeated `default @available(...)` declarations are permitted, and follow the same merge rules as `@available` on an individual declaration.
 
 > [!NOTE]
-> `@available` has some special, and sometimes surprising, behavior for merging. For example, `@available(iOS, unavailable)` implies unavailability on Catalyst and visionOS unless explicitly specified. Default available attributes should be interpreted as though they were written on the top level declaration alongside any explicit attributes.
+> `@available` has some special, and sometimes surprising, behavior for merging. For example, `@available(iOS, unavailable)` implies unavailability on Catalyst and visionOS unless explicitly specified. Default available attributes should be interpreted as though they were written on the top-level declaration alongside any explicit attributes.
 
-For example if you write an extension of a less-available type in the same file, the extension will still have the more constrained availability:
+For example, if you write an extension of a less-available type in a file with a `default @available`, the extension will still have the more constrained availability (since the most restrictive `@available` annotation wins):
 
 ```swift
 default @available(macOS 12, *)
@@ -295,9 +309,11 @@ public protocol AdvancedWidget { ... }
 extension AdvancedWidget { ... }
 ```
 
+As with `@available` written on a top-level declaration, default availability is inherited by nested members and inner types per the standard `@available` propagation rules.
+
 ## Source compatibility
 
-This proposal is strictly additive. `default` is already a reserved keyword and top level `default` is not valid Swift today, so no existing code should be affected. Use of a new default such as `@available` or actor isolation carries the same source compatibility implications as writing it on top level declarations.
+This proposal is strictly additive. `default` is already a reserved keyword and top-level `default` is not valid Swift today, so no existing code should be affected. Use of a new default such as `@available` or actor isolation carries the same source compatibility implications as writing it on top-level declarations.
 
 ## ABI compatibility
 
@@ -329,10 +345,10 @@ We are especially interested in feedback on attributes and modifiers that should
 
 Some examples and their potential drawbacks include:
 
-* `@concurrent`: only legal on top level async functions, not types, extensions etc. May require additional rules for `default` to apply to methods, or to be supported on all relevant top level declarations.
-* `@preconcurrency`: there is no opposite attribute (a hypothetical `@concurrency`) to opt an individual declaration out of a `default @preconcurrency`. There is also potentially unique value in being locally explicit about `@preconcurrency`.
+* `@concurrent`: only legal on top-level async functions, not types, extensions etc. May require additional rules for `default` to apply to methods, or to be supported on all relevant top-level declarations.
+* `@preconcurrency`: there is potentially unique value in being locally explicit about `@preconcurrency`, and it may be desirable to avoid proliferation.
 * `@unsafe`: may conceal unsafe behavior outside of the intended scope, and potentially disguises the unsafe nature of the file from a programmer reading a single function in isolation.
-* access control: extreme non-local behavior, applying access control to a top level declaration does not affect its contents, and accidentally making something public in your API is hard to walk back.
+* access control: extreme non-local behavior, applying access control to a top-level declaration does not affect its contents, and accidentally making something public in your API is hard to walk back.
 
 > [!NOTE]
 > Access control has special behavior with regard to `extension`. A `public extension` will make the methods and computed properties contained `public`, which is not the case for other nominal declarations; A `public class` does not make all of its members and methods public, for example. Edge case behavior like this in new and existing attributes and modifiers, which further contributes to non-local behavior, may increase the motivation not to support them for `default`.
@@ -347,13 +363,19 @@ It may be desirable to indicate these default behaviors in the positions where t
 
 ## Alternatives considered
 
-### Don't inherit [SE-0466] carve outs for default actor isolation
+### Inheriting [SE-0466] carve outs for default actor isolation
 
-Instead of inheriting SE-0466's semantics regarding inference, we could treat default actor isolation as though it was written on *every* legal top level declaration. SE-0466 semantics are surprising; writing `default @MainActor`, conforming to something with a `SendableMetatype`, and then getting errors in your implementation about accessing `MainActor` isolated state elsewhere in the file from a `nonisolated` context is not intuitive. However, we think these carve outs are valuable here for the same reason SE-0466 added them; these special cases are exactly where the naive default would have failed, and required adding an explicit modifier to override it.
+A previous iteration of this proposal used SE-0466's rules for defaults, such that file-level default isolation had a file scoped version of the same behavior as module-level default isolation.
 
-### Do inherit [SE-0466] `@preconcurrency` behavior in Swift 5
+Unlike `-default-isolation`, we intend file-level defaults to be usable for libraries and public APIs. For those users, silent carve-outs are especially unfortunate, requiring programmers using this feature to keep all the inference rules in mind. A reviewer cannot tell which declarations are exempt from the default without knowing every case, inspecting inferred types, or looking at emitted interface files.
 
-We could use the same `@preconcurrency` behavior as `-default-isolation MainActor` in Swift 5. This may be prudent for adoption and complexity purposes. However, we feel that proliferating `@preconcurrency` on new code being written is a greater cost than easing adoption of `default` for `-default-isolation MainActor` + Swift 5 + public API. The implicit `@preconcurrency` behavior in Swift 5 wasn't stated in the proposal, and `-default-isolation MainActor` was not intended for libraries.
+While the SE-0466 rules are clever, and help to keep concurrency approachable, a programmer writing `default @MainActor` has different expectations than a programmer setting the module default. The SE-0466 module-default rules aim to make mostly single-threaded code easier to write, by turning off the presumption of concurrency. This justifies clever inference rules that try to avoid surfacing concurrency errors when interacting with code outside the module, like a Foundation protocol. A file-default is something done intentionally, to turn off the module default or write a set of types that should all be `@MainActor`, and it would be surprising to discover a type *isn't* inheriting your file default.
+
+Though the rules here differ from `-default-isolation`'s, this behavior is consistent with the other attributes being supported and enables a simple mental model for file-level defaults. Neither choice is entirely satisfactory, but we feel applying to every declaration is less surprising and more consistent than opting some declarations out, and creating a list of cases programmers must keep in mind when setting a file-level default.
+
+### Inheriting [SE-0466] `@preconcurrency` behavior in Swift 5
+
+We could use the same `@preconcurrency` behavior as `-default-isolation MainActor` in Swift 5. This may be prudent for adoption and complexity purposes. However, we feel that proliferating `@preconcurrency` on new code being written is a greater cost than easing adoption of `default` for `-default-isolation MainActor` + Swift 5 + public API. The implicit `@preconcurrency` behavior in Swift 5 wasn't stated in SE-0466, and `-default-isolation MainActor` was not intended for libraries.
 
 We are especially curious to hear opinions on this and the previous alternative.
 
@@ -364,9 +386,10 @@ Instead of the `default` keyword, we could use the `using` keyword, as a previou
 We did not choose this keyword for the following reasons:
 
 1. `using` has associations with C++ aliasing and namespace management, so choosing it could confuse some programmers coming from C++.
-2. In explanation and semantics, this feature is a *default*, and choosing syntax that states it as such makes that more clear.
+2. In explanation and (most) semantics, this feature is a *default*, and choosing syntax that states it as such makes that more clear.
+3. `default` is already a reserved keyword, and cannot appear in top-level contexts. While `using` is unambiguous for the cases here, parsing would be ambiguous for future evolution that wants to use parentheses (`using (...)`) or braces (`using {...}`) (since you can define a `using` function and call it in this way, but `default` cannot be used as an identifier).
 
-However, compared to `default`, `using` may feel more open for future use to configure things that are not necessarily default behaviors.
+However, compared to `default`, `using` may feel more open for future use to configure things that are not necessarily default behaviors. For some of the semantics in this proposal, `default` is a misrepresentation and `using` is more accurate. Consider `default nonisolated`. Nonisolated is already the language "default", but is not inferred for extensions of isolated types. `default` misrepresents the behavior, since in the current version of the proposal it is written on every unspecified top-level declaration. `using nonisolated` would not give a programmer the false intuition that this behaves in the same way as the inferred isolation.
 
 ### Using Swift package manifest-style APIs for specifying default attributes
 
@@ -450,6 +473,19 @@ There's a separate pitch on the forums that introduces a built-in macro which ca
 However, default actor isolation has a significant difference from the other compiler settings that the macro supported: it impacts language semantics. Default actor isolation is a language dialect, while the other compiler flags only configure diagnostics; the behavior of the code does not depend on which diagnostic control flags are set.
 
 Additionally, `@diagnose` has already been accepted, so `default @diagnose` naturally reuses that accepted mechanism rather than reinventing file-level diagnostic control in a separate macro API.
+
+## Revision history
+
+* Revision 4 (pre-second-review):
+  * Changed file-level default isolation to *not* inherit SE-0466's `-default-isolation` inference rules and carve-outs. Defaults apply to every unspecified top-level declaration.
+* Revision 3 (following return for revision):
+  * Changed syntax from `using` to `default`.
+  * Expanded scope beyond actor isolation to also support `@available` and `@diagnose` as file-level defaults with composition rules.
+  * Required `default` declarations to appear before all non-`import` top-level declarations.
+  * Specified that file-level default isolation does not inherit module-level default isolation `@preconcurrency` behavior in Swift 5.
+* Revision 2:
+  * Revised per-file default isolation to use the `using` syntax instead of a `DefaultIsolation` typealias and a `nonisolated` type.
+  * Added grammar rules and specified that `using` is only legal in top-level scope.
 
 [SE-0343]: 0343-top-level-concurrency.md
 [SE-0466]: 0466-control-default-actor-isolation.md
