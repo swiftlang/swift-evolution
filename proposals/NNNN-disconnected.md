@@ -75,10 +75,10 @@ a disconnected value.
 var deque = UniqueDeque<Disconnected<NonSendable>>()
 deque.append(Disconnected(NonSendable()))
 
-guard let disconnected = deque.popFirst() else { return }
+guard var disconnected = deque.popFirst() else { return }
+let element = disconnected.take()
 
 Task {
-    let element = disconnected.take()
     print(element)
 }
 ```
