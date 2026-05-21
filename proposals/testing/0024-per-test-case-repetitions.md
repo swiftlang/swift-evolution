@@ -83,7 +83,7 @@ like these between test functions should be avoided.
 The following flags will be added:
 
 | Flag                    | Description |
-| ======================= | =========== |
+| ----------------------- | ----------- |
 | `--maximum-repetitions` | The maximum number of times a test should be repeated. |
 | `--repeat-until`        | The condition by which a test should be repeated. This accepts either `pass` or `fail`, and if it is not provided, repetition is unconditional (and all tests will repeat `maximum-iterations` times) |
 
