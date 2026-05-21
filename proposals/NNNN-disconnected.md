@@ -123,7 +123,17 @@ public struct Disconnected<Value: ~Copyable>: ~Copyable, Sendable {
     /// region and can be transferred across isolation boundaries.
     ///
     /// - Parameter newValue: The new value to wrap in a disconnected region.
+    /// - Returns: The currently wrapped value as a `sending` result.
     mutating func swap(newValue: consuming sending Value) -> sending Value
+
+    /// Calls the given closure with the disconnected value.
+    ///
+    /// - Parameter body: A closure with a parameter of Value that has access
+    ///   to the disconnected value.
+    /// - Returns: The return value, if any, of the body closure parameter.
+    mutating func withValue<Return: ~Copyable, Failure>(
+        body: (inout sending Value) throws(Failure) -> Return
+    ) throws(Failure) -> Return
 }
 ```
 
