@@ -2,8 +2,8 @@
 
 - Proposal: [ST-0025](0025-tag-based-test-execution-filtering.md)
 - Authors: [Gustavo Medori](https://github.com/gmedori)
-- Review Manager: TBD
-- Status: **Awaiting review**
+* Review Manager: [Paul LeMarquand](https://github.com/plemarquand)
+* Status: **Active Review (May 21 - June 4, 2026)**
 - Implementation: [swiftlang/swift-testing#1531](https://github.com/swiftlang/swift-testing/pull/1531)
 - Review: [pitch](https://forums.swift.org/t/pitch-tag-based-test-execution-filtering/86001)
 
@@ -32,7 +32,7 @@ FoodTruck/
     └── RootFeatureTests/
 ```
 
-During local development, you may want to skip all UI tests across all your test packages. With current tooling, this isn't possible unless you have a consistent naming scheme for your UI tests across all your packages that don't overlap with any other tests—a tall order in larger codebases. For this purpose, it is clear that we need a better, user-defined, way of grouping tests together outside of the test graph.
+During local development, you may want to skip all UI tests across all your test packages. With current tooling, this isn't possible unless you have a consistent naming scheme for your UI tests across all your packages that doesn't overlap with any other tests — a tall order in larger codebases. For this purpose, it is clear that we need a better, user-defined, way of grouping tests together outside of the test graph.
 
 Additionally, it's worth noting that existing tools that support filtering by tags (like the Visual Studio Code plugin) do so by using the SourceKit index to search for tags and then collecting the test IDs that match those tags into a [giant regular expression](https://github.com/swiftlang/vscode-swift/blob/f56817494c1ea989dbeec894896be98dd8e25c8a/src/TestExplorer/TestRunArguments.ts#L99-L118). Adding a native ability to filter by tag would simplify this implementation (and that of any other tools hoping to implement the same).
 
@@ -44,7 +44,7 @@ I propose we introduce a special syntax to the `--filter` and `--skip` command l
 
 ### Basic Usage
  
- As they currently exist, the `--filter` and `--skip` command line options accept regular expressions as arguments. Reiterating the above, I propose enhancing these arguments to accept a special case: an exact tag name prefixed by `tag:`. For example:
+As they currently exist, the `--filter` and `--skip` command line options accept regular expressions as arguments. Reiterating the above, I propose enhancing these arguments to accept a special case: an exact tag name prefixed by `tag:`. For example:
 
 ```
 swift test --skip tag:uiTest
@@ -60,7 +60,7 @@ It is not currently possible to create a filter/skip based on _all_ tags specifi
 
 ### Handling Raw Identifiers
  
- As of [SE-0451](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0451-escaped-identifiers.md), Swift has raw identifiers which means the following is valid Swift:
+As of [SE-0451](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0451-escaped-identifiers.md), Swift has raw identifiers which means the following is valid Swift:
 
 ```swift
 @Test func `tag:uiTest`() { /* ... */ }
@@ -87,7 +87,7 @@ extension Tag {
 func myTest() { /* ... */ }
 ```
 
-In this scenario, you would wrap the argument in single quotes and the entirity of the text supplied after the `tag:` prefix would be interpreted the name of a single tag. So for a tag named `some tag with spaces`, you could filter for it as follows:
+In this scenario, you would wrap the argument in single quotes and the entirety of the text supplied after the `tag:` prefix would be interpreted the name of a single tag. So for a tag named `some tag with spaces`, you could filter for it as follows:
 
 ```sh
 swift test --filter 'tag:some tag with spaces'
@@ -99,7 +99,7 @@ It's reasonable to expect some developers to attempt that filter by including th
 swift test --filter 'tag:`some tag with spaces`' # INVALID: This wouldn't match the symbol.
 ```
 
-Backticks are not part of the symbol name of a raw identifier, so this filter wouldn't match anything. I believe it's reasonable to suggest that if some filter the user provides is surrounded by backticks (i.e. more preciesly, it matches the regex ```/^`[^`]*`$/```), then we can be reasonably sure the user means a raw identifier, and we should supply an error message and strip them for the user:
+Backticks are not part of the symbol name of a raw identifier, so this filter wouldn't match anything. I believe it's reasonable to suggest that if some filter the user provides is surrounded by backticks (i.e. more precisely, it matches the regex ```/^`[^`]*`$/```), then we can be reasonably sure the user means a raw identifier, and we should supply an error message and strip them for the user:
 
 ```
 Backticks aren't a valid part of a Swift symbol. Replacing '`some tag with spaces`' with 'some tag with spaces'.
@@ -119,7 +119,7 @@ This introduces a new mechanism that can be used by any existing tools to filter
 
 Filtering based on tags is quite broad and general purpose. Because you can define any tag to stick on any test or suite, and because tags exists orthogonally to the test graph, you can arbitrarily include/skip any test based solely on the semantics of your tags. However, this change does raise the question of what _else_ we could filter/skip on and how we can be more expressive about it.
 
-For example, you may wish to filter/skip tests based on protocol conformance and/or inheritance. A suite's ancestor types can be a useful, and perhaps more natural, signal indicating whether it should run in a given context or not because the ancestor types carry with them behaviors and contracts that have powerful semantic meaning. In the future, we may seek to expand the prefix operators we allow beyong just `tag:`.
+For example, you may wish to filter/skip tests based on protocol conformance and/or inheritance. A suite's ancestor types can be a useful, and perhaps more natural, signal indicating whether it should run in a given context or not because the ancestor types carry with them behaviors and contracts that have powerful semantic meaning. In the future, we may seek to expand the prefix operators we allow beyond just `tag:`.
 
 Additionally, internally, the test suite already supports arbitrary boolean groupings of test filters. It may not be unreasonable to attempt to expose that on the CLI.
 
