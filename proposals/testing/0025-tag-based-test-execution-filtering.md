@@ -4,6 +4,7 @@
 - Authors: [Gustavo Medori](https://github.com/gmedori)
 * Review Manager: [Paul LeMarquand](https://github.com/plemarquand)
 * Status: **Active Review (May 21 - June 4, 2026)**
+- Bugs: [swiftlang/swift-testing#591](https://github.com/swiftlang/swift-testing/issues/591), rdar://132989780
 - Implementation: [swiftlang/swift-testing#1531](https://github.com/swiftlang/swift-testing/pull/1531)
 - Review: [pitch](https://forums.swift.org/t/pitch-tag-based-test-execution-filtering/86001)
 
