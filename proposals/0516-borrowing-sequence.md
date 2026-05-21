@@ -109,7 +109,7 @@ method that returns one. These play a similar role to `Iterator` and `makeIterat
 on `Sequence`.
 - The iterator returned by `makeIterableIterator` is constrained to the lifetime
 of the sequence. This allows the iterator to be implemented in terms of properties 
-borrowed from the sequence or a `Borrow` of the sequence itself.
+borrowed from the sequence or a `Ref` of the sequence itself.
 - `Iterable` defines an associated `Failure` type that enables throwing during iteration.
 Throwing iteration allows the broadest set of types to conform to `Iterable`, including
 lazy transformations and types with elements that can throw during generation or access.
@@ -141,13 +141,23 @@ public protocol IterableIteratorProtocol<Element, Failure>: ~Copyable, ~Escapabl
 
 // Default implementations
 extension IterableIteratorProtocol where Element: ~Copyable & ~Escapable {
-  public mutating func skip(by maximumOffset: Int) -> Int { ... }
+  public mutating func nextSpan() throws(Failure) -> Span<Element> { ... }
+  public mutating func skip(by maximumOffset: Int) throws(Failure) -> Int { ... }
 }
 ```
 
 Instead of returning individual elements from a `next()` method as `IteratorProtocol` does,
 `IterableIteratorProtocol` offers up spans of elements. The iterator indicates there 
 are no more elements to iterate by returning an empty `Span`.
+
+As with `Sequence`, once an iterator returns an empty `Span`, 
+every subsequent call to `nextSpan()` must return an empty `Span` as well.
+An iterator's behavior after throwing an error is undefined:
+some iterators may treat that as the end of the sequence,
+some may continue to throw the same error or a different error,
+and some may resume iteration on the next call. 
+Generic code should therefore not assume any particular behavior,
+with a recommendation that the error be propagated to the caller.
 
 ### Iterator and element lifetimes
 
@@ -570,7 +580,7 @@ protocol Container<Element>: Iterable, ~Copyable, ~Escapable {
   func nextSpan(after index: inout Index, maximumCount: Int) -> Span<Element>
 
   subscript(index: Index) -> Element { 
-    @_lifetime(borrow self) borrow 
+    @_lifetime(borrow self) borrow { get }
   }
 }
 ```
@@ -662,14 +672,14 @@ extension Span: BorrowingSequence where Self: ~Escapable, Element: ~Copyable {
   
   struct BorrowingIterator: IteratorProtocol {
       @_lifetime(copy self)
-      mutating func next() -> Borrow<Element> { ... }
+      mutating func next() -> Ref<Element> { ... }
   }
 }
 ```
 
 Iterative algorithms would then be written for `IteratorProtocol`, and be 
 accessible whether the `BorrowedElement` type is the expected `Element` type
-(as for types like `Array`) or `Borrow<Element>` (for types that support
+(as for types like `Array`) or `Ref<Element>` (for types that support
 iteration of noncopyable elements). Because the `BorrowedElement` type has
 its lifetime linked to the iterator-providing sequence (copied from the
 iterator), iterative algorithms can return those elements without issue.
@@ -704,7 +714,7 @@ will continue to be a critical feature.
 In addition, the different element types used in this alternative design
 lead to awkward usage at the call site. For example, when used with a
 `Span<NoncopyableInt>`, the `first(where:)` method declared above would have
-a signature like the following, with a `(borrowing Borrow<NoncopyableInt>) -> Bool` 
+a signature like the following, with a `(borrowing Ref<NoncopyableInt>) -> Bool` 
 predicate parameter. Forcing interaction with the element a user actually
 wants work with to go through a wrapper type in such a common case doesn't
 meet our usability expectations.
