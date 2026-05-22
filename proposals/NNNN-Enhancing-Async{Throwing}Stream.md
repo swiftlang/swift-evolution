@@ -25,10 +25,10 @@ This proposal introduces the following changes:
 Currently errors are type-erased to `any Error` when `AsyncThrowingStream` is finished with an error (`finish(throwing:)` or when the `unfolding` closure throws), requiring additional boilerplate to preserve the thrown error's type and integrate into typed contexts.
 
 ```swift
-let locationStream = AsyncThrowingStream<Location, LocationError> { ... } // Error: Initializer 'init(_:bufferingPolicy:_:)' requires the types 'LocationError' and 'any Error' be equivalent
+let locationStream = AsyncThrowingStream<Location, LocationError> { ... } // Error: Initializer 'init(_:bufferingPolicy:_:)' requires the types 'LocationError' and 'any Error' be equivalent.
 
 func processLocations() async throws(LocationError) {
-  for try await location in locationStream { // Error: Thrown expression type 'any Error' cannot be converted to error type 'LocationError'
+  for try await location in locationStream { // Error: Thrown expression type 'any Error' cannot be converted to error type 'LocationError'.
     ...
   }
 }
@@ -71,7 +71,7 @@ func processLocations() async throws(LocationError) {
 
 ### Unfolding initializer
 
-[SE-0314](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0314-async-stream.md#detailed-design) proposed the following Unfolding initializers:
+[SE-0314](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0314-async-stream.md#detailed-design) proposed the following unfolding initializers:
 
 ```swift
 // AsyncStream
@@ -104,11 +104,11 @@ let throwingStream = AsyncThrowingStream {
   ...
 } // no `onCancel` parameter
 
-func process(on locationActor: isolated LocationActor) async { // starts running on `locationActor`
+func process(on locationActor: isolated LocationActor) async { // Starts running on `locationActor`.
   let locationStream = AsyncStream<Location> { ... }
 
-  for await location in locationStream { // implicit call to `produce`, hop off `locationActor`
-    locationActor.update(to: location) // hop back on `locationActor`
+  for await location in locationStream { // Implicit call to `produce`, hop off `locationActor`.
+    locationActor.update(to: location) // Hop back on `locationActor`.
   }
 }
 ```
@@ -131,10 +131,10 @@ let stream = AsyncStream<Int> { continuation in
   for number in 0..<10 {
     continuation.yield(number)
   }
-} // continuation discarded here
+} // Continuation discarded here.
 
-for await element in stream { // indefinitely suspended
-  print(element) // prints: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+for await element in stream { // Prints: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9. Afterwards, suspends indefinitely.
+  print(element)
 } 
 ```
 
@@ -170,7 +170,7 @@ This proposal adds an `onCancel` parameter to the unfolding initializer of `Asyn
 
 Additionally, this proposal adopts `nonisolated(nonsending)`. As described in [SE-0461](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0461-async-function-isolation.md), this allows the `produce` closure to run on the caller’s actor, avoiding unnecessary actor hops.
 
-The `@Sendable` requirement on the `onCancel` closure is removed and replaced with the `sending` keyword.
+The `@Sendable` requirement on the `onCancel` parameter is removed and replaced with the `sending` keyword, allowing a wider range of functions and closures to be passed to the parameter.
 
 ```swift
 let locationStream = Async{Throwing}Stream {
@@ -179,8 +179,12 @@ let locationStream = Async{Throwing}Stream {
   ...
 }
 
-for {try} await location in locationStream { // executes on the caller's actor
-  ...
+func process(on locationActor: isolated LocationActor) async { // Starts running on `locationActor`.
+  let locationStream = AsyncStream<Location> { ... }
+
+  for await location in locationStream { // Implicit call to `produce`, runs on `locationActor`.
+    locationActor.update(to: location) // Already running on `locationActor`, no hop needed.
+  }
 }
 ```
 
@@ -191,7 +195,7 @@ The continuation-based variant is updated to track outstanding references to the
 The change is staged in via an upcoming feature flag (`AsyncStreamCancelOnContinuationDeinit`).
 
 ```swift
-// with `AsyncStreamCancelOnContinuationDeinit`
+// With `AsyncStreamCancelOnContinuationDeinit`.
 
 let stream = AsyncStream<Int> { continuation in
   continuation.onTermination = { reason in 
@@ -201,11 +205,11 @@ let stream = AsyncStream<Int> { continuation in
   for number in 0..<10 {
     continuation.yield(number)
   }
-} // continuation discarded here
+} // Continuation discarded here.
 
-for await element in stream {
-  print(element) // prints: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
-} // `onTermination` invoked with `.cancelled`
+for await element in stream { // Prints: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9. Afterwards, `onTermination` invoked with `.cancelled`.
+  print(element) 
+}
 ```
 
 `stream` is canceled after the for-in loop completes, since the continuation is discarded.
@@ -260,7 +264,6 @@ For `Async{Throwing}Stream` specifically, `Hashable` conformance is identity-bas
 
 ```swift
 // AsyncStream
-
 extension AsyncStream: Hashable {
   public static func == (lhs: Self, rhs: Self) -> Bool {
     // ... 
@@ -276,7 +279,6 @@ extension AsyncStream.Continuation.BufferingPolicy: Hashable {}
 extension AsyncStream.Continuation.YieldResult: Equatable, Hashable where Element: Equatable, Element: Hashable {}
 
 // AsyncThrowingStream
-
 extension AsyncThrowingStream: Hashable {
   public static func == (lhs: Self, rhs: Self) -> Bool {
     // ...
@@ -296,9 +298,7 @@ extension AsyncThrowingStream.Continuation.Termination: Equatable, Hashable wher
 
 ## Source compatibility
 
-This proposal changes the behavior around stream termination when the stream’s continuation is discarded. To avoid silently changing behavior, this change is gated behind an upcoming feature flag (`AsyncStreamCancelOnContinuationDeinit`).
-
-The `sending` keyword on `onCancel` broadens the set of functions and closures that can be passed to it.
+This proposal changes the behavior around stream termination when the stream’s continuation is discarded. To avoid silently changing behavior, this change is gated behind an upcoming feature flag (`AsyncStreamCancelOnContinuationDeinit`). Apart from this change, the proposed changes are additive. In particular, replacing `onCancel`’s `@Sendable` requirement with `sending` is less restrictive on the caller’s side.
 
 ## ABI compatibility
 
@@ -319,14 +319,14 @@ It is not as simple as declaring `{Async}Sequence`’s `Element` associated type
 However, progress is being made in other areas. Swift Collections now includes multiple types that support `~Copyable` elements, such as `UniqueDeque` and, `UniqueArray`. There is also ongoing discussion about moving `UniqueArray` into the standard library. In addition, [SE-0528](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0528-noncopyable-continuation.md) introduced a `~Copyable` continuation type.
 
 ## Alternatives considered
-An alternative approach to staging in change Nr. 3 (“Terminate the stream when its continuation is discarded”) via an upcoming feature flag 
-is to introduce a new continuation-based initializer and `makeStream` method that explicitly signals this new behavior to the user.
+
+An alternative approach to staging-in change Nr. 3 (“Terminate the stream when its continuation is discarded”) via an upcoming feature flag would be to introduce a new continuation-based initializer and `makeStream` method that explicitly signals this behavior to the user.
 
 There are three problems with this approach:
 
 1. It would require introducing five additional initializer overloads and two `makeStream` methods.
 2. To disambiguate them, this would require adding some form of clear differentiation.
-3. It would not help with staging in the new behavior, as users of the API would need to switch to the new, more verbose, API 
+3. It would not help with staging-in the new behavior, as users of the API would need to switch to the new, more verbose, API 
 and the old, less verbose, API would eventually need to be deprecated.
 
 ## Acknowledgments
