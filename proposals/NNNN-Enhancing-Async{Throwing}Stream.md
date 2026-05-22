@@ -4,6 +4,7 @@
 * Authors: [NotTheNHK](https://github.com/NotTheNHK)
 * Review Manager: TBD
 * Status: **Awaiting implementation** or **Awaiting review**
+* Bug: [#75853](https://github.com/swiftlang/swift/issues/75853), [#77974](https://github.com/swiftlang/swift/issues/77974)
 * Implementation: TBD
 * Upcoming Feature Flag: `AsyncStreamCancelOnContinuationDeinit`
 * Review: ([pitch](https://forums.swift.org/t/pitch-enhancing-async-throwing-stream/86339))
