@@ -358,6 +358,72 @@ This error is propagated from whenever the task (or child task) is cancelled via
 The reason specified will then be available to the `CancellationError` and can be retrieved from the `reason`
 property on the cancellation error.
 
+#### Current deadlines and Clock
+
+The deadline cannot be expressed as an existential since that would not be easily usable. So
+to access the current applied deadline a common accessor would need to be used.
+This most generally can be expressed as an earliest ContinuousClock instant representing 
+the deadline. This will also resolve a long standing pain point for clocks for the conversion
+between reasonable time-bases.
+
+To accomplish this a new required method will be added to the `Clock` protocol and 
+a default implementation will then also be provided such that existing implementations
+wont break but will have a sensible default that can be customized to something more 
+appropriate.
+
+```swift
+public protocol Clock<Duration>: Sendable {
+  associatedtype Duration
+  associatedtype Instant: InstantProtocol where Instant.Duration == Duration
+
+  var now: Instant { get }
+  var minimumResolution: Instant.Duration { get }
+
+  func sleep(until deadline: Instant, tolerance: Instant.Duration?) async throws
+
+  // New addition:
+  func earliestContinuousInstant(from instant: Instant) -> ContinousClock.Instant
+}
+
+extension Clock {
+  public func earliestContinuousInstant(from instant: Instant) -> ContinuousClock.Instant { .now }
+}
+
+extension ContinuousClock {
+  public func earliestContinuousInstant(from instant: Instant) -> ContinuousClock.Instant { instant }
+}
+
+extension SuspendingClock {
+  public func earliestContinuousInstant(from instant: Instant) -> ContinuousClock.Instant { 
+    let delta = instant - .now
+    return ContinousClock.now + delta
+  }
+}
+```
+
+This will mean that ContinousClock and SuspendingClock will gain new implementations
+of this which will then return the earliest instant represented in reference to the 
+continuous clock.
+
+This all then means that the deadline APIs can use that implementation to vend
+out a earliest continuous deadline, alleviating the issues around existential `InstantProtocol`
+types and providing a reasonable frame of reference for expiration.
+
+```swift
+extension Task where Success == Never, Failure == Never {
+  public static var currentEarliestContinuousDeadline: ContinuousClock.Instant? { get }
+}
+```
+
+This accessor does not preclude any potential more rich type information for deadlines
+and clocks being added later, but provides a straightforward interface for interoperation
+with external systems. The Task deadline can only be reasonable vended to the current task
+since that value would be only transient upon a given deadline - therefore accessing it 
+externally would be rather prone to race conditions. The per task lookup will traverse 
+the nested deadlines and calculate the earliest of all of the applied deadlines that would
+fire per the ContinuousClock. By doing so this leaves the least inaccuracy of measurement
+(and control by custom clocks as well) to translate to existing external systems.
+
 ### Behavioral Details
 
 1. The user specified closure runs concurrently to the timing of the expiration 
