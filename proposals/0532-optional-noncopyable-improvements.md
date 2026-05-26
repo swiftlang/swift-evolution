@@ -1,16 +1,16 @@
 # `Optional` noncopyable improvements and generalizations
 
-* Proposal: [SE-NNNN](nnnn-optional-noncopyable-improvements.md)
-* Authors: [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Proposal: [SE-0532](0532-optional-noncopyable-improvements.md)
+* Author: [Alejandro Alonso](https://github.com/Azoy)
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (May 26th...June 8th, 2026)**
 * Implementation: [swiftlang/swift#88505](https://github.com/swiftlang/swift/pull/88505)
-* Review: ([[Pitch] Optional noncopyable improvements and generalizations](https://forums.swift.org/t/pitch-optional-noncopyable-improvements-and-generalizations/86656))
+* Review: ([pitch](https://forums.swift.org/t/pitch-optional-noncopyable-improvements-and-generalizations/86656))
 
 ## Summary of changes
 
 Introduces three new methods on `Optional` to help support noncopyable wrapped
-values, `borrow()`, `mutate()`, and `insert()` in addition to generalizing `map`,
+values: `borrow()`, `mutate()`, and `insert()`. Also generalizes `map`,
 `flatMap`, and `unsafelyUnwrapped`.
 
 ## Motivation
