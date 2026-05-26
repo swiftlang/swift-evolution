@@ -105,8 +105,8 @@ Note that there are some imports that are added to every source file implicitly 
 
 ### Protocol conformances
 
-* Amendment status: **Active review (May 12...18, 2026)**
-* Amendment review: ([pitch](https://forums.swift.org/t/amending-se-0444-exempt-default-implementations-of-protocol-requirements-from-member-import-visibility-rules/86127)) ([review](https://forums.swift.org/t/se-0444-amendment-exempt-default-implementations-of-protocol-requirements-from-member-import-visibility-rules/86683))
+* Amendment status: **Accepted**
+* Amendment review: ([pitch](https://forums.swift.org/t/amending-se-0444-exempt-default-implementations-of-protocol-requirements-from-member-import-visibility-rules/86127)) ([review](https://forums.swift.org/t/se-0444-amendment-exempt-default-implementations-of-protocol-requirements-from-member-import-visibility-rules/86683)) ([acceptance](https://forums.swift.org/t/accepted-se-0444-amendment-exempt-default-implementations-of-protocol-requirements-from-member-import-visibility-rules/86936))
 * Amendment implementation: [swiftlang/swift#88489](https://github.com/swiftlang/swift/pull/88489)
 
 Types conforming to a protocol must have a witness for every requirement declared by that protocol. Witnesses to protocol requirements may be members that have been imported from other modules. Under the rules of this proposal, members that witness protocol requirements must be visible in the source file that declares the conformance. However, a default implementation that is not visible from a source file may still satisfy a protocol requirement under specific circumstances:
