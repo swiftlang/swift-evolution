@@ -54,7 +54,7 @@ func example() async {
 
   await Task {
     assert(!Task.isCancelled)
-    await resource.cleanup()
+    resource.cleanup()
   }.value // break out of task tree, in order to prevent cleanup from observing cancellation
 }
 ```
@@ -72,14 +72,12 @@ We propose the introduction of a `withTaskCancellationShield` method which tempo
 
 ```swift
 public func withTaskCancellationShield<Value, Failure>(
-  _ operation: () throws(Failure) -> Value,
-  file: String = #fileID, line: Int = #line
+  _ operation: () throws(Failure) -> Value
 ) throws(Failure) -> Value
 
 public nonisolated(nonsending) func withTaskCancellationShield<Value, Failure>(
-  _ operation: nonisolated(nonsending) () async throws(Failure) -> Value,
-  file: String = #fileID, line: Int = #line
-) async throws(Failure) -> T
+  _ operation: nonisolated(nonsending) () async throws(Failure) -> Value
+) async throws(Failure) -> Value
 ```
 
 Shields also prevent the automatic propagation of cancellation into child tasks, including `async let` and task groups. 
@@ -162,7 +160,7 @@ Task cancellation shields also prevent cancellation handlers from firing if the 
 For example, the task cancellation shield installed around the `slowOperation` in the snippet below, would effectively prevent the cancellation handler inside the `slowOperation` function from ever triggering:
 
 ```swift
-func slowOperation() -> ComputationResult {
+func slowOperation() async -> ComputationResult {
   await withTaskCancellationHandler { 
     return < ... slow operation ... >
   } onCancel: {
@@ -170,9 +168,9 @@ func slowOperation() -> ComputationResult {
   }
 }
 
-func cleanup() {
-  withTaskCancellationShield {
-    slowOperation()
+func cleanup() async {
+  await withTaskCancellationShield {
+    await slowOperation()
   }
 }
 ```
@@ -215,7 +213,7 @@ While it isn't common to explicitly cancel the current task your code is executi
 ```swift
 withTaskCancellationShield { 
   // ...
-  withUnsafeCurentTask { $0?.cancel() }
+  withUnsafeCurrentTask { $0?.cancel() }
   assert(Task.isCancelled == false) // Even though we just cancelled, we're not observing the cancellation
 }
 ```
@@ -224,21 +222,21 @@ While this code pattern is not really often encountered in real-world code, it c
 
 In order to aid understanding and debuggability of cancellation in such systems, we also introduce a new property to query for a cancellation shield being active in a specific task.
 
-The `hasActiveTaskCancellationShield` property can be used to determine if a cancellation shield is active. The property is available both as a static property on `Task` (which checks the current task), and as instance property on `UnsafeCurrentTask`:
+The `hasActiveCancellationShield` property can be used to determine if a cancellation shield is active. The property is available both as a static property on `Task` (which checks the current task), and as instance property on `UnsafeCurrentTask`:
 
 ```swift
 extension Task {
   /// Checks if the current task has an active cancellation shield.
   /// When not running inside a Task, this property will be false.
-  public static var hasActiveTaskCancellationShield: Bool { get }
+  public static var hasActiveCancellationShield: Bool { get }
 }
 
 extension UnsafeCurrentTask {
-  public var hasActiveTaskCancellationShield: Bool { get }
+  public var hasActiveCancellationShield: Bool { get }
 }
 ```
 
-Here is an example, how `isCancelled` and `hasActiveTaskCancellationShield` behave inside of a cancelled but shielded task:
+Here is an example, how `isCancelled` and `hasActiveCancellationShield` behave inside of a cancelled but shielded task:
 
 ```swift
 let task = Task { 
@@ -248,13 +246,13 @@ let task = Task {
     Task.isCancelled // false
     
     withUnsafeCurrentTask { unsafeTask in 
-      unsafeTask.isCancelled // true
-      unsafeTask.hasActiveTaskCancellationShield // true
+      unsafeTask!.isCancelled // true
+      unsafeTask!.hasActiveCancellationShield // true
                            
       // can replicate respecting shield if necessary (racy by definition, if this was queried from outside)
       let isCancelledRespectingShield = 
-        if unsafeTask.hasActiveTaskCancellationShield { false }
-        else { unsafeTask.isCancelled }
+        if unsafeTask!.hasActiveCancellationShield { false }
+        else { unsafeTask!.isCancelled }
     }
   }
 }
@@ -289,7 +287,7 @@ With cancellation shields, this wording may be slightly confusing. It is true th
 ```swift
 Task.isCancelled // true
 withTaskCancellationShield { 
-    Task.isCancelled // false
+  Task.isCancelled // false
 }
 Task.isCancelled // true
 ```
@@ -302,7 +300,7 @@ Therefore the API documentation will be changed to reflect this change:
 /// However, it is possible to cause the `isCancelled` property to return `false` even 
 /// if the task was previously cancelled by entering a ``withTaskCancellationShield(_:)`` scope.
 /// ...
-public var isCancelled: Bool {
+public var isCancelled: Bool { get }
 
 ```
 
@@ -316,8 +314,8 @@ While there isn't anything special with regards to defer blocks and cancellation
 let resource = makeResource()
 
 defer { 
-  await withTaskCancellationShield { // ensure that cleanup always runs, regardless of cancellation
-    await resource.cleanup()
+  withTaskCancellationShield { // ensure that cleanup always runs, regardless of cancellation
+    resource.cleanup()
   }
 }
 ```
