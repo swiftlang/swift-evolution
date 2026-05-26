@@ -205,7 +205,7 @@ there is no need for a current deadline for the service of calculating which is 
 Constructing an instant every time is not per se the most terse; so a simple extension offers the ease of construction 
 with the same compositional advantage as the primary entry point.
 
-```
+```swift
 nonisolated(nonsending) public func withDeadline<Return: ~Copyable, Failure: Error, C: Clock>(
   in timeout: C.Instant.Duration,
   tolerance: C.Instant.Duration? = nil,
@@ -222,7 +222,7 @@ nonisolated(nonsending) public func withDeadline<Return: ~Copyable, Failure: Err
 
 The implementation of this is trivially:
 
-```
+```swift
 try await withDeadline(clock.now.advanced(by: timeout), tolerance: tolerance, body: body)
 ```
 
@@ -276,7 +276,7 @@ for developers to express the difference between a cancellation due to deadline 
 normal task cancellation, but also express a custom reason for indicating why something might be 
 cancelled.
 
-```
+```swift
 public struct CancellationError: Error {
   @nonexhaustive
   public enum Reason {
@@ -304,7 +304,7 @@ given reason; this will continue to be the case.
 To aid in the population of cancellation errors, new APIs will be added. These will all be cases
 where a task or child task is cancelled and a CancellationError would normally be created.
 
-```
+```swift
 extension Task {
   public func cancel(reason: CancellationError.Reason)
 }
@@ -374,7 +374,7 @@ The following examples outline common composition and cancellation behaviors.
 - **Example 4**: Outer deadline (2s) expires before inner deadline (10s), but the sleep is shorter (3s) - both handlers still fire at the 2s mark because the outer deadline governs.
 - **Example 5**: Demonstrates that `withDeadline` waits for the operation to return even after cancellation. The busy-loop ignores cancellation and runs for the full 10 seconds despite the 2s inner deadline.
 
-```
+```swift
 struct LocalError: Error { }
 
 print("====== EXAMPLE 0 ======")
