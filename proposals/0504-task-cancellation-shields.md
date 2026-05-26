@@ -54,7 +54,7 @@ func example() async {
 
   await Task {
     assert(!Task.isCancelled)
-    await resource.cleanup()
+    resource.cleanup()
   }.value // break out of task tree, in order to prevent cleanup from observing cancellation
 }
 ```
@@ -287,7 +287,7 @@ With cancellation shields, this wording may be slightly confusing. It is true th
 ```swift
 Task.isCancelled // true
 withTaskCancellationShield { 
-    Task.isCancelled // false
+  Task.isCancelled // false
 }
 Task.isCancelled // true
 ```
@@ -300,7 +300,7 @@ Therefore the API documentation will be changed to reflect this change:
 /// However, it is possible to cause the `isCancelled` property to return `false` even 
 /// if the task was previously cancelled by entering a ``withTaskCancellationShield(_:)`` scope.
 /// ...
-public var isCancelled: Bool {
+public var isCancelled: Bool { get }
 
 ```
 
@@ -314,8 +314,8 @@ While there isn't anything special with regards to defer blocks and cancellation
 let resource = makeResource()
 
 defer { 
-  await withTaskCancellationShield { // ensure that cleanup always runs, regardless of cancellation
-    await resource.cleanup()
+  withTaskCancellationShield { // ensure that cleanup always runs, regardless of cancellation
+    resource.cleanup()
   }
 }
 ```
