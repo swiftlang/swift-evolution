@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (May 26th...June 8th, 2026)**
 * Implementation: [swiftlang/swift#88505](https://github.com/swiftlang/swift/pull/88505)
-* Review: ([pitch](https://forums.swift.org/t/pitch-optional-noncopyable-improvements-and-generalizations/86656))
+* Review: ([pitch](https://forums.swift.org/t/pitch-optional-noncopyable-improvements-and-generalizations/86656)) ([review](https://forums.swift.org/t/se-0532-optional-noncopyable-improvements-and-generalizations/86941))
 
 ## Summary of changes
 
