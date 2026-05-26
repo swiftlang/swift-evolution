@@ -25,13 +25,13 @@ Today, there is no great way to ignore cancellation, and some pieces of code may
 
 ```swift
 extension Resource { 
-  func cleanup() async { // our "cleanup" implementation looks correct...
-    await system.performAction(CleanupAction())
+  func cleanup() { // our "cleanup" implementation looks correct...
+    system.performAction(CleanupAction())
   }
 }
 
 extension SomeSystem { 
-  func performAction(_ action: some SomeAction) async { 
+  func performAction(_ action: some SomeAction) { 
     guard !Task.isCancelled else {
       // oh no! 
       // If Resource.cleanup calls this while being in a cancelled task,
