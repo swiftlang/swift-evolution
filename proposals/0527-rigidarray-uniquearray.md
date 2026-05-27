@@ -3,10 +3,11 @@
 * Proposal: [SE-0527](0527-rigidarray-uniquearray.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey), [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active Review (April 13...27, 2026)**
+* Status: **Accepted in Principle**
 * Implementation: [swiftlang/swift#87521](https://github.com/swiftlang/swift/pull/87521)
 * Review: ([pitch](https://forums.swift.org/t/pitch-rigidarray-and-uniquearray/85455))
-          ([review](https://forums.swift.org/t/se-0527-rigidarray-and-uniquearray/85985))
+          ([first review](https://forums.swift.org/t/se-0527-rigidarray-and-uniquearray/85985))
+          ([second review](https://forums.swift.org/t/focused-re-review-se-0527-uniquearray-reallocate-capacity/86944))
 
 [swift-collections]: https://github.com/apple/swift-collections
 
