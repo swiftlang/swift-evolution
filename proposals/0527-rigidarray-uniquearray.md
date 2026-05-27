@@ -7,7 +7,7 @@
 * Implementation: [swiftlang/swift#87521](https://github.com/swiftlang/swift/pull/87521)
 * Review: ([pitch](https://forums.swift.org/t/pitch-rigidarray-and-uniquearray/85455))
           ([first review](https://forums.swift.org/t/se-0527-rigidarray-and-uniquearray/85985))
-          ([focused re-review](https://forums.swift.org/t/focused-re-review-se-0527-uniquearray-reallocate-capacity/86944))
+          ([second review](https://forums.swift.org/t/focused-re-review-se-0527-uniquearray-reallocate-capacity/86944))
 
 [swift-collections]: https://github.com/apple/swift-collections
 
