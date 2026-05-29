@@ -13,7 +13,7 @@
 
 ## Introduction
 
-This proposal generalizes the `Span` and `Ref` types to allow nonescapable elements, with the lifetime of an element copied from the lifetime of the containing type.
+This proposal generalizes the `Span` and `Ref` types to allow nonescapable elements, with the lifetime of an element copied from the lifetime of the containing type. In addition, it revises [SE-0516] to allow nonescapable elements in the `Iterable` protocol.
 
 ## Motivation
 
@@ -51,6 +51,8 @@ _ = consume span
 
 print(reborrowedSpan.count) // error: ...
 ```
+
+In addition, with the generalization to `Span`, the `Iterable` protocol can support elements that are themselves `~Escapable`. Nonescapable elements accessed via `Iterable` iteration will an exclusive lifetime dependency on the iterator, just like accesses to `~Copyable` elements.
 
 ## Detailed design
 
@@ -101,9 +103,36 @@ extension Ref where Value: ~Copyable & ~Escapable {
 
 In order to allow the `RawSpan`-providing `bytes` property on `Span`, the `RawSpan(unsafeElements:)` initializer, for converting a `Span` into a `RawSpan`, is generalized to allow spans of `~Escapable` elements.
 
+### SE-0516 Revisions
+
+In the [SE-0516: Iterable] proposal, the `Iterable` and `IterableIteratorProtocol` protocols, and the other supporting types, all have their element types generalized to allow `~Escapable` elements.
+
+```swift
+public protocol Iterable<Element, Failure>: ~Copyable, ~Escapable {
+  /// A type representing the iterable type's elements.
+  associatedtype Element: ~Copyable & ~Escapable
+
+  // remaining declarations...
+}
+
+public protocol IterableIteratorProtocol<Element, Failure>: ~Copyable, ~Escapable {
+  /// A type representing the iterated elements.
+  associatedtype Element: ~Copyable & ~Escapable
+  
+  // remaining declarations...
+}
+
+public struct SpanIterator<Element>: IterableIteratorProtocol, ~Copyable, ~Escapable
+  where Element: ~Copyable & ~Escapable
+{
+  // ...
+}
+```
+
 ## Source compatibility
 
-The changes to both types are source compatible. Existing code that references `Span` will continue to implicitly require an `Escapable` element type until revised with an `Element: ~Escapable` constraint.
+The changes to both the `Span` and `Ref` types are source compatible. 
+Existing code that references `Span` will continue to implicitly require an `Escapable` element type until revised with an `Element: ~Escapable` constraint.
 
 ## ABI compatibility
 
@@ -119,8 +148,7 @@ struct Span<Element: ~Copyable & ~Escapable>: ... {
 }
 ```
 
-The `Ref` type is a new addition in Swift 6.4, so ABI compatibility concerns do not apply.
-
+The `Ref` type and the `Iterable` protocols and supporting types are all new additions in Swift 6.4, so ABI compatibility concerns do not apply.
 
 ## Future directions
 
