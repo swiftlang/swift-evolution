@@ -50,9 +50,9 @@ winPath.anchor = #"\\?\C:\"#
 print(winPath)                         // \\?\C:\Users\dev\project
 
 // On Darwin, strip kernel resolve flags by replacing the anchor with `/`
-var untrusted: FilePath = "/.nofollow/etc/passwd"
-untrusted.anchor = "/"
-print(untrusted)                       // /etc/passwd
+var darwinPath: FilePath = "/.nofollow/etc/passwd"
+darwinPath.anchor = "/"
+print(darwinPath)                       // /etc/passwd
 ```
 
 ## Detailed design
@@ -68,11 +68,11 @@ public struct FilePath: Sendable {
   /// Creates an empty file path.
   public init()
 
-  /// The platform directory separator character.
+  /// The platform's canonical directory separator, as a code unit.
   ///
-  /// On Linux and Darwin, this is `"/"`.
-  /// On Windows, this is `"\"`.
-  public static var separator: Character { get }
+  /// On Linux and Darwin, this is the code unit for `/`.
+  /// On Windows, it is the code unit for `\`.
+  public static var separator: FilePath.CodeUnit { get }
 
   /// Whether this path is empty.
   ///
@@ -93,6 +93,18 @@ Relative path components are non-empty opaque bags of bytes, excluding certain b
 Finally, a path may have a suffix that instructs the kernel what to do after it has resolved the final path component. On Linux, Darwin, and Windows, this could be an optional trailing separator that tells the kernel to treat it as a directory (or to jump through a symlink). Darwin may (mutually exclusive with a trailing separator) have a resource fork with the fixed suffix of `/..namedfork/rsrc` to address a file's resource fork.
 
 For example, the Linux path `/foo/bar` has an anchor of `/`, relative path components of `[foo, bar]`, and no trailing separator.
+
+#### Path syntax versus filesystem interpretation
+
+The kernel defines path syntax and parses it before and regardless of which filesystems exist in which configurations at which locations. Linux uses vanilla POSIX syntax. Darwin recognizes an additional set of anchor prefixes and resource fork suffixes. Windows has its own forms. `FilePath`'s decomposition follows this kernel parse.
+
+The kernel recognizes the anchor, the special `.` and `..` components (hence `Component.Kind`), and any suffix; everything else is an opaque bag of bytes it passes to the filesystem driver. What those bytes mean is up to the driver and depends on what is mounted where, which can change at runtime.
+
+For example, `.zfs/snapshots/<id>` parses into the relative path components `[.zfs, snapshots, <id>]`. If those reach a ZFS volume with snapshots enabled, the driver reads them as a snapshot reference; on any other filesystem they are just a regular path (that may or may not exist). The kernel does not distinguish `.zfs` from `.foo` and neither does `FilePath`. Darwin's `/.nofollow/` is the opposite case: XNU extracts its meaning during the parse and before any file system driver runs (`.nofollow` is not even passed to the driver). It is part of the path's syntax and `FilePath` models it as an anchor. Interpretation that belongs to a particular filesystem in a particular configuration is left to higher-level API (see Future Directions).
+
+`FilePath` decomposes anchors and suffixes separate from the collection of relative path components and all are relevant to `==`. If you keep popping components off of `/foo/bar` you end up at `/`, and the operation becomes idempotent. On Darwin, if you keep popping components off of `/.nofollow/foo/bar` the fixed point is `/.nofollow/`, not `/`. Similarly, `/.vol/1234/5678/foo` would be `/.vol/1234/5678` (note: no trailing separator). None of this is obvious without niche expertise in the XNU kernel, and a type that hid this structure would force developers to recover it through byte-level parsing and reconstruction, the very work `FilePath` exists to do for them.
+
+Linux's syntax is trivial and unchanged. Windows's syntactic forms have been stable since Windows NT 3.1 in 1993. Darwin's has grown over time, and `FilePath` tracks the XNU parse directly rather than leaving developers to keep their own parsers current.
 
 #### Anchors
 
@@ -129,13 +141,17 @@ extension FilePath {
     /// than the drive's root.
     public var isRooted: Bool { get }
 
+#if os(Windows)
     /// The drive letter of this anchor, if any.
     ///
-    /// On Linux and Darwin, always `nil`.
-    ///
-    /// On Windows, returns the drive letter for anchors of the form
-    /// `C:\`, `C:`, `\\?\C:\`, or `\\.\C:\`. Returns `nil` for UNC
+    /// Returns the single code unit preceding the colon for drive-style
+    /// anchors (`C:\`, `C:`, `\\?\C:\`, `\\.\C:\`), and `nil` for UNC
     /// anchors, non-drive device anchors, and the current-drive root `\`.
+    ///
+    /// The value is presented as written, without case normalization.
+    /// Windows drive letters are not necessarily constrained to `A`-`Z`: any non-separator code unit before
+    /// a colon forms a drive letter.
+    /// If the drive letter is an unpaired surrogate, `U+FFFD` is returned.
     ///
     /// Examples:
     /// * `C:\`     => `"C"`
@@ -145,15 +161,14 @@ extension FilePath {
     /// * `\\.\pipe`       => `nil`
     /// * `\\server\share` => `nil`
     /// * `\`              => `nil`
-    public var driveLetter: Character? { get }
+    public var driveLetter: Unicode.Scalar? { get }
 
     /// Whether this anchor uses the Windows verbatim-component form (`\\?\`).
     ///
     /// Inside verbatim-component paths, `/` is a legal component-name
     /// character, and `.` and `..` have no special directory meaning.
-    ///
-    /// Always `false` on Linux and Darwin.
     public var isVerbatimComponent: Bool { get }
+#endif
   }
 
   /// The anchor of this path, if any.
@@ -766,7 +781,7 @@ extension String {
 
 ### Access to underlying bytes and C interop
 
-`FilePath` provides access to the underlying null-terminated platform bytes for C interoperability via a closure-based `withCString(_:)` that tracks `String.withCString(_:)`.
+`FilePath` provides access to the underlying null-terminated platform bytes for C interoperability via a closure-based `withCodeUnits(_:)`, which tracks `String.withCString(_:)` but also passes the code unit count (excluding the null terminator) so callers do not have to recompute the length. The null-terminated bytes are also available directly as a span via `nullTerminatedCodeUnits`.
 
 ```swift
 extension FilePath {
@@ -780,14 +795,15 @@ extension FilePath {
   public typealias CodeUnit = UInt16
 #endif
 
-  /// Calls the given closure with a pointer to the path's contents,
-  /// represented as a null-terminated sequence of platform code units.
-  /// The pointer is valid only for the duration of the closure.
+  /// Calls the given closure with a pointer to the path's null-terminated
+  /// contents and the number of code units preceding the null terminator.
+  /// The pointer is valid only for the duration of the closure, and the
+  /// count does not include the null terminator.
   ///
   /// On Windows the pointer is wide (`UnsafePointer<UInt16>`); see
   /// also `String.withCString(encodedAs:_:)`.
-  public func withCString<Result, E: Error>(
-    _ body: (UnsafePointer<FilePath.CodeUnit>) throws(E) -> Result
+  public func withCodeUnits<Result, E: Error>(
+    _ body: (UnsafePointer<FilePath.CodeUnit>, Int) throws(E) -> Result
   ) throws(E) -> Result
 }
 ```
@@ -820,6 +836,10 @@ extension FilePath.Anchor {
 extension FilePath {
   /// A span of the platform code units comprising this path, not including the null terminator.
   public var codeUnits: Span<FilePath.CodeUnit> { get }
+
+  /// A span of the platform code units comprising this path, including the
+  /// trailing null terminator as its final element.
+  public var nullTerminatedCodeUnits: Span<FilePath.CodeUnit> { get }
 
   /// Creates a file path from a span of platform code units.
   ///
@@ -901,9 +921,9 @@ The failable string and code-unit inits for `FilePath` in this proposal reject o
 
 ### Platform string APIs and `CInterop`
 
-swift-system defines a `CInterop` namespace with typealiases for platform-specific character types (`PlatformChar`, `PlatformUnicodeEncoding`) and provides `init(platformString:)` APIs on `FilePath` and its subtypes. This proposal provides `withCString(_:)` for passing paths to C APIs, and `Span`-based access on each of the path subtypes (`FilePath`, `Anchor`, `Component`, and `ComponentView`). Future work could include a `PlatformChar` typealias and more functionality along these lines.
+swift-system defines a `CInterop` namespace with typealiases for platform-specific character types (`PlatformChar`, `PlatformUnicodeEncoding`) and provides `init(platformString:)` APIs on `FilePath` and its subtypes. This proposal provides `withCodeUnits(_:)` for passing paths to C APIs, and `Span`-based access on each of the path subtypes (`FilePath`, `Anchor`, `Component`, and `ComponentView`). Future work could include a `PlatformChar` typealias and more functionality along these lines.
 
-If the language gains a standard story for null-terminated pointer types (lifetime-bound borrowed pointers or similar), `FilePath` could expose a property such as `var cString` rather than the closure-based `withCString(_:)` shipped here.
+If the language gains a standard story for null-terminated pointer types (lifetime-bound borrowed pointers or similar), `FilePath` could expose a property such as `var cString` rather than the closure-based `withCodeUnits(_:)` shipped here.
 
 ### Path parsing APIs and verbatim storage modes
 
@@ -950,6 +970,12 @@ Resolution through blocking is a perfectly normal operation for an application o
 - Namespaced free functions rather than a method. We prefer the member form for discoverability and for parity with similar operations on related types.
 
 The proposal uses `resolve()` as written, with the blocking nature communicated through `@available(*, noasync)` and documentation.
+
+### Type of `Anchor.driveLetter`
+
+We considered `Character` and `String` before settling on `Unicode.Scalar`. A drive letter is a single WTF-16 code unit preceding the `:`. `Character` (a grapheme cluster) and `String` both overstate that. `Unicode.Scalar` is the narrowest of the three that is still expressible as and comparable against a literal (`anchor.driveLetter == "C"`). It converts cleanly to both `FilePath.CodeUnit` and `String`. Since code units are WTF-16 on Windows, the drive "letter" could be an unpaired surrogate and `driveLetter` yields `U+FFFD`. The exact code unit stays reachable through the anchor's `codeUnits`.
+
+We also considered canonicalizing the letter to uppercase and chose not to. Common drives use `A`-`Z`, which fold trivially, but a drive letter can be any code unit and case-insensitive matching of the rest depends on the system's Unicode upcase table (a runtime, version-dependent resource used during resolution). `FilePath` leaves the drive letter as written and defers case-insensitive matching, for drive letters and components alike, to path resolution.
 
 ### Include `Codable` conformance
 
