@@ -22,7 +22,6 @@ The Swift compiler will support use of this protocol via the familiar `for`-`in`
 This version of the proposal includes the following changes from the [original `BorrowingSequence` proposal][prev1]:
 
 - *Renamed to `Iterable`:* The protocol and all associated types and methods have been renamed to reflect the protocol's more universal role.
-- *Nonescapable elements:* `Element` is now constrained to `~Copyable & ~Escapable`, instead of just `~Copyable`.
 - *Throwing iteration:* Both `Iterable` and `IterableIteratorProtocol` now include a `Failure: Error` associated type, enabling typed throws during iteration.
 
 ## Motivation
@@ -67,7 +66,7 @@ The `Iterable` protocol is defined as:
 ```swift
 public protocol Iterable<Element, Failure>: ~Copyable, ~Escapable {
   /// A type representing the iterable type's elements.
-  associatedtype Element: ~Copyable, ~Escapable
+  associatedtype Element: ~Copyable
 
   /// A type representing an error thrown during iteration.
   associatedtype Failure: Error = Never
@@ -89,7 +88,7 @@ public protocol Iterable<Element, Failure>: ~Copyable, ~Escapable {
 }
 
 // Default implementations
-extension Iterable where Self: ~Copyable & ~Escapable, Element: ~Copyable & ~Escapable {
+extension Iterable where Self: ~Copyable & ~Escapable, Element: ~Copyable {
   public var underestimatedCount: Int { 0 }
   public func _customContainsEquatableElement(...) -> Bool? { nil }
 }
@@ -103,7 +102,7 @@ The differences from the `Sequence` protocol are as follows:
 
 - `Iterable` allows conformance by noncopyable and nonescapable types. 
 Note that copyable and escapable types can also conform, but the protocol is designed to not require it.
-- The `Element` type is also not required to be copyable or escapable.
+- The `Element` type is also not required to be copyable.
 - There is an `IterableIterator` associated type, and a `makeIterableIterator()`
 method that returns one. These play a similar role to `Iterator` and `makeIterator()`
 on `Sequence`.
@@ -124,7 +123,7 @@ The `IterableIteratorProtocol` is similar to its analog, but differs a little mo
 ```swift
 public protocol IterableIteratorProtocol<Element, Failure>: ~Copyable, ~Escapable {
   /// A type representing the iterated elements.
-  associatedtype Element: ~Copyable, ~Escapable
+  associatedtype Element: ~Copyable
   
   /// A type representing an error thrown during iteration.
   associatedtype Failure: Error = Never
@@ -140,7 +139,7 @@ public protocol IterableIteratorProtocol<Element, Failure>: ~Copyable, ~Escapabl
 }
 
 // Default implementations
-extension IterableIteratorProtocol where Element: ~Copyable & ~Escapable {
+extension IterableIteratorProtocol where Element: ~Copyable {
   public mutating func nextSpan() throws(Failure) -> Span<Element> { ... }
   public mutating func skip(by maximumOffset: Int) throws(Failure) -> Int { ... }
 }
@@ -169,13 +168,13 @@ a nonescapable type that provides access to the array's storage via a `Span`.
 
 To support a broad range of iterator types, the `Span` returned from an iterator's `nextSpan(...)` method has an exclusive access dependency on the iterator (i.e. `@_lifetime(&self)`). This means that the elements accessed via that span also have an exclusive access dependency, with lifetimes ending on the next call to `nextSpan()` or another mutating call to the iterator.
 
-For `Iterable` types with `~Copyable` or `~Escapable` element types, this means that some operations that are common in sequence iteration are not possible to implement:
+For `Iterable` types with `~Copyable` element types, this means that some operations that are common in sequence iteration are not possible to implement:
 
 - *Returning an element:* In the most general case, a method like `first(where:)` cannot be implemented in an extension on `Iterable`, because the selected element's lifetime is tied to the iterator created within the method. 
 - *Escaping an element from a loop:* For the same reason, the functionality of `first(where:)` could not be coded in-place using a `for`-`in` loop to find an element and assign it to a variable outside the loop's scope.
 - *Comparing elements across `Span` accesses:* A method like `allEqual()`, that checks whether every element in a sequence is equal to every other element, cannot be implemented in the most general case for `Iterable`. Because full iteration of an `Iterable` type requires calling `nextSpan()` an unknown number of times, the implementation would require preserving an element across those calls, violating exclusive access.
 
-*None* of these restrictions apply when an `Iterable` type's element is `Copyable & Escapable`, so these are not new restrictions compared to what `Sequence` provides. Only operations written to explicitly generalize one or more of those implicit constraints would be bound by the lifetimes.
+*None* of these restrictions apply when an `Iterable` type's element is `Copyable`, so these are not new restrictions compared to what `Sequence` provides. Only operations written to explicitly generalize the implicit `Copyable` constraint would be bound by the lifetimes.
 
 ### Span size
 
@@ -288,7 +287,7 @@ we only need access to one element at a time. The implementation itself
 is essentially identical:
 
 ```swift
-extension Iterable where Element: ~Copyable & ~Escapable {
+extension Iterable where Element: ~Copyable {
    func example_reduce<T: ~Copyable>(
       into initial: consuming T,
       _ nextPartialResult: (inout T, borrowing Element) -> Void
@@ -306,7 +305,7 @@ In order to properly implement `elementsEqual`, however, we must use manual
 iteration to compare spans of equal size between two `Iterable` types:
 
 ```swift
-extension Iterable where Self: ~Escapable & ~Copyable, Element: ~Copyable & ~Escapable & Equatable {
+extension Iterable where Self: ~Escapable & ~Copyable, Element: ~Copyable & Equatable {
    func example_elementsEqual<S: Iterable<Element, Failure>>(
       _ rhs: borrowing S
    ) throws(Failure) -> Bool
@@ -383,7 +382,7 @@ future kinds of iteration.
 /// A borrowing iterator type that provides access to the contents of a single
 /// span of elements.
 public struct SpanIterator<Element>: IterableIteratorProtocol, ~Copyable, ~Escapable
-  where Element: ~Copyable & ~Escapable
+  where Element: ~Copyable
 {
   public typealias Failure = Never
 
@@ -453,8 +452,8 @@ Since `Element` is a _primary_ associated type, users will be able to extend
 `Iterable` with algorithms that require copyability by default. For example, 
 an algorithm to return the minimum element requires the ability to 
 copy that minimum element in order to return it. Extensions on `Iterable`
-without specifying otherwise will default to `Element` being copyable and
-escapable, as specified by SE-0503. Swift users unaware of the concept of
+without specifying otherwise will default to `Element` being copyable,
+as specified by SE-0503. Swift users unaware of the concept of
 noncopyable types can extend `Iterable` without being aware of that 
 feature of the language.
 
@@ -557,7 +556,7 @@ The following is a draft of the `Container` protocol and its requirements:
 
 ```swift
 protocol Container<Element>: Iterable, ~Copyable, ~Escapable {
-  associatedtype Element: ~Copyable & ~Escapable
+  associatedtype Element: ~Copyable
   associatedtype Index: Equatable, Hashable
 
   var count: Int { get }
@@ -645,12 +644,12 @@ by adding `Collection`-like indices, allowing referential access to elements.
 Another direction for enabling borrowing iteration, and other kinds of iteration
 in the future, is to move to using iterators as the primary type for iterative
 algorithms. With this direction, `IteratorProtocol` would be generalized to
-allow both noncopyable/nonescapable types and elements, and instead of the proposed
+allow both noncopyable/nonescapable types and/or elements, and instead of the proposed
 `Iterable` design, the new protocol could look like the following:
 
 ```swift
 public protocol BorrowingSequence<BorrowedElement>: ~Copyable & ~Escapable {
-  associatedtype BorrowedElement: ~Copyable & ~Escapable
+  associatedtype BorrowedElement: ~Copyable
   associatedtype BorrowingIterator: IteratorProtocol<BorrowedElement>
     & ~Copyable & ~Escapable
 
@@ -686,7 +685,7 @@ iterator), iterative algorithms can return those elements without issue.
 
 ```swift
 extension IteratorProtocol
-  where Self: ~Copyable & ~Escapable, Element: ~Copyable & ~Escapable
+  where Self: ~Copyable & ~Escapable, Element: ~Copyable
 {
   @_lifetime(copy self)
   consuming func first(
