@@ -1,4 +1,4 @@
-# File level defaults
+# File-level defaults
 
 * Proposal: [SE-0478](0478-default-isolation-typealias.md)
 * Authors: [Aviva Ruben](https://github.com/a-viv-a), [Holly Borla](https://github.com/hborla), [Pavel Yaskevich](https://github.com/xedin)
@@ -123,9 +123,6 @@ default @MainActor // error
 
 A common use for default actor isolation is to override the module-level `-default-isolation` setting: file-level defaults supersede module-level defaults. Since a declaration can have at most one actor isolation, there can only be one file-level default actor isolation per file.
 
-> [!NOTE]
-> [SE-0343]'s rule that global variables and top-level code run on `@MainActor` in script mode is independent of default isolation, whether from file-level `default` or module-level `-default-isolation`.
-
 Specifying `default nonisolated` at the top of the file will instruct the compiler to use `nonisolated` as the default isolation for unspecified top-level declarations:
 
 ```swift
@@ -186,6 +183,8 @@ class S { ... }
 extension S: Hashable { ... } // error: Conformance of 'S' to protocol 'Hashable' crosses into main actor-isolated code and can cause data races
 ```
 
+Declarations that cannot carry isolation (such as `typealias` and `import`) or that are already isolated (like `actor`) are unaffected by the default.
+
 As a consequence of applying to every unspecified top-level declaration, `default nonisolated` goes further than just turning off `-default-isolation MainActor`. For example, with no default an extension would inherit the extended type's isolation, but `default nonisolated` would override this regardless of the isolation of the extended type:
 
 ```swift
@@ -207,8 +206,24 @@ extension S {
 
 This means that a programmer is alerted when their default causes issues, and can override it per declaration (by writing `@MainActor extension S`) or move the offending code to a different file.
 
+With the same motivation, file-level default isolation applies to script mode's top-level globals, which otherwise default to `@MainActor`. Illegal combinations of isolation, mutability, and sendability will be rejected by [SE-0412]'s rules.
+
+```swift
+// script mode
+
+default nonisolated
+
+// implicitly nonisolated
+var count = 0 // error, mutable global is neither isolated nor immutable+Sendable
+
+// implicitly nonisolated
+let limit = 100 // allowed
+```
+
+Because `@MainActor` [cannot currently be written on a top-level global](0343-top-level-concurrency.md#variables) to opt out of the file-level default, an isolated mutable top-level global cannot be written in a `default nonisolated` file without lifting this restriction. We see this as acceptable in exchange for unsurprising application of the file-level default isolation.
+
 > [!NOTE]
-> **Associated flags:** `-default-isolation` currently also enables `InferIsolatedConformances` and `NoExplicitNonIsolated`; file-level `default` does not. They improve aspects of the concurrency system but may be source breaking and would be extremely surprising to enable per-file (default isolation could no longer be freely adopted and un-adopted).
+> **Associated flags:** `-default-isolation` currently also enables `InferIsolatedConformances` and `NoExplicitNonIsolated`; file-level `default` does not. They improve aspects of the concurrency system but may be source breaking and would be extremely surprising to enable per-file (file-level default isolation could no longer be freely adopted and un-adopted).
 
 > [!NOTE]
 > **@preconcurrency:** When compiled in Swift 5 language mode, SE-0466's `-default-isolation MainActor` marks the inferred isolation as preconcurrency, which is serialized into the public module interface as `@preconcurrency` and downgrades cross-actor diagnostics in downstream consumers to warnings. `default @MainActor` does not inherit this behavior. Inferred `@MainActor` based on `default` is treated like an explicit annotation, and the public interface contains no implicit `@preconcurrency` even in Swift 5.
@@ -345,7 +360,7 @@ We are especially interested in feedback on attributes and modifiers that should
 
 Some examples and their potential drawbacks include:
 
-* `@concurrent`: only legal on top-level async functions, not types, extensions etc. May require additional rules for `default` to apply to methods, or to be supported on all relevant top-level declarations.
+* `@concurrent`: only legal on top-level async functions, not types, extensions, etc. May require additional rules for `default` to apply to methods, or to be supported on all relevant top-level declarations.
 * `@preconcurrency`: there is potentially unique value in being locally explicit about `@preconcurrency`, and it may be desirable to avoid proliferation.
 * `@unsafe`: may conceal unsafe behavior outside of the intended scope, and potentially disguises the unsafe nature of the file from a programmer reading a single function in isolation.
 * access control: extreme non-local behavior, applying access control to a top-level declaration does not affect its contents, and accidentally making something public in your API is hard to walk back.
@@ -363,7 +378,7 @@ It may be desirable to indicate these default behaviors in the positions where t
 
 ## Alternatives considered
 
-### Inheriting [SE-0466] carve outs for default actor isolation
+### Inheriting [SE-0466] carve-outs for default actor isolation
 
 A previous iteration of this proposal used SE-0466's rules for defaults, such that file-level default isolation had a file scoped version of the same behavior as module-level default isolation.
 
@@ -476,6 +491,9 @@ Additionally, `@diagnose` has already been accepted, so `default @diagnose` natu
 
 ## Revision history
 
+* Revision 5 (pre-second-review):
+  * Changed file-level default isolation to apply to top-level globals (script mode) and allow existing rules to reject illegal defaults.
+  * Explicitly mention kinds of declarations that file-default isolation does not apply to.
 * Revision 4 (pre-second-review):
   * Changed file-level default isolation to *not* inherit SE-0466's `-default-isolation` inference rules and carve-outs. Defaults apply to every unspecified top-level declaration.
 * Revision 3 (following return for revision):
@@ -488,6 +506,7 @@ Additionally, `@diagnose` has already been accepted, so `default @diagnose` natu
   * Added grammar rules and specified that `using` is only legal in top-level scope.
 
 [SE-0343]: 0343-top-level-concurrency.md
+[SE-0412]: 0412-strict-concurrency-for-global-variables.md
 [SE-0466]: 0466-control-default-actor-isolation.md
 [SE-0478]: 0478-default-isolation-typealias.md
 [SE-0522]: 0522-source-warning-control.md
