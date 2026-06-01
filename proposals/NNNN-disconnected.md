@@ -89,69 +89,225 @@ the value as `sending`, allowing it to cross isolation boundaries.
 
 ## Detailed design
 
-The `Disconnected` type is a simple wrapper that enforces region isolation
-through the type system:
+The `Disconnected` type is a wrapper that enforces region isolation through
+the type system:
 
 ```swift
-/// A type that wraps a value in a disconnected isolation region.
+/// A wrapper that holds a value in a disconnected isolation region.
 ///
-/// Values of type `Disconnected<T>` are guaranteed to be in a disconnected
-/// region, meaning they have no references to or from other isolation regions.
-/// This allows them to be safely transferred across isolation boundaries and
-/// stored in data structures that preserve the disconnected property.
+/// A value of `Disconnected<Value>` lives in a disconnected region: it has no
+/// references to or from any other isolation region. That guarantee lets you
+/// store such values in generic containers and later transfer them across
+/// isolation boundaries without losing the information that the value was
+/// in a disconnected region.
+///
+/// ## What is a disconnected region?
+///
+/// Region-based isolation partitions the values that exist at any point
+/// during a program's execution into *isolation regions* based on which
+/// references reach which storage. A value is in a *disconnected region*
+/// when no reference reaches into or out of its storage from any other
+/// region. Such a value is safe to transfer to a different isolation
+/// region, such as an actor, a `Task`, or another concurrent context,
+/// because the act of transferring it cannot create a data race.
+///
+/// In practice, a disconnected region typically arises from one of:
+///
+/// - A freshly constructed value whose initializer arguments were
+///   themselves disconnected.
+/// - A value that was just removed from another disconnected container.
+/// - A `sending` parameter at a function boundary, which the callee
+///   receives in a disconnected region.
+/// - A `sending` return value from a function, which the caller receives
+///   in a disconnected region.
+///
+/// The disconnected property is normally only tracked at `sending`
+/// boundaries. `Disconnected<Value>` lets you preserve it across storage
+/// boundaries (generic containers, stored properties, queues) that would
+/// otherwise lose region information once the value is no longer at a
+/// `sending` boundary.
+///
+/// ## Operations
+///
+/// Values enter the wrapper through ``init(_:)``, which requires a `sending`
+/// argument. They leave through ``take()`` or ``swap(newValue:)``, both of
+/// which return `sending Value`. ``withValue(body:)`` lends the wrapped value
+/// in place to a closure that receives an `inout sending Value`.
+///
+/// Every operation either consumes the wrapper or replaces the wrapped value
+/// through a `sending` boundary, so no alias into the wrapper's storage can
+/// outlive a transfer. That property is what lets `Disconnected` conform to
+/// `Sendable` regardless of whether `Value` itself conforms to `Sendable`.
+///
+/// ## Producing values that can cross isolation boundaries
+///
+/// Use ``take()`` to remove the wrapped value. The call consumes the
+/// wrapper, so no further operations on it are possible. The returned
+/// value is in a disconnected region, so you can transfer it across an
+/// isolation boundary in the same expression, or store it and transfer it
+/// later:
+///
+/// ```swift
+/// final class Resource: ~Sendable {}
+///
+/// // `wrapper` was popped from a queue or other container holding
+/// // `Disconnected<Resource>` values, so the resource it holds is
+/// // already known to be disconnected from the surrounding context.
+/// func process(wrapper: consuming Disconnected<Resource>) async {
+///     let resource = wrapper.take()
+///     await Task.detached {
+///         use(resource) // OK: `resource` is in a disconnected region.
+///     }.value
+/// }
+/// ```
+///
+/// Without the disconnected guarantee on the result, the captured `resource`
+/// would be considered part of the caller's region and the capture in the
+/// detached task would not be allowed.
+///
+/// ## Replacing the wrapped value in place
+///
+/// Use ``swap(newValue:)`` to exchange the held value for a new one in a
+/// single step. The `newValue` argument is required to be in a disconnected
+/// region. `swap` returns the previously stored value, which is in a
+/// disconnected region:
+///
+/// ```swift
+/// final class Resource: ~Sendable {}
+///
+/// func swapResources(in wrapper: inout Disconnected<Resource>) async {
+///     let old = wrapper.swap(newValue: Resource())
+///     await Task.detached {
+///         dispose(old) // OK: `old` is in a disconnected region.
+///     }.value
+/// }
+/// ```
+///
+/// Both directions of the swap cross a disconnected-region boundary: the
+/// new value is required to be disconnected when it goes in, and the old
+/// value is known to be disconnected when it comes out.
+///
+/// ## Mutating the wrapped value without taking it out
+///
+/// Use ``withValue(body:)`` when you need temporary mutable access without
+/// removing the value. The closure receives the value as `inout sending
+/// Value`, and `withValue` returns whatever `body` returns:
+///
+/// ```swift
+/// var wrapper = Disconnected([Int]())
+/// wrapper.withValue { array in
+///     array.append(42)
+/// }
+/// ```
+///
+/// The `inout sending` parameter form means more than ordinary `inout`:
+/// within the closure, the value can be transferred to another isolation
+/// region, as long as the wrapper is left holding a disconnected value
+/// when the closure returns. In typical use the closure performs an
+/// in-place mutation; the more permissive shape is what makes `withValue`
+/// composable with code that itself wants to send the value to another
+/// isolation region.
 @frozen
 public struct Disconnected<Value: ~Copyable>: ~Copyable, Sendable {
-    /// Initializes a new disconnected value by consuming the passed value.
+    /// Creates a disconnected wrapper around the given value.
     ///
-    /// The value must be in a disconnected region. This is enforced by
-    /// requiring the parameter to be `sending`.
+    /// The argument is required to be in a disconnected region at the call
+    /// site. A freshly constructed value with no aliases satisfies this
+    /// requirement directly:
     ///
-    /// - Parameter value: The value to wrap in a disconnected region.
+    /// ```swift
+    /// final class Resource: ~Sendable {}
+    /// let wrapper = Disconnected(Resource())
+    /// ```
+    ///
+    /// - Parameter value: The value to wrap. The wrapper takes ownership of
+    ///   it.
     public init(_ value: consuming sending Value)
 
-    /// Consumes the disconnected wrapper and returns the underlying value.
+    /// Consumes the wrapper and returns the wrapped value.
     ///
-    /// The returned value is `sending`, indicating it is in a disconnected
-    /// region and can be transferred across isolation boundaries.
+    /// The returned value is in a disconnected region, so you can transfer it
+    /// across an isolation boundary:
     ///
-    /// - Returns: The wrapped value as a `sending` result.
+    /// ```swift
+    /// let wrapper = Disconnected(Resource())
+    /// let resource = wrapper.take()
+    /// // `resource` can now be sent to another isolation region.
+    /// ```
+    ///
+    /// After `take()` returns, the wrapper has been consumed and no further
+    /// operations on it are possible.
+    ///
+    /// - Returns: The previously wrapped value, in a disconnected region.
     public consuming func take() -> sending Value
 
-    /// Swaps the current disconnected value with a new one.
+    /// Replaces the wrapped value with a new value and returns the previous
+    /// one.
     ///
-    /// The returned value is `sending`, indicating it is in a disconnected
-    /// region and can be transferred across isolation boundaries.
+    /// `newValue` is required to be in a disconnected region. The previously
+    /// stored value is returned and is in a disconnected region:
     ///
-    /// - Parameter newValue: The new value to wrap in a disconnected region.
-    /// - Returns: The currently wrapped value as a `sending` result.
-    mutating func swap(newValue: consuming sending Value) -> sending Value
+    /// ```swift
+    /// var wrapper = Disconnected(Resource())
+    /// let old = wrapper.swap(newValue: Resource())
+    /// // `old` can now be sent to another isolation region.
+    /// ```
+    ///
+    /// - Parameter newValue: The replacement value.
+    /// - Returns: The previously wrapped value, in a disconnected region.
+    @discardableResult
+    public mutating func swap(
+        newValue: consuming sending Value
+    ) -> sending Value
 
-    /// Calls the given closure with the disconnected value.
+    /// Calls `body` with mutable access to the wrapped value.
     ///
-    /// - Parameter body: A closure with a parameter of Value that has access
-    ///   to the disconnected value.
-    /// - Returns: The return value, if any, of the body closure parameter.
-    mutating func withValue<Return: ~Copyable, Failure>(
+    /// The closure receives the value as `inout sending`, so within the
+    /// closure scope the value can be transferred to another isolation
+    /// region. The wrapper is required to hold a disconnected value once
+    /// `body` returns.
+    ///
+    /// ```swift
+    /// var wrapper = Disconnected([1, 2, 3])
+    /// wrapper.withValue { array in
+    ///     array.append(4)
+    /// }
+    /// ```
+    ///
+    /// If `body` throws, the wrapper retains whatever value the closure
+    /// last left in storage and the error propagates to the caller.
+    ///
+    /// - Parameter body: A closure that receives `inout sending` access to
+    ///   the wrapped value.
+    /// - Returns: The value returned by `body`.
+    /// - Throws: Any error thrown by `body`.
+    public mutating func withValue<Return: ~Copyable, Failure>(
         body: (inout sending Value) throws(Failure) -> Return
     ) throws(Failure) -> Return
 }
 ```
 
-The `Disconnected` type conforms to `Sendable` because it guarantees its wrapped
-value is in a disconnected region. Since disconnected regions can be safely
-transferred across isolation boundaries, `Disconnected<T>` is safe to share
-regardless of whether `T` conforms to `Sendable`. Furthermore, all methods on
-`Disconnected` are either `consuming` or `mutating` which means that the
-compiler will enforce static and dynamic exclusivity checking prohibiting
-overlapping and concurrent access.
+The `Disconnected` type conforms to `Sendable` because it guarantees its
+wrapped value is in a disconnected region. Since disconnected regions can be
+safely transferred across isolation boundaries, `Disconnected<T>` is safe to
+share regardless of whether `T` conforms to `Sendable`. Furthermore, all
+methods on `Disconnected` are either `consuming` or `mutating`, which means
+that the compiler will enforce static and dynamic exclusivity checking
+prohibiting overlapping and concurrent access.
 
 The API is intentionally restricted to atomic transfers at `sending`
-boundaries: `init` consumes a `sending` value, `take` consumes the wrapper and
-returns a `sending` value, and `swap` exchanges the wrapped value for another
-`sending` value. There is no accessor that exposes the wrapped value without
-consuming or replacing it. See the Alternatives considered section for why a
-borrow accessor would be unsound given the unconditional `Sendable`
-conformance.
+boundaries: `init` consumes a `sending` value; `take` consumes the wrapper
+and returns a `sending` value; `swap` exchanges the wrapped value for
+another `sending` value; and `withValue` lends the wrapped value as
+`inout sending` for the duration of a closure that must leave a
+disconnected value behind. There is no accessor that exposes the wrapped
+value without consuming or replacing it. See the Alternatives considered
+section for why a borrow accessor would be unsound given the unconditional
+`Sendable` conformance.
+
+`Disconnected` lives in the `Synchronization` module alongside `Mutex`,
+`Atomic`, and the other primitives that the standard library provides for
+crossing isolation boundaries.
 
 ## Source compatibility
 
