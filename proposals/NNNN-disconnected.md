@@ -332,6 +332,17 @@ Different names such as `Nonisolated` and `DisconnectedRegion` were considered;
 however, the name `Disconnected` felt the most fitting. Furthermore, the concept
 of a disconnected region was introduced in previous proposals.
 
+Names rooted in the `sending` / `Sendable` vocabulary, such as `Sent<Value>`
+and `Sending<Value>`, were also suggested on the grounds that they would
+compose more obviously with the existing concurrency keywords. They were
+rejected because `sending` describes a property of values at function
+boundaries (a transfer event), not a stable region state. A wrapper that
+simply holds a value living in a disconnected region is not mid-transfer,
+so naming the type after the transfer event would misrepresent what the
+wrapper is. The disconnected-region concept introduced by SE-0414 is the
+actual invariant the wrapper maintains, so reusing that name keeps the
+vocabulary consistent with the existing isolation model.
+
 ### Using `sending` annotations on generic parameters
 
 Rather than introducing a wrapper type, we could attempt to parameterize generic
@@ -412,6 +423,35 @@ wrapper's storage can outlive a transfer. A sound borrow- or mutate-style API
 would require either making `Disconnected` conditionally `Sendable` (which
 defeats its purpose) or new language support for tracking the region of values
 projected out of an unconditionally `Sendable` wrapper.
+
+### A read accessor when `Value` is `Sendable`
+
+The soundness argument against a read accessor does not apply when `Value`
+itself conforms to `Sendable`: a reference exposed by reading a `Sendable`
+wrapped value already lives in a region that is safe to share, so projecting
+it out of the wrapper cannot create a data race. A conditional extension
+adding a read accessor on the `Sendable` case was therefore considered:
+
+```swift
+extension Disconnected where Value: ~Copyable & Sendable {
+  public var sendableValue: Value { borrow }
+}
+```
+
+This accessor was not included because no compelling use case has emerged
+so far. Code that is generic over `Value: Sendable` can already unwrap the
+wrapper through `take()` or `swap(newValue:)` and operate on the value
+directly; code that has a concrete `Disconnected<T>` for a `Sendable T` can
+work with `T` directly without going through the wrapper at all. Adding a
+`Sendable`-only accessor would also split the API surface along
+conformance lines, forcing callers to remember which operations are
+available based on `Value`'s conformance and forcing generic code to
+migrate when its constraints change. The proposed API stays uniform across
+all `Value` types.
+
+If a concrete use case for direct read access on `Sendable` payloads
+emerges, this accessor can be added in a future revision without breaking
+source or ABI compatibility.
 
 ### Support for `~Escapable` values
 
