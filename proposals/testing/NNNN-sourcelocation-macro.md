@@ -43,10 +43,12 @@ public func withKnownIssue(
 This macro, being underscored, is not formally supported, nor does it appear in
 Swift Testing's documentation. It is also not sufficient to use something like
 [`SourceLocation.init()`](https://developer.apple.com/documentation/testing/sourcelocation/init(fileid:filepath:line:column:))
-as it will capture the _wrong_ source location. Thus, test authors have no
+as it will capture the _wrong_ source location[^wrongLoc]. Thus, test authors have no
 supported mechanism for capturing an instance of `SourceLocation` short of
 writing out all four arguments and constructing an instance of `SourceLocation`
 manually.
+
+[^wrongLoc]: For more information about this constraint, see [SE-0422](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0422-caller-side-default-argument-macro-expression.md).
 
 ## Proposed solution
 
@@ -94,9 +96,10 @@ Note that, as indicated in the documentation for this macro, you must specify
 the module name when using this macro to avoid conflicting with the [`#sourceLocation(file:line:)`](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/statements/#Line-Control-Statement)
 statement built into the Swift language.
 
-The existing `#_sourceLocation` macro will be marked deprecated and renamed, but
-will remain available to use for source compatibility with earlier Swift
-releases:
+The existing `#_sourceLocation` macro will be marked deprecated, and will direct
+developers to use `#Testing::sourceLocation` instead in its deprecation message.
+The existing macro will remain available to use for source compatibility with
+earlier Swift releases:
 
 ```diff
  /// Get the current source location.
@@ -159,9 +162,14 @@ No additional integration with tools is required.
   symbols is normally a "tell" for developers that they're using something in
   Swift that isn't guaranteed to exist in future Swift releases.
 
-- **Naming the macro something different.** We considered alternatives such as
-  `#here` and `#currentSourceLocation`, but `#sourceLocation` seems the most
-  appropriate name for it.
+- **Naming the macro something different.** Because of the existing
+  `#sourceLocation(file:line:)` statement, test authors must use a module
+  selector to qualify `#sourceLocation` (as `#Testing::sourceLocation`). We
+  considered alternatives such as `#here` and `#currentSourceLocation`, but
+  `#sourceLocation` seems the most appropriate name for it. It is our hope that,
+  in the future, the compiler will allow us to unambiguously use
+  `#sourceLocation` as a default argument (see **future directions** for more
+  discussion).
 
 - **Including this macro and the `SourceLocation` type in the standard library
   instead of Swift Testing.** The value of `SourceLocation` isn't
