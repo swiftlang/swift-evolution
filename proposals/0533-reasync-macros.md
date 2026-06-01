@@ -1,12 +1,11 @@
 # Generating synchronous overloads of `async` functions with a macro
 
-* Proposal: [SE-NNNN](NNNN-reasync-macros.md)
+* Proposal: [SE-0533](0533-reasync-macros.md)
 * Authors: [broken-circle](https://github.com/broken-circle)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Active review (June 1...June 15, 2026)**
 * Implementation: [swift-developer-tools/swift-reasync](https://github.com/swift-developer-tools/swift-reasync/tree/evolution)
 * Review: ([pitch](https://forums.swift.org/t/pitch-reasync-and-reasyncmembers-macros/86180))
-
 
 ## Summary of changes
 
