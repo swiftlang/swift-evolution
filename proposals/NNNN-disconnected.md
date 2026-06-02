@@ -453,6 +453,37 @@ If a concrete use case for direct read access on `Sendable` payloads
 emerges, this accessor can be added in a future revision without breaking
 source or ABI compatibility.
 
+### Requiring `withValue`'s closure to return `sending`
+
+`Mutex.withLock` declares its closure parameter as
+`(inout sending Value) throws(E) -> sending Result` and propagates the
+`sending Result` to its outer return. A parallel signature was considered
+for `withValue`:
+
+```swift
+public mutating func withValue<Return: ~Copyable, Failure>(
+    body: (inout sending Value) throws(Failure) -> sending Return
+) throws(Failure) -> sending Return
+```
+
+This alternative was rejected because the non-sending `Return` is
+strictly the more expressive signature. Two closure shapes need to be
+supported: returning a value derived from the wrapped value so the
+caller can transfer it across an isolation boundary, and returning a
+value tied to the caller's region (such as a captured non-Sendable
+value used alongside the wrapped value). The first shape is expressible
+under either signature, with non-sending `Return` encoding it by
+returning `Disconnected<T>` from the closure. The second shape is only
+expressible under non-sending `Return`, because a value already in the
+caller's region cannot be returned at a `sending` boundary.
+
+The soundness concern the alternative would enforce is already covered
+by the `inout sending Value` parameter. A closure that returned a value
+aliasing into the wrapped storage would leave that storage with a
+cross-region reference at exit, violating the `sending` invariant on
+the parameter and producing a compile-time error regardless of how the
+return is declared.
+
 ### Support for `~Escapable` values
 
 The current design restricts `Disconnected` to escapable types. The disconnected
