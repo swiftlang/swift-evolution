@@ -326,6 +326,20 @@ extension AdvancedWidget { ... }
 
 As with `@available` written on a top-level declaration, default availability is inherited by nested members and inner types per the standard `@available` propagation rules.
 
+### Criteria for adding new defaults
+
+We expect new attributes and modifiers to go through Swift Evolution, either as a section in a proposal for a new attribute or modifier, or as part of a proposal modifying an existing attribute or modifier. This allows edge cases and consistency of behavior compared to existing file-level defaults to be considered. We feel a new modifier or attribute would be an appropriate candidate if it:
+
+- Can apply with consistent behavior to most top-level declarations.
+- Is not expected to apply to preexisting top-level declaration kinds in the future.
+- Has lexical scoping rules of some kind.
+- Is often written on most or every top-level declaration in a file.
+
+> [!NOTE]
+> Changing what top-level declarations support an attribute or modifier when that attribute or modifier is supported by `default` may pose a source compatibility problem; existing files may use that file default and feature those declarations. To avoid special case exceptions or language mode staging for file-level defaults, it would be ideal to finalize the design of the default value before it is supported by `default`.
+
+See [Additional attributes and modifiers](#additional-attributes-and-modifiers) under Future directions for specific candidates and their potential drawbacks.
+
 ## Source compatibility
 
 This proposal is strictly additive. `default` is already a reserved keyword and top-level `default` is not valid Swift today, so no existing code should be affected. Use of a new default such as `@available` or actor isolation carries the same source compatibility implications as writing it on top-level declarations.
@@ -360,13 +374,13 @@ We are especially interested in feedback on attributes and modifiers that should
 
 Some examples and their potential drawbacks include:
 
-* `@concurrent`: only legal on top-level async functions, not types, extensions, etc. May require additional rules for `default` to apply to methods, or to be supported on all relevant top-level declarations.
+* `@concurrent`: only legal on top-level async functions, not types, extensions, etc. May require additional rules for `default` to apply to methods (which may be undesirable), or for `@concurrent` to be supported on all relevant top-level declarations. No lexical scoping.
 * `@preconcurrency`: there is potentially unique value in being locally explicit about `@preconcurrency`, and it may be desirable to avoid proliferation.
 * `@unsafe`: may conceal unsafe behavior outside of the intended scope, and potentially disguises the unsafe nature of the file from a programmer reading a single function in isolation.
-* access control: extreme non-local behavior, applying access control to a top-level declaration does not affect its contents, and accidentally making something public in your API is hard to walk back.
+* access control: extreme non-local behavior, applying access control to a top-level declaration usually does not affect its contents (with exceptions like `extension`), and accidentally making something public in your API is hard to walk back.
 
 > [!NOTE]
-> Access control has special behavior with regard to `extension`. A `public extension` will make the methods and computed properties contained `public`, which is not the case for other nominal declarations; A `public class` does not make all of its members and methods public, for example. Edge case behavior like this in new and existing attributes and modifiers, which further contributes to non-local behavior, may increase the motivation not to support them for `default`.
+> Access control doesn't normally have lexical scoping, but it has special behavior with regard to `extension`. A `public extension` will make the methods and computed properties contained `public`, which is not the case for other nominal declarations; A `public class` does not make all of its members and methods public, for example. Edge case behavior like this in new and existing attributes and modifiers, which further contributes to non-local behavior, may increase the motivation not to support them for `default`.
 
 ### Macros
 
@@ -403,6 +417,7 @@ We did not choose this keyword for the following reasons:
 1. `using` has associations with C++ aliasing and namespace management, so choosing it could confuse some programmers coming from C++.
 2. In explanation and (most) semantics, this feature is a *default*, and choosing syntax that states it as such makes that more clear.
 3. `default` is already a reserved keyword, and cannot appear in top-level contexts. While `using` is unambiguous for the cases here, parsing would be ambiguous for future evolution that wants to use parentheses (`using (...)`) or braces (`using {...}`) (since you can define a `using` function and call it in this way, but `default` cannot be used as an identifier).
+  - [Existing code defines `using` functions](https://github.com/search?q=%2Ffunc+using%28%3F%3A%3C%7C%5C%28%29%2F+language%3ASwift+&type=code)
 
 However, compared to `default`, `using` may feel more open for future use to configure things that are not necessarily default behaviors. For some of the semantics in this proposal, `default` is a misrepresentation and `using` is more accurate. Consider `default nonisolated`. Nonisolated is already the language "default", but is not inferred for extensions of isolated types. `default` misrepresents the behavior, since in the current version of the proposal it is written on every unspecified top-level declaration. `using nonisolated` would not give a programmer the false intuition that this behaves in the same way as the inferred isolation.
 
@@ -491,6 +506,8 @@ Additionally, `@diagnose` has already been accepted, so `default @diagnose` natu
 
 ## Revision history
 
+* Revision 6 (pre-second review):
+  * Add a section with criteria for adding new attributes and modifiers as `default` candidates.
 * Revision 5 (pre-second-review):
   * Changed file-level default isolation to apply to top-level globals (script mode) and allow existing rules to reject illegal defaults.
   * Explicitly mention kinds of declarations that file-default isolation does not apply to.
