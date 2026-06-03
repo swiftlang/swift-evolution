@@ -299,7 +299,7 @@ statements require an `@unknown default` case. Since previous cancellation was s
 has been already written the developer already has handled the cases of cancellation without a 
 given reason; this will continue to be the case.
 
-Note: For now the `Reason` type is restricted to known simple enumeration values without any
+> Note: The `Reason` type is restricted to known simple enumeration values without any
 associated values. This is due to the unknown impacts of what that type of size increase to 
 tasks would entail. Any future proposals to modify that would require research to determine
 specific impact.
