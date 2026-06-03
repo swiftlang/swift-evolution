@@ -395,7 +395,7 @@ if Task.hasActiveDeadline {
 
 When the call to `activeDeadline(for:)` is made, the query looks up the most narrow
 application of any specified deadline with that clock, if the current nesting of 
-`withDeadline` calls does not used the specified clock type then the next nesting
+`withDeadline` calls does not use the specified clock type then the next nesting
 up the call stack is used.
 
 If the nesting of `withDeadline` is stacked with a `ContinuousClock` deadline of 
