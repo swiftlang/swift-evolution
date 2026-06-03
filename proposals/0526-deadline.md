@@ -427,7 +427,7 @@ type of `SystemClockID`. As a side effect this means that new APIs can be writte
 allows for the direct identification of the specific clock but also a constraint to the 
 standard system clocks.
 
-Note: since the system clock may grow additional identifiers it is left as non-exhaustive.
+> Note: Since the system clock may grow additional identifiers it is left as non-exhaustive.
 
 ```swift
 @nonexhaustive
