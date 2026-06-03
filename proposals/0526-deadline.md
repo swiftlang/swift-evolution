@@ -420,7 +420,7 @@ and a new scope is applied to `in 10 seconds` both on the continuous clock, then
 logic will effectively skip the `in 10 seconds` since that deadline is known to beyond the current
 active deadline. This must have some way of determining if a given clock passed in to 
 the `withDeadline` functions is that same specific clock. To that end, the clocks are 
-required to be identified. The two major clocks; `ContinuousClock` and `SuspendingClock`
+required to be identifiable. The two major clocks; `ContinuousClock` and `SuspendingClock`
 both will gain a new conformance to `Identifiable` and each of which will have a new ID
 type of `SystemClockID`. As a side effect this means that new APIs can be written as: 
 `where C: Clock & Identifiable, C.ID == SystemClockID`. That particular refinement not only
