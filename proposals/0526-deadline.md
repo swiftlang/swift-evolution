@@ -816,7 +816,7 @@ nesting. This approach was not taken because:
    explicit `withDeadline` API would remain useful even if such a mechanism were added.
 
 ## Changelog
-- 1.2 Revisde for feedback
+- 1.2 Revised for feedback
   - Added accessors to add a way to access the active deadlines
 - 1.1 Returned for revision
   - The typed throws signature was altered to avoid an extra error type
