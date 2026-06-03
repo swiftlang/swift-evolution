@@ -363,7 +363,7 @@ property on the cancellation error.
 External systems may need to interoperate with active deadlines. This means that the
 applied deadline needs to be retrievable, however this particularly becomes
 tricky since the clock is generic for the deadlines. To that end
-the accessor for the active deadline is generic for a clock type
+the accessor for the active deadline accepts a generic clock instance:
 
 ```swift
 extension Task where Success == Never, Failure == Never {
