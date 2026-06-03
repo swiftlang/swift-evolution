@@ -259,7 +259,7 @@ guarantees.
 
 This API uses the base cancellation to communicate the expiration of the deadline.
 The information to differentiate a cancellation due to normal task cancellation is
-expanded to handle two new forms of cancellation; a cancellation due to normal task cancellation
+expanded to handle a new reason for cancellation: 
 and a cancellation due to deadline expiration. Since this is not a closed set of possible reasons
 for future development, this reason is left as an open enumeration.
 
