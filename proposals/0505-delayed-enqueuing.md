@@ -3,8 +3,8 @@
 * Proposal: [SE-0505](0505-delayed-enqueuing.md)
 * Authors: [Alastair Houghton](https://github.com/al45tair)
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Status: **Returned for revision**
-* Implementation: On main branch
+* Status: **Awaiting Review**
+* Implementation: https://github.com/swiftlang/swift/pull/89075
 * Review: ([first
   pitch](https://forums.swift.org/t/pitch-custom-main-and-global-executors/77247))
   ([second pitch](https://forums.swift.org/t/pitch-2-custom-main-and-global-executors/78437))
@@ -58,57 +58,252 @@ or not a given executor supports the new API surface:
 ```swift
 protocol SchedulingExecutor: Executor {
   ...
+}
+```
+
+This new protocol will have a method that can be used to enqueue a job
+at a specific time or after a specified delay:
+
+```swift
+  ...
+
   /// Enqueue a job to run after a specified delay.
-  ///
-  /// You need only implement one of the two enqueue functions here;
-  /// the default implementation for the other will then call the one
-  /// you have implemented.
   ///
   /// Parameters:
   ///
   /// - job:       The job to schedule.
-  /// - after:     A `Duration` specifying the time after which the job
-  ///              is to run.  The job will not be executed before this
-  ///              time has elapsed.
+  /// - run:       A ``FireTime`` specifying when the job should execute.
+  ///              The job will not execute before the specified time.
   /// - tolerance: The maximum additional delay permissible before the
   ///              job is executed.  `nil` means no limit.
   /// - clock:     The clock used for the delay.
-  func enqueue<C: Clock>(_ job: consuming ExecutorJob,
-                         after delay: C.Duration,
-                         tolerance: C.Duration?,
-                         clock: C)
-
-  /// Enqueue a job to run at a specified time.
+  /// - onCancellation:
+  ///              Specify what to do when the job is cancelled.
   ///
-  /// You need only implement one of the two enqueue functions here;
-  /// the default implementation for the other will then call the one
-  /// you have implemented.
+  /// Returns a ``JobCancellationToken`` that can be used to
+  /// cancel the job before it runs.
+  func enqueue<C: Clock>(_ job: consuming ExecutorJob,
+                         run: FireTime<C>,
+                         clock: C,
+                         tolerance: C.Duration?,
+                         onCancellation: CancellationBehavior)
+    -> JobCancellationToken
+
+  ...
+```
+
+Some executors may find it more efficient to run after a delay rather than
+at a specific instant (or vice-versa).  A previous iteration of this design
+attempted to provide two versions of the `enqueue()` method, one for a delay
+and one for an instant, but since we only wanted to require an implementation
+of _one_ of them, that created an unfortunate situation where an
+implementation that provided neither would trigger an infinite recursion.
+
+This seems undesirable, but we can fix it by adding a new type, `FireTime`,
+as follows:
+
+```swift
+/// Represents the time at which a job should be scheduled.
+///
+/// A ``FireTime`` is either relative or absolute, and provides
+/// methods to convert to relative or absolute as required by its
+/// user.
+public enum FireTime<C: Clock> {
+  /// A relative time
+  case after(C.Duration)
+
+  /// An absolute time
+  case at(C.Instant)
+
+  /// Return the duration from now until the ``FireTime``.
+  public func asDuration(clock: C) -> C.Duration
+
+  /// Return the absolute time represented by the ``FireTime``.
+  public func asInstant(clock: C) -> C.Instant
+}
+```
+
+which allows us to have a single `enqueue()` method that can take either
+a `Duration` or an `Instant`, while still making it easy to implement if
+a given executor wishes to only actually use one or other behind the
+scenes.
+
+We also need the `CancellationBehaviour` type:
+
+```swift
+/// Specifies whether a job is to be dropped on cancellation, or
+/// whether it should execute immediately.
+///
+/// For ``AsyncTask``s, dropping the job is generally the wrong choice;
+/// instead the job should execute immediately and test for cancellation.
+public enum CancellationBehavior {
+  /// On cancellation, drop the job.
+  case drop
+
+  /// On cancellation, execute the job immediately.
+  case executeImmediately
+}
+```
+
+which says whether a job should execute immediately or be dropped when it
+is cancelled.  The `executeImmediately` option might seem surprising on the
+face of it, but it is necessary for typical `AsyncTask` usage, where we
+would normally want the job to execute straight away and start by testing
+for cancellation and throwing `CancellationError` if it turns out to be
+cancelled.
+
+The `enqueue()` API will return a `JobCancellationToken` that can be used to
+cancel a scheduled job:
+
+```swift
+/// Represents a job that is scheduled for future execution.
+public struct JobCancellationToken: ~Copyable {
+  /// The executor that this job was scheduled on
+  public let executor: any SchedulingExecutor
+
+  /// The job ID for this job
+  public let jobID: UInt64
+
+  /// Opaque, executor-specific data
+  public let opaqueData: InlineArray<2, Int>
+
+  /// Cancellation behavior
+  public let cancellationBehavior: CancellationBehavior
+
+  /// Optional clean-up function
+  public let cleanUp: (@convention(thin) (borrowing JobCancellationToken) -> ())?
+
+  public init(
+    jobID: UInt64,
+    opaqueData: InlineArray<2, Int>,
+    onCancellation behavior: CancellationBehavior,
+    cleanUp: (@convention(thin) (borrowing JobCancellationToken) -> ())? = nil
+  )
+
+  deinit {
+    if let cleanUp {
+      cleanUp(self)
+    }
+  }
+
+  /// A convenience method that calls ``executor.cancel()`` with
+  /// this token.
+  public consuming func cancel() {
+    executor.cancel(jobWithToken: self)
+  }
+}
+```
+
+The token contains the job ID, as well as two words of executor-specific
+data, the cancellation behavior setting, and an optional clean-up function
+that can be used by executor implementations that require some clean-up
+action to be taken on token destruction.  The latter is useful for the
+Dispatch executor implementation, and may be useful for other executors
+also.
+
+The reason the `JobCancellationToken` must contain a reference to the
+executor is that in cases where we are using a `Clock` that the executor
+does not recognize, the executor will ask the `Clock` to schedule the
+job instead --- and the `Clock` implementation will likely do this by
+handing the job off to some other executor instance.
+
+Next, to _actually_ cancel the job, `SchedulingExecutor` will
+expose the following API that consumes the `JobCancellationToken`:
+
+```swift
+  ...
+
+  /// Cancel a scheduled job.
+  ///
+  /// Requests that the executor cancel the job identified by the
+  /// ``jobWithToken`` argument.  Note: executors may not be able
+  /// to cancel any given job, for various reasons including:
+  ///
+  /// - Where the job has already started executing.
+  /// - Where the job has already completed.
+  /// - Where the underlying implementation is unable to cancel
+  ///   future work.
+  ///
+  /// Users of this API should expect it to perform on a best-effort
+  /// basis and should not rely on the job being cancelled.
   ///
   /// Parameters:
   ///
-  /// - job:       The job to schedule.
-  /// - at:        The `Instant` at which the job should run.  The job
-  ///              will not be executed before this time.
-  /// - tolerance: The maximum additional delay permissible before the
-  ///              job is executed.  `nil` means no limit.
-  /// - clock:     The clock used for the delay..
-  func enqueue<C: Clock>(_ job: consuming ExecutorJob,
-                         at instant: C.Instant,
-                         tolerance: C.Duration?,
-                         clock: C)
+  /// - jobWithToken:  The scheduled job to cancel.
+  ///
+  func cancel(jobWithToken: consuming JobCancellationToken)
+
+  ...
+```
+
+Cancellation is racy and is therefore strictly best-effort; as the comment
+notes, the job may already have started executing, or may already have
+completed.
+
+Finally, to support these `Clock`-based APIs, we will add to the `Clock`
+protocol as follows:
+
+```swift
+protocol Clock {
+  ...
+  /// Run the given job on an unspecified executor at some point
+  /// after the given instant.
+  ///
+  /// Parameters:
+  ///
+  /// - job:         The job we wish to run
+  /// - at instant:  The time at which we would like it to run.
+  /// - tolerance:   The ideal maximum delay we are willing to tolerate.
+  /// - onCancellation:
+  ///                The selected cancellation behavior.
+  ///
+  /// Returns a ``JobCancellationToken`` that can be used to
+  /// cancel the job before it runs.
+  func run(_ job: consuming ExecutorJob,
+           run: FireTime<Self>, tolerance: Duration?,
+           onCancellation: CancellationBehavior)
+    -> JobCancellationToken
+
+  /// Enqueue the given job on the specified executor at some point after the
+  /// given instant.
+  ///
+  /// The default implementation uses the `run` method to trigger a job that
+  /// does `executor.enqueue(job)`.  If a particular `Clock` knows that the
+  /// executor it has been asked to use is the same one that it will run jobs
+  /// on, it can short-circuit this behaviour and directly use `run` with
+  /// the original job.
+  ///
+  /// Parameters:
+  ///
+  /// - job:         The job we wish to run
+  /// - on executor: The executor on which we would like it to run.
+  /// - run:         The time at which we would like it to run.
+  /// - tolerance:   The ideal maximum delay we are willing to tolerate.
+  /// - onCancellation:
+  ///                The selected cancellation behavior.
+  ///
+  /// Returns a ``JobCancellationToken`` that can be used to
+  /// cancel the job before it runs.
+  func enqueue(_ job: consuming ExecutorJob,
+               on executor: some Executor,
+               run: FireTime<Self>, tolerance: Duration?,
+               onCancellation: CancellationBehavior)
+    -> JobCancellationToken
   ...
 }
 ```
 
-The reason for having both an `after delay:` method and an `at
-instant:` method is that converting from a delay to an instant is
-potentially lossy, and some executors may have direct support for one
-_or_ the other, but not necessarily both.
+There is a default implementation of the `enqueue` method on `Clock`,
+which calls the `run` method; if you attempt to use a `Clock` with an
+executor that does not understand it, and that `Clock` does not
+implement the `run` method, you will get a fatal error at runtime.
 
-As an implementer, you will only need to implement _one_ of the two
-APIs to get both of them working; there is a default implementation
-that will do the necessary mathematics for you to implement the other
-one.
+Executors that do not specifically recognise a particular clock may
+choose instead to have their `enqueue(..., clock:)` methods call the
+clock's `enqueue()` method; this will allow the clock to make an
+appropriate decision as to how to proceed.
+
+### Optimization: `asSchedulingExecutor`
 
 Using a cast to check that an executor conforms to
 `SchedulingExecutor` is potentially expensive, so we will additionally
@@ -146,57 +341,6 @@ time that `MyExecutor` implements `SchedulingExecutor` and doesn't
 have to do an expensive runtime search through the protocol
 conformance tables.
 
-Finally, to support these `Clock`-based APIs, we will add to the `Clock`
-protocol as follows:
-
-```swift
-protocol Clock {
-  ...
-  /// Run the given job on an unspecified executor at some point
-  /// after the given instant.
-  ///
-  /// Parameters:
-  ///
-  /// - job:         The job we wish to run
-  /// - at instant:  The time at which we would like it to run.
-  /// - tolerance:   The ideal maximum delay we are willing to tolerate.
-  ///
-  func run(_ job: consuming ExecutorJob,
-           at instant: Instant, tolerance: Duration?)
-
-  /// Enqueue the given job on the specified executor at some point after the
-  /// given instant.
-  ///
-  /// The default implementation uses the `run` method to trigger a job that
-  /// does `executor.enqueue(job)`.  If a particular `Clock` knows that the
-  /// executor it has been asked to use is the same one that it will run jobs
-  /// on, it can short-circuit this behaviour and directly use `run` with
-  /// the original job.
-  ///
-  /// Parameters:
-  ///
-  /// - job:         The job we wish to run
-  /// - on executor: The executor on which we would like it to run.
-  /// - at instant:  The time at which we would like it to run.
-  /// - tolerance:   The ideal maximum delay we are willing to tolerate.
-  ///
-  func enqueue(_ job: consuming ExecutorJob,
-               on executor: some Executor,
-               at instant: Instant, tolerance: Duration?)
-  ...
-}
-```
-
-There is a default implementation of the `enqueue` method on `Clock`,
-which calls the `run` method; if you attempt to use a `Clock` with an
-executor that does not understand it, and that `Clock` does not
-implement the `run` method, you will get a fatal error at runtime.
-
-Executors that do not specifically recognise a particular clock may
-choose instead to have their `enqueue(..., clock:)` methods call the
-clock's `enqueue()` method; this will allow the clock to make an
-appropriate decision as to how to proceed.
-
 ### Embedded Swift
 
 We will not be able to support the new `Clock`-based `enqueue` APIs on
@@ -226,6 +370,33 @@ This is a prerequisite for the custom main and global executors work.
 
 ## Alternatives considered
 
+### No explicit support for cancellation
+
+Without returning some kind of token from the scheduling methods,
+it would not be possible to implement cancellation robustly.  This
+is the situation with the existing implementation, and it leads to
+a problem wherein a cancelled `Task.sleep()` effectively leaks resources
+until its timer expires.  This is particularly problematic for server-side
+development as that leans heavily on cancellation to cope with the
+situation where clients prematurely disconnect, and would therefore be
+vulnerable to a denial-of-service attack as a result.
+
+### Separate `enqueue()` methods for delays and instants
+
+A previous version of this proposal had two `enqueue()` methods,
+one that took a `Duration` and another that took an `Instant`.  It then
+had a default implementation of each that called the other, the intent
+being that an implementation of the protocol would only need to provide
+an implementation of _one_ of the two APIs (but could provide both where
+that made sense).
+
+This is an anti-pattern.  It means that protocol implementations are
+not forced to implement either function, and worse, if they do not,
+there is an infinite recursion.
+
+The solution is to add a new type that can hold either a `Duration` or
+an `Instant`.
+
 ### Adding conversion functions and traits for `Clock`s
 
 An alternative approach to the `clock.run()` and `clock.enqueue()`
@@ -249,6 +420,9 @@ We decided after some discussion that it was better instead for
 executors to know which `Clock` types they directly support, and in
 cases where they are handed an unknown `Clock`, have the `Clock`
 itself take responsibility for appropriately scheduling a job.
+
+This choice does have the downside that the job cancellation token
+needs to keep a reference to the chosen executor, mind.
 
 ### Adding special support for canonicalizing `Clock`s
 
