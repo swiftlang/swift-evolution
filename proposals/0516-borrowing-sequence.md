@@ -5,7 +5,9 @@
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Returned for revision**
 * Implementation: [swiftlang/swift#86811](https://github.com/swiftlang/swift/pull/86811), [swiftlang/swift#87483](https://github.com/swiftlang/swift/pull/87483), [swiftlang/swift#89630](https://github.com/swiftlang/swift/pull/89630)
-* Toolchain: [swift-PR-89630-2329-osx.tar.gz](https://store-030.blobstore.apple.com/swift-oss/tmp/pull-request/89630/2329/xcode/swift-PR-89630-2329-osx.tar.gz)
+* Toolchain: [swift-PR-89630-2329-osx.tar.gz](https://download.swift.org/tmp/pull-request/89630/2329/xcode/swift-PR-89630-2329-osx.tar.gz)
+
+
 * Review: ([pitch](https://forums.swift.org/t/pitch-borrowing-sequence/84332)) ([review](https://forums.swift.org/t/se-0516-borrowing-sequence/85122)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0516-borrowing-sequence/85846))
 * Previous Revision: [1][prev1]
 
