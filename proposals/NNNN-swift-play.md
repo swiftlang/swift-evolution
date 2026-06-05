@@ -105,17 +105,21 @@ ARGUMENTS:
   <playground-name>       The playground name to run
 
 OPTIONS:
-  --live-update           Execute playground and automatically re-execute on any source file changes (default: --live-update)
-  --one-shot              Execute playground and exit immediately
-  --list                  List all Playgrounds
-  --version               Show the version.
-  -h, -help, --help       Show help information.
+  --live-update           Execute playground and automatically re-execute on any source file changes (default:
+                          --live-update)
+  --one-shot              Execute playground and exit immediately
+  --list                  List all Playgrounds
+  --target <target>       Build the playground runner against the named target instead of the default set of
+                          library product targets.
+  --version               Show the version.
+  -h, -help, --help       Show help information.
 ```
 
 When a user invokes `swift play` in a package, SwiftPM builds a temporary
-"playground" executable, linking the package's library targets and the
-Playgrounds library.  SwiftPM then runs the "playground" executable, passing
-any necessary arguments to either list all available playgrounds, or to run a
+"playground" executable, linking the package's library and/or executable targets
+and the Playgrounds library.  The `--target` option can be used to override the
+choice of target that is built.  SwiftPM then runs the "playground" executable,
+passing any necessary arguments to either list all available playgrounds, or to run a
 specified playground.
 
 ### Macro
@@ -169,13 +173,17 @@ Then they can `import Playgrounds` to use the `#Playground` macro.
 
 ## Swift Build compatibility 
 
-The Swift Play implementation hasn't adopted Swift Build at the time of writing the proposal. However, the goal of the author is to update the implementation to be Swift Build compatible before the proposal is accepted, assuming no blocking issues are encountered.
+The Swift Play implementation supports both the new Swift Build system and the legacy build system.
 
 ## Security
 
 No additional security concerns are expected over existing ways to run package code using commands like `swift run` or `swift test`.
 
-In terms of privacy, developers should consider that any code or static data in `#Playground` bodies could end up in builds distributed externally, unless explicitly conditioned out or dead-code stripped.
+In terms of privacy, developers should consider that any code or static data in `#Playground` bodies could end up in builds distributed externally, unless explicitly conditioned out or dead-code stripped. (See "Dead code stripping" below.)
+
+## Dead code stripping
+
+The author has confirmed that in Release builds the build system's dead code stripping does strip out playground-only symbols from the product, including symbols like private functions that are only called by playground code.
 
 ## Impact on existing packages
 
@@ -183,7 +191,7 @@ There are no expected compatibility issues with existing packages.
 
 ## Alternatives considered
 
-`#Playground` code is only relevant to `swift play` builds, so I considered wrapping the macro expansion in a condition like `#if PLAYGROUND_MACRO_EXPANSION_ENABLED`, so the playground code would not be compiled in to non-play builds. The condition would be documented so that developers could condition out any other playground-specific code.  It turns out that this strategy won't work as expected. Swift type checks macros _before_ expansion, meaning that any references within the playground to code that is conditioned out would fail to type check. Instead we'll rely on dead-code stripping.
+`#Playground` code is only relevant to `swift play` builds, so I experimented with conditioning the macro expansion around a build condition. The way this worked was that any "playground" builds (like those initiated by `swift play`) would need to pass a build condition like `-DPLAYGROUND_MACRO_EXPANSION_ENABLED` which would cause the `#Playground` macro expansion to fully expand. Whereas, for any other builds (which wouldn't pass the build condition by default) the macro would expand to a passive placeholder — little more than a comment noting that the expansion was shortened. In practice, this strategy technically worked, but the required complication of conditioning builds specifically for playground behavior was determined not to be worth the small benefit, especially when dead code stripping did the right thing for Release builds (see "Dead code stripping").
 
 ## Future directions
 
