@@ -44,12 +44,8 @@ Span<T>
 RawSpan
 UnsafeBufferPointer<T>
 UnsafeMutableBufferPointer<T>
-Slice<UnsafeBufferPointer<T>>
-Slice<UnsafeMutableBufferPointer<T>>
 UnsafeRawBufferPointer
 UnsafeMutableRawBufferPointer
-Slice<UnsafeRawBufferPointer>
-Slice<UnsafeMutableRawBufferPointer>
 ```
 Some of the types in the list above already have a subset of the `extracting()` functions; their support will be rounded out to the full set.
 
@@ -136,6 +132,9 @@ The additions described in this proposal require a new version of the Swift stan
 
 ## Alternatives considered
 This is an extension of an existing pattern. We are not considering a different pattern at this time.
+
+### `extracting()` functions for `Slice` of unsafe buffers
+The proposal as accepted included extensions to `Slice` of the form `public func extracting(_ bounds: Range<Index>) -> Self`, returning a `Slice`. Additional experience since then has shown us that the `extracting` functions have not been needed in contexts involving slices: given a slice, we can easily use a rebasing initializer to obtain the base `UnsafeBufferPointer` type. Furthermore, returning a `Slice` would be incongruous for the `extracting` functions. Accordingly, we have decided to not implement them and remove them from the proposal. This can be revisited if further experience shows this to be the incorrect decision.
 
 ## Future directions
 #### Disambiguation over ownership type
