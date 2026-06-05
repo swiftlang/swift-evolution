@@ -4,7 +4,7 @@
 * Authors: [Chris Miles](https://github.com/chrismiles)
 * Review Manager: TBD
 * Status: **Working prototype implemented for macOS, Linux, Windows**
-* Implementation: [swift play prototype in SwiftPM](https://github.com/chrismiles/swift-package-manager/tree/eng/chrismiles/swift-play-prototype) + [#Playground library/macro](https://github.com/apple/swift-play-experimental)
+* Implementation: [swift play prototype in SwiftPM](https://github.com/chrismiles/swift-package-manager/tree/eng/chrismiles/swift-play-prototype) + [#Playground library/macro](https://github.com/apple/swift-play-experimental) + [SwiftBuild support](https://github.com/chrismiles/swift-build/tree/chrismiles/swift_play_support)
 * Review: [Pitch](https://forums.swift.org/t/playground-macro-and-swift-play-idea-for-code-exploration-in-swift/79435)
 
 
@@ -174,6 +174,8 @@ Then they can `import Playgrounds` to use the `#Playground` macro.
 ## Swift Build compatibility 
 
 The Swift Play implementation supports both the new Swift Build system and the legacy build system.
+
+Swift Build requires [some changes](https://github.com/chrismiles/swift-build/tree/chrismiles/swift_play_support) to support swift play builds.
 
 ## Security
 
