@@ -52,7 +52,7 @@ Some of the types in the list above already have a subset of the `extracting()` 
 
 ## Detailed design
 
-The general declarations for these functions is as follows:
+The general declarations for these functions are as follows:
 ```swift
 /// Returns an extracted slice over the items within
 /// the supplied range of positions.
@@ -111,7 +111,7 @@ For escapable types, the `@_lifetime` attribute is not applied.
 
 ### Usage hints
 
-The `extracting()` pattern, while not completely new, is still a departure over the slice pattern established by the `Collection` protocol. For `Span`, `RawSpan`, `MutableSpan` and `MutableRawSpan`, we can add unavailable subscripts and function with hints towards the corresponding `extracting()` function:
+The `extracting()` pattern, while not completely new, is still a departure from the slice pattern established by the `Collection` protocol. For `Span`, `RawSpan`, `MutableSpan` and `MutableRawSpan`, we can add unavailable subscripts and functions with hints towards the corresponding `extracting()` function:
 
 ```swift
 @available(*, unavailable, renamed: "extracting(_ bounds:)")
