@@ -3,7 +3,7 @@
 * Proposal: [SE-0478](0478-default-isolation-typealias.md)
 * Authors: [Aviva Ruben](https://github.com/a-viv-a), [Holly Borla](https://github.com/hborla), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Returned for revision, partially implemented**
+* Status: **Active Review (June 5...19, 2026)**
 * Vision: [Improving the approachability of data-race safety](/visions/approachable-concurrency.md)
 * Implementation: [swiftlang/swift#81863](https://github.com/swiftlang/swift/pull/81863), [swiftlang/swift-syntax#3087](https://github.com/swiftlang/swift-syntax/pull/3087), [swiftlang/swift#89023](https://github.com/swiftlang/swift/pull/89023)
 * Experimental Feature Flag: `DefaultIsolationPerFile` (currently ships `using` syntax; this revision proposes `default`)
