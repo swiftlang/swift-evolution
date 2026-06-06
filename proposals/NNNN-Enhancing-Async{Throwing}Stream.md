@@ -22,7 +22,7 @@ This proposal introduces the following changes:
 
 ### Typed throws
 
-Currently errors are type-erased to `any Error` when `AsyncThrowingStream` is finished with an error (`finish(throwing:)` or when the `unfolding` closure throws), requiring additional boilerplate to preserve the thrown error's type and integrate into typed contexts.
+Currently, thrown errors are type-erased to `any Error` when `AsyncThrowingStream` throws (either by calling the `finish(throwing:)` method or when the `unfolding` closure throws), requiring additional boilerplate to preserve the thrown error's type and integrate it into typed contexts.
 
 ```swift
 let locationStream = AsyncThrowingStream<Location, LocationError> { ... } // Error: Initializer 'init(_:bufferingPolicy:_:)' requires the types 'LocationError' and 'any Error' be equivalent.
@@ -87,7 +87,7 @@ public init(
 )
 ```
 
-However, the `AsyncThrowingStream` variant was never implemented with an `onCancel` parameter, creating a discrepancy between the two APIs. 
+However, the `AsyncThrowingStream` variant never implemented the `onCancel` parameter, creating a discrepancy between the two APIs. 
 
 Furthermore, [SE-0338](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0338-clarify-execution-non-actor-async.md#proposed-solution) clarified the execution semantics of `nonisolated` asynchronous functions by specifying that such functions formally run on the global concurrent executor, potentially introducing unnecessary actor hops. 
 
@@ -102,7 +102,7 @@ let stream = AsyncStream {
 
 let throwingStream = AsyncThrowingStream {
   ...
-} // no `onCancel` parameter
+} // No `onCancel` parameter.
 
 func process(on locationActor: isolated LocationActor) async { // Starts running on `locationActor`.
   let locationStream = AsyncStream<Location> { ... }
@@ -113,8 +113,8 @@ func process(on locationActor: isolated LocationActor) async { // Starts running
 }
 ```
 
-The `process(on:)` function is actor-isolated to its `locationActor` parameter.
-This means its formal isolation is that of the passed-in actor instance. However, the for await-in loop implicitly calls the `nonisolated` asynchronous `produce` function-type parameter to receive the next element. 
+The `process(on:)` function is actor-isolated to its `locationActor` parameter,
+Its formal isolation is that of the passed-in actor instance. However, the for await-in loop implicitly calls the `nonisolated` asynchronous `produce` function-type parameter to receive the next element. 
 
 As a result, `process(on:)` continuously hops off and back onto `locationActor` for each iteration.
 
@@ -150,9 +150,9 @@ The inherited `Equatable` conformance from `Hashable` enables equality compariso
 
 ### Typed throws
 
-`AsyncThrowingStream` already defines a type parameter `Failure: Error`. Until now, `Failure` has been constrained to `any Error`. 
+`AsyncThrowingStream` already defines a type parameter `Failure: Error`, which until now has been constrained to `any Error`. 
 
-This proposal extends `AsyncThrowingStream` with new unconstrained initializers and a `makeStream` method, eliminating existing boilerplate and enabling seamless use in typed contexts. However, the existing `Failure == any Error` constraint cannot be lifted without breaking backward compatibility.
+Because the existing `Failure == any Error` constraint cannot be lifted without breaking backward compatibility, this proposal extends `AsyncThrowingStream` with new unconstrained initializers and a `makeStream` method, eliminating existing boilerplate and enabling seamless use in typed contexts.
 
 ```swift
 let locationStream = AsyncThrowingStream<Location, LocationError> { ... }
@@ -166,11 +166,11 @@ func processLocations() async throws(LocationError) {
 
 ### Unfolding initializer
 
-This proposal adds an `onCancel` parameter to the unfolding initializer of `AsyncThrowingStream`, aligning it with `AsyncStream` and with the original variant proposed in SE-0314.
+This proposal adds the missing `onCancel` parameter to the unfolding initializer of `AsyncThrowingStream`, aligning it with `AsyncStream` and with the original variant proposed in SE-0314.
 
-Additionally, this proposal adopts `nonisolated(nonsending)`. As described in [SE-0461](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0461-async-function-isolation.md), this allows the `produce` closure to run on the caller’s actor, avoiding unnecessary actor hops.
+Additionally, this proposal adopts `nonisolated(nonsending)`. As described in [SE-0461](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0461-async-function-isolation.md), this allows the `produce` closure to run on the caller’s actor, and avoids unnecessary actor hops.
 
-The `@Sendable` requirement on the `onCancel` parameter is removed and replaced with the `sending` keyword, allowing a wider range of functions and closures to be passed to the parameter.
+The `@Sendable` requirement on the `onCancel` parameter is replaced with the `sending` keyword; this allows a wider range of functions and closures to be passed to the parameter wihtout the risk of a data race.
 
 ```swift
 let locationStream = Async{Throwing}Stream {
@@ -190,9 +190,9 @@ func process(on locationActor: isolated LocationActor) async { // Starts running
 
 ### Stream termination when its continuation is discarded
 
-The continuation-based variant is updated to track outstanding references to the stream’s continuation, including the continuation itself and any copies of it. When the last reference to the continuation is discarded, the stream is canceled. 
+The continuation-based `Async{Throwing}Stream` variant is modified to track outstanding references to the stream’s continuation, including the continuation itself and any copies of it. When the last reference to the continuation is discarded, the stream is canceled. 
 
-The change is staged in via an upcoming feature flag (`AsyncStreamCancelOnContinuationDeinit`).
+This change is staged in via an upcoming feature flag (`AsyncStreamCancelOnContinuationDeinit`).
 
 ```swift
 // With `AsyncStreamCancelOnContinuationDeinit`.
@@ -207,12 +207,12 @@ let stream = AsyncStream<Int> { continuation in
   }
 } // Continuation discarded here.
 
-for await element in stream { // Prints: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9. Afterwards, `onTermination` invoked with `.cancelled`.
+for await element in stream { // Prints: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9. Afterwards, `onTermination` is invoked with `.cancelled`.
   print(element) 
 }
 ```
 
-`stream` is canceled after the for-in loop completes, since the continuation is discarded.
+Because the continuation is discarded after the for-in loop completes, `stream` is canceled.
 
 ## Detailed design
 
@@ -298,7 +298,7 @@ extension AsyncThrowingStream.Continuation.Termination: Equatable, Hashable wher
 
 ## Source compatibility
 
-This proposal changes the behavior around stream termination when the stream’s continuation is discarded. To avoid silently changing behavior, this change is gated behind an upcoming feature flag (`AsyncStreamCancelOnContinuationDeinit`). Apart from this change, the proposed changes are additive. In particular, replacing `onCancel`’s `@Sendable` requirement with `sending` is less restrictive on the caller’s side.
+This proposal changes the behavior around stream termination when the stream’s continuation is discarded. To avoid silently changing behavior, this change is gated behind an upcoming feature flag (`AsyncStreamCancelOnContinuationDeinit`). Apart from this change, the proposed changes are additive. In particular, replacing `onCancel`’s `@Sendable` requirement with `sending` makes it less restrictive for the caller while still preventing data races.
 
 ## ABI compatibility
 
@@ -306,7 +306,7 @@ The changes are additive.
 
 ## Implications on adoption
 
-Implicitly terminating the stream when its continuation is discarded would break code that relies on the current behavior, for example to create an indefinite suspension point. That is the rationale for gating this change behind the upcoming feature flag (`AsyncStreamCancelOnContinuationDeinit`).
+The rationale for gating this change behind an upcoming feature flag (`AsyncStreamCancelOnContinuationDeinit`) is that implicitly terminating the stream when its continuation is discarded would break code that relies on the current behavior, for example to create an indefinite suspension point.
 
 ## Future directions
 
@@ -330,4 +330,4 @@ There are three problems with this approach:
 and the old, less verbose, API would eventually need to be deprecated.
 
 ## Acknowledgments
-I would like to thank @jamieQ for initial guidance and continued feedback, as well as @phausler, @FranzBusch, annd @ktoso for their feedback.
+I would like to thank @jamieQ for initial guidance and continued feedback, as well as @FranzBusch, @ktoso, and @phausler for their feedback.
