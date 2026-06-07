@@ -25,7 +25,7 @@ This motivation was also [outlined in the Future Directions of SE-0492](https://
 
 ## Proposed solution
 
-Enable the `@section` attribute on all kinds of functions, including normal functions (`func`), initializers (`init`), deinitializers (`deinit`), closures, and accessors (`get`, `set`, etc.). The detailed design provides 
+Enable the `@section` attribute on all kinds of functions, including normal functions (`func`), initializers (`init`), deinitializers (`deinit`), closures, and accessors (`get`, `set`, etc.). Unlike with 
 
 ## Detailed design
 
@@ -50,6 +50,10 @@ struct MyBootConfig: ~Copyable {
   }
 }
 ```
+
+Unlike with `@section` on variables, there are no limitations on the use of `@section` for generic functions or functions within a generic context.
+
+The `@section` attribute applies to the function and any related functions that the implementation produces for it. For example, when applied to an `async` function, each of the partial functions the implementation generates will respect the `@section` attribute. Similarly, when a `@section` attribute is applied to a generic function, it will also apply to any specialization of that generic function that is produced by the compiler, as well as the original generic definition. Finally, if the `main` function of a `@main` type has a `@section` attribute, the same section is used for the actual `main` entrypoints emitted by the compiler.
 
 ### Inferring `@section` on accessors and closures
 
@@ -99,3 +103,17 @@ The `@section` attribute deliberately places an entity into a specific section.
 ## Implications on adoption
 
 This feature can be freely adopted and un-adopted in source code with no deployment constraints and without affecting source compatibility. ABI is covered above.
+
+## Future Directions
+
+### Separate "data" and "function" section attributes
+
+Some declarations in Swift involve emitting both data and function symbols. For example, when defining a type, there can be both a metadata symbol (data) and also a metadata accessor function (a function). Neither this proposal nor SE-0492 allows a `@section` attribute on a type definition, but if it did, we would need a way to express different sections for data vs. functions. For example, it could look like this:
+
+```swift
+@section(data, "__DATA,mysection")
+@section(function, "__FUNCTION,mysection")
+public struct MyStruct { ... }
+```
+
+A `@section` that specifies neither `data` nor `function` would only apply in the places where the determination is unambiguous, as covered by this proposal and SE-0492. New places that emit both data and function symbols, such as type definitions, extensions, or protocol conformances, could then make use of this new syntax.
