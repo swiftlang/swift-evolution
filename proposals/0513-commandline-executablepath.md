@@ -78,9 +78,7 @@ extension CommandLine {
   /// The path to the current executable.
   ///
   /// The value of this property may not be canonical. If you need the canonical
-  /// path to the current executable, you can pass the value of this property to
-  /// `realpath()` (`_wfullpath()` on Windows) or use `URL` to standardize the
-  /// path.
+  /// path to the current executable, use ``FilePath/resolve()``.
   ///
   /// If the path to the current executable could not be determined, the value
   /// of this property is `nil`.
@@ -97,11 +95,8 @@ indirection in the path provided by the underlying OS API call[^linuxRealpath].
 This is a pragmatic decision: in the common case, a symlink is not present and
 the I/O necessary to try and resolve it is wasted effort. If there _is_ a
 symlink, its presence is not necessarily a problem for the calling code. Callers
-that need to resolve symlinks in this path can manually call `realpath()`
-(`_wfullpath()` on Windows) or equivalent API as needed. Note that, as of today,
-`FilePath` does not provide a wrapper interface around `realpath()` (such an
-interface is beyond the scope of this proposal, but if one is added in the
-future we can update the documentation for `executablePath` accordingly).
+that need to resolve symlinks in this path can manually call
+`FilePath.resolve()` or equivalent API as needed.
 
 If the current executable is moved on disk after it starts, the underlying
 system may or may not update the path it reports. This is ultimately a
@@ -154,15 +149,16 @@ N/A
 - **Exposing the property as an instance of `String` instead of `FilePath`.**
   The original version of this proposal did so, but we currently expect that
   `FilePath` will be brought from the swift-system package into the standard
-  library with [SE-NNNN](). `FilePath` represents a better interface for path
-  strings as it can handle invalid Unicode sequences ("bag-o'-bytes encoding").
+  library with [SE-0529](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0529-filepath-in-stdlib.md).
+  `FilePath` represents a better interface for path strings as it can handle
+  invalid Unicode sequences ("bag-o'-bytes encoding").
 
 - **Exposing the property as a C string rather than as a Swift value.** We
   could provide an interface that produces an `UnsafePointer<CChar>` (or
   `UnsafePointer<CWideChar>` on Windows), a `Span<CChar>`, a
   `ContiguousArray<CChar>`, etc. We could still provide such an interface if
   needed, but it is straightforward to get a platform C string from an instance
-  of `FilePath` using [`withPlatformString(_:)`](https://developer.apple.com/documentation/system/filepath/withplatformstring(_:)).
+  of `FilePath` using `FilePath.withCodeUnits(_:)`.
 
 - **Making the property's type non-optional.** The initial version of this
   proposal presented a non-optional property that aborted if the path was
