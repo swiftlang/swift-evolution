@@ -279,14 +279,14 @@ normal task cancellation.
 public struct CancellationError: Error {
   @nonexhaustive
   public enum Reason {
-    case taskCancelled
+    case userRequested
     case deadlineExpired
   }
 
   public var reason: Reason { get }
   public init(reason: Reason)
 
-  // This is shorthand for `CancellationError(reason: .taskCancelled)`
+  // This is shorthand for `CancellationError(reason: .userRequested)`
   public init()
 }
 ```
@@ -413,19 +413,16 @@ is only accurate to the specific clock type given.
 
 The expected behavior when setting a deadline is that any active deadline, given a specific clock,
 will always apply with the most narrow deadline available. Specifically if a deadline is 
-active for an expiration of `in 10 seconds` and a new deadline is applied for `in 5 seconds` 
+active for an expiration of *in 10 seconds* and a new deadline is applied for *in 5 seconds* 
 relative both relative to the continuous clock, then the applied deadline within the new
-scope is the `in 5 seconds`. Likewise if the reverse was applied; where it is already at `in 5 seconds`
-and a new scope is applied to `in 10 seconds` both on the continuous clock, then the internal
-logic will effectively skip the `in 10 seconds` since that deadline is known to beyond the current
+scope is the *in 5 seconds*. Likewise if the reverse was applied; where it is already at *in 5 seconds*
+and a new scope is applied to *in 10 seconds* both on the continuous clock, then the internal
+logic will effectively skip the *in 10 seconds* since that deadline is known to beyond the current
 active deadline. This must have some way of determining if a given clock passed in to 
 the `withDeadline` functions is that same specific clock. To that end, the clocks are 
 required to be identifiable. The two major clocks; `ContinuousClock` and `SuspendingClock`
 both will gain a new conformance to `Identifiable` and each of which will have a new ID
-type of `SystemClockID`. As a side effect this means that new APIs can be written as: 
-`where C: Clock & Identifiable, C.ID == SystemClockID`. That particular refinement not only
-allows for the direct identification of the specific clock but also a constraint to the 
-standard system clocks.
+type of `SystemClockID`. 
 
 > Note: Since the system clock may grow additional identifiers it is left as non-exhaustive.
 
@@ -630,7 +627,7 @@ Since this is an additive proposal there is no change to any existing ABI.
 The modification to `CancellationError` adds a new stored property and initializer 
 but preserves the existing default initializer with identical behavior - existing 
 code that constructs `CancellationError()` will continue to produce an error with 
-the equivalent of `.taskCancelled` as its reason. The proposed APIs are capable of 
+the equivalent of `.userRequested` as its reason. The proposed APIs are capable of 
 being implemented in less performant manners prior to the introduction of typed throws. 
 Back porting this feature is not a proposed part of the pitch but no technical 
 limitation is added except the burden of making the implementation fragmented upon 
@@ -757,6 +754,13 @@ immediately communicates to the reader that a temporal bound is in effect, which
 review and debugging. Names centered on the mechanism (`withAutomaticTaskCancellation`) 
 require the reader to infer the temporal aspect, while names centered on the concept 
 (`withDeadline`) let the reader infer the mechanism from context.
+
+It was considered naming the default reason as `taskCancelled`, however this is a touch
+too general and felt redundant. The name of `userRequested` does differentiate between
+other cancellation reasons but still lacks some nuance to the name, this is an area where
+naming is open for suggestions that could convey the default nature and also differentiate
+between the other cancellation reasons without overloading existing terms. For now,
+`userRequested` seems like the best option available.
 
 ### CancellationError custom reasons
 
