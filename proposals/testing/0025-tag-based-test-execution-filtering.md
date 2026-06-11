@@ -67,7 +67,7 @@ As of [SE-0451](https://github.com/swiftlang/swift-evolution/blob/main/proposals
 @Test func `tag:uiTest`() { /* ... */ }
 ```
 
-To continue to allow matching for such function names, I propose introducing a _separate_ prefix called `id:` which behaves much like the `tag:` prefix in that everything that follows it is a regular expression. It's job, however, is to disambiguate and allow the user a mechanism to explicitly say "match on test symbol names please." 
+To continue to allow matching for such function names, I propose introducing a _separate_ prefix called `id:` which behaves much like the `tag:` prefix in that everything that follows it is a regular expression. Its job, however, is to disambiguate and allow the user a mechanism to explicitly say "match on test symbol names please." 
 
 ```sh
 swift test --skip 'id:tag:uiTest'
@@ -118,7 +118,7 @@ This introduces a new mechanism that can be used by any existing tools to filter
 
 ## Future Directions
 
-Filtering based on tags is quite broad and general purpose. Because you can define any tag to stick on any test or suite, and because tags exists orthogonally to the test graph, you can arbitrarily include/skip any test based solely on the semantics of your tags. However, this change does raise the question of what _else_ we could filter/skip on and how we can be more expressive about it.
+Filtering based on tags is quite broad and general purpose. Because you can define any tag to stick on any test or suite, and because tags exist orthogonally to the test graph, you can arbitrarily include/skip any test based solely on the semantics of your tags. However, this change does raise the question of what _else_ we could filter/skip on and how we can be more expressive about it.
 
 For example, you may wish to filter/skip tests based on protocol conformance and/or inheritance. A suite's ancestor types can be a useful, and perhaps more natural, signal indicating whether it should run in a given context or not because the ancestor types carry with them behaviors and contracts that have powerful semantic meaning. In the future, we may seek to expand the prefix operators we allow beyond just `tag:`.
 
