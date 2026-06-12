@@ -139,7 +139,7 @@ The fundamental entry point for working with deadlines is a single function: `wi
 /// - Returns: The result of the operation if it completes successfully before or after the deadline expires.
 ///
 /// - Throws: The error thrown by the operation
-nonisolated(nonsending) public func withDeadline<Return: ~Copyable, Failure: Error, C: Clock>(
+nonisolated(nonsending) public func withDeadline<Return: ~Copyable, Failure: Error, C: Clock & Identifiable>(
   _ expiration: C.Instant,
   tolerance: C.Instant.Duration? = nil,
   clock: C = ContinuousClock(),
@@ -206,7 +206,7 @@ Constructing an instant every time is not per se the most terse; so a simple ext
 with the same compositional advantage as the primary entry point.
 
 ```swift
-nonisolated(nonsending) public func withDeadline<Return: ~Copyable, Failure: Error, C: Clock>(
+nonisolated(nonsending) public func withDeadline<Return: ~Copyable, Failure: Error, C: Clock & Identifiable>(
   in timeout: C.Instant.Duration,
   tolerance: C.Instant.Duration? = nil,
   clock: C = ContinuousClock(),
@@ -259,9 +259,9 @@ guarantees.
 
 This API uses the base cancellation to communicate the expiration of the deadline.
 The information to differentiate a cancellation due to normal task cancellation is
-expanded to handle two new forms of cancellation; a cancellation due to deadline expiration,
-and a custom cancellation with a specified string for a reason. Since this is not a closed
-set of possible reasons for future development, this reason is left as an open enumeration.
+expanded to handle a new reason for cancellation: 
+due to deadline expiration. Since this is not a closed set of possible reasons
+for future development, this reason is left as an open enumeration.
 
 Today `CancellationError` is an empty type with no payload or information conveyed to indicate
 the reasoning for cancellation. [SE-0304](0304-structured-concurrency.md) originally noted that
@@ -273,22 +273,20 @@ added to represent the reason for the cancellation, a new initializer for `Cance
 be added for constructing a `CancellationError` with a given reason, and a new property will be 
 added for determining what the reason of the cancellation was. This modification not only allows 
 for developers to express the difference between a cancellation due to deadline expiration versus 
-normal task cancellation, but also express a custom reason for indicating why something might be 
-cancelled.
+normal task cancellation.
 
 ```swift
 public struct CancellationError: Error {
   @nonexhaustive
   public enum Reason {
-    case taskCancelled
+    case userRequested
     case deadlineExpired
-    case custom(String)
   }
 
   public var reason: Reason { get }
   public init(reason: Reason)
 
-  // This is shorthand for `CancellationError(reason: .taskCancelled)`
+  // This is shorthand for `CancellationError(reason: .userRequested)`
   public init()
 }
 ```
@@ -300,6 +298,11 @@ standard library and is a resilient module), the enum is non-frozen by default a
 statements require an `@unknown default` case. Since previous cancellation was something that 
 has been already written the developer already has handled the cases of cancellation without a 
 given reason; this will continue to be the case.
+
+> Note: The `Reason` type is restricted to known simple enumeration values without any
+associated values. This is due to the unknown impacts of what that type of size increase to 
+tasks would entail. Any future proposals to modify that would require research to determine
+specific impact.
 
 To aid in the population of cancellation errors, new APIs will be added. These will all be cases
 where a task or child task is cancelled and a CancellationError would normally be created.
@@ -330,6 +333,19 @@ extension ThrowingDiscardingTaskGroup {
 }
 ```
 
+This also means that when a task is cancelled it communicates with any task cancellation handlers
+and passes that information to the appropriate handler. 
+
+```swift
+public nonisolated(nonsending) func withTaskCancellationHandler<Return, Failure>(
+  operation: nonisolated(nonsending) () async throws(Failure) -> Return,
+  onCancel handler: sending (CancellationError.Reason) -> Void
+) async throws(Failure) -> Return 
+```
+
+This function works exactly as the existing `withTaskCancellationHandler` does today, 
+except that the `onCancel` handler is passed the reason for cancellation.
+
 #### Failures and expiration
 
 The withDeadline throwing behavior is that of the operation's throwing behavior. If the operation throws a
@@ -341,6 +357,90 @@ deadline expiration, the cancellation error that is thrown should then contain t
 This error is propagated from whenever the task (or child task) is cancelled via the `cancel(reason:)` method.
 The reason specified will then be available to the `CancellationError` and can be retrieved from the `reason`
 property on the cancellation error.
+
+#### Accessing active deadlines
+
+External systems may need to interoperate with active deadlines. This means that the
+applied deadline needs to be retrievable, however this particularly becomes
+tricky since the clock is generic for the deadlines. To that end
+the accessor for the active deadline accepts a generic clock instance:
+
+```swift
+extension Task where Success == Never, Failure == Never {
+  public static var hasActiveDeadline: Bool { get }
+
+  public static func activeDeadline<C: Clock & Identifiable>(for clock: C) -> C.Instant?
+}
+```
+
+If any deadline is active then the static property `hasActiveDeadline` returns true.  
+This only applies to the current task if the execution of that task is within a call
+to `withDeadline`. This allows for determining the return of the `deadline` static
+function to be used to know if a known clock has a value being applied as a current
+deadline. This does mean that the usage must be aware of the potential clocks being 
+used. This is however a requirement since to use the deadline itself the clock must 
+be known for any sort of usage to an external system.
+
+
+```swift
+if Task.hasActiveDeadline {
+  if let deadline = Task.activeDeadline(for: ContinuousClock()) {
+    // use the deadline as a ContinuousClock.Instant
+  }
+  if let deadline = Task.activeDeadline(for: SuspendingClock()) {
+    // use the deadline as a SuspendingClock.Instant
+  }
+}
+```
+
+When the call to `activeDeadline(for:)` is made, the query looks up the most narrow
+application of any specified deadline with that clock, if the current nesting of 
+`withDeadline` calls does not use the specified clock type then the next nesting
+up the call stack is used.
+
+If the nesting of `withDeadline` is stacked with a `ContinuousClock` deadline of 
+"in two seconds" and then a `SuspendingClock` of "in three seconds" and a new
+nesting is made of a `ContinuousClock` is made for "in 10 seconds" the last
+10 seconds is known to be less narrow than the outer 2 seconds continuous clock 
+deadline. This means that within the scope of the "in 10 seconds" deadline the query
+for the `activeDeadline(for: ContinuousClock.self)` would return the deadline of within 
+2 seconds and the `activeDeadline(for: SuspendingClock.self)` would return the deadline
+of within 3 seconds. Since clock instants cannot be compared without potentially
+arbitrarily lossy conversions it means that the query for the current applied deadline
+is only accurate to the specific clock type given. 
+
+#### Identification of Clocks for coalescing 
+
+The expected behavior when setting a deadline is that any active deadline, given a specific clock,
+will always apply with the most narrow deadline available. Specifically if a deadline is 
+active for an expiration of *in 10 seconds* and a new deadline is applied for *in 5 seconds* 
+relative both relative to the continuous clock, then the applied deadline within the new
+scope is the *in 5 seconds*. Likewise if the reverse was applied; where it is already at *in 5 seconds*
+and a new scope is applied to *in 10 seconds* both on the continuous clock, then the internal
+logic will effectively skip the *in 10 seconds* since that deadline is known to beyond the current
+active deadline. This must have some way of determining if a given clock passed in to 
+the `withDeadline` functions is that same specific clock. To that end, the clocks are 
+required to be identifiable. The two major clocks; `ContinuousClock` and `SuspendingClock`
+both will gain a new conformance to `Identifiable` and each of which will have a new ID
+type of `SystemClockID`. 
+
+> Note: Since the system clock may grow additional identifiers it is left as non-exhaustive.
+
+```swift
+@nonexhaustive
+public enum SystemClockID: Hashable {
+  case continuous
+  case suspending
+}
+
+extension ContinuousClock: Identifiable {
+  public var id: SystemClockID { .continuous }
+}
+
+extension SuspendingClock: Identifiable {
+  public var id: SystemClockID { .suspending }
+}
+```
 
 ### Behavioral Details
 
@@ -527,7 +627,7 @@ Since this is an additive proposal there is no change to any existing ABI.
 The modification to `CancellationError` adds a new stored property and initializer 
 but preserves the existing default initializer with identical behavior - existing 
 code that constructs `CancellationError()` will continue to produce an error with 
-the equivalent of `.taskCancelled` as its reason. The proposed APIs are capable of 
+the equivalent of `.userRequested` as its reason. The proposed APIs are capable of 
 being implemented in less performant manners prior to the introduction of typed throws. 
 Back porting this feature is not a proposed part of the pitch but no technical 
 limitation is added except the burden of making the implementation fragmented upon 
@@ -655,6 +755,21 @@ review and debugging. Names centered on the mechanism (`withAutomaticTaskCancell
 require the reader to infer the temporal aspect, while names centered on the concept 
 (`withDeadline`) let the reader infer the mechanism from context.
 
+It was considered naming the default reason as `taskCancelled`, however this is a touch
+too general and felt redundant. The name of `userRequested` does differentiate between
+other cancellation reasons but still lacks some nuance to the name, this is an area where
+naming is open for suggestions that could convey the default nature and also differentiate
+between the other cancellation reasons without overloading existing terms. For now,
+`userRequested` seems like the best option available.
+
+### CancellationError custom reasons
+
+It was considered to allow custom error reasons. This would mean that the tasks would need
+to store a custom associated type to the enum. The lifetime of this variable would then be
+incredibly difficult to nail down, but also potentially guide developers into parsing
+strings in errors. The latter would not be an ideal scenario, and likely cause string 
+values within errors become quasi ABI.
+
 ### Previous Incarnations
 
 The clock was originally suggested as a generic clock originally, however when 
@@ -705,6 +820,8 @@ nesting. This approach was not taken because:
    explicit `withDeadline` API would remain useful even if such a mechanism were added.
 
 ## Changelog
+- 1.2 Revised for feedback
+  - Added accessors to add a way to access the active deadlines
 - 1.1 Returned for revision
   - The typed throws signature was altered to avoid an extra error type
   - Removed the restriction around the instant requiring the duration type to be `Swift.Duration`
