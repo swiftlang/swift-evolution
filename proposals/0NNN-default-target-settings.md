@@ -51,7 +51,7 @@ duplicating one or two settings might not be ideal, but it is feasible.
 For packages with many targets and/or complex manifest files,
 it came become quite challenging to reason about the setting being applied.
 
-A common solution involves applying a constant array to each target.
+A possible solution involves applying a constant array to each target.
 This is sufficient as long as all targets use identical settings.
 But, if a package author does happen to need slightly different settings for even
 one target, additional logic needs to be introduced.
@@ -78,7 +78,7 @@ let package = Package(
 ```
 
 And, all of this is just discussing how a uniform list of settings could be applied.
-But there are packages that have much more complex requirements.
+There are packages that have much more complex requirements.
 Typically, this requires at least some logic within the manifest file.
 
 These existing solutiuons are inconvenient, verbose, and error-prone.
@@ -244,24 +244,16 @@ In many cases, this results in "last entry wins" semantics.
 
 ### Restrictions
 
-There are two cases that present extra complexity: unsafe flags and conditions.
-
-The `unsafeFlags` setting has special semantic meaning and plays an important role in dependency resolution.
-Settings inheritance, even with its simplistic model,
-makes the existing implementation more complex and has nontrivial security implications.
-To avoid needing to rework this logic, `unsafeFlags` are considered an invalid default
-and are rejected during manifest validation.
-
-Another area of complexity is conditional inheritance.
 Default settings can have conditions, just like regular target settings.
-However, the `inherited` placeholder setting it self does not accept conditions.
+Supporting and resolving this correctly represents considerable additional complexity.
+For now, the `inherited` placeholder setting it self does not accept conditions.
 
 ## Source compatibility
 
-Because this is a purely additive change.
+This is a purely additive change and is fully compatible with existing manifest files.
 
 It is worth noting that there is now a semantic difference between
-a target omitting a settings array and an empty array.
+a target omitting a settings array and an explicit empty array.
 However, because this difference only matters when defaults are present,
 it will not have any impact on existing package manifests.
 
@@ -276,15 +268,8 @@ Authors will be able to adopt default settings freely without concern for compat
 
 ## Future directions
 
-The two most obvious avenues for future work are supporting `unsafeFlags` and inheritance conditions.
-
-Unsafe flags themselves already impose restrictions on package use,
-so this helps to limit the impact of their omission.
-But if this limitation turns out to be a problem for package authors,
-support can be added in a source-compatible way.
-
 Conditional inheritance could also be something that package authors find useful.
-And similarly, support for this can be added with the existing APIs.
+It would be possible to add support for this in an API-compatible way.
 
 ## Alternatives considered
 
