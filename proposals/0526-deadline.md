@@ -374,7 +374,7 @@ extension Task where Success == Never, Failure == Never {
 ```
 
 If any deadline is active then the static property `hasActiveDeadline` returns true.  
-This only applies to the current task if the execution of that task is within a call
+This applies to the current task or child task if the execution of that task is within a call
 to `withDeadline`. This allows for determining the return of the `deadline` static
 function to be used to know if a known clock has a value being applied as a current
 deadline. This does mean that the usage must be aware of the potential clocks being 
@@ -403,11 +403,29 @@ If the nesting of `withDeadline` is stacked with a `ContinuousClock` deadline of
 nesting is made of a `ContinuousClock` is made for "in 10 seconds" the last
 10 seconds is known to be less narrow than the outer 2 seconds continuous clock 
 deadline. This means that within the scope of the "in 10 seconds" deadline the query
-for the `activeDeadline(for: ContinuousClock.self)` would return the deadline of within 
-2 seconds and the `activeDeadline(for: SuspendingClock.self)` would return the deadline
+for the `activeDeadline(for: ContinuousClock())` would return the deadline of within 
+2 seconds and the `activeDeadline(for: SuspendingClock())` would return the deadline
 of within 3 seconds. Since clock instants cannot be compared without potentially
 arbitrarily lossy conversions it means that the query for the current applied deadline
 is only accurate to the specific clock type given. 
+
+```swift
+let continuous = ContinuousClock()
+let suspending = SuspendingClock()
+
+let inTwoSeconds = continuous.now.advanced(by: .seconds(2))
+let inThreeSeconds = suspending.now.advanced(by: .seconds(3))
+let inTenSeconds = continuous.now.advanced(by: .seconds(10))
+
+try await withDeadline(inTwoSeconds, clock: continuous) {
+  try await withDeadline(inThreeSeconds, clock: suspending) {
+    try await withDeadline(inTenSeconds, clock: continuous) {
+      assert(Task.activeDeadline(for: continuous) == inTwoSeconds)
+      assert(Task.activeDeadline(for: suspending) == inThreeSeconds)
+    }
+  }
+}
+```
 
 #### Identification of Clocks for coalescing 
 
@@ -441,6 +459,8 @@ extension SuspendingClock: Identifiable {
   public var id: SystemClockID { .suspending }
 }
 ```
+
+Custom clocks can also adhere to `Identifiable` to be used for deadlines.
 
 ### Behavioral Details
 
