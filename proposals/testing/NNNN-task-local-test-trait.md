@@ -54,14 +54,14 @@ There are two primary motivations for adding this convenience:
   }
   ```
 
-  Ideally, we can drastically streamline overriding task locals in test with a dedicate convenience
+  Ideally, we can drastically streamline overriding task locals in test with a dedicated convenience
   trait.
 
 * When a task local is defined in a reusable library, the library maintainer cannot easily define a
   test trait for overriding the task local. Non-test targets cannot access Testing symbols, and so
   such a helper needs to be defined in a dedicated "test support" library. This introduces more
-  inconvenience when shipping task locals in libraries. A dedicate `.taskLocal` trait allows one
-  to override task locals in tests without creating a dedicate test support library.
+  inconvenience when shipping task locals in libraries. A dedicated `.taskLocal` trait allows one
+  to override task locals in tests without creating a dedicated test support library.
 
 # Proposed solution
 
@@ -110,7 +110,7 @@ extension Trait {
 ///
 /// To add this trait to a test, use ``Trait/taskLocal(_:_:)``.
 public struct TaskLocalTrait<Value: Sendable>: SuiteTrait, TestScoping, TestTrait {
-  public let isRecursive = true
+  public var isRecursive: Bool { true }
 
   fileprivate let taskLocal: TaskLocal<Value>
   fileprivate let value: Value
@@ -153,7 +153,7 @@ A more general name for this API could be used instead of `.taskLocal`:
 ```swift
 @Test(.set($isEnabled, true))
 func test() {
- // ...
+  // ...
 }
 ```
 
