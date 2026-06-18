@@ -1,0 +1,93 @@
+name: validate-proposals
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+on:
+  pull_request: { types: [opened, reopened, synchronize] }
+  push: { branches: [main] }
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        swift-image:
+          - name: swift:6.3-noble
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 10
+
+    container: ${{ matrix.swift-image.name }}
+
+    env:
+      EXTRACTOR_DIR: swift-evolution-metadata-extractor
+      EXTRACTOR_REPO: swiftlang/swift-evolution-metadata-extractor
+      # The `validate` subcommand is only available on `main` (added after the 1.0.0 release).
+      # Pin to a commit or dynamically fetch the latest release when this has shipped.
+      EXTRACTOR_REF: main
+
+    steps:
+      - name: Configure git
+        run: git config --global --add safe.directory '*'
+
+      - name: Install dependencies
+        run: apt-get update -y && apt-get install -y zstd jq
+
+      - name: Check out ${{ github.event.repository.name }}
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out ${{ env.EXTRACTOR_REPO }}
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.EXTRACTOR_REPO }}
+          ref: ${{ env.EXTRACTOR_REF }}
+          path: ${{ env.EXTRACTOR_DIR }}
+          persist-credentials: false
+
+      - name: Resolve extractor revision
+        id: extractor-rev
+        run: echo "sha=$(git -C "${EXTRACTOR_DIR}" rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
+
+      - name: Restore extractor build
+        if: ${{ runner.debug != '1' }}
+        id: restore-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.EXTRACTOR_DIR }}/.build
+          key: "extractor-build-${{ runner.os }}-${{ matrix.swift-image.name }}-${{ steps.extractor-rev.outputs.sha }}"
+          restore-keys: extractor-build-${{ runner.os }}-${{ matrix.swift-image.name }}-
+
+      - name: Build extractor
+        id: build
+        run: |
+          swift build -c release --package-path "${EXTRACTOR_DIR}"
+          bin_path="$(swift build -c release --package-path "${EXTRACTOR_DIR}" --show-bin-path)"
+          echo "exec=${bin_path}/swift-evolution-metadata-extractor" >> "${GITHUB_OUTPUT}"
+
+      - name: Cache extractor build
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ env.EXTRACTOR_DIR }}/.build
+          key: "extractor-build-${{ runner.os }}-${{ matrix.swift-image.name }}-${{ steps.extractor-rev.outputs.sha }}"
+
+      - name: Validate proposals
+        env:
+          EXTRACTOR_EXEC: ${{ steps.build.outputs.exec }}
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            bash .github/scripts/validate-proposals.sh pull_request "${{ github.event.pull_request.base.sha }}"
+          else
+            bash .github/scripts/validate-proposals.sh full
+          fi
