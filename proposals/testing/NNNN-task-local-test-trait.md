@@ -16,12 +16,12 @@ or test.
 
 In [ST-0007], test scoping traits were introduced to allow wrapping the execution
 of tests so that code could be run before and after each test. The main
-motivation for this feature is overriding [`TaskLocal`s][SE-0311: TaskLocal] for tests, and the
+motivation for this feature is overriding [`TaskLocal`s][SE-0311] for tests, and the
 proposal mentions a [future direction][task-local-future-direction] to add a 
 convenience trait specifically for binding task locals. This proposal adds that
 convenience.
 
-[SE-0311: TaskLocal]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0311-task-locals.md
+[SE-0311]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0311-task-locals.md
 [ST-0007]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0007-test-scoping-traits.md
 [task-local-future-direction]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0007-test-scoping-traits.md#convenience-trait-for-setting-task-locals
 
