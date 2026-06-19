@@ -82,7 +82,7 @@ constructing the trait:
 
 ```swift
 extension Trait {
-  /// Constructs a trait that overrides a task local value for the duration of a test
+  /// Constructs a trait that binds a task local value for the duration of a test
   /// or suite.
   ///
   /// - Parameters:
