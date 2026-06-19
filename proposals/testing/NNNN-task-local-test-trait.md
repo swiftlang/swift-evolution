@@ -96,7 +96,7 @@ extension Trait {
   /// }
   /// ```
   ///
-  /// - Note: The task local must be defined outside the test target where the trait is used.
+  /// - Note: The task local must be declared in a separate module than the module where the trait is used.
   public static func taskLocal<Value: Sendable>(
     _ taskLocal: TaskLocal<Value>,
     _ value: Value
