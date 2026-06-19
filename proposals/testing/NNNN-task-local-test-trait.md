@@ -9,7 +9,7 @@
 
 # Introduction
 
-A `.taskLocal` test trait is added to Testing that allows binding a task local for a suite
+A `.taskLocal` test trait is added to Testing that allows binding a value to a task local for a suite
 or test.
 
 # Motivation
@@ -61,7 +61,7 @@ There are two primary motivations for adding this convenience:
   test trait for overriding the task local. Non-test targets cannot access Testing symbols, and so
   such a helper needs to be defined in a dedicated "test support" library. This introduces more
   inconvenience when shipping task locals in libraries. A dedicated `.taskLocal` trait allows one
-  to bind task locals in tests without creating a dedicated test support library.
+  to bind values to task locals in tests without creating a dedicated test support library.
 
 # Proposed solution
 
@@ -126,7 +126,7 @@ public struct TaskLocalTrait<Value: Sendable>: SuiteTrait, TestScoping, TestTrai
 ```
 
 An important caveat to note (and is detailed in the documentation) is that the task local being
-bound _must_ be defined outside the test target. One cannot bind a task local like so:
+bound _must_ be defined outside the test target. One cannot bind a task local value like so:
 
 ```swift
 @TaskLocal var isEnabled = false
