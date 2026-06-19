@@ -108,6 +108,9 @@ extension Trait {
 
 /// A type that binds a task local value for the scope of a test.
 ///
+/// When an instance of this trait is applied to a suite, it is recursively
+/// inherited by all child suites and tests.
+///
 /// To add this trait to a test, use ``Trait/taskLocal(_:_:)``.
 public struct TaskLocalTrait<Value: Sendable>: SuiteTrait, TestScoping, TestTrait {
   public var isRecursive: Bool { true }
