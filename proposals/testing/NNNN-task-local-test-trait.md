@@ -16,7 +16,7 @@ or test.
 
 In [ST-0007], test scoping traits were introduced to allow wrapping the execution
 of tests so that code could be run before and after each test. The main
-motivation for this feature is overriding `[TaskLocal]`s for tests, and the
+motivation for this feature is overriding [`TaskLocal`s][SE-0311: TaskLocal] for tests, and the
 proposal mentions a [future direction][task-local-future-direction] to add a 
 convenience trait specifically for overriding task locals. This proposal adds that
 convenience.
