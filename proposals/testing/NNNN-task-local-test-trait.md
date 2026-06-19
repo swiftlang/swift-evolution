@@ -112,8 +112,6 @@ extension Trait {
 public struct TaskLocalTrait<Value: Sendable>: SuiteTrait, TestScoping, TestTrait {
   public var isRecursive: Bool { true }
 
-  fileprivate let taskLocal: TaskLocal<Value>
-  fileprivate let value: Value
 
   public func provideScope(
     for test: Test,
