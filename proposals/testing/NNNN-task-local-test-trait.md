@@ -126,7 +126,7 @@ public struct TaskLocalTrait<Value: Sendable>: SuiteTrait, TestScoping, TestTrai
 ```
 
 An important caveat to note (and is detailed in the documentation) is that the task local being
-overridden _must_ be defined outside the test target. One cannot override a task local like so:
+bound _must_ be defined outside the test target. One cannot override a task local like so:
 
 ```swift
 @TaskLocal var isEnabled = false
