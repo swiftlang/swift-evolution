@@ -85,6 +85,10 @@ extension Trait {
   /// Constructs a trait that overrides a task local value for the duration of a test
   /// or suite.
   ///
+  /// - Parameters:
+  ///   - taskLocal: The task local to override.
+  ///   - value: The value to set.
+  ///
   /// ```swift
   /// @Suite(.taskLocal($myValue, 42))
   /// struct MyTests {
@@ -93,10 +97,6 @@ extension Trait {
   /// ```
   ///
   /// - Note: The task local must be defined outside the test target where the trait is used.
-  ///
-  /// - Parameters:
-  ///   - taskLocal: The task local to override.
-  ///   - value: The value to set.
   public static func taskLocal<Value>(
     _ taskLocal: TaskLocal<Value>,
     _ value: Value
@@ -148,16 +148,13 @@ The proposed APIs are purely additive.
 
 ## Alternatives considered
 
-A more general name for this API could be used instead of `.taskLocal`:
+A few other spellings have been proposed:
 
-```swift
-@Test(.set($isEnabled, true))
-func test() {
-  // ...
-}
-```
+* `.set($isEnabled, true)`
+* `.withValue(true, for: $isEnabled)`
+* `.binding($isEnabled, to: true)`
 
-Also we could decide to not add the trait since technically it is possible to implement its 
+We could also decide to not add the trait since technically it is possible to implement its 
 functionality manually for each task local.
 
 ## Future directions
