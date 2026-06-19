@@ -29,7 +29,7 @@ There are two primary motivations for adding this convenience:
 
 * Task locals are by far the [most common] reason to define custom `TestScoping` 
   conformances. However, it takes quite a bit of repetitive work to define such
-  conformances. For example, a trait to bind a boolean task local looks like this:
+  conformances. For example, a trait to bind a boolean to a task local looks like this:
 
   [most common]: https://github.com/search?q=testscoping+language%3ASwift+&type=code
 
@@ -106,7 +106,7 @@ extension Trait {
   }
 }
 
-/// A type that that binds a task local value for the scope of a test.
+/// A type that binds a task local value for the scope of a test.
 ///
 /// To add this trait to a test, use ``Trait/taskLocal(_:_:)``.
 public struct TaskLocalTrait<Value: Sendable>: SuiteTrait, TestScoping, TestTrait {
