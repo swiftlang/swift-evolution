@@ -117,9 +117,7 @@ public struct TaskLocalTrait<Value: Sendable>: SuiteTrait, TestScoping, TestTrai
     for test: Test,
     testCase: Test.Case?,
     performing function: @concurrent () async throws -> Void
-  ) async throws {
-    try await taskLocal.withValue(value, operation: function)
-  }
+  ) async throws
 }
 ```
 
