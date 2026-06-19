@@ -101,9 +101,7 @@ extension Trait {
     _ taskLocal: TaskLocal<Value>,
     _ value: Value
   ) -> Self
-  where Self == TaskLocalTrait<Value> {
-    TaskLocalTrait(taskLocal: taskLocal, value: value)
-  }
+  where Self == TaskLocalTrait<Value>
 }
 
 /// A type that binds a task local value for the scope of a test.
