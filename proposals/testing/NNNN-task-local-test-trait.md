@@ -86,7 +86,7 @@ extension Trait {
   /// or suite.
   ///
   /// - Parameters:
-  ///   - taskLocal: The task local to override.
+  ///   - taskLocal: The task local to bind the value to.
   ///   - value: The value to set.
   ///
   /// ```swift
