@@ -47,7 +47,7 @@ There are two primary motivations for adding this convenience:
       }
     }
   }
-  extension Trait where Self == _IsEnabledTrait {
+  extension Trait where Self == IsEnabledTrait {
     static func isEnabled(_ isEnabled: Bool) -> Self {
       Self(isEnabled: isEnabled)
     }
