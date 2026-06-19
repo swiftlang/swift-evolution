@@ -21,7 +21,7 @@ proposal mentions a [future direction][task-local-future-direction] to add a
 convenience trait specifically for binding task locals. This proposal adds that
 convenience.
 
-[SE-0331: TaskLocal]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0311-task-locals.md
+[SE-0311: TaskLocal]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0311-task-locals.md
 [ST-0007]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0007-test-scoping-traits.md
 [task-local-future-direction]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0007-test-scoping-traits.md#convenience-trait-for-setting-task-locals
 
@@ -34,7 +34,7 @@ There are two primary motivations for adding this convenience:
   [most common]: https://github.com/search?q=testscoping+language%3ASwift+&type=code
 
   ```swift
-  struct IsEnabledTrait: SuiteTrait, TestScoping, TestTrait {
+  struct IsEnabledTrait: SuiteTrait, TestTrait, TestScoping {
     let isEnabled: Bool
     let isRecursive = true
     func provideScope(
@@ -110,9 +110,8 @@ extension Trait {
 /// inherited by all child suites and tests.
 ///
 /// To add this trait to a test, use ``Trait/taskLocal(_:_:)``.
-public struct TaskLocalTrait<Value: Sendable>: SuiteTrait, TestScoping, TestTrait {
+public struct TaskLocalTrait<Value: Sendable>: SuiteTrait, TestTrait, TestScoping {
   public var isRecursive: Bool { true }
-
 
   public func provideScope(
     for test: Test,
@@ -156,5 +155,7 @@ functionality manually for each task local.
 
 ## Future directions
 
-If Swift macros gain the ability to see symbols defined by other macros, we will be able to drop
-the restriction that task locals be defined outside the test target.
+If this macro limitation were resolved, then this proposed API would become usable in more contexts/situations
+
+If Swift macros gain the ability to see symbols defined by other macros, this proposed API would
+become usable in more contexts/situations.
