@@ -21,7 +21,7 @@ proposal mentions a [future direction][task-local-future-direction] to add a
 convenience trait specifically for overriding task locals. This proposal adds that
 convenience.
 
-[TaskLocals]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0311-task-locals.md
+[SE-0331: TaskLocal]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0311-task-locals.md
 [ST-0007]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0007-test-scoping-traits.md
 [task-local-future-direction]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0007-test-scoping-traits.md#convenience-trait-for-setting-task-locals
 
