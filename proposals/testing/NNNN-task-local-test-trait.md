@@ -34,7 +34,7 @@ There are two primary motivations for adding this convenience:
   [most common]: https://github.com/search?q=testscoping+language%3ASwift+&type=code
 
   ```swift
-  struct _IsEnabledTrait: SuiteTrait, TestScoping, TestTrait {
+  struct IsEnabledTrait: SuiteTrait, TestScoping, TestTrait {
     let isEnabled: Bool
     let isRecursive = true
     func provideScope(
