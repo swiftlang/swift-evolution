@@ -4,7 +4,7 @@
 * Authors: [Brandon Williams](https://github.com/mbrandonw), [Stephen Celis](https://github.com/stephencelis)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: [swiftlang/swift-testing#NNNNN](https://github.com/swiftlang/swift-testing/compare/main...pointfreeco:swift-testing:task-local-test-trait)
+* Implementation: [swiftlang/swift-testing#1764](https://github.com/swiftlang/swift-testing/pull/1764)
 * Review: ([pitch](https://forums.swift.org/...))
 
 # Introduction
