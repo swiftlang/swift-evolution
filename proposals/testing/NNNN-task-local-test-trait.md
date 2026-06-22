@@ -96,7 +96,7 @@ extension Trait {
   /// }
   /// ```
   ///
-  /// - Note: The task local must be declared in a separate module than the module where the trait is used.
+  /// - Note: You must define the task local outside the test target where the trait is used.
   public static func taskLocal<Value: Sendable>(
     _ taskLocal: TaskLocal<Value>,
     _ value: Value
@@ -106,13 +106,8 @@ extension Trait {
 
 /// A type that binds a task local value for the scope of a test.
 ///
-/// When an instance of this trait is applied to a suite, it is recursively
-/// inherited by all child suites and tests.
-///
 /// To add this trait to a test, use ``Trait/taskLocal(_:_:)``.
 public struct TaskLocalTrait<Value: Sendable>: SuiteTrait, TestTrait, TestScoping {
-  public var isRecursive: Bool { true }
-
   public func provideScope(
     for test: Test,
     testCase: Test.Case?,
