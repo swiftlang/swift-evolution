@@ -109,7 +109,7 @@ await withTaskPriorityEscalationHandler {
 }
 ```
 
-The above snippet handles various edge ordering situations, including the task escalation happening after
+The above snippet handles various ordering situations, including the task escalation happening after
 the time the handler is registered but _before_ we managed to create and store the task.
 
 In general, task escalation remains a slightly racy affair, we could always observe an escalation "too late" for it to matter,
