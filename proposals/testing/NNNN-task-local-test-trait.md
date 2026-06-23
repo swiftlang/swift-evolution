@@ -150,7 +150,5 @@ functionality manually for each task local.
 
 ## Future directions
 
-If this macro limitation were resolved, then this proposed API would become usable in more contexts/situations
-
 If Swift macros gain the ability to see symbols defined by other macros, this proposed API would
 become usable in more contexts/situations.
