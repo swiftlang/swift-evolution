@@ -346,6 +346,8 @@ public nonisolated(nonsending) func withTaskCancellationHandler<Return, Failure>
 This function works exactly as the existing `withTaskCancellationHandler` does today, 
 except that the `onCancel` handler is passed the reason for cancellation.
 
+Furthermore, the cancellation reason can be retrieved from the current Task similar to how cancellation is checked.
+
 #### Failures and expiration
 
 The withDeadline throwing behavior is that of the operation's throwing behavior. If the operation throws a
