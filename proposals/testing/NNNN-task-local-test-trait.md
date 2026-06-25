@@ -141,7 +141,7 @@ The proposed APIs are purely additive.
 
 A few other spellings have been proposed:
 
-* `.set($isEnabled, true)`
+* `$isEnabled.set(true)`
 * `.withValue(true, for: $isEnabled)`
 * `.binding($isEnabled, to: true)`
 
