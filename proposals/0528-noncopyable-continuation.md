@@ -17,7 +17,7 @@
 
 ## Summary
 
-We propose `Continuation<Success, Failure>`, a noncopyable continuation type that makes double-resume a compile-time error and missing-resume a guaranteed runtime trap, with no allocations and no atomic operations on the fast path. By leveraging move-only semantics and consuming methods, Continuation closes the safety gap between `UnsafeContinuation` and `CheckedContinuation` without paying for runtime checks.
+We propose `Continuation<Success, Failure>`, a noncopyable continuation type that makes double-resume a compile-time error and missing-resume a guaranteed runtime trap, with no allocations and no atomic operations on the fast path. By leveraging move-only semantics and consuming methods, Continuation closes the safety gap between `UnsafeContinuation` and `CheckedContinuation` without paying for runtime checks. Testing....
 
 ## Motivation
 
