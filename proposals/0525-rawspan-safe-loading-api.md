@@ -6,7 +6,7 @@
 * Status: **Accepted with Modifications**
 * Implementation: [swiftlang/swift#88304](https://github.com/swiftlang/swift/pull/88304)
 * Related Proposals: [SE-0447](0447-span-access-shared-contiguous-storage.md)
-* Review: ([pitch 1](https://forums.swift.org/t/83966)) ([pitch 2](https://forums.swift.org/t/84144)) ([review](https://forums.swift.org/t/se-0525-safe-loading-api-for-rawspan/85811)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0525-safe-loading-api-for-rawspan/86329/12))
+* Review: ([first pitch](https://forums.swift.org/t/83966)) ([second pitch](https://forums.swift.org/t/84144)) ([review](https://forums.swift.org/t/se-0525-safe-loading-api-for-rawspan/85811)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0525-safe-loading-api-for-rawspan/86329/12))
 
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
 [swift-binary-parsing]: https://github.com/apple/swift-binary-parsing
