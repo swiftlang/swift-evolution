@@ -255,16 +255,16 @@ If the closure were `@Sendable`, it couldn't access actor-isolated state like
 with surrounding code regardless of isolation context, while maintaining safety
 guarantees.
 
-#### Cancellation
+#### Cancellation reasons
 
-This API uses the base cancellation to communicate the expiration of the deadline.
-The information to differentiate a cancellation due to normal task cancellation is
-expanded to handle a new reason for cancellation: 
-due to deadline expiration. Since this is not a closed set of possible reasons
+This proposal uses the cancellation mechanism to communicate the expiration of a deadline.
+
+The cancellation error gains a new reason field which can be used to differentiate
+a cancellation due to normal task cancellation or due to deadline expiration.
+ Since this is not a closed set of possible reasons, 
 for future development, this reason is left as an open enumeration.
 
-Today `CancellationError` is an empty type with no payload or information conveyed to indicate
-the reasoning for cancellation. [SE-0304](0304-structured-concurrency.md) originally noted that
+[SE-0304](0304-structured-concurrency.md) originally noted that
 "no information is passed to the task about why it was cancelled," treating cancellation as a
 lightweight, uniform signal. With the introduction of deadlines, however, differentiating between
 a cancellation due to deadline expiration and a cancellation from an explicit `Task.cancel()` call
@@ -346,7 +346,22 @@ public nonisolated(nonsending) func withTaskCancellationHandler<Return, Failure>
 This function works exactly as the existing `withTaskCancellationHandler` does today, 
 except that the `onCancel` handler is passed the reason for cancellation.
 
-Furthermore, the cancellation reason can be retrieved from the current Task similar to how cancellation is checked.
+Similar to how it is possible to query a task handle about its cancelled status using `isCancelled`, 
+this proposal introduces a `cancellationReason` static property:
+
+```swift
+extension Task where Success == Never, Failure == Never {
+  /// Returns the reason of the cancellation if the current task is cancelled, nil otherwise.
+  /// Similar to `isCancelled`, once this field becomes non-nil, consistently returns the same value.
+  /// 
+  /// - SeeAlso: `isCancelled`
+  public static var cancellationReason: CancellationError.Reason? { get }
+}
+
+extension UnsafeCurrentTask {
+  public var cancellationReason: CancellationError.Reason? { get }
+}
+```
 
 #### Failures and expiration
 
