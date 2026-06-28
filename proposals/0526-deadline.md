@@ -2,10 +2,10 @@
 
 * Proposal: [SE-0526](0526-deadline.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch), [Philippe Hausler](https://github.com/phausler), [Konrad Malawski](https://github.com/ktoso)
-* Status: **Returned for revision**
+* Status: **Active review (June 28th...July 12th, 2026)**
 * Implementation: https://github.com/swiftlang/swift/pull/88323
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
-* Review: ([pitch](https://forums.swift.org/t/pitch-withdeadline/85262)) ([review](https://forums.swift.org/t/se-0526-withdeadline/85850)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0526-withdeadline/86438)) ([second review](https://forums.swift.org/t/second-review-se-0526-withdeadline/86791)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0526-withdeadline/87379))
+* Review: ([pitch](https://forums.swift.org/t/pitch-withdeadline/85262)) ([review](https://forums.swift.org/t/se-0526-withdeadline/85850)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0526-withdeadline/86438)) ([second review](https://forums.swift.org/t/second-review-se-0526-withdeadline/86791)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0526-withdeadline/87379)) ([third review](https://forums.swift.org/t/third-review-se-0526-withdeadline/87787))
 
 ## Summary of changes
 
