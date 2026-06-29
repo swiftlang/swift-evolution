@@ -231,12 +231,11 @@ The `@ObservationIgnored` macro, on the other hand, doesn't add anything to a so
 
 Computed properties that derive their values from stored properties are automatically tracked due to their reliance on tracked properties. Computed properties that source their value from remote storage or via indirection, however, must manually add tracking using the generated `access(keyPath:)` and `withMutation(keyPath:)` methods.
 
-For example, consider the `AtomicModel` in the following code sample. `AtomicModel` stores a score in an `AtomicInt`, with a computed property providing an `Int` interface. The atomic property is annotated with the `@ObservationIgnored` macro because it isn't useful to track the constant value for observation. For the computed `score` property, which is the public interface of the type, the getter and setter include manually-written calls to track accesses and mutations.
+For example, consider the `AtomicModel` in the following code sample. `AtomicModel` stores a score in an `AtomicInt`, with a computed property providing an `Int` interface. The atomic property does not need to be annotated with the `@ObservationIgnored` macro because `let` properties are immutable and are therefore ignored for observation. For the computed `score` property, which is the public interface of the type, the getter and setter include manually-written calls to track accesses and mutations.
 
 ```swift
 @Observable
 public class AtomicModel {
-    @ObservationIgnored
     fileprivate let _scoreStorage = AtomicInt(initialValue: 0)
 
     public var score: Int {
