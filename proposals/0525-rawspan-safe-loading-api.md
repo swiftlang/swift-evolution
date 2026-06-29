@@ -644,6 +644,34 @@ extension CollectionOfOne: ConvertibleToBytes
 extension CollectionOfOne: ConvertibleFromBytes
   where Element: ConvertibleFromBytes {}
 
+extension SIMD2: ConvertibleToBytes
+  where Scalar: ConvertibleToBytes {}
+extension SIMD4: ConvertibleToBytes
+  where Scalar: ConvertibleToBytes {}
+extension SIMD8: ConvertibleToBytes
+  where Scalar: ConvertibleToBytes {}
+extension SIMD16: ConvertibleToBytes
+  where Scalar: ConvertibleToBytes {}
+extension SIMD32: ConvertibleToBytes
+  where Scalar: ConvertibleToBytes {}
+extension SIMD64: ConvertibleToBytes
+  where Scalar: ConvertibleToBytes {}
+
+extension SIMD2: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+extension SIMD3: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+extension SIMD4: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+extension SIMD8: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+extension SIMD16: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+extension SIMD32: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+extension SIMD64: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+
 extension ClosedRange: ConvertibleToBytes
   where Bound: ConvertibleToBytes {}
 extension Range: ConvertibleToBytes
@@ -674,6 +702,8 @@ extension UnsafeMutableRawBufferPointer: ConvertibleToBytes {}
 ```
 
 > **Note:** any of the types in the list above which is missing a prerequisite `BitwiseCopyable` conformance will gain one. 
+
+> **Note:** `SIMD3` does not conform to `ConvertibleToBytes` because it has the same storage as `SIMD4`, but with one element's worth of tail padding.
 
 ##### Top-level safe `bitCast` function
 
@@ -729,9 +759,9 @@ Alongside validation, we could consider automatically inserting stored null byte
 
 The Clang importer could be taught which basic C types support these protocols. It would be useful to have a way to declare a conformance to these protocols for C types which are aggregates. For example, we could relax the restriction that these conformances can only be declared in a type's containing module, for imported C types only.
 
-#### Support for tuples and SIMD types
+#### Support for tuples
 
-Tuples composed of `ConvertibleToBytes` types should themselves be `ConvertibleToBytes`. The same applies to `ConvertibleFromBytes`. The standard library's SIMD types also seem to be naturally suited to these protocols.
+Tuples composed of `ConvertibleToBytes` types should themselves be `ConvertibleToBytes`. The same applies to `ConvertibleFromBytes`.
 
 #### Utilities to examine the alignment of a `RawSpan`
 
