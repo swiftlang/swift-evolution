@@ -6,7 +6,7 @@
 * Status: **Active review (May 26th...July 6th, 2026)**
 * Implementation: [swiftlang/swift#88505](https://github.com/swiftlang/swift/pull/88505)
 * Previous revision: [1](https://github.com/swiftlang/swift-evolution/blob/49216cb8b9063e6031eca47033067f3224386b57/proposals/0532-optional-noncopyable-improvements.md)
-* Review: ([pitch](https://forums.swift.org/t/pitch-optional-noncopyable-improvements-and-generalizations/86656)) ([review](https://forums.swift.org/t/se-0532-optional-noncopyable-improvements-and-generalizations/86941))
+* Review: ([pitch](https://forums.swift.org/t/pitch-optional-noncopyable-improvements-and-generalizations/86656)) ([review](https://forums.swift.org/t/se-0532-optional-noncopyable-improvements-and-generalizations/86941)) ([revision](https://forums.swift.org/t/se-0532-optional-noncopyable-improvements-and-generalizations/86941/16))
 
 ## Summary of changes
 
