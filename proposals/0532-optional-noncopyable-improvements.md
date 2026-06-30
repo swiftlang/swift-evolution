@@ -9,9 +9,9 @@
 
 ## Summary of changes
 
-Introduces three new methods on `Optional` to help support noncopyable wrapped
-values: `borrow()`, `mutate()`, and `insert()`. Also generalizes `map`,
-`flatMap`, and `unsafelyUnwrapped`.
+Introduces two new properties and a new method on `Optional` to help support
+noncopyable wrapped values: `ref`, `mutableRef`, and `put()`. Also generalizes
+`map`, `flatMap`, and `unsafelyUnwrapped`.
 
 ## Motivation
 
@@ -92,7 +92,7 @@ noncopyable wrapped values being more verbose than its predecessor.
 
 ## Proposed solution
 
-We introduce two new methods on `Optional`: `borrow()` and `mutate()`. These will
+We introduce two new properties on `Optional`: `ref` and `mutableRef`. These will
 return references to the inner wrapped payload if there is one and `nil`
 otherwise.
 
@@ -101,7 +101,7 @@ func bar(_ x: borrowing SomeNoncopyable) {
   ...
 }
 
-if let payload = optional.borrow() {
+if let payload = optional.ref {
   bar(payload.value) // 'bar' gets passed a 'borrowing Wrapped'
 }
 
@@ -113,7 +113,7 @@ func baz(_ x: inout SomeNoncopyable) {
   ...
 }
 
-if var payload = optional.mutate() {
+if var payload = optional.mutableRef {
   baz(&payload.value) // 'baz' can mutate the payload in place!
 }
 
@@ -148,7 +148,7 @@ optMutex?.withLock { ... } // error: use of 'optMutex' after consume
 
 ------
 
-A quality of life API we're also proposing is `Optional.insert`. Consider the
+A quality of life API we're also proposing is `Optional.put()`. Consider the
 following pattern:
 
 ```swift
@@ -174,7 +174,7 @@ cache.opt!.append(newItem)
 The use of `!` here is really unnecessary because we already know there's a value
 in the optional. In some cases, this `!` may not get optimized away if
 you're calling into a non-inlined function taking `Cache` because it can't make
-any assumptions about the values that exist in it. We can safely model an `insert`
+any assumptions about the values that exist in it. We can safely model a `put()`
 method that returns a direct mutable reference to the payload of an optional
 given a new item to put into the optional:
 
@@ -188,7 +188,7 @@ var cache = Cache()
 // do some computation
 
 let items: UniqueArray<Int> = fooBar()
-var itemsRef = cache.opt.insert(items)
+var itemsRef = cache.opt.put(items)
 
 // more calculations, maybe some
 // API calls
@@ -199,36 +199,40 @@ itemsRef.value.append(newItem)
 
 ## Detailed design
 
-### `borrow()` and `mutate()`
+### `ref` and `mutableRef`
 
 ```swift
 extension Optional where Wrapped: ~Copyable & ~Escapable {
   /// Returns a borrowed reference to the payload within the optional, if there
   /// is one.
-  @lifetime(borrow self)
-  public func borrow() -> Ref<Wrapped>?
+  public var ref: Ref<Wrapped>? {
+    @lifetime(borrow self)
+    get
+  }
 }
 
 extension Optional where Wrapped: ~Copyable {
   /// Returns the mutable reference to the payload within the optional, if there
   /// is one.
-  @lifetime(&self)
-  public mutating func mutate() -> MutableRef<Wrapped>?
+  public var mutableRef: MutableRef<Wrapped>? {
+    @lifetime(&self)
+    mutating get
+  }
 }
 ```
 
-Conceptually, these methods effectively move the ownership of the optional and
-its payload. In order to call `borrow()`, for example, you must have at least
+Conceptually, these properties effectively move the ownership of the optional and
+its payload. In order to call `ref`, for example, you must have at least
 a `borrowing Optional<T>` which, if you squint hard enough, is `Ref<Optional<T>>`.
-`borrow()` takes this `Ref<Optional<T>>` and produces `Optional<Ref<T>>` which
+`ref` takes this `Ref<Optional<T>>` and produces `Optional<Ref<T>>` which
 moved the reference inside the optional meaning we get back an owned value we
 can mutate, consume, or simply have exclusive access to.
 
-The same is true for `mutate()`. It takes at least `inout Optional<T>` to be able to
+The same is true for `mutableRef`. It takes at least `inout Optional<T>` to be able to
 perform the call which can look like `MutableRef<Optional<T>>` into an owned
 `Optional<MutableRef<T>>` value.
 
-### `insert()`
+### `put()`
 
 ```swift
 extension Optional where Wrapped: ~Copyable {
@@ -241,7 +245,7 @@ extension Optional where Wrapped: ~Copyable {
   /// - Returns: A mutable reference inside the optional to its newly inserted
   ///   payload.
   @lifetime(&self)
-  public mutating func insert(_ new: consuming Wrapped) -> MutableRef<Wrapped>
+  public mutating func put(_ new: consuming Wrapped) -> MutableRef<Wrapped>
 }
 ```
 
@@ -290,13 +294,13 @@ func foo(x: consuming Optional<UniqueArray<String>>) -> Optional<String> {
 }
 
 func bar(x: borrowing Optional<Atomic<Int>>) -> Optional<Int> {
-  x.borrow().map { // ok!
+  x.ref.map { // ok!
     $0.value.load(ordering: .relaxed) &+ 1
   }
 }
 
 func baz(x: inout Optional<UniqueArray<Int>>) -> Optional<Int> {
-  x.mutate().map {
+  x.mutableRef.map {
     // Update the array while mapping over it
     $0.value.append(123)
     return $0.value.count
@@ -306,7 +310,7 @@ func baz(x: inout Optional<UniqueArray<Int>>) -> Optional<Int> {
 
 ## Source compatibility
 
-`Optional.borrow()`, `Optional.mutate()`, and `Optional.insert()` are new
+`Optional.ref`, `Optional.mutableRef`, and `Optional.put()` are new
 methods so they shouldn't introduce any source compatibility issues.
 
 The proposed overloads of `map` and `flatMap` are less-specialized overloads of
@@ -328,7 +332,7 @@ don't come with any new ABI nor break any old ABI.
 
 ## Implications on adoption
 
-The `Optional.borrow()`, `Optional.mutate()`, and `Optional.insert()`
+The `Optional.ref`, `Optional.mutableRef`, and `Optional.put()`
 methods will have the same availability as `Ref` and `MutableRef`. The rest of
 the generalizatons will be marked as always available.
 
@@ -348,7 +352,7 @@ if borrow x = optional {
 foo(optional) // ok
 ```
 
-If we decided this was a better direction than the `borrow()` and `mutate()`
+If we decided this was a better direction than the `ref` and `mutableRef`
 story, then we'd need to rethink how we want to generalize `map`, `flatMap`, and
 `unsafelyUnwrapped` because they can no longer be always consuming. We can provide
 `consumingMap`, `borrowingMap`, `mutatingMap`, etc. which is one solution, but
@@ -369,7 +373,7 @@ stable OS copies the wrapped payload.
 
 ### Automatic dereferencing for `Ref` and `MutableRef`
 
-In the proposed solution, the examples using `borrow()` and `mutate()` to do a
+In the proposed solution, the examples using `ref` and `mutableRef` to do a
 `map` needed to explicitly access the `.value` property on these reference
 types. This isn't quite as ergonomic as the existing `map` on `Optional` that
 let's you interact with the passed parameter as the type itself. We could give
@@ -378,7 +382,7 @@ dereference themselves when accessing member properties or methods on them:
 
 ```swift
 func bar(x: borrowing Optional<Atomic<Int>>) -> Optional<Int> {
-  x.borrow().map { // ok!
+  x.ref.map { // ok!
     // No more '.value.'
     $0.load(ordering: .relaxed) &+ 1
   }
@@ -395,18 +399,14 @@ which would be useful for `UniqueBox` as well.
 ### Change the default ownership of Optional bindings
 
 In the motivation for some of the methods of this proposal, it's stated that we
-need methods like `borrow()` and `mutate()` to allow for borrowing versions of
+need properties like `ref` and `mutableRef` to allow for borrowing versions of
 control flow. We could instead change the default ownership of these `if let`
 scenarios to be borrowing by default. However, this would be a source-breaking
 change for code that expects optional binding to be consuming.
 
-### `Optional.ref` and `Optional.mutableRef` properties
+### `Optional.borrow()` and `Optional.mutate()` methods
 
-Instead of the `borrow()` and `mutate()` method names, we could have properties
-that returned the same value like the various `.span` and `.mutableSpan`
-properties.
-
-However, we feel that the nature of the verbs `borrow` and `mutate` fit quite
-well in API usage especially for things like `opt.borrow().map { ... }`. It also
-mimics the recently accepted [Borrow Accessors SE-0507](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0507-borrow-accessors.md)
-names.
+In a previous revision of this proposal, we suggesed the method names `borrow()`
+and `mutate()` instead of the `ref` and `mutableRef` properties. It was decided
+that the properties were more desired as they somewhat mimic the `span` and
+`mutableSpan` properties found on types like `InlineArray` and `UniqueArray`.
