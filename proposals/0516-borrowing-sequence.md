@@ -14,7 +14,7 @@
 We propose a new protocol for iteration, `Iterable`, 
 which provides a universal implementation point for synchronous iteration.
 Types conforming to `Iterable` can be noncopyable or nonescapable,
-can have noncopyable or nonescapable elements, 
+can have noncopyable elements, 
 and can throw during iteration. 
 The Swift compiler will support use of this protocol via the familiar `for`-`in` syntax.
 
