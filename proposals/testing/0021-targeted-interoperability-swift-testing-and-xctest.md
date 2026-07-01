@@ -3,7 +3,7 @@
 - Proposal: [ST-0021](0021-targeted-interoperability-swift-testing-and-xctest.md)
 - Authors: [Jerry Chen](https://github.com/jerryjrchen)
 - Review Manager: [Rachel Brindle](https://github.com/younata)
-- Status: **Accepted**
+* Status: **Implemented (Swift 6.4)**
 - Implementation: [swiftlang/swift-testing#1523](https://github.com/swiftlang/swift-testing/pull/1523),
   [swiftlang/swift-testing#1573](https://github.com/swiftlang/swift-testing/pull/1573),
   [swiftlang/swift-testing#1542](https://github.com/swiftlang/swift-testing/pull/1542),
