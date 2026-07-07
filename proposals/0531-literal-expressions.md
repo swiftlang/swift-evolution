@@ -3,7 +3,7 @@
 * Proposal: [SE-0531](0531-literal-expressions.md)
 * Authors: [Artem Chikin](https://github.com/artemcm), [Doug Gregor](https://github.com/douggregor)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (May 18...29, 2026)**
+* Status: **Accepted** 
 * Implementation: [swiftlang/swift#86500](https://github.com/swiftlang/swift/pull/86500), [swiftlang/swift#86934](https://github.com/swiftlang/swift/pull/86934), [swiftlang/swift#87006](https://github.com/swiftlang/swift/pull/87006)
 * Experimental Feature Flag: `LiteralExpressions`
 * Review: ([pitch](https://forums.swift.org/t/pitch-literal-expressions/85505))([review](https://forums.swift.org/t/se-0531-literal-expressions/86794))
