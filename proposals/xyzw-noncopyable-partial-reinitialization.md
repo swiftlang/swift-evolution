@@ -103,6 +103,16 @@ constraints. Partial consumption was already designed with API integrity in mind
 of the considerations for that proposal also need to apply to partial
 reinitialization.
 
+### Restrictions on properties
+
+Partial reinitialization is only allowed via stored properties of non-`Copyable`
+structs. The property must not have any `didSet` or `willSet` observers.
+Observers would require a fully-initialized `self` value to execute, meaning
+that a partially-consumed value would not be able to invoke the observers
+before or after a partial initialization. (One exception might be the case of
+assigning to a property which is the only consumed field in a struct with a
+`willSet` observer; for simplicity, we choose to ban even this case for now.)
+
 ### Restrictions on non-`@frozen` public types
 
 For code to be able to either partially consume or reinitialize a property,
