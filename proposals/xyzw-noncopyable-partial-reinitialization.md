@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: TBD
-* Review: ([pitch](TBD))
+* Review: ([pitch 1](https://forums.swift.org/t/partial-reinitialization-of-noncopyable-values/82153))
 
 ## Introduction
 
