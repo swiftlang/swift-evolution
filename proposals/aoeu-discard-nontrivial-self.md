@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: [TBD](TBD)
-* Review: ([pitch (TBD)](TBD))
+* Review: ([pitch 1](https://forums.swift.org/t/discard-self-for-types-with-non-bitwisecopyable-members/82216))
 
 ## Introduction
 
