@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: [TBD](https://github.com/swiftlang/swift/pull/TBD)
-* Review: ([pitch](TBD))
+* Review: ([pitch 1](https://forums.swift.org/t/mutation-and-consumption-in-non-copyable-type-deinit-s/82390))
 
 ## Introduction
 
