@@ -21,60 +21,173 @@ APIs or awaiting on an `async` callable in order to block test execution until
 a callback is called, or an async callable returns. However, this requires the
 code being tested to support callbacks or return a status as an async callable.
 
-Consider the following class, `Aquarium`, modeling raising dolphins:
+Consider the common case of verifying an analytics logger, which, for
+performance reasons, does all of its processing off of the calling thread
+without awaiting. For this example, the `Logger` records all logs to an
+on-device [JSON Lines](https://jsonlines.org) document for later retrieval.
 
 ```swift
-@MainActor
-final class Aquarium {
-  private(set) var isRaising = false
-  var hasFunding = true
+import Foundation
 
-  func raiseDolphins() {
-    Task {
-      if hasFunding {
-        isRaising = true
+struct Log: Codable {
+  let message: String
+  let date: Date
+}
 
-        // Long running work that I'm not qualified to describe.
-        // ...
+actor Logger {
+  private let logURL: URL
+  private var fileHandle: FileHandle?
 
-        isRaising = false
-      }
+  init(logURL: URL) {
+    self.logURL = logURL
+  }
+
+  deinit {
+    do {
+      try fileHandle?.close()
+    } catch {}
+  }
+
+  nonisolated func log(message: String) {
+    let recordedDate = Date()
+    Task(priority: .utility) {
+      await self.record(log: Log(message: message, date: recordedDate))
     }
+  }
+
+  private func record(log: Log) {
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .iso8601
+
+    let logPath = logURL.path(percentEncoded: false)
+    if !FileManager.default.fileExists(atPath: logPath) {
+        FileManager.default.createFile(atPath: logPath, contents: nil)
+    }
+    do {
+      let data = try encoder.encode(log)
+
+      let handle: FileHandle
+      if let fileHandle {
+        handle = fileHandle
+      } else {
+        handle = try FileHandle(forUpdating: logURL)
+        self.fileHandle = handle
+      }
+      try appendJsonLine(data: data, to: handle)
+    } catch { return }
+  }
+
+  private func appendJsonLine(
+    data: Data,
+    to fileHandle: FileHandle,
+    lineSeparator: String = "\n"
+  ) throws {
+    fileHandle.seekToEndOfFile()
+    try fileHandle.write(contentsOf: data)
+    try fileHandle.write(contentsOf: Data(lineSeparator.utf8))
   }
 }
 ```
 
-As is, it is extremely difficult to check that `isRaising` is correctly set to
-true once `raiseDolphins()` is called. The system offers test authors no
-control for when the created task runs, leaving test authors little choice but
-to add arbitrary sleep calls to wait for the task to run. For example:
+As is, the most obvious way to check that a new log message has been recorded is
+to add an arbitrary sleep call to wait some amount of time before checking if
+another entry has been recorded to the specified log url:
 
 ```swift
-@Test func `raiseDolphins if hasFunding sets isRaising to true`() async throws {
-  let subject = Aquarium()
-  subject.hasFunding = true
+@Test func `recording to a brand new log file`() async throws {
+  // Arrange
+  let logDir = URL(fileURLWithPath: NSTemporaryDirectory())
+  let logURL = logDir.appending(
+    path: "\(UUID().uuidString).jsonl",
+    directoryHint: .notDirectory
+  )
 
-  subject.raiseDolphins()
+  defer {
+    #expect(throws: Never.self) {
+      try FileManager.default.removeItem(at: logURL)
+    }
+  }
+
+  let subject = Logger(logURL: logURL)
+
+  // Act
+  subject.log(message: "Hello world")
 
   try await Task.sleep(for: .seconds(1))
 
-  #expect(subject.isRaising == true)
+  // Assert
+  let data = try Data(contentsOf: logURL)
+  let decoder = JSONLinesDecoder()
+  // Implementation of `JSONLinesDecoder` left as an exercise to the reader.
+  decoder.dateDecodingStrategy = .iso8601
+  let messages = try decoder.decoding(Log.self, from: data)
+
+  #expect(messages.count == 1)
+  #expect(messages.first?.message == "Hello world")
+  // Verifying date is also left as an exercise to the reader.
 }
 ```
 
-This requires test authors to have to figure out how long to wait so that
-`isRaising` will reliably be set to true, while not waiting too long, such that
-the test suite is not unnecessarily delayed or task itself finishes.
+This is inefficient. Using `Task.sleep` to wait for data to be written to the
+log file extends the test runtime unnecessarily, leading test authors to attempt
+to figure out a middle ground where they're not waiting too long, but also not
+waiting too little. This unnecessarily wastes test authors time, and introduces
+potential flakiness as that middle ground of optimal waiting is extremely
+dependent on the environment the test runs in.
 
-Conversely, imagine a test author wants to verify that no dolphins are
-raised when there isn't any funding. There isn't and can't be a mechanism for
-verifying that `isRaising` is never set to `true`, if we constrain the
-check to within a given timeframe, then we can easily make such an assertion.
-Again, without some mechanism to monitor and notify the test that `isRaising`
-was set to`true`, the simplest approach is to use an arbitrary sleep call and
-then check `isRaising`. Additionally, in the failure case where `isRaising` is
-very quickly set to true, the test should fail fast instead of delaying any more
-than absolutely necessary.
+Note: On some platforms, test authors are able to use the [Dispatch Source](https://developer.apple.com/documentation/dispatch/dispatch-source)
+APIs to monitor when a file is changed, and to receive a callback.
+Unfortunately, the Dispatch Source APIs are arcane, and using `Task.sleep` is
+still much simpler to write and maintain. Alternatively, imagine that `Logger`
+is making a network call instead of writing to a file.
+
+Conversely, imagine a test author wants to verify a debounce feature to logging,
+to make sure that the same message isn't rapidly and repeatedly logged. While
+there isn't and can't be a mechanism that checks that the log file is never
+written to, if we constrain the check to within a given timeframe, then we can
+easily make such an assertion. Again, without some mechanism to monitor and
+notify the test that the log file was not changed, the simplest approach is to
+use an arbitrary sleep call and then check the log file. Such as shown in this
+test:
+
+```swift
+@Test func `multiple identical logs are debounced`() async throws {
+  // Arrange
+  let logDir = URL(fileURLWithPath: NSTemporaryDirectory())
+  let logURL = logDir.appending(
+    path: "\(UUID().uuidString).jsonl",
+    directoryHint: .notDirectory
+  )
+
+  defer {
+    #expect(throws: Never.self) {
+      try FileManager.default.removeItem(at: logURL)
+    }
+  }
+
+  let subject = Logger(logURL: logURL)
+
+  // Act
+  subject.log(message: "Hello world")
+  subject.log(message: "Hello world")
+
+  try await Task.sleep(for: .seconds(1))
+
+  // Assert
+  let data = try Data(contentsOf: logURL)
+  let decoder = JSONLinesDecoder()
+  // Implementation of `JSONLinesDecoder` left as an exercise to the reader.
+  decoder.dateDecodingStrategy = .iso8601
+  let messages = try decoder.decoding(Log.self, from: data)
+
+  #expect(messages.count == 1)
+}
+```
+
+In this case, in the failure case where 2 near-identical logs are incorrectly
+recorded, then sleeping will still unnecessarily delay the test suite
+execution. The test should fail fast instead of delaying any more than
+absolutely necessary.
 
 This proposal introduces polling to help test authors address these cases. In
 this and other similar cases, polling makes these classes of tests practical or
@@ -110,26 +223,61 @@ type. This contains both the result of a particular polling attempt, as well as
 an optional `Comment` describing what happened in that particular poll attempt.
 
 Tests will now be able to poll code updating in the background using either of
-the stop conditions. For the example of `Aquarium.raiseDolphins`, valid tests
+the stop conditions. For the example of verifying that file logger, valid tests
 might look like:
 
 ```swift
-@Test func `raiseDolphins if hasFunding sets isRaising to true`() async throws {
-  let subject = Aquarium()
-  subject.hasFunding = true
+final class LoggerTests: Sendable {
+  let logURL: URL
+  let subject: Logger
 
-  subject.raiseDolphins()
+  init() throws {
+    let logDir = URL(fileURLWithPath: NSTemporaryDirectory())
+    logURL = logDir.appending(
+      path: "\(UUID().uuidString).jsonl",
+      directoryHint: .notDirectory
+    )
+    subject = Logger(logURL: logURL)
+  }
 
-  try await confirmation(until: .firstPass) { subject.isRaising == true }
-}
+  deinit {
+    #expect(throws: Never.self) {
+      try FileManager.default.removeItem(at: logURL)
+    }
+  }
 
-@Test func `raiseDolphins if no funding keeps isRaising false`() async throws {
-  let subject = Aquarium()
-  subject.hasFunding = false
+  @Test func `recording to a brand new log file`() async throws {
+    // Act
+    subject.log(message: "Hello world")
 
-  subject.raiseDolphins()
+    // Assert
+    try await confirmation(until: .firstPass) {
+      let data = try Data(contentsOf: self.logURL)
+      let decoder = JSONLinesDecoder()
+      // Implementation of `JSONLinesDecoder` left as an exercise to the reader.
+      decoder.dateDecodingStrategy = .iso8601
+      let messages = try decoder.decoding(Log.self, from: data)
 
-  try await confirmation(until: .stopsPassing) { subject.isRaising == false }
+      return messages.count == 1 && messages.first?.message == "Hello world"
+    }
+  }
+
+  @Test func `multiple identical logs are debounced`() async throws {
+    // Act
+    subject.log(message: "Hello world")
+    subject.log(message: "Hello world")
+
+    // Assert
+    try await confirmation(until: .stopsPassing) {
+        let data = try Data(contentsOf: self.logURL)
+      let decoder = JSONLinesDecoder()
+      // Implementation of `JSONLinesDecoder` left as an exercise to the reader.
+      decoder.dateDecodingStrategy = .iso8601
+      let messages = try decoder.decoding(Log.self, from: data)
+
+      return messages.count == 1
+    }
+  }
 }
 ```
 
@@ -414,20 +562,7 @@ extension PollResult: ExpressibleByBooleanLiteral where T == Bool {}
 ```
 
 The `ExpressibleBy(Nil|Boolean)Literal` conformances exist to aid in the case
-where a poll attempt might fast fail for an obvious reason:
-
-```swift
-let subject = Aquarium()
-subject.hasFunding = true
-subject.raiseDolphins()
-confirmation(until: .firstPass) {
-  guard let subject.hasFunding else { return false }
-  return PollResult(
-    subject.isRaising,
-    "Subject: \(subject)"
-  )
-}
-```
+where a poll attempt might fast fail for an obvious reason.
 
 ### New `PollingFailedError` Error type and `PollingFailedError.Reason` enum
 
@@ -484,6 +619,26 @@ public struct Issue {
   }
 
   // ...
+}
+```
+
+This also includes a new `Issue.Kind.Snapshot` case, which does not include the
+`PollingFailureReason` because that's not necessary for a snapshot.
+
+```swift
+extension Issue.Kind {
+  // ...
+  public enum Snapshot {
+    // ...
+
+    /// An issue due to a polling confirmation having failed.
+    ///
+    /// This issue can occur when calling ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-455gr``
+    /// or
+    /// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-5tnlk``
+    /// whenever the polling fails, as described in ``PollingStopCondition``.
+    case pollingConfirmationFailed
+  }
 }
 ```
 
@@ -585,22 +740,23 @@ while ContinuousClock.now < end {
 With enough system load, the polling check might only run a handful of times, or
 only once, before the timeout is triggered. In this case, the component being
 polled might not have had time to update its status such that polling could
-pass. Using the `Aquarium.raiseDolphins` example from earlier: On the first time
-that `runPollAndCheckIfShouldStop` executes, the background task created by
-`raiseDolphins` might not have started executing its closure, leading the
-polling to continue. If the system is under sufficiently high load - which can
-be caused by having a very large amount of tests in the test suite - then once
-the `Task.yield` finishes and the while condition is checked again, then it
-might now be past the timeout. Or the task created by `Aquarium.runDolphins`
-might have started and the closure run to completion before the next time
-`runPollAndCheckIfShouldStop()` is executed. Or both. This approach of using
+pass. Using the `Logger` example from earlier: On the first time
+that `runPollAndCheckIfShouldStop` executes, the task to actually record the log
+might not have had a chance to even run, leading the polling to continue. If the
+system is under sufficiently high load - which can be caused by having a very
+large amount of non-serialized tests in the test suite - then once the
+`Task.yield` finishes and the while condition is checked again, it might now be
+past the timeout. Or the logging might have completed before the next time
+`runPollAndCheckIfShouldStop()` is executed. This approach of using
 a clock to check when to stop is inherently unreliable, and becomes increasingly
 unreliable as the load on the system increases and as the size of the test suite
-increases.
+increases. The only way to entirely prevent that while still directly using
+a `duration` timeout is to execute only 1 test at a time, on a non-virtualized
+system that is not running any other processes.
 
-To prevent this, the Testing library will calculate how many times to poll the
-`body`. This can be done by dividing the `duration` by the `interval`. For
-example, with the default 1 second duration and 1 millisecond interval, the
+Instead, to prevent this, the Testing library will calculate how many times to
+poll the `body`. This can be done by dividing the `duration` by the `interval`.
+For example, with the default 1 second duration and 1 millisecond interval, the
 Testing library could poll 1000 times, waiting 1 millisecond between polling
 attempts. This is resistant to the issues posed by concurrent execution and
 scales with system load and test suite size.
@@ -615,20 +771,26 @@ specified in the `duration` argument.
 These functions can be used with an async test function:
 
 ```swift
-@Test func `The aquarium's dolphin nursery works`() async {
-  let subject = Aquarium()
+actor Counter {
+  var count = 0
+
+  func increment() { counter += 1 }
+}
+
+@Test func `increment increases the value`() async {
+  let subject = Counter()
   Task {
-    await subject.raiseDolphins()
+    await subject.increment()
   }
-  await confirmation(until: .firstPass) {
-    await subject.dolphins.count == 1
+  try await confirmation(until: .firstPass) {
+    await subject.count == 1
   }
 }
 ```
 
-With the definition of `Aquarium` above, the closure may only need to be
-evaluated a few times before it starts returning true. At which point polling
-will end, and no failure will be reported.
+As written, the closure may only run a handful of times before it starts
+returning true. At which point polling will end, and no failure will be
+reported.
 
 Polling will be stopped when either:
 
@@ -647,13 +809,12 @@ refactored to support other means. Polling exists for the case where such
 refactors are either not possible or not yet practicable.
 
 Polling inherently introduces some amount of instability to the tests - in the
-example of waiting for `Aquarium.isRaising` to be set to true, it is entirely
-possible that, unless the code covered by
-`// Long running work that I'm not qualified to describe` has a test-controlled
-means to block further execution, the created `Task` could finish between
-polling attempts - resulting `Aquarium.isRaising` to always (or worse,
-occasionally) read as false, and failing the test despite the code having done
-the right thing.
+example of waiting for `Logger.log(message:)` to run, it is entirely
+possible that the system is under such heavy load that the `Task` created in
+`Logger.log(message:)`, being a lower priority than other tasks, never gets
+scheduled to run during the entire time that polling occurs. Which would
+lead to the test being reported as failure, even though the code itself is
+working as intended.
 
 Polling also only offers a snapshot in time of the state. When
 `PollingStopCondition.firstPass` is used, polling will stop and return a pass
