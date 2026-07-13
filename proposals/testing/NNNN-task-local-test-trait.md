@@ -145,6 +145,9 @@ A few other spellings have been proposed:
 * `.withValue(true, for: $isEnabled)`
 * `.binding($isEnabled, to: true)`
 
+We prefer the naming `.taskLocal(_:_:)` because it unambiguously refers to task locals, and keeps
+the arguments in the same order as `withValue`.
+
 We could also decide to not add the trait since technically it is possible to implement its 
 functionality manually for each task local.
 
