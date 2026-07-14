@@ -14,11 +14,10 @@ use in all non-`Copyable` types with user-defined `deinit`s.
 
 ## Motivation
 
-When [SE-0390] introduced non-`Copyable` types, we gave
-these types the ability to declare a `deinit` that runs at the end of
-their lifetime, as well as the ability for `consuming` methods to
-use `discard self` to clean up a value without invoking
-the standard `deinit` logic:
+When [SE-0390](0390-noncopyable-structs-and-enums.md) introduced non-`Copyable`
+types, we gave these types the ability to declare a `deinit` that runs at the
+end of their lifetime, as well as the ability for `consuming` methods to use
+`discard self` to clean up a value without invoking the standard `deinit` logic:
 
 ```swift
 struct Phial {
@@ -131,7 +130,7 @@ of the noncopyable components in a controlled way.
 
 ## Alternatives considered
 
-### `discard` only disables `deinit` but doesn't immediately
+### `discard` only disables `deinit` but doesn't immediately destroy its remains
 
 An alternative design of `discard` is possible, in which `discard self`
 by itself only disables the implicit `deinit`, but otherwise leaves the
@@ -161,22 +160,27 @@ struct FooBar: ~Copyable {
 }
 ```
 
-However, we believe that it is more intuitive for discard to immediately end the life of self, even if this leads to more verbosity. Being able to place discard self at the beginning of a method and forgetting about it could also make code harder to read and make it easy to forget that the default deinit has been disabled when tracing through it.
+However, we believe that it is more intuitive for discard to immediately end the
+life of self, even if this leads to more verbosity. Being able to place
+`discard self` at the beginning of a method and forget about it could also make
+code harder to read, making it easy to forget that the default `deinit` has been
+disabled when tracing through it.
 
 ### `discard` recursively leaks properties without cleaning them up
 
 In Rust, `mem::forget` completely forgets a value, bypassing not only the
-value's own `drop()` implementation (the equivalent of our `deinit`) but
+value's own `drop()` implementation (Rust's equivalent of our `deinit`) but
 also the cleanup of any of its component fields. We could in theory
 define `discard` the same way, having it discard the value without even
 cleaning up its remaining properties. However, this would make it very
 easy to accidentally leak memory.
 
 Recursively leaking fields also creates a backdoor for breaking
-the ordering of `deinit` cleanups with lifetime dependencies, which the
-original `discard self` design. Despite the prohibition on using
-`discard self` outside of a type's original definition, someone could
-wrap the type in their own type and use `discard self` to leak the value:
+the ordering of `deinit` cleanups with respect to lifetime dependencies,
+which is something the original `discard self` design avoids. If we
+recursively leaked fields, then it would be possible to wrap a type defined
+in another module and use `discard self` on the outer wrapper, sidestepping the
+prohibition on using `discard self` outside of a type's original definition:
 
 ```swift
 struct Foo: ~Copyable {
@@ -199,7 +203,7 @@ Particularly with `~Escapable` types, many safe interfaces rely on having
 a guarantee that the `deinit` for a lifetime-dependent type ends inside of
 the access in order to maintain their integrity. Having this capability
 could be necessary in some situations, but it should not be the default
-behavior, and if we add it in the future, it should be an unsafe operation.
+behavior, and if we add it in the future, it should be an `unsafe` operation.
 
 ## Acknowledgments
 
