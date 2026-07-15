@@ -221,6 +221,39 @@ alongside `deinit`, or within the same module. This would make it possible for
 file- or module-local analysis to detect places where methods invoked from
 `deinit` potentially call back into `deinit`.
 
+### Require explicit consumption or discarding of `self` after mutation
+
+In the first pitch thread, [ellie20 noted](https://forums.swift.org/t/mutation-and-consumption-in-non-copyable-type-deinit-s/82390/2)
+that "a value, after it's mutated, is in some sense a different value,"
+and made the argument that, after a mutating use of
+`self` as a whole value, we should require the subsequent value to be
+explicitly `discard`-ed or `consume`-d, since the value at that point
+is no longer the original value being `deinit`-ed:
+
+```swift
+struct A: ~Copyable {
+  deinit {
+    self.replace()
+    // explicitly indicate that the replaced `self` is discarded, rather than
+    // deinit-ed
+    discard self
+  }
+
+  mutating func replace() { ... }
+}
+
+struct B: ~Copyable {
+  deinit {
+    self.replace()
+    // explicitly indicate that the replaced `self` is consumed, causing deinit
+    // to run again on the new value
+    _ = consume self
+  }
+
+  mutating func replace() { ... }
+}
+```
+
 ## Acknowledgments
 
 Kavon Favardin originally noted the potential problems of resurrection and
