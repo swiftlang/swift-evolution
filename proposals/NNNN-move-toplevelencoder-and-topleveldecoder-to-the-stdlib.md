@@ -1,12 +1,12 @@
 # Move `TopLevelEncoder` and `TopLevelDecoder` to the standard library
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-move-toplevelencoder-and-topleveldecoder-to-the-stdlib.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Bug: rdar://182341717
 <!-- * Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN) or [swiftlang/swift-evolution-staging#NNNNN](https://github.com/swiftlang/swift-evolution-staging/pull/NNNNN) -->
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-move-toplevelencoder-and-topleveldecoder-to-the-standard-library/88318))
 
 ## Summary of changes
 
