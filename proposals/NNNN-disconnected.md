@@ -4,8 +4,8 @@
 * Authors: [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-* Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN)
-* Review: ([pitch](https://forums.swift.org/...))
+* Implementation: [swiftlang/swift#89597](https://github.com/swiftlang/swift/pull/89597)
+* Review: ([pitch](https://forums.swift.org/t/pitch-disconnected-type-for-modeling-disconnected-values/86815))
 
 ## Introduction
 
@@ -18,9 +18,9 @@ introduced the `sending` parameter and result annotation to explicitly mark
 values that must be in a disconnected region at function boundaries.
 
 This proposal introduces a `Disconnected` type that preserves the disconnected
-property of a value through storage in data structures, allowing generic types
-to safely transfer non-`Sendable` values across isolation regions without
-requiring those types to reason about the `sending` effect.
+property of a value through storage such as in data structures or in actors,
+allowing generic types to safely transfer non-`Sendable` values across isolation
+regions without requiring those types to reason about the `sending` effect.
 
 ## Motivation
 
@@ -40,9 +40,8 @@ struct UniqueDeque<Element: ~Copyable>: ~Copyable {
 }
 ```
 
-One use-case might want to use the `UniqueDeque` to append non-`Sendable`
-disconnected values and when popping an element send it to a different isolation
-region.
+One use-case might be to use `UniqueDeque` to append non-`Sendable` disconnected
+values and when popping an element send it to a different isolation region.
 
 ```swift
 var deque = UniqueDeque<NonSendable>()
@@ -61,10 +60,10 @@ this type for other important use-cases where users want to store non-`Sendable`
 but **not disconnected** elements.
 
 The fundamental limitation is that `sending` is a property of function
-boundaries, not types. Generic types like `UniqueDeque` cannot conditionally
-apply region isolation based on whether their element type should maintain
-disconnected regions. Making `append` and `popFirst` use `sending` would
-prevent legitimate use cases where elements should remain in the same region.
+boundaries, not of types. Generic types such as `UniqueDeque` cannot
+conditionally control whether their stored elements should remain disconnected.
+Requiring `append` and `popFirst` to be `sending` would therefore only allow
+disconnected values to be stored in `UniqueDeque`.
 
 ## Proposed solution
 
@@ -483,6 +482,14 @@ aliasing into the wrapped storage would leave that storage with a
 cross-region reference at exit, violating the `sending` invariant on
 the parameter and producing a compile-time error regardless of how the
 return is declared.
+
+The asymmetry with `Mutex.withLock` reflects a difference in purpose.
+`Mutex` protects shared state, and the dominant `withLock` pattern is
+to extract a value from the locked state for use outside the critical
+section; `sending Result` is a natural fit for that pattern.
+`Disconnected` is an owned wrapper that lives in the caller's region,
+and `withValue` needs to support closures that mix wrapped-value state
+with caller-side state.
 
 ### Support for `~Escapable` values
 
