@@ -108,10 +108,18 @@ extension Trait {
 ///
 /// To add this trait to a test, use ``Trait/taskLocal(_:_:)``.
 public struct TaskLocalTrait<Value: Sendable>: SuiteTrait, TestTrait, TestScoping {
+  /// This trait's task local.
+  public var taskLocal: TaskLocal<Value> { get set }
+  
+  /// Evaluate this trait's bound value.
+  public func evaluate() async throws -> Value
+
+  public var isRecursive: Bool { get }
+  
   public func provideScope(
     for test: Test,
     testCase: Test.Case?,
-    performing function: @concurrent () async throws -> Void
+    performing function: @Sendable () async throws -> Void
   ) async throws
 }
 ```
@@ -129,9 +137,11 @@ func test() {
 ```
 
 This is because currently the `@Test` macro cannot see the `$isEnabled` symbol created by the 
-`@TaskLocal` macro. There are use cases for defining task locals in the test target along side tests
-that want to override them, but it's not common, and you always have the option to move the task
-local to a separate target.
+`@TaskLocal` macro (a [known issue] of macros). There are use cases for defining task locals in the
+test target along side tests that want to override them, but it's not common, and you always have
+the option to move the task local to a separate target.
+
+[known issue]: https://forums.swift.org/t/macro-symbol-visibility-to-other-macros/87629
 
 ## Source compatibility
 
