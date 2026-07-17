@@ -5,7 +5,7 @@
 * Review Manager: [Stuart Montgomery](https://github.com/stmontgomery)
 * Status: **Active Review (July 17...July 27, 2026)**
 * Implementation: [swiftlang/swift-testing#1764](https://github.com/swiftlang/swift-testing/pull/1764)
-* Review: ([pitch](https://forums.swift.org/t/pitch-add-a-tasklocal-trait-to-swift-testing/87603))
+* Review: ([pitch](https://forums.swift.org/t/pitch-add-a-tasklocal-trait-to-swift-testing/87603)) ([review](https://forums.swift.org/t/st-0026-tasklocal-test-trait/88358))
 
 # Introduction
 
