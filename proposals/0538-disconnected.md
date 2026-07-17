@@ -5,7 +5,7 @@
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active review (July 17 - July 31, 2026)**
 * Implementation: [swiftlang/swift#89597](https://github.com/swiftlang/swift/pull/89597)
-* Review: ([pitch](https://forums.swift.org/t/pitch-disconnected-type-for-modeling-disconnected-values/86815))
+* Review: ([pitch](https://forums.swift.org/t/pitch-disconnected-type-for-modeling-disconnected-values/86815)) ([review](https://forums.swift.org/t/se-0538-disconnected/88361))
 
 ## Introduction
 
