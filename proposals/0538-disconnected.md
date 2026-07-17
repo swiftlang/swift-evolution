@@ -1,9 +1,9 @@
 # Disconnected
 
-* Proposal: [SE-NNNN](NNNN-disconnected.md)
+* Proposal: [SE-0538](0538-disconnected.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Holly Borla](https://github.com/hborla)
+* Status: **Active review (July 17 - July 31, 2026)**
 * Implementation: [swiftlang/swift#89597](https://github.com/swiftlang/swift/pull/89597)
 * Review: ([pitch](https://forums.swift.org/t/pitch-disconnected-type-for-modeling-disconnected-values/86815))
 
