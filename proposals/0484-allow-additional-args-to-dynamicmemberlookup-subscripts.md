@@ -3,8 +3,8 @@
 * Proposal: [SE-0484](0484-allow-additional-args-to-dynamicmemberlookup-subscripts.md)
 * Authors: [Itai Ferber](https://github.com/itaiferber)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Accepted**
-* Implementation: [swiftlang/swift#81148](https://github.com/swiftlang/swift/pull/81148)
+* Status: **Implemented (Swift Next)**
+* Implementation: [swiftlang/swift#88480](https://github.com/swiftlang/swift/pull/88480)
 * Previous Proposals: [SE-0195](0195-dynamic-member-lookup.md), [SE-0252](0252-keypath-dynamic-member-lookup.md)
 * Review: ([pitch](https://forums.swift.org/t/pitch-allow-additional-arguments-to-dynamicmemberlookup-subscripts/79558)) ([review](https://forums.swift.org/t/se-0484-allow-additional-arguments-to-dynamicmemberlookup-subscripts/79853)) ([acceptance](https://forums.swift.org/t/accepted-se-0484-allow-additional-arguments-to-dynamicmemberlookup-subscripts/80167))
 
