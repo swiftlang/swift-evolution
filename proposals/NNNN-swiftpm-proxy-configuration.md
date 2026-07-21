@@ -3,10 +3,10 @@
 * Proposal: [SE-NNNN](NNNN-swiftpm-proxy-configuration.md)
 * Authors: [raiyyan089](https://github.com/raiyyan089)
 * Review Manager: TBD
-* Status: **Awaiting review**
-* Bug: [swiftlang/swift-package-manager#7470](https://github.com/swiftlang/swift-package-manager/issues/7470)
+* Status: **Awaiting implementation**
+* Bugs: [swiftlang/swift-package-manager#7470](https://github.com/swiftlang/swift-package-manager/issues/7470)
 * Implementation: [swiftlang/swift-package-manager#10274](https://github.com/swiftlang/swift-package-manager/pull/10274)
-* Pitch: [Forum Thread](https://forums.swift.org/t/pitch-package-manager-http-proxy-configuration/88121)
+* Review: ([pitch](https://forums.swift.org/t/pitch-package-manager-http-proxy-configuration/88121))
 
 ## Introduction
 
