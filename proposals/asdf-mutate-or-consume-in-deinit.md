@@ -112,14 +112,14 @@ struct Resource: ~Copyable {
   // Consuming method that releases the resource, surfacing errors to be
   // handled
   consuming func release() throws {
-    try Self.close(resourceID: self.resourceID)
+    try Self.release(resourceID: self.resourceID)
     discard self
   }
   
   // Deinit that implicitly closes the resource, swallowing errors
   deinit {
     do {
-      try Self.close(resourceID: self.resourceID)
+      try Self.release(resourceID: self.resourceID)
     } catch {
       // Ignore the error
     }
