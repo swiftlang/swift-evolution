@@ -4,16 +4,17 @@
 * Authors: [Joe Groff](https://github.com/jckarter)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-* Implementation: [TBD](https://github.com/swiftlang/swift/pull/TBD)
+* Implementation: [swiftlang/swift#90836](https://github.com/swiftlang/swift/pull/90836)
 * Review: ([pitch 1](https://forums.swift.org/t/mutation-and-consumption-in-non-copyable-type-deinit-s/82390))
 
 ## Introduction
 
 Non-`Copyable` types can define a `deinit` to clean up owned resources
-at the end of their lifetime; however, `self` is restricted to be
-immutable and borrowable only within the body of `deinit` up to this point.
-We propose to allow `deinit` to mutate and/or consume `self` or its
-parts.
+at the end of their lifetime; however, prior to this proposal, `self` was
+restricted to be immutable and borrowable only within the body of `deinit` up to
+this point. We propose to allow `deinit` to mutate and/or consume the fields
+of `self`, but still prevent the mutation or consumption of `self` as an entire
+value in order to avoid problems with value resurrection.
 
 ## Motivation
 
@@ -45,52 +46,28 @@ struct BufferedFile: ~Copyable {
 }
 ```
 
-Or a type may provide a `consuming` method for more configurable cleanup, and
-express its `deinit` in terms of calling that method with standard parameters:
-
-```swift
-struct BufferedFile: ~Copyable {
-  let file: File
-  let buffer: Buffer
-  
-  consuming func close(flush: Bool) {
-    if flush {
-      buffer.flush(to: file)
-    }
-    buffer.release()
-    file.close()
-
-    discard self
-  }
-
-  deinit {
-    // Flush the buffer by default
-    close(flush: true)
-  }
-}
-```
-
 Along similar lines, `deinit` may want to use code factored into `mutating`
 methods as part of the cleanup process.
 
 ## Proposed solution
 
-We propose that `deinit`s should be allowed to mutate and consume `self`.
-This includes either partial or entire mutation of the value.
+We propose that `deinit`s should be allowed to mutate and consume the 
+fields of `self`.
 
 ## Detailed design
 
-### "Resurrection" and accidental recursion hazards
+### Avoiding "resurrection" and accidental recursion hazards
 
 `deinit` in a noncopyable type is unique among contexts that have
-ownership of a value: any other owning context would implicitly destroy the value
-by invoking `deinit`, whereas `deinit` itself of course cannot. `deinit` only
-destroys the component stored properties or inhabited enum case of the value.
+ownership of a value: any other owning context would implicitly destroy the
+value by invoking `deinit`, whereas `deinit` itself of course cannot. `deinit`
+only destroys the component stored properties or inhabited enum case of the
+value.
 
-This creates a wrinkle when `deinit` is allowed to pass `self` to a
-consuming or mutating operation. In the callee, the value is "resurrected", and
-the callee will invoke `deinit` again if it ends the value's lifetime. This could
-make it easy to accidentally induce an infinite loop:
+If `deinit` were allowed to pass `self` to a consuming or
+mutating operation, then the value would be "resurrected" in the callee, since
+the callee will invoke `deinit` again at the end of the value's lifetime. This
+would make it easy to accidentally induce an infinite loop:
 
 ```swift
 struct Foo: ~Copyable {
@@ -116,37 +93,60 @@ struct Bar: ~Copyable {
 }
 ```
 
-Generally, a `consuming` method usable from a `deinit` would use
-`discard self` to prevent the implicit call back into `deinit`:
+This proposal disallows the mutation or consumption of `self` as an entire
+value in order to avoid these problems. We believe that in most cases this
+is an acceptable limitation. However, one consequence of the limitation is
+that `deinit` cannot call out to `mutating` or `consuming` methods on the
+same type. `deinit` can however still share logic with other methods via
+`static` methods that operate on the fields, for instance:
 
 ```swift
-struct Foo: ~Copyable {
-  deinit {
-    self.foo()
-  }
-
-  consuming func foo() {
-    doCleanup()
+struct Resource: ~Copyable {
+  var resourceID: Int
+  
+  // Shared logic for releasing the underlying resource by ID.
+  // The release operation may surface error conditions, but these can be
+  // ignored in normal use.
+  private static func release(resourceID: Int) throws {...}
+  
+  // Consuming method that releases the resource, surfacing errors to be
+  // handled
+  consuming func release() throws {
+    try Self.close(resourceID: self.resourceID)
     discard self
+  }
+  
+  // Deinit that implicitly closes the resource, swallowing errors
+  deinit {
+    do {
+      try Self.close(resourceID: self.resourceID)
+    } catch {
+      // Ignore the error
+    }
   }
 }
 ```
 
-On the other hand, aside from accidental recursion, resurrection of a noncopyable
-value doesn't create fundamental semantic problems, and there are situations where
-it would be useful for `deinit` to transfer ownership of the value.
-For instance, if cleaning up a value is time-consuming, it may make sense to
-enqueue a dying value to be cleaned up later rather than immediately during
-`deinit`:
+There may also be situations where it would be useful for `deinit` to transfer
+ownership of an entire value. For instance, if cleaning up a value is
+time-consuming, it may make sense to enqueue a dying value to be cleaned up
+later rather than immediately during `deinit`. Since `deinit` is always defined
+inside of a type's original declaration, it always has access to the layout of
+the `struct` and its memberwise initializer, so the value can be explicitly
+resurrected by passing the fields of `self` to the memberwise initializer:
 
 ```swift
 let deferredCleanupValues: ConcurrentQueue<DeferredCleanup>
 
 struct DeferredCleanup: ~Copyable {
+  var resource1: Resource1
+  var resource2: Resource2
+
   deinit {
-    // Instead of cleaning up the value immediately, push it into the queue
-    // to be cleaned up later
-    deferredCleanupValues.push(self)
+    // Instead of cleaning up this value's resources immediately, push an
+    // equivalent value into the queue to be cleaned up later
+    let newSelf = Self(resource1: self.resource1, resource2: self.resource2)
+    deferredCleanupValues.push(newSelf)
   }
 
   consuming func runTimeConsumingCleanup() async { ... }
@@ -159,28 +159,24 @@ func runDeferredCleanups() async {
 }
 ```
 
-Rather than foreclose on potentially useful expressivity in the hope of
-making mistakes impossible, this proposal chooses not to impose any restrictions
-on performing `mutating` or `consuming` operations from `deinit`. 
-
-### Remaining restrictions
+### Other restrictions
 
 It is still not allowed to capture `self` in a closure during `deinit`.
 
 ### Cleanup of partially-consumed `self`
 
-If any components of `self` have not been consumed at the point `deinit` returns,
-those remaining components are implicitly destroyed. This includes running `deinit`
-of any non-`Copyable` components.
+If any components of `self` have not been consumed at the point `deinit`
+returns, those remaining components are implicitly destroyed. This includes
+running `deinit` of any non-`Copyable` components.
 
 ## Source compatibility
 
 This proposal changes the behavior of `self` so that it behaves like an owned
-mutable binding (like a `consuming` function parameter), where it previously behaved
-like an immutable `borrowing` parameter. This could affect overload resolution in
-rare situations where an extension provides a `mutating` variation of a name that
-was previously `borrowing`. We expect this sort of situation to be unlikely in
-practice.
+mutable binding (like a `consuming` function parameter), where it previously
+behaved like an immutable `borrowing` parameter. This could affect overload
+resolution in rare situations where an extension provides a `mutating` variation
+of a name that was previously `borrowing`. We expect this sort of situation to
+be unlikely in practice.
 
 ## ABI compatibility
 
@@ -194,24 +190,26 @@ compatibility.
 
 ## Alternatives considered
 
-There are various restrictions we could impose on operations inside of
-a non-`Copyable` `deinit` to prevent or reduce the likelihood of resurrection
-or recursion into `deinit`:
+If the restriction on mutating or consuming `self` as an entire value proves
+to be too onerous in practice, we are open to exploring lifting that restriction. There are various ways we might still mitigate the resurrection
+hazard:
 
-### Only allow partial mutation and consumption
+### Introduce a `resurrect self` operation
 
-An easy way to prevent resurrection or `deinit` recursion would be to allow
-mutation and consumption of the stored properties or cases of a value, but
-not of the value as a whole. However, this would completely preclude the
-ability to factor cleanup logic into utility methods, which is a major
-motivation for allowing mutation or consumption in a `deinit` to begin with.
+`deinit`s in this proposal can manually resurrect `self` by
+memberwise-initializing a new value from its fields, but this is verbose.
+If it becomes a common occurrence, we could introduce a shorthand syntax for it.
+This could be seen as the opposite of `discard self`, which disables `self`'s
+implicit `deinit` and disallows further use of `self` as an entire value, since
+it would effectively re-enable `self`'s implicit `deinit` and allow it to be
+treated as a whole value again.
 
 ### Annotate "deinit-safe" methods
 
 We could limit what operations a `deinit` is allowed to apply to a whole value
-to methods that opt into being "deinit-safe" in some fashion. `consuming` methods so annotated
-would be required to `discard self`, and `mutating` methods would be prevented
-from fully reassigning `self`.
+to methods that opt into being "deinit-safe" in some fashion. `consuming`
+methods so annotated would be required to `discard self`, and `mutating` methods
+with the annotation would be prevented from fully reassigning `self`.
 
 ### Limit `deinit` to invoking locally-defined methods on `self`
 
