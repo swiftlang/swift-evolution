@@ -3,7 +3,9 @@
 * Proposal: [SE-NNNN](NNNN-inline-array-hashable.md)
 * Authors: Alejandro Alonso and Steve Canon
 * Review Manager: TBD
-* Status: **Awaiting review**
+* Status: **Pitch**
+* Review: ([pitch](https://forums.swift.org/t/conform-inlinearray-to-hashable/88432))
+
 
 ## Summary of changes
 
