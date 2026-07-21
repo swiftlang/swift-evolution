@@ -25,6 +25,7 @@ That's it. That's the whole design.
 
 Ok, fine:
 
+- These conformances implement elementwise equality, not identity.
 - The element hashes are mixed in index order.
 - Equality is permitted but not required to early-out (i.e. the implementation
   does not guarantee that `InlineArray.==` is constant time, nor does it
@@ -57,4 +58,5 @@ None worth mentioning.
 
 ## Alternatives considered
 
-None worth mentioning.
+Implement identity rather than elementwise equality. This is arguably also a
+valid choice, but it's neither interesting nor particularly useful.
