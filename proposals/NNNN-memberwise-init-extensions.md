@@ -74,7 +74,10 @@ extension Post {
 
 ## Detailed design
 
-Initializers that elide the default, synthesized initializer when defined directly in the type, will now be allowed to be defined anywhere in the file.
+A handwritten initializer that is indistinguishable from the synthesized
+initializer (_i.e._ it has the same argument names and types defined in the
+same order) will now suppress the default, synthesized initializer when
+defined in a same-file extension.
 
 ## Source compatibility
 
@@ -95,10 +98,12 @@ compatibility.
 
 Future directions for memberwise initializers has been brought up before on
 the forums, including [a pitch][explicit-memberwise-initializers] for explicit
-synthesis. This pitch shouldn't have any effect on further evolution of
-memberwise initializer functionality.
+synthesis, as well as [other shorthands][shorthand-syntax]. This pitch
+shouldn't have any effect on further evolution of memberwise initializer
+functionality.
 
 [explicit-memberwise-initializers]: https://forums.swift.org/t/explicit-memberwise-initializers/22893
+[shorthand-syntax]: https://forums.swift.org/t/a-new-keyword-that-stands-in-for-a-tedious-initializer-of-arbitrary-length/60173/22
 
 ## Alternatives considered
 
