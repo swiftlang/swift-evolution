@@ -101,7 +101,7 @@ The aliased span types are non-escapable, like their span counterparts. However,
 
 * The `subscript` operations use `get` and `set` accessors, which require the client to copy out the value on access. This allows a separate alias to replace the value while the original access is ongoing, without making it a memory safety violation. In the previous `aliasingSafetyProblem` example, this means that the object produced by `self[0]` will be copied (i.e., its retain count is increased) for the duration of the call to `doSomething`, so it cannot be deallocated while the closure is executed.
 * The aliased span types do not support non-copyable `Element` types, because we cannot do so on top of `get` and `set` accessors.
-* The `AliasedMutable*Span` types are copyable: the non-aliased `Mutable*Span` types are non-copyable because that is needed to maintain exclusive access over the storage by preventing aliases. The `AliasedMutable*Span` types can be copied, because they already account for the possibility of aliases. (TODO: should we be using `nonmutating set` as well?)
+* The `AliasedMutable*Span` types are copyable: the non-aliased `Mutable*Span` types are non-copyable because that is needed to maintain exclusive access over the storage by preventing aliases. The `AliasedMutable*Span` types can be copied, because they already account for the possibility of aliases.
 
 There is a full set of conversion operations between the various aliased span types and their non-aliased counterparts. It is safe to create an aliased span from its non-aliased counterparts, because the aliased spans make fewer assumptions, so long as the original span cannot be used in a manner that can be undermined by the derived aliased spans. For example, the following API is safe because the underlying storage is already guaranteed not to be mutated by anyone:
 
@@ -221,6 +221,155 @@ extension AliasedSpan where Element: ConvertibleToBytes {
 }
 ```
 
+### `AliasedMutableSpan`
+
+The `AliasedMutableSpan` type is the counterpart to `MutableSpan`, allowing mutating of the contents of the buffer it references. The primary difference from `MutableSpan` is that `AliasedMutableSpan` is `Copyable`. This means that a lot of the API surface, while it has roughly the same shape as `MutableSpan`, no longer needs to be consuming.
+
+```swift
+struct AliasedMutableSpan<Element>: ~Escapable, Copyable {
+  @lifetime(immortal)
+  init()
+    
+  var count: Int { get }
+  var isEmpty: Bool { get }
+
+  typealias Index = Int
+  var indices: Range<Index> { get }
+
+  /// Retrieving an aliased span from a mutable span is a safe operation,
+  /// because both assume they can alias the underlying storage.
+  @lifetime(self copy)
+  var aliasedSpan: AliasedSpan<Element> { 
+    @lifetime(copy self)
+    get
+  }
+}
+```
+
+As noted in the Proposed Solution section, the `AliasedMutableSpan` subscript operation uses `get` and `set` accessors, forcing clients to copy the data in and out. Note that the setter is non-mutating, because it does not change the shape of the span, only the contents of the underlying buffer.
+
+```swift
+extension AliasedMutableSpan {
+  subscript(_ position: Index) -> Element { 
+    get 
+    nonmutating set 
+  }
+  subscript(unchecked position: Index) -> Element {
+    get
+    nonmutating set
+  }
+}
+```
+
+Other element mutation APIs are similarly non-mutating:
+
+```swift
+extension AliasedMutableSpan {
+  func swapAt(_ i: Index, _ j: Index)
+  func swapAt(unchecked i: Index, unchecked j: Index)
+  func update(repeating repeatedValue: consuming Element)
+}
+```
+
+Unsafe accesses to the buffer mirror that of `MutableSpan`, except that none of them are mutating for the same reason:
+
+```swift
+extension AliasedMutableSpan {}
+  @safe
+  func withUnsafeBufferPointer<E: Error, Result: ~Copyable>(
+    _ body: (_ buffer: UnsafeBufferPointer<Element>) throws(E) -> Result
+  ) throws(E) -> Result
+  
+  @safe
+  func withUnsafeMutableBufferPointer<
+    E: Error, Result: ~Copyable
+  >(
+    _ body: (UnsafeMutableBufferPointer<Element>) throws(E) -> Result
+  ) throws(E) -> Result
+}
+
+extension AliasedMutableSpan where Element: BitwiseCopyable {}
+  @safe
+  func withUnsafeBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ buffer: UnsafeRawBufferPointer) throws(E) -> Result
+  ) throws(E) -> Result
+
+  @safe
+  mutating func withUnsafeMutableBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ buffer: UnsafeMutableRawBufferPointer) throws(E) -> Result
+  ) throws(E) -> Result
+}
+```
+
+Similarly for the `extracting` family of operations, which no longer need to be `mutating`:
+
+```swift
+extension AliasedMutableSpan {
+  @lifetime(copy self)
+  func extracting(_ bounds: Range<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(unchecked bounds: Range<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(_ bounds: some RangeExpression<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(unchecked bounds: ClosedRange<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(_: UnboundedRange) -> Self {
+    
+  @lifetime(copy self)
+  func extracting(first maxLength: Int) -> Self
+  
+  @lifetime(copy self)
+  func extracting(droppingLast k: Int) -> Self
+
+  @lifetime(copy self)
+  func extracting(last maxLength: Int) -> Self
+
+  @lifetime(copy self)
+  func extracting(droppingFirst k: Int) -> Self  
+}
+```
+
+APIs involving byte-level access relate to `AliasedMutableRawSpan`. There is only a single `mutableBytes` version, because we don't need distinguish between `inout` and `consuming` the way we did with the non-copyable `MutableSpan`. All of the properties copy the `self` dependency, because it's fine to have multiple aliases of the same storage.
+
+```swift
+extension AliasedMutableSpan where Element: ConvertibleFromBytes & ConvertibleToBytes {
+  /// Convert a raw span to a typed span.
+  @lifetime(copy mutableBytes)
+  init(mutableBytes: AliasedMutableRawSpan)
+}
+
+extension AliasedMutableSpan where Element: ConvertibleToBytes {
+  var bytes: RawSpan {
+    @lifetime(copy self)
+    get
+  }
+}
+
+extension AliasedMutableSpan where Element: ConvertibleToBytes & ConvertibleFromBytes {
+  var mutableBytes: MutableRawSpan {
+    @lifetime(copy self)
+    get
+  }
+}
+```
+
+As with `AliasedSpan`, `AliasedMutableSpan` conforms to the `Iterable` protocol, but requires a buffer in the iterator to isolate the iteration from changes to the underlying buffer.
+
+```swift
+extension AliasedMutableSpan: Iterable {
+  typealias Failure = Never
+  var underestimatedCount: Int { get }
+
+  @lifetime(borrow self)
+  func makeBorrowingIterator() -> BorrowingIterator
+}
+```
+
 ### Conversions to the aliased span types
 
 An aliased span can be created from its corresponding span type. These operations expressed as either properties or methods on the span type to enable chaining, e.g., `span.aliasedSpan.bytes`. `Span` introduces the `aliasedSpan` property:
@@ -230,6 +379,15 @@ extension Span where Element: Copyable {
   /// Retrieve an aliased span referencing the same storage.
   @lifetime(copy self)
   var aliasedSpan: AliasedSpan<Element> { get }
+}
+```
+
+For the mutable spans, we need to consume the `MutableSpan` to create the first `AliasedMutableSpan`, otherwise accesses to the original `MutableSpan` (which assumes exclusivity) could overlap the `AliasedMutableSpan` instance that is returned (or a copy thereof).
+
+```swift
+extension MutableSpan where Element: Copyable {
+  // Retrieve an aliased mutable span from this mutable span.
+  consuming func asAliased() -> AliasedMutableSpan<Element>
 }
 ```
 
@@ -245,9 +403,15 @@ extension AliasedSpan {
   // in use.
   @unsafe var span: Span<Element> { get } 
 }
+
+extension AliasedMutableSpan {
+  // Retrieving a mutable span from an aliased mutable span is an
+  // unsafe operation, because one must ensure that the underlying storage
+  // and not accessed at all (read or write) while the mutable span is in
+  // use.
+  @unsafe var mutableSpan: MutableSpan<Element> { mutating get }
+}
 ```
-
-
 
 ## Source compatibility
 
