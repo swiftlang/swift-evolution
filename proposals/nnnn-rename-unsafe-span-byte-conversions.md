@@ -6,7 +6,7 @@
 * Status: **Awaiting implementation**
 * Implementation: TBD
 * Previous Proposals: [SE-0447](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md), [SE-0456](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0456-stdlib-span-properties.md), [SE-0467](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0467-MutableSpan.md), [SE-0485](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0485-outputspan.md), [SE-0525]
-* Review: TBD
+* Review: ([pitch](https://forums.swift.org/t/88498))
 
 [SE-0525]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0525-rawspan-safe-loading-api.md
 
