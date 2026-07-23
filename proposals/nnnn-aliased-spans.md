@@ -127,12 +127,127 @@ The conversion in the other direction, which produces a span from an aliased spa
 
 ## Detailed design
 
-Describe the design of the solution in detail. If it involves new
-syntax in the language, show the additions and changes to the Swift
-grammar. If it's a new API, show the full API and its documentation
-comments detailing what it does. The detail in this section should be
-sufficient for someone who is *not* one of the authors to be able to
-reasonably implement the feature.
+### `AliasedSpan`
+
+`AliasedSpan` provides access to a contiguous buffer of type `Element`. While the `AliasedSpan` type itself cannot change the contents of the buffer, it is possible that other code also has a reference to that memory and can make changes there. The majority of the API mirrors `Span` itself:
+
+```swift
+struct AliasedSpan<Element>: ~Escapable, Copyable, BitwiseCopyable {
+  @lifetime(immortal)
+  init()
+    
+  var count: Int { get }
+  var isEmpty: Bool { get }
+
+  typealias Index = Int
+  var indices: Range<Index> { get }
+  
+  @lifetime(copy self)
+  func extracting(_ bounds: Range<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(unchecked bounds: Range<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(_ bounds: some RangeExpression<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(unchecked bounds: ClosedRange<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(_: UnboundedRange) -> Self {
+    
+  @lifetime(copy self)
+  func extracting(first maxLength: Int) -> Self
+  
+  @lifetime(copy self)
+  func extracting(droppingLast k: Int) -> Self
+
+  @lifetime(copy self)
+  func extracting(last maxLength: Int) -> Self
+
+  @lifetime(copy self)
+  func extracting(droppingFirst k: Int) -> Self
+
+  @safe
+  func withUnsafeBufferPointer<E: Error, Result: ~Copyable>(
+    _ body: (_ buffer: UnsafeBufferPointer<Element>) throws(E) -> Result
+  ) throws(E) -> Result
+    
+  @safe
+  func withUnsafeBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ buffer: UnsafeRawBufferPointer) throws(E) -> Result
+  ) throws(E) -> Result where Element: BitwiseCopyable
+    
+  func isIdentical(to other: Self) -> Bool
+  func isTriviallyIdentical(to other: Self) -> Bool
+  func indices(of other: borrowing Self) -> Range<Index>?
+}
+
+extension AliasedSpan: Sendable where Element: Sendable {}
+```
+
+As noted in the Proposed Solution section, the subscripts for `AliasedSpan` use `get` accessors rather than `borrow` accessors to force the caller to copy the result.
+
+```swift
+extension AliasedSpan {
+  subscript(_ position: Index) -> Element { get }
+  subscript(unchecked position: Index) -> Element { get }
+}
+```
+
+`AliasedSpan` conforms to the `Iterable` protocol. Note that iteration over an `AliasedSpan` is necessarily less efficient than the corresponding `Span`, because the underlying buffer could be aliased and, therefore, mutated during iteration. Therefore, the iterator will get copies of the elements during iteration, and vend a `Span` into those copied elements, much like an `Iterable` conformance for an arbitrary `Sequence`.
+
+```swift 
+extension AliasedSpan: Iterable {
+  typealias Failure = Never
+  var underestimatedCount: Int { get }
+
+  @lifetime(borrow self)
+  func makeBorrowingIterator() -> BorrowingIterator
+}
+```
+
+APIs that involve byte-level access using `AliasedRawSpan` (in place of `RawSpan` for `Span`), but are otherwise unchanged:
+
+```swift
+extension AliasedSpan where Element: ConvertibleFromBytes {
+  @lifetime(copy bytes)
+  init(viewing bytes: AliasedRawSpan)
+}
+
+extension AliasedSpan where Element: ConvertibleToBytes {
+  var bytes: AliasedRawSpan { get }
+}
+```
+
+### Conversions to the aliased span types
+
+An aliased span can be created from its corresponding span type. These operations expressed as either properties or methods on the span type to enable chaining, e.g., `span.aliasedSpan.bytes`. `Span` introduces the `aliasedSpan` property:
+
+```swift
+extension Span where Element: Copyable {
+  /// Retrieve an aliased span referencing the same storage.
+  @lifetime(copy self)
+  var aliasedSpan: AliasedSpan<Element> { get }
+}
+```
+
+### Conversions from the aliased span types
+
+A span type can be created from its corresponding aliased span type, but doing so is *always unsafe*. While the aliased span types do provide lifetime and bounds safety, they do not ensure the absence of aliases that could modify the storage, undermining the safety of the span.
+
+```swift
+extension AliasedSpan {
+  // Retrieving a span from an aliased span is an unsafe operation,
+  // because one must ensure that the underlying storage is not
+  // modified by any code while the span (or any copy derived from it) is
+  // in use.
+  @unsafe var span: Span<Element> { get } 
+}
+```
+
+
 
 ## Source compatibility
 
