@@ -3,8 +3,8 @@
 * Proposal: [SE-NNNN](nnnn-rename-unsafe-span-byte-conversions.md)
 * Authors: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-* Implementation: TBD
+* Status: **Awaiting Review**
+* Implementation: **Unimplemented**
 * Previous Proposals: [SE-0447](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md), [SE-0456](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0456-stdlib-span-properties.md), [SE-0467](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0467-MutableSpan.md), [SE-0485](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0485-outputspan.md), [SE-0525]
 * Review: ([pitch](https://forums.swift.org/t/88498))
 
