@@ -1,4 +1,4 @@
-# Aliased Span types
+# Aliased Span and Ref types
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
