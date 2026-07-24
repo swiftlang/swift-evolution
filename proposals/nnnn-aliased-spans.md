@@ -1,10 +1,9 @@
 # Aliased Span types
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
-* Authors: [Doug Gregor](https://github.com/DougGregor), [Author 2](https://github.com/swiftdev)
+* Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-* Vision: [Vision Name](https://github.com/swiftlang/swift-evolution/visions/NNNNN.md)
 * Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN)
 * Review: ([pitch](https://forums.swift.org/...))
 
@@ -150,7 +149,7 @@ struct AliasedSpan<Element>: ~Escapable, Copyable, BitwiseCopyable {
   func extracting(unchecked bounds: ClosedRange<Index>) -> Self
   
   @lifetime(copy self)
-  func extracting(_: UnboundedRange) -> Self {
+  func extracting(_: UnboundedRange) -> Self
     
   @lifetime(copy self)
   func extracting(first maxLength: Int) -> Self
@@ -313,7 +312,7 @@ extension AliasedMutableSpan {
   func extracting(unchecked bounds: ClosedRange<Index>) -> Self
   
   @lifetime(copy self)
-  func extracting(_: UnboundedRange) -> Self {
+  func extracting(_: UnboundedRange) -> Self
     
   @lifetime(copy self)
   func extracting(first maxLength: Int) -> Self
@@ -365,6 +364,111 @@ extension AliasedMutableSpan: Iterable {
 }
 ```
 
+### `AliasedRawSpan`
+
+The `AliasedRawSpan` type has an API that is equivalent to `RawSpan`, but where the `Span` types in parameters and result types have been replaced with their corresponding `Aliased` versions.
+
+```swift
+struct RawSpan: ~Escapable, Copyable, BitwiseCopyable {
+  @lifetime(immortal)
+  init()
+  
+  @lifetime(copy span)
+  @unsafe init<Element>(unsafeElements span: AliasedSpan<Element>)
+  
+  @lifetime(copy span)
+  init<Element: ConvertibleToBytes>(elements span: AliasedSpan<Element>)
+  
+  var byteCount: Int { get }
+  var isEmpty: Bool { get }
+  var byteOffsets: Range<Int> { get }
+
+  subscript(_ byteOffset: Int) -> UInt8 { get }
+  @unsafe subscript(unchecked byteOffset: Int) -> UInt8
+  
+  @lifetime(copy self)
+  func extracting(_ bounds: Range<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(unchecked bounds: Range<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(_ bounds: some RangeExpression<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(unchecked bounds: ClosedRange<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(_: UnboundedRange) -> Self
+    
+  @lifetime(copy self)
+  func extracting(first maxLength: Int) -> Self
+  
+  @lifetime(copy self)
+  func extracting(droppingLast k: Int) -> Self
+
+  @lifetime(copy self)
+  func extracting(last maxLength: Int) -> Self
+
+  @lifetime(copy self)
+  func extracting(droppingFirst k: Int) -> Self
+  
+  @safe
+  func withUnsafeBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ buffer: UnsafeRawBufferPointer) throws(E) -> Result
+  ) throws(E) -> Result
+
+  @unsafe
+  func unsafeLoad<T>(
+    fromByteOffset offset: Int = 0, as type: T.Type
+  ) -> T
+
+  @unsafe
+  func unsafeLoad<T>(
+    fromUncheckedByteOffset offset: Int, as type: T.Type
+  ) -> T
+
+  @unsafe
+  func unsafeLoadUnaligned<T: BitwiseCopyable>(
+    fromByteOffset offset: Int = 0, as type: T.Type
+  ) -> T
+  
+  @unsafe
+  func unsafeLoadUnaligned<T: BitwiseCopyable>(
+    fromUncheckedByteOffset offset: Int, as type: T.Type
+  ) -> T
+
+  func load<T: ConvertibleFromBytes>(
+    fromByteOffset offset: Int,
+    as type: T.Type
+  ) -> T
+  
+  func load<T: ConvertibleFromBytes & FixedWidthInteger>(
+    fromByteOffset offset: Int,
+    as type: T.Type,
+    _ byteOrder: ByteOrder
+  ) -> T
+
+  func byteOffsets(of other: borrowing Self) -> Range<Int>?
+
+  func isIdentical(to other: Self) -> Bool
+  func isTriviallyIdentical(to other: Self) -> Bool
+  func indices(of other: borrowing Self) -> Range<Index>?
+}
+```
+
+The `Iterable` conformance requires bytes to be buffered, as with all of the aliased span conformances to `Iterable`:
+
+```swift 
+extension AliasedRawSpan: Iterable {
+  typealias Failure = Never
+  var underestimatedCount: Int { get }
+
+  @lifetime(borrow self)
+  func makeBorrowingIterator() -> BorrowingIterator
+}
+```
+
 ### Conversions to the aliased span types
 
 An aliased span can be created from its corresponding span type. These operations expressed as either properties or methods on the span type to enable chaining, e.g., `span.aliasedSpan.bytes`. `Span` introduces the `aliasedSpan` property:
@@ -386,6 +490,16 @@ extension MutableSpan where Element: Copyable {
 }
 ```
 
+The aliased raw spans follow similarly:
+
+```swift
+extension RawSpan {
+  /// Retrieve an aliased raw span referencing the same bytes.
+  @lifetime(copy self)
+  var aliasedBytes: AliasedRawSpan { get }
+}
+```
+
 ### Conversions from the aliased span types
 
 A span type can be created from its corresponding aliased span type, but doing so is *always unsafe*. While the aliased span types do provide lifetime and bounds safety, they do not ensure the absence of aliases that could modify the storage, undermining the safety of the span.
@@ -397,6 +511,14 @@ extension AliasedSpan {
   // modified by any code while the span (or any copy derived from it) is
   // in use.
   @unsafe var span: Span<Element> { get } 
+}
+
+extension AliasedRawSpan {
+  // Retrieving a span from an aliased span is an unsafe operation,
+  // because one must ensure that the underlying storage is not
+  // modified by any code while the span (or any copy derived from it) is
+  // in use.
+	@unsafe var rawSpan: RawSpan { get }  
 }
 
 extension AliasedMutableSpan {
