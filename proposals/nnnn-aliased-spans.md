@@ -709,6 +709,38 @@ This proposal introduces new types into the Swift standard library, which adds t
 
 The new `Aliased*Span` family of types is intended to be adopted in places where it is impossible or impractical to ensure non-aliasing, such as the shared-memory and C-interoperability use cases. It is possible that these types will propagate further in the Swift ecosystem than intended, for example because something that is implemented on top of a C library provides `AliasedSpan`-based APIs rather than `Span`-based APIs for convenience (or safety). If this happens, it could lead to confusion about which types should be used, and potentially undermine Swift performance if `AliasedSpan` is used in places where it shouldn't be.
 
+## Future Directions
+
+### Volatile access
+
+The C `volatile` keyword is a way to tell the compiler that it should never optimize away accesses to the referenced memory. It is useful when interfacing with some other part of the system that is accessing the same memory, whether it's another thread or an external piece of hardware.
+
+Volatile access only makes sense when there are already aliases to the memory, so any facility for volatile access in Swift will necessarily build on the aliased types introduced in this proposal. Broadly speaking, there are two approaches to doing so:
+
+* Volatile operations on the aliased types: for example, one could introduce `subscript(volatile:)`, `loadVolatile`, etc. APIs on each of the aliased types introduced here, providing volatile access on a per-call granularity.
+* A new family of volatile types that parallels the aliased types introduced here. The API would effectively be the same, but with volatile semantics, and there would likely be (explicit) conversions in both directions.
+
+The solution space for volatile access is large enough that we feel it should be a separate proposal that will build on this one.
+
+### C(++) interoperability
+
+As noted in the [strict memory safety vision](https://github.com/swiftlang/swift-evolution/blob/main/visions/memory-safety.md#expressing-memory-safe-interfaces-for-the-c-family-of-languages), the aliased span types can be used to represent C pointers if we know about the bounds and lifetime of those pointers. For example, in this C++ API:
+
+```c++
+class MyBuffer {
+public:
+  std::span<double> getContents() __attribute__((lifetimebound));
+};
+```
+
+the `std::span` provides a pointer and its bounds, and the `lifetimebound` attribute specifies that the lifetime of the resulting pointer is bound to the `*this` instance. This is sufficient information to import that C++ method with the following signature in Swift:
+
+```swift
+func getContents() -> AliasedMutableSpan<Double>
+```
+
+The actual C and C++ annotations, as well as their mapping into Swift, are out of the scope of this proposal.
+
 ## Alternatives considered
 
 ### Don't solve the aliasing problem
@@ -723,6 +755,16 @@ Rather than introducing new aliased span types, we could consider loosening the 
 
 `OutputSpan` concerns the initialization of a memory buffer. It only makes sense if there are no aliases of the underlying storage, or if there is external coordination through a single output span to perform the initialization. Therefore, there is no reason to have an aliasing version.
 
+### Remove the `Mutable` variants
+
+The `AliasedMutable*Span` types provide the ability to modify the referenced memory, while their non-mutable counterparts do not. Given that the memory referenced by the aliased span types can be changed by another alias, the non-`Mutable` versions still need to cope with mutation. They primarily exist to communicate the intent to not locally mutate the data. 
+
+We could decide that the declaration of intent is insufficient to justify having separate `Mutable` variants. In this design, all of the non-`Mutable` types would allow mutation. This would set up a surprising difference with the non-aliased `Span` types (where the `Mutable` types are very different) and also the `Unsafe*BufferPointer` types (which have the same concerns about mutation via aliases as the aliased span types). Additionally, removing the `Mutable` variants would impact C(++) interoperability, because both `std::span<const T>` and `std::span<T>` could end up being mapped to the same `AliasedSpan<T>` type.
+
+### Remove the `Raw` variants
+
+The `Aliased*RawSpan` types reference untyped memory, but one could imagine instead using `Aliased*Span<UInt8>` to reference them as bytes. The same reasons that motivate the (non-aliased) "raw" span types also motivate the aliased ones, and it is completely reasonable to expect that (for example) one would use an aliased raw span to write into a DMA buffer to interact with a GPU. They are also expected to be used with C interoperability, to represent a `void *` or `const void *` with size bounds.
+
 ## Acknowledgments
 
-Geoff Garen identified the core aliasing problem addressed by the aliased span types presented here, and noted the memory safety issues it introduces for Swift. Gábor Horváth comprehensively explored what imposing the Law of Exclusivity would mean for the C family of languages, which directly informed this design and the safe interoperability with C that it enables.
+Geoff Garen identified the core aliasing problem addressed by the aliased span types presented here, and noted the memory safety issues it introduces for Swift. Gábor Horváth comprehensively explored what imposing the Law of Exclusivity would mean for the C family of languages, which directly informed this design and the safe interoperability with C that it enables. Steve Canon helped design the aliased span types and provided valuable feedback on this proposal.
