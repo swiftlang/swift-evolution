@@ -9,15 +9,17 @@
 
 ## Summary of changes
 
-Introduces a family of `Aliased*Span` types that provide the memory safety guarantees of the `Span` family of types, but with looser requirements around exclusivity, making them suitable for shared memory and interoperability with other languages.
+Introduces a family of `Aliased*Span` and `Aliased*Ref` types that provide the memory safety guarantees of the `Span` and `Ref` family of types, but with looser requirements around exclusivity, making them suitable for shared memory and interoperability with other languages.
 
 ## Motivation
 
-The `Span` family of types, including `Span` ([SE-0447](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md)), `MutableSpan` ([SE-0467](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0467-MutableSpan.md)), `OutputSpan` ([SE-0485](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0485-outputspan.md)), as well as their `Raw.*Span` counterparts, provide memory-safe access to contiguous memory. Span types provide lifetime safety, ensuring that the memory they reference isn't freed while the span instance is still accessible, as well as bounds safety because all indexed accesses ensure that the indices are within bounds.
+The `Span` / `Ref` family of types, including `Span` ([SE-0447](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md)), `MutableSpan` ([SE-0467](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0467-MutableSpan.md)), `OutputSpan` ([SE-0485](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0485-outputspan.md)), and `Ref` ([SE-0519](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0519-ref-mutableref-types.md)), as well as their `Raw.*Span` counterparts, provide memory-safe access to contiguous memory. Span and ref types provide lifetime safety, ensuring that the memory they reference isn't freed while the instance is still accessible, as well as bounds safety for spans because all indexed accesses ensure that the indices are within bounds.
+
+Throughout this document refers to "span types" generally. The "ref" types are effectively a span-of-one, so "span types" will also include the "ref" types unless otherwise called out.
 
 ### Spans and the Law of Exclusivity
 
-The `Span` family of types depends on Swift's so-called [Law of Exclusivity](https://github.com/swiftlang/swift/blob/main/docs/OwnershipManifesto.md#the-law-of-exclusivity), which states that if there are two accesses to the same value in memory, both of them must be reads. Therefore, any access that can change the value in memory is known to be the only place that will modify that memory, which unlocks important optimization opportunities while still maintaining memory safety for the values in the memory the reference. Fundamentally, maintaining the Law of Exclusivity requires reasoning about all potential *aliases* of a particular location in memory, i.e., places where there is a reference (or pointer) to that memory that could be used to access the value stored there. Swift maintains the Law of Exclusivity through a mix of language and runtime features. Non-copyable types (like `UniqueArray`, [SE-527](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0527-rigidarray-uniquearray.md)) establish unique ownership, whereas non-escapable types (like the `Span` family of types) limit the scope in which data can be accessed, all at compile time. Copy-on-write collections (such as `Array`) and dynamic exclusivity checking (e.g., for global variables) establish exclusivity at run-time for places where it isn't possible to reason about every potential alias. Most of this is invisible to the Swift developer, unless they encounter code that violates the Law of Exclusivity. For example, attempting to create two `MutableSpan` instances that reference into the same `Array`, or modify the `Array` while there is an actual `Span` referencing its storage, will produce a compile-time error about the "overlapping access" that violates exclusivity:
+The `Span` and `Ref` family of types depends on Swift's so-called [Law of Exclusivity](https://github.com/swiftlang/swift/blob/main/docs/OwnershipManifesto.md#the-law-of-exclusivity), which states that if there are two accesses to the same value in memory, both of them must be reads. Therefore, any access that can change the value in memory is known to be the only place that will modify that memory, which unlocks important optimization opportunities while still maintaining memory safety for the values in the memory the reference. Fundamentally, maintaining the Law of Exclusivity requires reasoning about all potential *aliases* of a particular location in memory, i.e., places where there is a reference (or pointer) to that memory that could be used to access the value stored there. Swift maintains the Law of Exclusivity through a mix of language and runtime features. Non-copyable types (like `UniqueArray`, [SE-527](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0527-rigidarray-uniquearray.md)) establish unique ownership, whereas non-escapable types (like the `Span` family of types) limit the scope in which data can be accessed, all at compile time. Copy-on-write collections (such as `Array`) and dynamic exclusivity checking (e.g., for global variables) establish exclusivity at run-time for places where it isn't possible to reason about every potential alias. Most of this is invisible to the Swift developer, unless they encounter code that violates the Law of Exclusivity. For example, attempting to create two `MutableSpan` instances that reference into the same `Array`, or modify the `Array` while there is an actual `Span` referencing its storage, will produce a compile-time error about the "overlapping access" that violates exclusivity:
 
 ```swift
 func f() {
@@ -32,7 +34,7 @@ func f() {
 
 Scenarios involving runtime exclusivity checking are described in more detail in [SE-0176](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md).
 
-The `Span` dependency on the Law of Exclusivity manifests in its API surface. The `subscript` for `Span` uses a `borrow` accessor ([SE-0507](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0507-borrow-accessors.md)), which provides direct access to the value without requiring the caller to make a copy, which is only safe when the underlying value cannot change. Similarly, `MutableSpan` exclusively references its underlying memory, and it's `subscript` provides a `mutate` accessor to directly reference that memory (including modifing it). The choices here are important semantically, because they make it possible to support spans over non-copyable types, and also for performance, because they avoid the need for extraneous copies of the underlying data.
+The `Span` and `Ref` dependency on the Law of Exclusivity manifests in its API surface. The `subscript` for `Span` uses a `borrow` accessor ([SE-0507](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0507-borrow-accessors.md)), which provides direct access to the value without requiring the caller to make a copy, which is only safe when the underlying value cannot change. Similarly, `MutableSpan` exclusively references its underlying memory, and it's `subscript` provides a `mutate` accessor to directly reference that memory (including modifing it). The choices here are important semantically, because they make it possible to support spans over non-copyable types, and also for performance, because they avoid the need for extraneous copies of the underlying data.
 
 ### Span without the Law of Exclusivity breaks memory safety
 
@@ -84,20 +86,22 @@ For these cases, where we have lifetime information but cannot provide exclusivi
 
 ## Proposed solution
 
-This proposal introduces the `Aliased*Span` family of types, which are similar in shape to the `Span` family of types, providing lifetime and bounds safety. These types are:
+This proposal introduces the `Aliased*Span` and `Aliased*Ref` family of types, which are similar in shape to the `Span` and `Ref` family of types, providing lifetime and bounds safety. These types are:
 
 * `AliasedSpan<Element>`: non-mutating access to a contiguous region of memory storing `Element` values
 * `AliasedMutableSpan<Element>`: mutating access to a contiguous region of memory storing `Element` `
 * `AliasedRawSpan`: non-mutating access to a contiguous region of untyped memory
 * `AliasedMutableRawSpan`: mutating access to a contiguous region of untyped memory
+* `AliasedRef<Element>`: non-mutating access to a single value of type `Element`
+* `AliasedMutableRef<Element>`: mutating access to a single value of type `Element`.
 
-The aliased span types are non-escapable, like their span counterparts. However, because the memory they reference is potentially aliased, they do not depend on the Law of Exclusivity. This causes API differences that are small but meaningful. For example:
+The aliased span and ref types are non-escapable, like their span and ref counterparts. However, because the memory they reference is potentially aliased, they do not depend on the Law of Exclusivity. This causes API differences that are small but meaningful. For example:
 
 * The `subscript` operations use `get` and `set` accessors, which require the client to copy out the value on access. This allows a separate alias to replace the value while the original access is ongoing, without making it a memory safety violation. In the previous `aliasingSafetyProblem` example, this means that the object produced by `self[0]` will be copied (i.e., its retain count is increased) for the duration of the call to `doSomething`, so it cannot be deallocated while the closure is executed.
 * The aliased span types do not support non-copyable `Element` types, because we cannot do so on top of `get` and `set` accessors.
-* The `AliasedMutable*Span` types are copyable: the non-aliased `Mutable*Span` types are non-copyable because that is needed to maintain exclusive access over the storage by preventing aliases. The `AliasedMutable*Span` types can be copied, because they already account for the possibility of aliases.
+* The `AliasedMutable*Span` and `AliasedMutableRef` types are copyable: the non-aliased `Mutable*Span` and `MutableRef` types are non-copyable because that is needed to maintain exclusive access over the storage by preventing aliases. The `AliasedMutable*Span` and `AliasedMutableRef` types can be copied, because they already account for the possibility of aliases.
 
-There is a full set of conversion operations between the various aliased span types and their non-aliased counterparts. It is safe to create an aliased span from its non-aliased counterparts, because the aliased spans make fewer assumptions, so long as the original span cannot be used in a manner that can be undermined by the derived aliased spans. For example, the following API is safe because the underlying storage is already guaranteed not to be mutated by anyone:
+There is a full set of conversion operations between the various aliased span and ref types and their non-aliased counterparts. It is safe to create an aliased span or ref from its non-aliased counterparts, because the aliased spans make fewer assumptions, so long as the original span cannot be used in a manner that can be undermined by the derived aliased spans. For example, the following API is safe because the underlying storage is already guaranteed not to be mutated by anyone:
 
 ```swift
 extension Span where Element: Copyable {
@@ -623,6 +627,51 @@ extension AliasedMutableRawSpan: Iterable {
 }
 ```
 
+### `AliasedRef`
+
+The `AliasedRef` type provides safe access to a single value in memory. It differs from `Ref` in that it does not depend on exclusivity. It's representation is, therefore, always a pointer, unlike `Ref` itself. It also does not support non-copyable value types, because the subscript requires the caller to copy the value.
+
+```swift
+struct AliasedRef<Value>: Copyable, ~Escapable, BitwiseCopyable {
+  @lifetime(borrow value)
+  init(_ value: borrowing Value)
+  
+  @lifetime(borrow owner)
+  init<Owner: ~Copyable & ~Escapable>(
+    unsafeAddress pointer: UnsafePointer<Value>,
+    borrowing owner: borrowing Owner
+  )
+
+  var value: Value { get }
+}
+
+extension AliasedRef: Sendable where Value: Sendable { }
+```
+
+### `AliasedMutableRef`
+
+The `AliasedMutableRef` type provides safe, mutable access to a single value in memory. It differs from `MutableRef` in that it does not depend on exclusivity, and is copyable. As with the other aliased types, the subscript uses get/set, so it only works with copyable values:
+
+```swift
+struct AliasedMutableRef<Value>: Copyable, ~Escapable {
+  @lifetime(&value)
+  init(_ value: inout Value)
+  
+  @lifetime(&owner)
+  init<Owner: ~Copyable & ~Escapable>(
+    unsafeAddress pointer: UnsafeMutablePointer<Value>,
+    mutating owner: inout Owner
+  )
+  
+  var value: Value {
+    get
+    nonmutating set
+  }
+}
+
+extension AliasedMutableRef: Sendable where Value: Sendable { }
+```
+
 ### Conversions to the aliased span types
 
 An aliased span can be created from its corresponding span type. These operations expressed as either properties or methods on the span type to enable chaining, e.g., `span.aliased.bytes`. `Span` introduces the `aliased` property:
@@ -659,6 +708,24 @@ extension MutableRawSpan {
 }
 ```
 
+`Ref` is somewhat strange, because it's storage is not necessarily a pointer, whereas `AliasedRef` does store a pointer. Therefore, the `aliased` operation is uses a `yielding borrow` accessor which makes a copy of the value and then yields a reference to the copy:
+
+```swift
+extension Ref {
+  /// Retrieve an aliased reference to a temporary copy of the referenced value
+  var aliased: AliasedRef<Value> { yielding borrow }  
+}
+```
+
+`AliasedMutableRef`, on the other hand, can provide the straightforward consuming operation:
+
+```swift
+extension MutableRef {
+  // Retrieve an aliased mutable ref from this mutable ref.
+  consuming func asAliased() -> AliasedMutableRef<Value>
+}
+```
+
 ### Conversions from the aliased span types
 
 A span type can be created from its corresponding aliased span type, but doing so is *always unsafe*. While the aliased span types do provide lifetime and bounds safety, they do not ensure the absence of aliases that could modify the storage, undermining the safety of the span.
@@ -683,7 +750,7 @@ extension AliasedRawSpan {
 extension AliasedMutableSpan {
   // Retrieving a mutable span from an aliased mutable span is an
   // unsafe operation, because one must ensure that the underlying storage
-  // and not accessed at all (read or write) while the mutable span is in
+  // is not accessed at all (read or write) while the mutable span is in
   // use.
   @unsafe var mutableSpan: MutableSpan<Element> { get }
 }
@@ -691,9 +758,25 @@ extension AliasedMutableSpan {
 extension AliasedMutableRawSpan {
   // Retrieving a mutable raw span from an aliased raw mutable span is an
   // unsafe operation, because one must ensure that the underlying storage
-  // and not accessed at all (read or write) while the raw mutable span is
+  // is not accessed at all (read or write) while the raw mutable span is
   // in use.
   @unsafe var mutableRawSpan: MutableRawSpan { get }
+}
+
+extension AliasedRef {
+  // Retrieving a ref from an aliased ref is an unsafe operation,
+  // because one must ensure that the underlying storage is not
+  // modified by any code while the ref (or any copy derived from it) is
+  // in use.
+  @unsafe var ref: Ref<Value> { get }
+}
+
+extension AliasedMutableRef {
+  // Retrieving a mutable ref from an aliased mutable ref is an
+  // unsafe operation, because one must ensure that the underlying storage
+  // is not accessed at all (read or write) while the mutable ref is in
+  // use.
+  @unsafe var mutableRef: MutableRef<Value> { get }
 }
 ```
 
