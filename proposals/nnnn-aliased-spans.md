@@ -9,7 +9,7 @@
 
 ## Summary of changes
 
-Introduces a family of `Aliased*Span` types that provide the memory safety guarantees of the `Span` family of types, but with looser requirements around the aliasing of pointers, making them suitable for shared memory and interoperability with other languages.
+Introduces a family of `Aliased*Span` types that provide the memory safety guarantees of the `Span` family of types, but with looser requirements around exclusivity, making them suitable for shared memory and interoperability with other languages.
 
 ## Motivation
 
@@ -102,7 +102,7 @@ There is a full set of conversion operations between the various aliased span ty
 ```swift
 extension Span where Element: Copyable {
   // Retrieve an aliased span referencing the same storage.
-  var aliasedSpan: AliasedSpan<Element> { get }
+  var aliased: AliasedSpan<Element> { get }
 }
 ```
 
@@ -233,7 +233,7 @@ struct AliasedMutableSpan<Element>: ~Escapable, Copyable, BitwiseCopyable {
   /// Retrieving an aliased span from a mutable span is a safe operation,
   /// because both assume they can alias the underlying storage.
   @lifetime(self copy)
-  var aliasedSpan: AliasedSpan<Element> { 
+  var aliased: AliasedSpan<Element> { 
     @lifetime(copy self)
     get
   }
@@ -369,7 +369,7 @@ extension AliasedMutableSpan: Iterable {
 The `AliasedRawSpan` type has an API that is equivalent to `RawSpan`, but where the `Span` types in parameters and result types have been replaced with their corresponding `Aliased` versions.
 
 ```swift
-struct RawSpan: ~Escapable, Copyable, BitwiseCopyable, Sendable {
+struct AliasedRawSpan: ~Escapable, Copyable, BitwiseCopyable, Sendable {
   @lifetime(immortal)
   init()
   
@@ -619,13 +619,13 @@ extension AliasedMutableRawSpan: Iterable {
 
 ### Conversions to the aliased span types
 
-An aliased span can be created from its corresponding span type. These operations expressed as either properties or methods on the span type to enable chaining, e.g., `span.aliasedSpan.bytes`. `Span` introduces the `aliasedSpan` property:
+An aliased span can be created from its corresponding span type. These operations expressed as either properties or methods on the span type to enable chaining, e.g., `span.aliased.bytes`. `Span` introduces the `aliased` property:
 
 ```swift
 extension Span where Element: Copyable {
   /// Retrieve an aliased span referencing the same storage.
   @lifetime(copy self)
-  var aliasedSpan: AliasedSpan<Element> { get }
+  var aliased: AliasedSpan<Element> { get }
 }
 ```
 
@@ -644,7 +644,7 @@ The aliased raw spans follow similarly:
 extension RawSpan {
   /// Retrieve an aliased raw span referencing the same bytes.
   @lifetime(copy self)
-  var aliasedBytes: AliasedRawSpan { get }  
+  var aliased: AliasedRawSpan { get }  
 }
 
 extension MutableRawSpan {
