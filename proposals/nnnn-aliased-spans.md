@@ -474,7 +474,7 @@ extension AliasedRawSpan: Iterable {
 The `AliasedMutableRawSpan` type has an API that is similar to `MutableRawSpan`, but where the `Span` types in parameters and result types have been replaced with their corresponding `Aliased` versions. As with `AliasedMutableSpan`, `AliasedMutableRawSpan` is a copyable type (whereas `MutableRawSpan` is not), so there is not need for `mutating` or `consuming` on the operations in it.
 
 ```swift
-struct AliasedMutableRawSpan: Copyable & ~Escapable, BitwiseCopyable {
+struct AliasedMutableRawSpan: Copyable, ~Escapable, BitwiseCopyable {
   @lifetime(immortal)
   init()
   
@@ -492,8 +492,14 @@ struct AliasedMutableRawSpan: Copyable & ~Escapable, BitwiseCopyable {
   var isEmpty: Bool { get }
   var byteOffsets: Range<Int> { get }
   
-  subscript(_ byteOffset: Int) -> UInt8 { get set }
-  @unsafe subscript(unchecked byteOffset: Int) -> UInt8 { get set }
+  subscript(_ byteOffset: Int) -> UInt8 { 
+    get 
+    nonmutating set
+  }
+  @unsafe subscript(unchecked byteOffset: Int) -> UInt8 { 
+    get 
+    nonmutating set
+  }
   
   @safe
   func withUnsafeBytes<E: Error, Result: ~Copyable>(
