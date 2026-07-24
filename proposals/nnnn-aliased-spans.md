@@ -220,7 +220,7 @@ extension AliasedSpan where Element: ConvertibleToBytes {
 The `AliasedMutableSpan` type is the counterpart to `MutableSpan`, allowing mutating of the contents of the buffer it references. The primary difference from `MutableSpan` is that `AliasedMutableSpan` is `Copyable`. This means that a lot of the API surface, while it has roughly the same shape as `MutableSpan`, no longer needs to be consuming.
 
 ```swift
-struct AliasedMutableSpan<Element>: ~Escapable, Copyable {
+struct AliasedMutableSpan<Element>: ~Escapable, Copyable, BitwiseCopyable {
   @lifetime(immortal)
   init()
     
@@ -268,7 +268,7 @@ extension AliasedMutableSpan {
 Unsafe accesses to the buffer mirror that of `MutableSpan`, except that none of them are mutating for the same reason:
 
 ```swift
-extension AliasedMutableSpan {}
+extension AliasedMutableSpan {
   @safe
   func withUnsafeBufferPointer<E: Error, Result: ~Copyable>(
     _ body: (_ buffer: UnsafeBufferPointer<Element>) throws(E) -> Result
@@ -369,7 +369,7 @@ extension AliasedMutableSpan: Iterable {
 The `AliasedRawSpan` type has an API that is equivalent to `RawSpan`, but where the `Span` types in parameters and result types have been replaced with their corresponding `Aliased` versions.
 
 ```swift
-struct RawSpan: ~Escapable, Copyable, BitwiseCopyable {
+struct RawSpan: ~Escapable, Copyable, BitwiseCopyable, Sendable {
   @lifetime(immortal)
   init()
   
@@ -469,6 +469,154 @@ extension AliasedRawSpan: Iterable {
 }
 ```
 
+### `AliasedMutableRawSpan`
+
+The `AliasedMutableRawSpan` type has an API that is similar to `MutableRawSpan`, but where the `Span` types in parameters and result types have been replaced with their corresponding `Aliased` versions. As with `AliasedMutableSpan`, `AliasedMutableRawSpan` is a copyable type (whereas `MutableRawSpan` is not), so there is not need for `mutating` or `consuming` on the operations in it.
+
+```swift
+struct AliasedMutableRawSpan: Copyable & ~Escapable, BitwiseCopyable {
+  @lifetime(immortal)
+  init()
+  
+  init<Element: ConvertibleFromBytes & ConvertibleToBytes>(
+    elements: AliasedMutableSpan<Element>
+  )
+  
+  @unsafe
+  @lifetime(copy elements)
+  init<Element>(
+    unsafeElements elements: AliasedMutableSpan<Element>
+  )
+  
+  var byteCount: Int { get }
+  var isEmpty: Bool { get }
+  var byteOffsets: Range<Int> { get }
+  
+  subscript(_ byteOffset: Int) -> UInt8 { get set }
+  @unsafe subscript(unchecked byteOffset: Int) -> UInt8 { get set }
+  
+  @safe
+  func withUnsafeBytes<E: Error, Result: ~Copyable>(
+    _ body: (_ buffer: UnsafeRawBufferPointer) throws(E) -> Result
+  ) throws(E) -> Result
+  
+  @safe
+  func withUnsafeMutableBytes<E: Error, Result: ~Copyable>(
+    _ body: (UnsafeMutableRawBufferPointer) throws(E) -> Result
+  ) throws(E) -> Result
+  
+  var bytes: AliasedRawSpan { get }
+
+  @unsafe
+  func unsafeLoad<T>(
+    fromByteOffset offset: Int = 0, as type: T.Type
+  ) -> T
+
+  @unsafe
+  func unsafeLoad<T>(
+    fromUncheckedByteOffset offset: Int, as type: T.Type
+  ) -> T
+
+  @unsafe
+  func unsafeLoadUnaligned<T: BitwiseCopyable>(
+    fromByteOffset offset: Int = 0, as type: T.Type
+  ) -> T
+  
+  @unsafe
+  func unsafeLoadUnaligned<T: BitwiseCopyable>(
+    fromUncheckedByteOffset offset: Int, as type: T.Type
+  ) -> T
+
+  func load<T: ConvertibleFromBytes>(
+    fromByteOffset offset: Int,
+    as type: T.Type
+  ) -> T
+  
+  func load<T: ConvertibleFromBytes & FixedWidthInteger>(
+    fromByteOffset offset: Int,
+    as type: T.Type,
+    _ byteOrder: ByteOrder
+  ) -> T
+  
+  func storeBytes<T: BitwiseCopyable>(
+    of value: T, toByteOffset offset: Int = 0, as type: T.Type
+  )
+  
+  func storeBytes<T: BitwiseCopyable>(
+    of value: T, toUncheckedByteOffset offset: Int, as type: T.Type
+  )
+  
+  func storeBytes<T: ConvertibleToBytes & BitwiseCopyable>(
+    of value: T, toByteOffset offset: Int, as type: T.Type
+  )
+  
+  func storeBytes<
+    T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
+  >(
+    of value: T,
+    toByteOffset offset: Int,
+    as type: T.Type,
+    _ byteOrder: ByteOrder
+  )
+  
+  func storeBytes<T: BitwiseCopyable>(
+    repeating repeatedValue: T, count: Int, as type: T.Type
+  )
+  
+  func storeBytes<T: ConvertibleToBytes & BitwiseCopyable>(
+    repeating repeatedValue: T, count: Int, as type: T.Type
+  )
+  
+  func storeBytes<
+    T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
+  >(
+    repeating repeatedValue: T,
+    count: Int,
+    as type: T.Type,
+    _ byteOrder: ByteOrder
+  )
+  
+  @lifetime(copy self)
+  func extracting(_ bounds: Range<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(unchecked bounds: Range<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(_ bounds: some RangeExpression<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(unchecked bounds: ClosedRange<Index>) -> Self
+  
+  @lifetime(copy self)
+  func extracting(_: UnboundedRange) -> Self
+    
+  @lifetime(copy self)
+  func extracting(first maxLength: Int) -> Self
+  
+  @lifetime(copy self)
+  func extracting(droppingLast k: Int) -> Self
+
+  @lifetime(copy self)
+  func extracting(last maxLength: Int) -> Self
+
+  @lifetime(copy self)
+  func extracting(droppingFirst k: Int) -> Self
+}
+```
+
+The `Iterable` conformance is similar to the other aliased span types, requiring a copy of the bytes:
+
+```swift
+extension AliasedMutableRawSpan: Iterable {
+  typealias Failure = Never
+  var underestimatedCount: Int { get }
+
+  @lifetime(borrow self)
+  func makeBorrowingIterator() -> BorrowingIterator
+}
+```
+
 ### Conversions to the aliased span types
 
 An aliased span can be created from its corresponding span type. These operations expressed as either properties or methods on the span type to enable chaining, e.g., `span.aliasedSpan.bytes`. `Span` introduces the `aliasedSpan` property:
@@ -496,7 +644,12 @@ The aliased raw spans follow similarly:
 extension RawSpan {
   /// Retrieve an aliased raw span referencing the same bytes.
   @lifetime(copy self)
-  var aliasedBytes: AliasedRawSpan { get }
+  var aliasedBytes: AliasedRawSpan { get }  
+}
+
+extension MutableRawSpan {
+  // Retrieve an aliased mutable span from this mutable span.
+  consuming func asAliased() -> AliasedMutableRawSpan
 }
 ```
 
@@ -526,7 +679,15 @@ extension AliasedMutableSpan {
   // unsafe operation, because one must ensure that the underlying storage
   // and not accessed at all (read or write) while the mutable span is in
   // use.
-  @unsafe var mutableSpan: MutableSpan<Element> { mutating get }
+  @unsafe var mutableSpan: MutableSpan<Element> { get }
+}
+
+extension AliasedMutableRawSpan {
+  // Retrieving a mutable raw span from an aliased raw mutable span is an
+  // unsafe operation, because one must ensure that the underlying storage
+  // and not accessed at all (read or write) while the raw mutable span is
+  // in use.
+  @unsafe var mutableRawSpan: MutableRawSpan { get }
 }
 ```
 
