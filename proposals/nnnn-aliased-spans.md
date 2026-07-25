@@ -342,14 +342,14 @@ extension AliasedMutableSpan where Element: ConvertibleFromBytes & ConvertibleTo
 }
 
 extension AliasedMutableSpan where Element: ConvertibleToBytes {
-  var bytes: RawSpan {
+  var bytes: AliasedRawSpan {
     @lifetime(copy self)
     get
   }
 }
 
 extension AliasedMutableSpan where Element: ConvertibleToBytes & ConvertibleFromBytes {
-  var mutableBytes: MutableRawSpan {
+  var mutableBytes: AliasedMutableRawSpan {
     @lifetime(copy self)
     get
   }
