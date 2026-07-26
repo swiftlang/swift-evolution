@@ -100,6 +100,7 @@ The aliased span and ref types are non-escapable, like their span and ref counte
 * The `subscript` operations use `get` and `set` accessors, which require the client to copy out the value on access. This allows a separate alias to replace the value while the original access is ongoing, without making it a memory safety violation. In the previous `aliasingSafetyProblem` example, this means that the object produced by `self[0]` will be copied (i.e., its retain count is increased) for the duration of the call to `doSomething`, so it cannot be deallocated while the closure is executed.
 * The aliased span types do not support non-copyable `Element` types, because we cannot do so on top of `get` and `set` accessors.
 * The `AliasedMutable*Span` and `AliasedMutableRef` types are copyable: the non-aliased `Mutable*Span` and `MutableRef` types are non-copyable because that is needed to maintain exclusive access over the storage by preventing aliases. The `AliasedMutable*Span` and `AliasedMutableRef` types can be copied, because they already account for the possibility of aliases.
+* All `Sendable` conformances require that the type of memory referenced by the span/ref conform to the `FullyInhabited` protocol introduced in [SE-0525](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0525-rawspan-safe-loading-api.md), which specifies that every bit pattern is a valid instance. This accounts for *tearing* of the data that can occur if, for example, one thread performs a write while another is reading, and only part of the write is seen by the reading thread.
 
 There is a full set of conversion operations between the various aliased span and ref types and their non-aliased counterparts. It is safe to create an aliased span or ref from its non-aliased counterparts, because the aliased spans make fewer assumptions, so long as the original span cannot be used in a manner that can be undermined by the derived aliased spans. For example, the following API is safe because the underlying storage is already guaranteed not to be mutated by anyone:
 
@@ -182,7 +183,7 @@ struct AliasedSpan<Element>: ~Escapable, Copyable, BitwiseCopyable {
   func indices(of other: borrowing Self) -> Range<Index>?
 }
 
-extension AliasedSpan: Sendable where Element: Sendable {}
+extension AliasedSpan: Sendable where Element: Sendable, Element: FullyInhabited {}
 ```
 
 As noted in the Proposed Solution section, the subscripts for `AliasedSpan` use `get` accessors rather than `borrow` accessors to force the caller to copy the result.
@@ -242,6 +243,8 @@ struct AliasedMutableSpan<Element>: ~Escapable, Copyable, BitwiseCopyable {
     get
   }
 }
+
+extension AliasedMutableSpan: Sendable where Element: Sendable, Element: FullyInhabited {}
 ```
 
 As noted in the Proposed Solution section, the `AliasedMutableSpan` subscript operation uses `get` and `set` accessors, forcing clients to copy the data in and out. Note that the setter is non-mutating, because it does not change the shape of the span, only the contents of the underlying buffer.
@@ -478,7 +481,7 @@ extension AliasedRawSpan: Iterable {
 The `AliasedMutableRawSpan` type has an API that is similar to `MutableRawSpan`, but where the `Span` types in parameters and result types have been replaced with their corresponding `Aliased` versions. As with `AliasedMutableSpan`, `AliasedMutableRawSpan` is a copyable type (whereas `MutableRawSpan` is not), so there is not need for `mutating` or `consuming` on the operations in it.
 
 ```swift
-struct AliasedMutableRawSpan: Copyable, ~Escapable, BitwiseCopyable {
+struct AliasedMutableRawSpan: Copyable, ~Escapable, BitwiseCopyable, Sendable {
   @lifetime(immortal)
   init()
   
@@ -645,7 +648,7 @@ struct AliasedRef<Value>: Copyable, ~Escapable, BitwiseCopyable {
   var value: Value { get }
 }
 
-extension AliasedRef: Sendable where Value: Sendable { }
+extension AliasedRef: Sendable where Value: Sendable, Value: FullyInhabited { }
 ```
 
 ### `AliasedMutableRef`
@@ -669,7 +672,7 @@ struct AliasedMutableRef<Value>: Copyable, ~Escapable {
   }
 }
 
-extension AliasedMutableRef: Sendable where Value: Sendable { }
+extension AliasedMutableRef: Sendable where Value: Sendable, Value: FullyInhabited { }
 ```
 
 ### Conversions to the aliased span types
@@ -850,4 +853,4 @@ The `Aliased*RawSpan` types reference untyped memory, but one could imagine inst
 
 ## Acknowledgments
 
-Geoff Garen identified the core aliasing problem addressed by the aliased span types presented here, and noted the memory safety issues it introduces for Swift. Gábor Horváth comprehensively explored what imposing the Law of Exclusivity would mean for the C family of languages, which directly informed this design and the safe interoperability with C that it enables. Steve Canon helped design the aliased span types and provided valuable feedback on this proposal.
+Geoff Garen identified the core aliasing problem addressed by the aliased span types presented here, and noted the memory safety issues it introduces for Swift. Gábor Horváth comprehensively explored what imposing the Law of Exclusivity would mean for the C family of languages, which directly informed this design and the safe interoperability with C that it enables. Steve Canon helped design the aliased span types and provided valuable feedback on this proposal. Keith Bauer suggested the link between sendability and `FullyInhabited` to address a data-race safety issue in the initial design.
