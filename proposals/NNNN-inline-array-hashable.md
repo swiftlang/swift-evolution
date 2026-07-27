@@ -4,6 +4,7 @@
 * Authors: Alejandro Alonso and Steve Canon
 * Review Manager: TBD
 * Status: **Pitch**
+* Implementation: https://github.com/swiftlang/swift/pull/91004
 * Review: ([pitch](https://forums.swift.org/t/conform-inlinearray-to-hashable/88432))
 
 
