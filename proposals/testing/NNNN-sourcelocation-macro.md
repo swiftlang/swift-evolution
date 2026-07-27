@@ -153,7 +153,8 @@ No additional integration with tools is required.
 - In the future, we likely want to adjust the Swift compiler to distinguish the
   use of `#sourceLocation` in expression position from its use in statement
   position, and to only use the compiler statement if `#sourceLocation`
-  unambiguously refers to it rather than to a macro.
+  unambiguously refers to it rather than to a macro. Such a change would be
+  source-compatible with any existing uses of `#Testing::sourceLocation`.
 
 ## Alternatives considered
 
@@ -173,10 +174,25 @@ No additional integration with tools is required.
 
 - **Including this macro and the `SourceLocation` type in the standard library
   instead of Swift Testing.** The value of `SourceLocation` isn't
-  testing-specific. However, it necessarily includes the complete path to a
-  source file (i.e. `#filePath`) that may leak proprietary information about a
-  developer's build system when used in production. As such, it is not suitable
-  for general use in the Swift ecosystem. It may be appropriate for the standard
-  library to include some _equivalent_ macro that can optimize away individual
-  members the calling code doesn't use, but such a macro is beyond the scope of
-  this proposal.
+  testing-specific.  The Swift Testing code owners discussed this alternative
+  with some of the standard library code owners and determined that Swift
+  Testing's use case doesn't align with what we'd expect to see in the standard
+  library:
+  
+  - Swift Testing needs to include the complete path to a source file (i.e.
+    `#filePath`) in its macro expansion. Including that path may leak
+    proprietary information about a developer's build system when used in
+    production. Swift Testing also needs to include the source file's file ID,
+    but it is unlikely that a standard library version of this macro would
+    include both.
+  - If the standard library added a `SourceLocation` type, Swift Testing would
+    not be able to adopt it until its Darwin deployment targets were minimally
+    aligned with the version of the standard library that first included said
+    type. (This constraint is also the reason Swift Testing's attachments
+    feature does not make use of `RawSpan`).
+  - If the standard library added a `SourceLocation` type that was distinct from
+    our own (perhaps relying on some sort of `ExpressibleByTupleLiteral`
+    protocol), Swift Testing would need to indefinitely maintain _two_ copies of
+    most of our API surface: one that used our existing type and one that used
+    the standard library type. The Swift Testing code owners do not consider
+    the scope of this maintenance burden to be worth the potential benefits.
