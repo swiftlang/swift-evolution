@@ -3,12 +3,12 @@
 * Proposal: [SE-0478](0478-default-isolation-typealias.md)
 * Authors: [Aviva Ruben](https://github.com/a-viv-a), [Holly Borla](https://github.com/hborla), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active Review (June 5...19, 2026)**
+* Status: **Accepted**
 * Vision: [Improving the approachability of data-race safety](/visions/approachable-concurrency.md)
 * Implementation: [swiftlang/swift#81863](https://github.com/swiftlang/swift/pull/81863), [swiftlang/swift-syntax#3087](https://github.com/swiftlang/swift-syntax/pull/3087), [swiftlang/swift#89023](https://github.com/swiftlang/swift/pull/89023)
 * Experimental Feature Flag: `DefaultIsolationPerFile` (currently ships `using` syntax; this revision proposes `default`)
 * Previous Proposal: [SE-0466: Control default actor isolation inference][SE-0466]
-* Review: ([pitch](https://forums.swift.org/t/pitch-a-typealias-for-per-file-default-actor-isolation/79150))([review](https://forums.swift.org/t/se-0478-default-actor-isolation-typealias/79436))([return for revision](https://forums.swift.org/t/returned-for-revision-se-0478-default-actor-isolation-typealias/80253))([pitch 2](https://forums.swift.org/t/pitch-2-default-actor-isolation-per-file/80243))([second review](https://forums.swift.org/t/second-review-se-0478-file-level-defaults/87154))
+* Review: ([pitch](https://forums.swift.org/t/pitch-a-typealias-for-per-file-default-actor-isolation/79150))([review](https://forums.swift.org/t/se-0478-default-actor-isolation-typealias/79436))([return for revision](https://forums.swift.org/t/returned-for-revision-se-0478-default-actor-isolation-typealias/80253))([pitch 2](https://forums.swift.org/t/pitch-2-default-actor-isolation-per-file/80243))([second review](https://forums.swift.org/t/second-review-se-0478-file-level-defaults/87154))([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0478-file-level-defaults/88293)
 
 ## Summary of changes
 
