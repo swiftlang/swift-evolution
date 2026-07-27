@@ -30,7 +30,7 @@ A file-based configuration approach solves both problems: it works regardless of
 
 ## Proposed solution
 
-We introduce proxy configuration through a new JSON configuration file, `proxy.json`, stored in SPM's existing configuration directory hierarchy. This is the sole mechanism for configuring proxy settings — SPM does not read proxy-related environment variables (`http_proxy`, `HTTP_PROXY`, etc.).
+We introduce proxy configuration through two complementary mechanisms: a JSON configuration file (`proxy.json`) and standard proxy environment variables (`http_proxy`, `https_proxy`, `no_proxy`). The configuration file is stored in SPM's existing configuration directory hierarchy and provides reliable configuration across all invocation contexts. Environment variables provide a natural integration with CI systems and existing Unix workflows.
 
 ### Configuration file
 
@@ -102,12 +102,15 @@ When determining proxy configuration, SPM uses the first source that provides a 
 
 1. **Local project config** (`<project>/.swiftpm/configuration/proxy.json`) — highest priority
 2. **User-level config** (`~/.swiftpm/configuration/proxy.json`)
-3. **macOS system proxy** (from System Settings → Network → Proxies; macOS only)
-4. **No proxy** (direct connection) — default behavior
+3. **Environment variables** (`http_proxy`/`HTTP_PROXY`, `https_proxy`/`HTTPS_PROXY`, `no_proxy`/`NO_PROXY`)
+4. **macOS system proxy** (from System Settings → Network → Proxies; macOS only)
+5. **No proxy** (direct connection) — default behavior
 
-On macOS, `URLSession` automatically inherits the system-level proxy configuration. This means SPM will route traffic through a system proxy even without a `proxy.json` — no action is required from the user if their system proxy is already configured. The `proxy.json` file acts as an explicit override when the system proxy is not appropriate for SPM operations (or when a project requires a different proxy than the system default).
+For environment variables, lowercase variants take precedence over uppercase (consistent with curl behavior).
 
-On Linux, there is no system proxy layer. Only `proxy.json` configuration is available.
+On macOS, `URLSession` automatically inherits the system-level proxy configuration. This means SPM will route traffic through a system proxy even without a `proxy.json` or environment variables — no action is required from the user if their system proxy is already configured. The `proxy.json` file and environment variables act as explicit overrides when the system proxy is not appropriate for SPM operations.
+
+On Linux, there is no system proxy layer. The `proxy.json` file and environment variables are the available configuration mechanisms.
 
 Each field is resolved independently. For example, a user-level config could set `http` while the system proxy provides the HTTPS proxy — they do not need to come from the same source.
 
@@ -233,6 +236,15 @@ HTTPS proxy: http://corpproxy:3128 (system)
 No proxy:    *.local, 169.254/16 (system)
 ```
 
+Example output when environment variables are set (no `proxy.json`, no system proxy):
+
+```
+$ swift package config get-proxy
+HTTP proxy:  http://proxy:8080 (environment: http_proxy)
+HTTPS proxy: http://proxy:8080 (environment: https_proxy)
+No proxy:    localhost, .internal.corp (environment: no_proxy)
+```
+
 Example output with no proxy configured:
 
 ```
@@ -301,11 +313,11 @@ If SPM gains additional network-level configuration needs in the future (custom 
 
 ### Environment variables only (no config file)
 
-This was the simplest approach but fails the Xcode use case entirely. Environment variables are not available when Xcode invokes SPM, and requiring `launchctl setenv` is a poor user experience. A config file is necessary for GUI workflows.
+This was the simplest approach but fails the Xcode use case entirely. Environment variables are not available when Xcode invokes SPM, and requiring `launchctl setenv` is a poor user experience. A config file is necessary for GUI workflows. However, environment variables remain the most natural configuration mechanism for CI systems and command-line usage, which is why the proposal supports both — the config file for reliability across all contexts, and environment variables as a fallback for the common case.
 
-### Environment variables as an override mechanism
+### Environment variables as the highest-priority override
 
-We considered supporting standard proxy environment variables (`http_proxy`, `HTTPS_PROXY`, etc.) as a higher-priority override on top of the config file. This was rejected to maintain a single, unambiguous configuration surface. Having two mechanisms creates confusion: a developer might discover environment variable support first and then struggle to understand why it doesn't work in Xcode, which is the exact class of problem that motivated this proposal. CI systems that need per-job proxy configuration can write the config file as a setup step (`swift package config set-proxy ...`), which is equally scriptable and produces consistent behavior across all contexts.
+We considered making environment variables override the config file. This was rejected because it creates confusion: a developer might set `proxy.json` explicitly and then be surprised when an inherited environment variable overrides it in some contexts. The chosen precedence (file > env > system) ensures that explicit configuration always wins.
 
 ### Extend `registries.json` with proxy settings
 
