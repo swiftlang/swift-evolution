@@ -3,10 +3,10 @@
 * Proposal: [SE-0534](0534-swiftpm-exact-literal-version-matching.md)
 * Authors: [Byoungchan Lee](https://github.com/bc-lee)
 * Review Manager: [Franz Busch](https://github.com/FranzBusch)
-* Status: **Active review (June 29...July 6, 2026)**
+* Status: **Rejected**
 * Bugs: [swiftlang/swift-package-manager#6675](https://github.com/swiftlang/swift-package-manager/issues/6675), [swiftlang/swift#80711](https://github.com/swiftlang/swift/issues/80711)
 * Implementation: [swiftlang/swift-package-manager#9812](https://github.com/swiftlang/swift-package-manager/pull/9812)
-* Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-opt-in-exact-matching-for-version-tags-that-include-semver-build-metadata/84691)) ([review](https://forums.swift.org/t/review-se-0534-opt-in-exact-matching-for-version-identifiers-with-build-metadata/87815))
+* Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-opt-in-exact-matching-for-version-tags-that-include-semver-build-metadata/84691)) ([review](https://forums.swift.org/t/review-se-0534-opt-in-exact-matching-for-version-identifiers-with-build-metadata/87815)) ([rejection](https://forums.swift.org/t/rejected-se-0534-opt-in-exact-matching-for-version-identifiers/88571))
 
 ## Introduction
 
