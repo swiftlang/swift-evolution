@@ -587,7 +587,7 @@ potential extension to enable this is described in the [Future Directions](disco
 
 #### Task Isolated Regions
 
-A task isolated isolation region consists of values that are isolated to a
+A task-isolated isolation region consists of values that are isolated to a
 specific task. This can only occur today in the form of the parameters of
 nonisolated asynchronous functions since unlike actors, tasks do not have
 non-`Sendable` state that can be isolated to them. Similarly to actor isolated
@@ -763,7 +763,7 @@ region.
   }
   ```
 
-* **Task Isolated and Task Isolated**. Since task isolated isolation regions are
+* **Task Isolated and Task Isolated**. Since task-isolated isolation regions are
   only introduced due to function arguments, it is impossible to have two
   separate task isolated regions that could be merged.
 
@@ -846,14 +846,14 @@ was transferred into an isolation domain can be used again if the isolation
 domain no longer maintains any references to the region. This occurs with
 `nonisolated` asynchronous functions. When we transfer a disconnected value into
 a `nonisolated` asynchronous functions, the value becomes part of the function's
-task isolated isolation domain for the duration of the function's
+task-isolated isolation domain for the duration of the function's
 execution. Once the function finishes executing, we know that the value is no
 longer isolated to the function since:
 
 * A `nonisolated` function does not have any non-temporary isolated state of its
   own that the non-`Sendable` value could escape into.
 
-* Parameters in a task isolated isolation region cannot be transferred into a
+* Parameters in a task-isolated isolation region cannot be transferred into a
   different isolation domain that does have persistent isolated state.
 
 Thus the value in the caller's region again becomes disconnected once more and
