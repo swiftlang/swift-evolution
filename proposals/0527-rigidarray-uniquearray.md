@@ -3,7 +3,7 @@
 * Proposal: [SE-0527](0527-rigidarray-uniquearray.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey), [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.4)**
 * Implementation: [swiftlang/swift#87521](https://github.com/swiftlang/swift/pull/87521)
 * Review: ([pitch](https://forums.swift.org/t/pitch-rigidarray-and-uniquearray/85455))
           ([first review](https://forums.swift.org/t/se-0527-rigidarray-and-uniquearray/85985))
