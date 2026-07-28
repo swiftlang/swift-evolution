@@ -3,9 +3,9 @@
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-* Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN)
-* Review: ([pitch](https://forums.swift.org/...))
+* Status: **Awaiting review**
+* Implementation: https://github.com/swiftlang/swift/pull/91034
+* Review: ([pitch](https://forums.swift.org/t/pitch-aliased-span-and-ref-types/88529))
 
 ## Summary of changes
 
@@ -359,6 +359,16 @@ extension AliasedMutableSpan where Element: ConvertibleToBytes & ConvertibleFrom
 }
 ```
 
+Because `AliasedMutableSpan` is copyable (unlike `MutableSpan`), we also introduce the `isIdentical(to:)`, `isTriviallyIdentical(to:)`, and `indices(of:)` operations:
+
+```swift
+extension AliasedMutableSpan {
+  func isIdentical(to other: Self) -> Bool
+  func isTriviallyIdentical(to other: Self) -> Bool
+  func indices(of other: borrowing Self) -> Range<Index>?
+}
+```
+
 As with `AliasedSpan`, `AliasedMutableSpan` conforms to the `Iterable` protocol, but requires a buffer in the iterator to isolate the iteration from changes to the underlying buffer.
 
 ```swift
@@ -456,11 +466,9 @@ struct AliasedRawSpan: ~Escapable, Copyable, BitwiseCopyable, Sendable {
     _ byteOrder: ByteOrder
   ) -> T
 
-  func byteOffsets(of other: borrowing Self) -> Range<Int>?
-
   func isIdentical(to other: Self) -> Bool
   func isTriviallyIdentical(to other: Self) -> Bool
-  func indices(of other: borrowing Self) -> Range<Index>?
+  func byteOffsets(of other: borrowing Self) -> Range<Int>?
 }
 ```
 
@@ -518,6 +526,7 @@ struct AliasedMutableRawSpan: Copyable, ~Escapable, BitwiseCopyable, Sendable {
     _ body: (UnsafeMutableRawBufferPointer) throws(E) -> Result
   ) throws(E) -> Result
   
+  @lifetime(copy self)
   var bytes: AliasedRawSpan { get }
 
   @unsafe
@@ -615,6 +624,16 @@ struct AliasedMutableRawSpan: Copyable, ~Escapable, BitwiseCopyable, Sendable {
 
   @lifetime(copy self)
   func extracting(droppingFirst k: Int) -> Self
+}
+```
+
+Because `AliasedMutableRawSpan` is `Copyable` (unlike it's non-aliased counterpart), we include `isIdentical(to:)`, `isTriviallyIdentical(to:)`, and `byteOffsets(of:)`:
+
+```swift
+extension AliasedMutableRawSpan {
+  func isIdentical(to other: Self) -> Bool
+  func isTriviallyIdentical(to other: Self) -> Bool
+  func byteOffsets(of other: borrowing Self) -> Range<Int>?
 }
 ```
 
