@@ -3,7 +3,8 @@
 * Proposal: [SE-0338](0338-clarify-execution-non-actor-async.md)
 * Author: [John McCall](https://github.com/rjmccall)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 5.7)** ([Decision notes](https://forums.swift.org/t/accepted-se-0338-clarify-the-execution-of-non-actor-isolated-async-functions/54929))
+* Status: **Implemented (Swift 5.7)**
+* Review: ([pitch](https://forums.swift.org/t/pitch-clarify-the-execution-of-non-actor-isolated-async-functions/54435)) ([review](https://forums.swift.org/t/se-0338-clarify-the-execution-of-non-actor-isolated-async-functions/54621)) ([acceptance](https://forums.swift.org/t/accepted-se-0338-clarify-the-execution-of-non-actor-isolated-async-functions/54929))
 
 ## Introduction
 
