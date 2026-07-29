@@ -190,9 +190,18 @@ No additional integration with tools is required.
     aligned with the version of the standard library that first included said
     type. (This constraint is also the reason Swift Testing's attachments
     feature does not make use of `RawSpan`).
-  - If the standard library added a `SourceLocation` type that was distinct from
-    our own (perhaps relying on some sort of `ExpressibleByTupleLiteral`
-    protocol), Swift Testing would need to indefinitely maintain _two_ copies of
-    most of our API surface: one that used our existing type and one that used
-    the standard library type. The Swift Testing code owners do not consider
-    the scope of this maintenance burden to be worth the potential benefits.
+  - If the standard library added its own `#sourceLocation` macro, it would
+    return a value of a type not equal to our own, so Swift Testing would need
+    to indefinitely maintain _two_ copies of most of our API surface: one that
+    used our existing type and one that used the standard library type. The
+    Swift Testing code owners do not consider the scope of this maintenance
+    burden to be worth the potential benefits.
+
+    It might be possible for the standard library to introduce a protocol such
+    as `ExpressibleByTupleLiteral` and have its macro return a value of type
+    `T: ExpressibleByTupleLiteral`, similar to what is done for `#fileID` etc.
+    However, that protocol would necessarily have an availability constraint and
+    therefore so would the macro, and therefore so would any APIs that use the
+    macro. We would still need to maintain two overloads for most of our API
+    suface (one relying on the standard library type/macro and one relying
+    solely on symbols from Swift Testing).
