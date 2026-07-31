@@ -96,8 +96,9 @@ struct Earth {
 
 ## Detailed design
 
-The compiler type-checks a subsumed initializer expression in its original context _before_ any macro is expanded. The initializer is type-checked again in its new context after an accessor macro is expanded. Type-checking in the initial context should not be disabled, because it enables type inference. The inferred type is available to the accessor macro and is often needed to form the expansion. Consequently, it would be impossible to change that order; macros cannot be expanded before the property type is inferred, hence the initializer must be type-checked first. The following example illustrates this using the aforementioned `@Lazy` macro. First, the property type is inferred by checking the initializer:
+The compiler type-checks a subsumed initializer expression in its original context _before_ any macro is expanded. The initializer is type-checked again in its new context after macro expansion. Type-checking in the initial context should not be disabled, because it enables type inference. The inferred type is available to the accessor macro and is often needed when forming the expansion. Consequently, it would be impossible to change the order of type-checking; macros cannot be expanded before the property type is inferred, hence the initializer must be type-checked first. The following example illustrates this using the aforementioned `@Lazy` macro.
 
+First, the property type is established by checking the initializer:
 ```swift
 @Lazy var foo = 42
 //              ^ Inferred type is `Int` after type-checking property initializer
@@ -136,45 +137,60 @@ Other macros such as `@Lazy` may result in an expansion where `self` access woul
 
 ### Role Declaration
 
-This proposal adds an optional `initialization:` parameter to the macro role declaration of accessor macros. It can have one of two possible arguments: either `eager` or `lazy`.
+This proposal adds an optional `initialization:` parameter to the macro role declaration of accessor macros. It can have one of two possible arguments: either `selfAvailable` or `selfUnvailable`.
 
-- `eager`: The current behavior – no `self` access for the property initializer
-- `lazy`: The macro promises to use the initializer in a context where `self` is available
+- `selfUnvailable`: The current behavior – no `self` access for the property initializer
+- `selfAvailable`: The macro promises to use the initializer in a context where `self` is available
 
-If the `initializer:` parameter is omitted, `eager` will be used as the default value. This choice makes sure that existing macros behave the same as before.
+If the `initialization:` parameter is omitted, `selfUnvailable` will be used as the default value. This choice makes sure that existing macros behave the same as before.
 
 Some example declarations:
 
 ```swift
 // Declaration of the `@Lazy` macro
 //
-// With `initialization: lazy`, we promise to use the initializer
-// in a context where `self` is available.
-@attached(accessor, initialization: lazy, names: named(get), named(set))
+// We promise to use the initializer in a context where `self` is available:
+@attached(accessor, initialization: selfAvailable, names: named(get), named(set))
 @attached(peer, names: prefixed(_))
 public macro Lazy() = #externalMacro( ... )
 
-/// This macro uses the initializer in an `init` accessor, where `self` access
-/// would be invalid.
-@attached(accessor, initialization: eager, names: named(init))
+// This macro uses the initializer in an `init` accessor, where `self` access
+// would be invalid.
+@attached(accessor, initialization: selfUnvailable, names: named(init))
 public macro SomeEagerMacro() = #externalMacro( ... )
 
-/// If `self` is not available for the initializer,
-/// we can just omit the `initialization:` property.
+// If `self` is not available for the initializer,
+// we can just omit the `initialization:` property.
 @attached(accessor, names: named(init))
 public macro SomeEagerMacro() = #externalMacro( ... )
 
-/// `initialization:` is only available for accessor macros.
-@attached(body, initialization: lazy)
-//              ^ ❌ Error: "initialization" is only available for accessor role
+// `initialization:` is only available for accessor macros.
+@attached(body, initialization: selfAvailable)
+//        |     |˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜
+//        |     |- 🛑 Error: 'initialization' unsupported for body macros
+//        |     `- 🔧 Fix-it: remove 'initialization: selfAvailable'
+//        `- 🔧 Fix-it: did you mean 'accessor' here?
 
-/// Only `lazy` or `eager` are valid:
+// Only `selfAvailable` or `selfUnvailable` are valid:
 @attached(accessor, initialization: ridiculous, names: named(get), named(set))
-//                                  ^ ❌ Error: Unknown initialization context 'ridiculous'. Possible values are 'eager' or 'lazy'.
+//                                  |- 🛑 Error: Unknown initialization context kind
+//                                  |- 🔧 Fix-it: replace 'ridiculous' with 'selfAvailable'
+//                                  |- 🔧 Fix-it: replace 'ridiculous' with 'selfUnavailable'
+//                                  `- 🔧 Fix-it: remove 'initialization: ridiculous' for default "selfUnavailable" context
 
-/// `initialization:` takes one argument:
-@attached(accessor, initialization: eager, lazy, names: named(get), named(set))
-//                                  ^ ❌ Error: multiple arguments unsupported.
+// `initialization:` takes one argument:
+@attached(accessor, initialization: ridiculous, absurd, names: named(get), named(set))
+//                                  ˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜
+//                                  |- 🛑 Error: 'initialization' does not support multiple arguments
+//                                  |- 🔧 Fix-it: replace 'ridiculous, absurd' with 'selfAvailable'
+//                                  |- 🔧 Fix-it: replace 'ridiculous, absurd' with 'selfUnvailable'
+//                                  `- 🔧 Fix-it: remove 'initialization: ridiculous, absurd' for default "selfUnavailable" context
+
+// Fix-it for multiple arguments if one of them is valid:
+@attached(accessor, initialization: selfAvailable, ridiculous, names: named(get), named(set))
+//                                  ˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜
+//                                  |- 🛑 Error: 'initialization' does not support multiple arguments
+//                                  `- 🔧 Fix-it: keep 'selfAvailable'
 ```
 
 ### Effect on Type Checking
