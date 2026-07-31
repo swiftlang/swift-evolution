@@ -260,16 +260,44 @@ Code that uses accessor macros with a `lazy` property initializer does not requi
 
 ## Alternatives considered
 
-### Use Introduced Names to Infer Initializer Context
+### Enable `self` for all Subsumed Initializers in General
 
-The type checker has access to the introduced names of an accessor macro. Instead of having the macro author declare `lazy` or `eager` usage, the type-checker could assume a lazy context if the following conditions are met:
+It could be argued that subsumed property initializers should always be allowed to access `self` and its instance members _in general_, since invalid access would be diagnosed in their new context later.
+
+This approach would introduce source-compatibility problems where the meaning of a reference changes if `self` becomes available.
+
+- A static member has the same name as an instance member:
+  ```swift
+  struct S {
+    let foo = 0
+    static let foo = 17
+
+    // Used to be initialized with the static member.
+    // Now it's initialized with the instance member.
+    @Lazy var x = foo
+  }
+  ```
+- There is an instance member named `self`. For example, classes deriving from `NSObject` have a `self()` method:
+  ```swift
+  class C: NSObject {
+    // Used to be an unapplied reference to the inherited method "`self`() -> Self"
+    // Now it's an instance of `C`
+    @Lazy var x = self
+  }
+  ```
+
+The proposed solution addresses this concern by giving macro authors control over granting `self` access. Making `selfAvailable` for existing macros should be carefully considered and documented as potentially source-breaking by macro vendors.
+
+### Use Introduced Names to Infer Initialization Context
+
+The type checker has access to the introduced names of an accessor macro. Instead of having the macro author declare `selfAvailable` or `selfUnavailable`, the type-checker could assume that `self` is available in the new context if the following conditions are met:
 
 - macro introduces non-observing accessors
-- macro does _not_ introduce an init accessor, assuming the init expression will be used here
+- macro does _not_ introduce an init accessor, assuming the initializer would be used here
 
-This approach could work in the general case, but we can construct situations where it breaks down. For example, a macro may introduce an `init` accessor that is unrelated to the initializer expression. Instead, the initializer is actually used lazily inside the getter. `self` access would have been OK for such a macro, but is forbidden by the type checker.
+This approach could work in the general case, but we can construct situations where it breaks down. For example, a macro may introduce an `init` accessor that is unrelated to the initializer expression. Instead, the initializer is actually used inside the getter. `self` access would have been OK in this context, but the type checker would diagnose an error.
 
-Another problem of this approach is that existing macros automatically adopt the new behavior if they fulfill the conditions. This may result in source-breaking changes or subtle bugs when an initializer suddenly uses `self.foo` instead of `Self.foo`.
+Furthermore, this approach would cause existing macros to _automatically_ adopt the new behavior if they fulfill the conditions, raising source-compatibility concerns as described above. Macro authors should have control over adopting this feature.
 
 ### Macro + Existing `lazy` Keyword
 
@@ -281,3 +309,15 @@ lazy var value = self.compute()
 // 🛑 'lazy' cannot be used on a computed property
 ```
 This error is correct, because the compiler cannot check if the macro is actually lazy. If this combination was allowed, the programmer would need to know the internals of the macro implementation at the usage site and make sure that the `lazy` keyword is used correctly. This idea has been [rejected previously](https://github.com/swiftlang/swift-syntax/pull/2800).
+
+### Naming
+
+Initially, the proposed spelling was `initialization: lazy|eager`. It matched the precedent of the `lazy` keyword nicely, but did not adequately describe what was actually happening during type-checking. The same applies to the alternative `initialization: deferred|immediate`.
+
+A boolean `selfAvailable: true|false` was considered. Here it is unclear _where_ `self` is available (the initializer expression).
+
+### Adding `initialization: ignored`
+
+There could be a third option `initialization: ignored` in addition to the proposed `selfAvailable` and `selfUnavailable`. If a macro declares that it will ignore the initializer, a warning could be diagnosed if adopting code supplies an initializer. However, the benefit is questionable. Macros can already be implemented to emit a diagnostic as needed.
+
+The `intitialization:` parameter is still open for expansion to other options if the need arises in the future, since it is not limited to a boolean `true|false`.
