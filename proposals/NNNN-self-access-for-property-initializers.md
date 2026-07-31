@@ -231,26 +231,9 @@ struct Earth {
 
 Additive. Existing macro role declarations may remain unchanged. In this case, today's behavior remains unaffected.
 
-Newly written accessor macros may elect to specify `lazy` initializer usage. This does not affect existing source code.
-
-A macro author may elect to specify `lazy` initializer usage for an existing macro. This change may affect existing code:
-
-```swift
-struct Earth {
-    static let someValue: Double = 17
-    let someValue = 42
-    
-    // ⚠️ `theAnswer` used to be "17.0" before the macro author declared `lazy`.
-    //     Now the answer is "42". Also, the inferred type has changed: It used
-    //     to be `Double`, now it's `Int`.
-    @NewlyLazy var theAnswer = someValue
-}
-```
-Changing the initialization context from `eager` to `lazy` or vice-versa must therefore be carefully considered by the macro author. Such a change should only be considered for "major" source-breaking package version increments and clearly documented.
-
 ## ABI compatibility
 
-No effect on ABI when using existing macros as-is. Using an existing macro that newly adopted `lazy` may cause a different type to be inferred in some cases as shown in the example above.
+No effect on ABI.
 
 ## Implications on adoption
 
