@@ -9,7 +9,7 @@
 
 ## Summary of changes
 
-Adds an optional `initialization: lazy` parameter for `accessor` macro role declarations. It enables macro authors to declare that property initializers will be evaluated lazily after macro expansion. The compiler will type-check the initializer expression accordingly, allowing `self` access for `lazy` property initializers.
+Adds an optional `initialization: selfAvailable` parameter for `accessor` macro role declarations. This parameter declares that the macro moves a property initializer expression to a new context, where access to `self` and instance members is available.
 
 ## Motivation
 
