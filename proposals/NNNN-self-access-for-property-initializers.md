@@ -74,7 +74,7 @@ There is another [example](https://forums.swift.org/t/pitch-lazy-accessor-macros
 
 ## Proposed solution
 
-Add an optional `initializion:` parameter to the accessor macro role declaration. Valid arguments are `selfAvailable` or `selfUnavailable`. A macro author uses `selfAvailable` to declare that the new context of the initializer after macro expansion enables access to `self`. `selfUnavailable` is the default value, and resembles the current behavior of accessor macros.
+Add an optional `initialization:` parameter to the accessor macro role declaration. Valid arguments are `selfAvailable` or `selfUnavailable`. A macro author uses `selfAvailable` to declare that the new context of the initializer after macro expansion enables access to `self`. `selfUnavailable` is the default value, and resembles the current behavior of accessor macros.
 
 ```swift
 // Declaration of the example `@Lazy` macro
@@ -137,12 +137,12 @@ Other macros such as `@Lazy` may result in an expansion where `self` access woul
 
 ### Role Declaration
 
-This proposal adds an optional `initialization:` parameter to the macro role declaration of accessor macros. It can have one of two possible arguments: either `selfAvailable` or `selfUnvailable`.
+This proposal adds an optional `initialization:` parameter to the macro role declaration of accessor macros. It can have one of two possible arguments: either `selfAvailable` or `selfUnavailable`.
 
-- `selfUnvailable`: The current behavior – no `self` access for the property initializer
+- `selfUnavailable`: The current behavior – no `self` access for the property initializer
 - `selfAvailable`: The macro promises to use the initializer in a context where `self` is available
 
-If the `initialization:` parameter is omitted, `selfUnvailable` will be used as the default value. This choice makes sure that existing macros behave the same as before.
+If the `initialization:` parameter is omitted, `selfUnavailable` will be used as the default value. This choice makes sure that existing macros behave the same as before.
 
 Some example declarations:
 
@@ -156,7 +156,7 @@ public macro Lazy() = #externalMacro( ... )
 
 // This macro uses the initializer in an `init` accessor, where `self` access
 // would be invalid.
-@attached(accessor, initialization: selfUnvailable, names: named(init))
+@attached(accessor, initialization: selfUnavailable, names: named(init))
 public macro SomeEagerMacro() = #externalMacro( ... )
 
 // If `self` is not available for the initializer,
@@ -171,7 +171,7 @@ public macro SomeEagerMacro() = #externalMacro( ... )
 //        |     `- 🔧 Fix-it: remove 'initialization: selfAvailable'
 //        `- 🔧 Fix-it: did you mean 'accessor' here?
 
-// Only `selfAvailable` or `selfUnvailable` are valid:
+// Only `selfAvailable` or `selfUnavailable` are valid:
 @attached(accessor, initialization: ridiculous, names: named(get), named(set))
 //                                  |- 🛑 Error: Unknown initialization context kind
 //                                  |- 🔧 Fix-it: replace 'ridiculous' with 'selfAvailable'
@@ -183,7 +183,7 @@ public macro SomeEagerMacro() = #externalMacro( ... )
 //                                  ˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜
 //                                  |- 🛑 Error: 'initialization' does not support multiple arguments
 //                                  |- 🔧 Fix-it: replace 'ridiculous, absurd' with 'selfAvailable'
-//                                  |- 🔧 Fix-it: replace 'ridiculous, absurd' with 'selfUnvailable'
+//                                  |- 🔧 Fix-it: replace 'ridiculous, absurd' with 'selfUnavailable'
 //                                  `- 🔧 Fix-it: remove 'initialization: ridiculous, absurd' for default "selfUnavailable" context
 
 // Fix-it for multiple arguments if one of them is valid:
