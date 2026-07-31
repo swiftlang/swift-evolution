@@ -50,7 +50,7 @@ struct Earth {
     let mice = 21
     
     let noGood = mice * 2
-    //           ^ ❌ cannot use instance member 'mice' within property initializer; property initializers run before 'self' is available
+    //           ^ 🛑 cannot use instance member 'mice' within property initializer; property initializers run before 'self' is available
     
     // ✅ initializer expression has access to `self`!
     lazy var theAnswer = mice * 2
@@ -65,7 +65,7 @@ struct Earth {
     
     @Lazy
     var theAnswer = mice * 2
-    //              ^ ❌ cannot use instance member 'mice' within property initializer; property initializers run before 'self' is available
+    //              ^ 🛑 cannot use instance member 'mice' within property initializer; property initializers run before 'self' is available
 }
 ```
 The error is unnecessarily limiting, because `@Lazy` moves the initializer into a `get` accessor, where `self` access is allowed. 
@@ -219,7 +219,7 @@ struct Earth {
         @storageRestrictions(initializes: _theAnswer)
         init {
             _theAnswer = mice * 2
-//                       ^ ❌ cannot use instance member 'mice' within property initializer; property initializers run before 'self' is available
+//                       ^ 🛑 cannot use instance member 'mice' within property initializer; property initializers run before 'self' is available
         }
         get { _theAnswer }
     }
@@ -278,6 +278,6 @@ There was a [discussion](https://forums.swift.org/t/accessor-macros-and-lazy-pro
 ```swift
 @MyMacro
 lazy var value = self.compute()
-// ❌ 'lazy' cannot be used on a computed property
+// 🛑 'lazy' cannot be used on a computed property
 ```
 This error is correct, because the compiler cannot check if the macro is actually lazy. If this combination was allowed, the programmer would need to know the internals of the macro implementation at the usage site and make sure that the `lazy` keyword is used correctly. This idea has been [rejected previously](https://github.com/swiftlang/swift-syntax/pull/2800).
