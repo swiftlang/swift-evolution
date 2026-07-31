@@ -258,33 +258,6 @@ This feature can be adopted and un-adopted in source code when considering the e
 
 Code that uses accessor macros with a `lazy` property initializer does not require a new runtime version. The expanded code does not depend on new library features.
 
-## Future directions
-
-### Fix-its
-
-Add fix-its to error diagnostics for accessor role declarations. Some examples:
-
-```swift
-// `initialization:` is only available for accessor macros.
-@attached(body, initialization: lazy)
-//              ^ ❌ Error: "initialization" is only available for accessor role
-//                🔧 Fix: Remove "initialization: lazy"
-
-// Only `lazy` or `eager` are valid:
-@attached(accessor, initialization: ridiculous, names: named(get), named(set))
-//                                  ^ ❌ Error: Unknown initializer context 'ridiculous'. Possible values are 'eager' or 'lazy'.
-//                                    🔧 Fix: Use "lazy"
-//                                    🔧 Fix: Use "eager"
-//                                    🔧 Fix: Remove "initialization: ridiculous" for default eager initialization
-
-/// `initialization:` takes one argument:
-@attached(accessor, initialization: eager, lazy, names: named(get), named(set))
-//                                  ^ ❌ Error: multiple arguments unsupported.
-//                                    🔧 Fix: Use "lazy"
-//                                    🔧 Fix: Use "eager"
-//                                    🔧 Fix: Remove "initialization: eager, lazy, " for default eager initialization
-```
-
 ## Alternatives considered
 
 ### Use Introduced Names to Infer Initializer Context
