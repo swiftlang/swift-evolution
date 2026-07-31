@@ -1,4 +1,4 @@
-# Lazy Initializers for Accessor Macros
+# Enable Macros to Grant `self` Access for Property Initializers
 
 * Proposal: [SE-NNNN](NNNN-lazy-accessor-macros.md)
 * Authors: [Nils Grabenhorst](https://github.com/nilsgrabenhorst)
