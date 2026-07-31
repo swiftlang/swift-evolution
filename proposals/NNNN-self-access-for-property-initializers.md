@@ -195,13 +195,13 @@ public macro SomeEagerMacro() = #externalMacro( ... )
 
 ### Effect on Type Checking
 
-When checking the initializer in its original context, the type-checker will look for an accessor macro with an `initialization: lazy` declaration attached. If such a macro is found, the same type-checking code as implemented for the existing `lazy` keyword is used, where `self` access is allowed. In all other cases, the behavior remains unchanged: `self` access is diagnosed as a compiler error.
+When checking the initializer in its original context, the type-checker will look for an accessor macro with an `initialization: selfAvailable` declaration attached. If such a macro is found, the same type-checking code as implemented for the existing `lazy` keyword is used, where `self` access is allowed. In all other cases, the behavior remains unchanged: `self` access is diagnosed as a compiler error.
 
-If the macro author promises `lazy` behavior in the role declaration, but re-contextualizes the initializer where `self` access is illegal, the type-checker will allow `self` access in the initializer's original context. The initializer expression will be checked again in its new context after macro expansion. An error will be diagnosed in the expanded code as expected.
+If the macro author promises `selfAvailable` behavior in the role declaration, but re-contextualizes the initializer where `self` access is illegal, the type-checker will allow `self` access in the initializer's original context. The initializer expression will be checked again in its new context after macro expansion. An error will be diagnosed in the expanded code as expected.
 
 ```swift
 // Macro declaration:
-@attached(accessor, initialization: lazy, names: named(get), named(init))
+@attached(accessor, initialization: selfAvailable, names: named(get), named(init))
 @attached(peer, names: prefixed(_))
 public macro NotLazy() = #externalMacro( ... )
 
@@ -237,9 +237,7 @@ No effect on ABI.
 
 ## Implications on adoption
 
-This feature can be adopted and un-adopted in source code when considering the effect described in _Source compatibility_.
-
-Code that uses accessor macros with a `lazy` property initializer does not require a new runtime version. The expanded code does not depend on new library features.
+This feature can be freely adopted and un-adopted in source code. No new runtime version is necessary. The proposed changes do not depend on new library features.
 
 ## Alternatives considered
 
@@ -295,12 +293,12 @@ This error is correct, because the compiler cannot check if the macro is actuall
 
 ### Naming
 
-Initially, the proposed spelling was `initialization: lazy|eager`. It matched the precedent of the `lazy` keyword nicely, but did not adequately describe what was actually happening during type-checking. The same applies to the alternative `initialization: deferred|immediate`.
+Initially, the proposed spelling was `initialization: lazy|eager`. It matched the precedent of the `lazy` keyword nicely, but did not adequately describe what is actually happening during type-checking. The same reasoning applies to the alternative `initialization: deferred|immediate` spelling.
 
-A boolean `selfAvailable: true|false` was considered. Here it is unclear _where_ `self` is available (the initializer expression).
+A boolean `selfAvailable: true|false` was considered. Here it is unclear _where_ `self` is available/unavailable (the initializer expression).
 
 ### Adding `initialization: ignored`
 
-There could be a third option `initialization: ignored` in addition to the proposed `selfAvailable` and `selfUnavailable`. If a macro declares that it will ignore the initializer, a warning could be diagnosed if adopting code supplies an initializer. However, the benefit is questionable. Macros can already be implemented to emit a diagnostic as needed.
+There could be a third option `initialization: ignored` in addition to the proposed `selfAvailable` and `selfUnavailable`. If a macro declares that it will ignore the initializer, a warning would be diagnosed if adopting code supplies an initializer. However, the benefit is questionable. Macros can already be implemented to emit a diagnostic as needed.
 
 The `intitialization:` parameter is still open for expansion to other options if the need arises in the future, since it is not limited to a boolean `true|false`.
