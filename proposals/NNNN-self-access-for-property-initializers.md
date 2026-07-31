@@ -74,14 +74,13 @@ There is another [example](https://forums.swift.org/t/pitch-lazy-accessor-macros
 
 ## Proposed solution
 
-Add an optional `initializion:` parameter to the accessor macro role declaration. Possible values are `lazy` or `eager`. A macro author uses `lazy` to declare that the initializer is invoked lazily after macro expansion, which enables access to `self` in the initializer expression. `eager` is the default value, and resembles the current behavior of accessor macros.
+Add an optional `initializion:` parameter to the accessor macro role declaration. Valid arguments are `selfAvailable` or `selfUnavailable`. A macro author uses `selfAvailable` to declare that the new context of the initializer after macro expansion enables access to `self`. `selfUnavailable` is the default value, and resembles the current behavior of accessor macros.
 
 ```swift
 // Declaration of the example `@Lazy` macro
 //
-// With `initializer: lazy`, we promise to use the initializer
-// in a context where `self` is available.
-@attached(accessor, initialization: lazy, names: named(get), named(set))
+// We promise to use the initializer in a context where `self` is available:
+@attached(accessor, initialization: selfAvailable, names: named(get), named(set))
 @attached(peer, names: prefixed(_))
 public macro Lazy() = #externalMacro( ... )
 
