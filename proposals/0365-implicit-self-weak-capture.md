@@ -5,6 +5,7 @@
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
 * Status: **Implemented (Swift 5.8)**
 * Implementation: [apple/swift#40702](https://github.com/apple/swift/pull/40702), [apple/swift#61520](https://github.com/apple/swift/pull/61520)
+* Review: ([pitch](https://forums.swift.org/t/allow-implicit-self-for-weak-self-captures-after-self-is-unwrapped/54262)) ([review](https://forums.swift.org/t/se-0365-allow-implicit-self-for-weak-self-captures-after-self-is-unwrapped/59040)) ([acceptance](https://forums.swift.org/t/accepted-se-0365-allow-implicit-self-for-weak-self-captures-after-self-is-unwrapped/59517))
 
 ## Introduction
 
