@@ -5,7 +5,7 @@
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Active review (August 2–16, 2026)**
 * Implementation: [swiftlang/swift#89757](https://github.com/swiftlang/swift/pull/89757)
-* Review: ([pitch](https://forums.swift.org/t/pitch-lazy-accessor-macros/87515))
+* Review: ([pitch](https://forums.swift.org/t/pitch-lazy-accessor-macros/87515)) ([review](https://forums.swift.org/t/se-0539-enable-macros-to-grant-self-access-for-property-initializers/88713))
 
 ## Summary of changes
 
