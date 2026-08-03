@@ -1,9 +1,9 @@
 # Default Target Settings
 
-* Proposal: [SE-NNNN](NNNN-default-target-settings.md)
+* Proposal: [SE-0540](0540-default-target-settings.md)
 * Authors: [Matt Massicotte](https://github.com/mattmassicotte)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Mikaela Caron](https://github.com/mikaelacaron)
+* Status: **Active review (August 3 - August 17, 2026)****
 * Implementation: [swiftlang/swift-package-manager#10033](https://github.com/swiftlang/swift-package-manager/pull/10033)
 * Review: ([pitch](https://forums.swift.org/t/default-package-swift-settings/71872))
 
