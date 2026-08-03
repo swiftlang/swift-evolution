@@ -6,7 +6,7 @@
 * Status: **Active Review (August 3...August 13, 2026)**
 * Bug: rdar://178259171
 * Implementation: [swiftlang/swift-testing#1733](https://github.com/swiftlang/swift-testing/pull/1733)
-* Review: ([pitch](https://forums.swift.org/t/pitch-swift-testing-macro-for-getting-the-current-source-location/87025))
+* Review: ([pitch](https://forums.swift.org/t/pitch-swift-testing-macro-for-getting-the-current-source-location/87025)) ([review](https://forums.swift.org/t/st-0027-macro-for-getting-the-current-source-location/88743))
 
 ## Introduction
 
