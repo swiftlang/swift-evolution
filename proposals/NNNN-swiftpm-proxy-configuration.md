@@ -100,17 +100,17 @@ swift package config unset-proxy
 
 When determining proxy configuration, SPM uses the first source that provides a value:
 
-1. **Local project config** (`<project>/.swiftpm/configuration/proxy.json`) — highest priority
-2. **User-level config** (`~/.swiftpm/configuration/proxy.json`)
-3. **Environment variables** (`http_proxy`/`HTTP_PROXY`, `https_proxy`/`HTTPS_PROXY`, `no_proxy`/`NO_PROXY`)
+1. **Environment variables** (`http_proxy`/`HTTP_PROXY`, `https_proxy`/`HTTPS_PROXY`, `no_proxy`/`NO_PROXY`) — highest priority
+2. **Local project config** (`<project>/.swiftpm/configuration/proxy.json`)
+3. **User-level config** (`~/.swiftpm/configuration/proxy.json`)
 4. **macOS system proxy** (from System Settings → Network → Proxies; macOS only)
 5. **No proxy** (direct connection) — default behavior
 
-For environment variables, lowercase variants take precedence over uppercase (consistent with curl behavior).
+For environment variables, lowercase variants take precedence over uppercase (consistent with curl behavior). Environment variables are the highest priority source because this is the standard convention for CLI tools — it allows the caller to unambiguously force proxy settings regardless of other configuration.
 
-On macOS, `URLSession` automatically inherits the system-level proxy configuration. This means SPM will route traffic through a system proxy even without a `proxy.json` or environment variables — no action is required from the user if their system proxy is already configured. The `proxy.json` file and environment variables act as explicit overrides when the system proxy is not appropriate for SPM operations.
+On macOS, `URLSession` automatically inherits the system-level proxy configuration. This means SPM will route traffic through a system proxy even without environment variables or a `proxy.json` — no action is required from the user if their system proxy is already configured.
 
-On Linux, there is no system proxy layer. The `proxy.json` file and environment variables are the available configuration mechanisms.
+On Linux, there is no system proxy layer. Environment variables and the `proxy.json` file are the available configuration mechanisms.
 
 Each field is resolved independently. For example, a user-level config could set `http` while the system proxy provides the HTTPS proxy — they do not need to come from the same source.
 
@@ -315,9 +315,9 @@ If SPM gains additional network-level configuration needs in the future (custom 
 
 This was the simplest approach but fails the Xcode use case entirely. Environment variables are not available when Xcode invokes SPM, and requiring `launchctl setenv` is a poor user experience. A config file is necessary for GUI workflows. However, environment variables remain the most natural configuration mechanism for CI systems and command-line usage, which is why the proposal supports both — the config file for reliability across all contexts, and environment variables as a fallback for the common case.
 
-### Environment variables as the highest-priority override
+### Config file as the highest-priority override
 
-We considered making environment variables override the config file. This was rejected because it creates confusion: a developer might set `proxy.json` explicitly and then be surprised when an inherited environment variable overrides it in some contexts. The chosen precedence (file > env > system) ensures that explicit configuration always wins.
+We considered making the config file override environment variables. This was rejected because it deviates from the standard convention for CLI tools — environment variables are the established mechanism for callers to unambiguously force settings regardless of other configuration sources. A CI job that sets `http_proxy` expects it to take effect unconditionally.
 
 ### Extend `registries.json` with proxy settings
 
