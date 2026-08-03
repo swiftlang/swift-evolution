@@ -1,6 +1,6 @@
 # Default Target Settings
 
-* Proposal: [SE-0NNN](0NNN-default-target-settings.md)
+* Proposal: [SE-NNNN](NNNN-default-target-settings.md)
 * Authors: [Matt Massicotte](https://github.com/mattmassicotte)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
