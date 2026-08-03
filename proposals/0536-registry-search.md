@@ -15,7 +15,7 @@
 
 Today, to use a package from a registry a user must already know its exact package identifier (in the form `scope.name`). There is no standardized mechanism for discovering packages within a registry.
 
-This is a gap when comparing SwiftPM to other package ecosystems. npm provides `npm search`, PyPI has `pip search`, Cargo has `cargo search`, and NuGet has `dotnet package search`. Package discovery is a fundamental part of the package management workflow, and adding this at the registry protocol level offers benefits to both SwiftPM users as well as 3rd party clients.
+This is a gap when comparing SwiftPM to other package ecosystems. npm provides `npm search`, Cargo has `cargo search`, and NuGet has `dotnet package search`. Package discovery is a fundamental part of the package management workflow, and adding this at the registry protocol level offers benefits to both SwiftPM users as well as 3rd party clients.
 
 [SE-0292](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0292-package-registry-service.md) anticipated this need in its future directions:
 
@@ -187,6 +187,12 @@ AIP-160 comparison operators (`=`, `!=`, `<`, `>`, `<=`, `>=`), the traversal op
 
 A registry MAY support fuzzy matching to handle typos and approximate search terms. For example, a query like `netwrking` could match packages containing "networking". The degree of fuzziness is left to the registry implementation. Registries that do not support fuzzy matching perform exact substring matching as described above.
 
+Fuzzy matching applies only to free-text terms (bare literals) and the `name:` and `description:` qualifiers. The `scope:`, `author:`, and `pkg:` qualifiers MUST be matched deterministically; a registry MUST NOT apply fuzzy matching to them. `scope:` and `author:` remain case-insensitive substring matches as described above, and `pkg:` remains a match against the purl as described above.
+
+Fuzziness is most valuable where the user is describing what they want rather than naming it, so it is confined to free text, `name:`, and `description:`. Applying it to the filtering qualifiers would silently widen a filter the user wrote to narrow their results — `scope:apple` matching a neighbouring scope, or `author:Mona` matching a different person, is a surprising outcome rather than a helpful one. `name:` is deliberately left fuzzy: an exact-match-only `name:markdown` would exclude `swift-markdown`, the most widely used Markdown package in the Swift ecosystem, which is very likely what the user was looking for.
+
+Because bare literals match against scope in addition to name and description, a free-text term MAY still fuzzily match a scope. This is intentional: the guarantee above applies to `scope:`, which is how a user asks to narrow results to a particular scope, and not to unscoped terms, where broad matching is the point.
+
 ##### Result Ordering
 
 When a query is provided, the server SHOULD order results by query relevance. When no query is provided (empty `q`), the server returns an empty result set. Registries are free to use whatever ranking signals are appropriate for their implementation when a query is present (recency, popularity, internal quality metrics, etc.).
@@ -229,15 +235,14 @@ Content-Version: 1
 
 **Results Object:**
 
-| Field         | Type     | Required | Description                                                                                                                                                                                                                                                                                                |
-| ------------- | -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| identity      | String   | Yes      | The package identifier in `scope.name` format                                                                                                                                                                                                                                                              |
-| summary       | String   | No       | Short description of the package                                                                                                                                                                                                                                                                           |
-| latestVersion | String   | No       | Most recent stable release.                                                                                                                                                                                                                                                                                |
-| author        | String   | No       | Package author name                                                                                                                                                                                                                                                                                        |
-| licenseURL    | String   | No       | URL of the package's license document                                                                                                                                                                                                                                                                      |
-| url           | String   | No       | URL to the package's releases on this registry                                                                                                                                                                                                                                                             |
-| registry      | String   | No       | Computed by the client; identifies the registry URL the result came from. Only included when a single search spans multiple registries. Omitted when all results come from one registry (either because only one is configured or `--registry` was passed). Not set by the server but computed by SwiftPM. |
+| Field         | Type     | Required | Description                                     |
+| ------------- | -------- | -------- | ----------------------------------------------- |
+| identity      | String   | Yes      | The package identifier in `scope.name` format   |
+| summary       | String   | No       | Short description of the package                |
+| latestVersion | String   | No       | Most recent stable release.                     |
+| author        | String   | No       | Package author name                             |
+| licenseURL    | String   | No       | URL of the package's license document           |
+| url           | String   | No       | URL to the package's releases on this registry  |
 
 **Pagination:**
 
@@ -247,9 +252,11 @@ Content-Version: 1
 |offset|Integer|Yes|Current offset|
 |limit|Integer|Yes|Limit applied to this response|
 
-A given package identity MUST NOT appear in results more than once, and total MUST equal the number of unique packages matching the query, not the number of versions or artifacts.
+Within a single response, a given package identity MUST NOT appear in `results` more than once, and `total` MUST equal the number of unique packages matching the query, not the number of versions or artifacts.
 
-For a given query string and constant pagination parameters, result ordering MUST be stable across requests in the same session. A client iterating `offset += limit` until `offset >= total` MUST visit every matching package exactly once and never visit the same package twice.
+For a given query and identical underlying data, a registry MUST return results in a deterministic order, independent of the `offset` and `limit` requested, so that successive pages partition the result set without gaps or overlaps. When relevance scores are equal, registries MUST apply a stable tiebreaker (for example, ordering by package identity).
+
+Registries are not required to snapshot results across requests. Because a search index changes over time, a client paginating with `offset += limit` MAY observe packages shift between pages, appear, or disappear if the underlying data changes during iteration. Clients SHOULD tolerate the same identity appearing on more than one page.
 
 The server SHOULD include `Link` headers for pagination when additional results are available:
 ```
@@ -375,6 +382,8 @@ $ swift package-registry search Logger --json
 }
 ```
 
+`registry` is added by SwiftPM, not returned by any server. It holds the URL of the registry a result came from, and is present in both the default output and `--json` only when a single search spanned more than one registry. It is omitted when all results come from one registry, either because only one is configured or because `--registry` was passed.
+
 The subcommand constructs a query string from the provided query and sends it to the registry's `/search` endpoint. Users can include qualifiers directly in their search query (e.g., `author:"Mona"` is passed as `author:Mona` in the `q` parameter).
 
 If the registry has previously advertised search support via its `/availability` response, the client sends the search request to the advertised URL. If the registry did not advertise search support (no `capabilities` object, or no `search` key), the client informs the user:
@@ -418,6 +427,16 @@ An alternative design would use individual query parameters for each searchable 
 GET /search?name=LinkedList&author=Mona&scope=mona
 ```
 This approach is simpler to parse on the server but less flexible. The qualifier syntax `field:value` within a single `q` parameter follows the conventions established by GitHub, npm, and other search APIs. It allows users to construct queries naturally in both the CLI and API contexts, and is extensible without requiring API changes when new searchable fields are added.
+
+### Cursor-based pagination
+
+Rather than `offset` and `limit`, the endpoint could paginate with opaque cursors, typically an `after` parameter naming the last identity on the previous page, and a `before` parameter for paging backwards:
+```
+GET /search?q=networking&limit=20&after=mona.LinkedList
+```
+A further variant would omit pagination parameters from the documented interface entirely and have clients follow only the `Link` header, leaving the server free to encode paging state however it likes.
+
+Cursors are usually adopted to make pagination stable over a changing result set, by letting the server resume from a point-in-time snapshot. This proposal deliberately does not require snapshotting; registries need only return a deterministic ordering, and clients are told to tolerate packages shifting between pages so the main benefit of cursors does not apply.
 
 ### Returning full release metadata in search results
 
