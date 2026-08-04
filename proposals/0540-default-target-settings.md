@@ -9,7 +9,7 @@
 
 ## Introduction
 
-It is very common for Swift packages to using the same settings flags across all their targets.
+It is very common for Swift packages to use the same settings flags across all their targets.
 A built-in mechanism to apply these base settings
 offers improved readability and convenience for package manifests.
 
@@ -45,11 +45,11 @@ let package = Package(
 ```
 
 This pattern comes up over and over again across the package ecosystem.
-Selectively adopting upcoming language features across all targets is very common.
+Selectively adopting upcoming language features for all targets is very common.
 For the prototypical primary-test target pair,
 duplicating one or two settings might not be ideal, but it is feasible.
 For packages with many targets and/or complex manifest files,
-it came become quite challenging to reason about the setting being applied.
+it can become quite challenging to reason about the setting being applied.
 
 A possible solution involves applying a constant array to each target.
 This is sufficient as long as all targets use identical settings.
@@ -81,7 +81,46 @@ And, all of this is just discussing how a uniform list of settings could be appl
 There are packages that have much more complex requirements.
 Typically, this requires at least some logic within the manifest file.
 
-These existing solutiuons are inconvenient, verbose, and error-prone.
+A more real-world example comes from the [swift-configuration](https://github.com/apple/swift-configuration/blob/ef2069fd7a0ee254c3b65a1ca7f53751afc326d0/Package.swift) package manifest. It uses the post-definition settings modification mechanism, and does so in a non-trivial way. Here's the current implementation:
+
+```swift
+for target in package.targets {
+  var settings = target.swiftSettings ?? []
+  
+  // https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md
+  // Require `any` for existential types.
+  settings.append(.enableUpcomingFeature("ExistentialAny"))
+  
+  // https://github.com/swiftlang/swift-evolution/blob/main/proposals/0444-member-import-visibility.md
+  settings.append(.enableUpcomingFeature("MemberImportVisibility"))
+  
+  // https://github.com/swiftlang/swift-evolution/blob/main/proposals/0409-access-level-on-imports.md
+  settings.append(.enableUpcomingFeature("InternalImportsByDefault"))
+  
+  // https://docs.swift.org/compiler/documentation/diagnostics/nonisolated-nonsending-by-default/
+  settings.append(.enableUpcomingFeature("NonisolatedNonsendingByDefault"))
+  
+  settings.append(
+    .enableExperimentalFeature(
+      "AvailabilityMacro=Configuration 1.0:macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0"
+    )
+  )
+  
+  if enableAllCIFlags {
+    // Ensure all public types are explicitly annotated as Sendable or not Sendable.
+    settings.append(.unsafeFlags(["-Xfrontend", "-require-explicit-sendable"]))
+  }
+  
+  target.swiftSettings = settings
+}
+```
+
+This technique requires mutating the package targets and managing
+settings array construction within the loop.
+It also needs to do so after the package has been defined,
+which further separates the settings from the entities they affect.
+
+These existing solutions are inconvenient, verbose, and error-prone.
 And because of the subtleties that can arise from compiler behavior differences,
 errors here can be particularly painful.
 
@@ -107,10 +146,10 @@ The `Package` class is extended to define a set of default settings:
 public final class Package {
   // ...
 
-  public var defaultSwiftSettings: Set<SwiftSetting>
-  public var defaultCSettings: Set<CSetting>
-  public var defaultCXXSettings: Set<CXXSetting>
-  public var defaultLinkerSettings: Set<LinkerSetting>
+  public var defaultSwiftSettings: [SwiftSetting]?
+  public var defaultCSettings: [CSetting]?
+  public var defaultCXXSettings: [CXXSetting]?
+  public var defaultLinkerSettings: [LinkerSetting]?
 
   public init(
     name: String,
@@ -123,34 +162,34 @@ public final class Package {
     dependencies: [Dependency] = [],
     targets: [Target] = [],
     swiftLanguageVersions: [SwiftVersion]? = nil,
-    defaultSwiftSettings: Set<SwiftSetting> = [],
+    defaultSwiftSettings: [SwiftSetting] = [],
     cLanguageStandard: CLanguageStandard? = nil,
-    defaultCSettings: Set<CSetting> = [],
+    defaultCSettings: [CSetting] = [],
     cxxLanguageStandard: CXXLanguageStandard? = nil,
-    defaultCXXSettings: Set<CXXSetting> = [],
-    defaultLinkerSettings: Set<LinkerSetting> = []
+    defaultCXXSettings: [CXXSetting] = [],
+    defaultLinkerSettings: [LinkerSetting] = []
   )
 }
 ```
 
 ```swift
-struct SwiftSettings {
+struct SwiftSetting {
   // ...
   
-  public static func inherited() -> SwiftSettings {
+  public static func inherited() -> SwiftSetting {
     // ...
   }
 }
 
-struct CSettings {
+struct CSetting {
   // ...
   
-  public static func inherited() -> CSettings {
+  public static func inherited() -> CSetting {
     // ...
   }
 }
 
-struct CXXSettings {
+struct CXXSetting {
   // ...
   
   public static func inherited() -> CXXSettings {
@@ -158,10 +197,10 @@ struct CXXSettings {
   }
 }
 
-struct LinkerSettings {
+struct LinkerSetting {
   // ...
   
-  public static func inherited() -> LinkerSettings {
+  public static func inherited() -> LinkerSetting {
     // ...
   }
 }
@@ -186,6 +225,37 @@ let package = Package(
   ]
 )
 ```
+
+The swift-configuration definition would see a much more dramatic simplification (with a little help from a ternary expression).
+
+```swift
+defaultSwiftSettings: [
+  // https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md
+  // Require `any` for existential types.
+  .enableUpcomingFeature("ExistentialAny"),
+  
+  // https://github.com/swiftlang/swift-evolution/blob/main/proposals/0444-member-import-visibility.md
+  .enableUpcomingFeature("MemberImportVisibility"),
+  
+  // https://github.com/swiftlang/swift-evolution/blob/main/proposals/0409-access-level-on-imports.md
+  .enableUpcomingFeature("InternalImportsByDefault"),
+  
+  // https://docs.swift.org/compiler/documentation/diagnostics/nonisolated-nonsending-by-default/
+  .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+  
+  .enableExperimentalFeature(
+    "AvailabilityMacro=Configuration 1.0:macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0"
+  ),
+  
+  .unsafeFlags(
+    enableAllCIFlags ? ["-Xfrontend", "-require-explicit-sendable"] : []
+  ),
+]
+```
+
+It completely eliminates the array and target mutations.
+Plus, it helps to establish a more obvious connection between the definition and the settings.
+This makes the file feel much more declarative.
 
 ### Settings Inheritance
 
@@ -216,13 +286,13 @@ let package = Package(
     .target(
       name: "D",
       swiftSettings: [
-        .enableExperimentalFeature("Lifetimes"),
         .inherited(),
+        .enableExperimentalFeature("Lifetimes"),
       ]
     ),
   ],
   defaultSwiftSettings: [
-    .defaultIsolation(MainActor.self),
+    .enableUpcomingFeature("ApproachableConcurrency"),
   ]
 )
 ```
@@ -237,16 +307,16 @@ The behavior is identical for the `cSettings`, `cxxSettings`, and `linkerSetting
 For compatibility with conditional compilation,
 empty default settings arrays are accepted and do not have any special meaning.
 
-This inheritance mechanism matches the existing behaivor of the settings definition APIs.
-This means that duplicates and invalid combinations are perimitted.
-This situations are handled either by later stages of package validation or by the build tools themselves.
+This inheritance mechanism matches the existing behavior of the settings definition APIs.
+This means that duplicates and invalid combinations are permitted.
+These situations are handled either by later stages of package validation or by the build tools themselves.
 In many cases, this results in "last entry wins" semantics.
 
 ### Restrictions
 
 Default settings can have conditions, just like regular target settings.
 Supporting and resolving this correctly represents considerable additional complexity.
-For now, the `inherited` placeholder setting it self does not accept conditions.
+For now, the `inherited` placeholder setting itself does not accept conditions.
 
 ## Source compatibility
 
