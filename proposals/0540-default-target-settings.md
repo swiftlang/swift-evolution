@@ -81,6 +81,45 @@ And, all of this is just discussing how a uniform list of settings could be appl
 There are packages that have much more complex requirements.
 Typically, this requires at least some logic within the manifest file.
 
+A more real-world example comes from the [swift-configuration](https://github.com/apple/swift-configuration/blob/ef2069fd7a0ee254c3b65a1ca7f53751afc326d0/Package.swift) package manifest. It uses the post-definition settings modification mechanism, and does so in a non-trivial way. Here's the current implementation:
+
+```swift
+for target in package.targets {
+  var settings = target.swiftSettings ?? []
+  
+  // https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md
+  // Require `any` for existential types.
+  settings.append(.enableUpcomingFeature("ExistentialAny"))
+  
+  // https://github.com/swiftlang/swift-evolution/blob/main/proposals/0444-member-import-visibility.md
+  settings.append(.enableUpcomingFeature("MemberImportVisibility"))
+  
+  // https://github.com/swiftlang/swift-evolution/blob/main/proposals/0409-access-level-on-imports.md
+  settings.append(.enableUpcomingFeature("InternalImportsByDefault"))
+  
+  // https://docs.swift.org/compiler/documentation/diagnostics/nonisolated-nonsending-by-default/
+  settings.append(.enableUpcomingFeature("NonisolatedNonsendingByDefault"))
+  
+  settings.append(
+    .enableExperimentalFeature(
+      "AvailabilityMacro=Configuration 1.0:macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0"
+    )
+  )
+  
+  if enableAllCIFlags {
+    // Ensure all public types are explicitly annotated as Sendable or not Sendable.
+    settings.append(.unsafeFlags(["-Xfrontend", "-require-explicit-sendable"]))
+  }
+  
+  target.swiftSettings = settings
+}
+```
+
+This technique requires mutating the package targets and managing
+settings array construction within the loop.
+It also needs to do so after the package has been defined,
+which further separates the settings from the entities they affect.
+
 These existing solutions are inconvenient, verbose, and error-prone.
 And because of the subtleties that can arise from compiler behavior differences,
 errors here can be particularly painful.
@@ -187,6 +226,37 @@ let package = Package(
 )
 ```
 
+The swift-configuration definition would see a much more dramatic simplification (with a little help from a ternary expression).
+
+```swift
+defaultSwiftSettings: [
+  // https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md
+  // Require `any` for existential types.
+  .enableUpcomingFeature("ExistentialAny"),
+  
+  // https://github.com/swiftlang/swift-evolution/blob/main/proposals/0444-member-import-visibility.md
+  .enableUpcomingFeature("MemberImportVisibility"),
+  
+  // https://github.com/swiftlang/swift-evolution/blob/main/proposals/0409-access-level-on-imports.md
+  .enableUpcomingFeature("InternalImportsByDefault"),
+  
+  // https://docs.swift.org/compiler/documentation/diagnostics/nonisolated-nonsending-by-default/
+  .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+  
+  .enableExperimentalFeature(
+    "AvailabilityMacro=Configuration 1.0:macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0"
+  ),
+  
+  .unsafeFlags(
+    enableAllCIFlags ? ["-Xfrontend", "-require-explicit-sendable"] : []
+  ),
+]
+```
+
+It completely eliminates the array and target mutations.
+Plus, it helps to establish a more obvious connection between the definition and the settings.
+This makes the file feel much more declarative.
+
 ### Settings Inheritance
 
 It is important that it be possible to control defaults on a per-target basis.
@@ -237,7 +307,7 @@ The behavior is identical for the `cSettings`, `cxxSettings`, and `linkerSetting
 For compatibility with conditional compilation,
 empty default settings arrays are accepted and do not have any special meaning.
 
-This inheritance mechanism matches the existing behaivor of the settings definition APIs.
+This inheritance mechanism matches the existing behavior of the settings definition APIs.
 This means that duplicates and invalid combinations are permitted.
 These situations are handled either by later stages of package validation or by the build tools themselves.
 In many cases, this results in "last entry wins" semantics.
