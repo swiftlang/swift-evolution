@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: [swiftlang/swift-package-manager#NNNNN](https://github.com/swiftlang/swift-package-manager/pull/NNNNN)
-* Review: ([pitch](https://forums.swift.org/))
+* Review: ([pitch](https://forums.swift.org/t/pitch-deprecating-package-products-in-the-package-manifest/88468))
 
 > **Note on version numbers.** References to Swift tools version `6.5` and `_PackageDescription` availability `6.5` throughout this proposal are illustrative placeholders. The actual version in which the API becomes available depends on when this proposal is accepted and when the implementation lands in a released Swift toolchain. The final version will be substituted before this document is merged and again at implementation time.
 
@@ -13,7 +13,7 @@
 
 Package authors currently have no first-class way to signal that a product vended from a Swift package is on a path to removal. Swift Package Manager (SwiftPM) supports rich deprecation semantics for Swift source APIs through `@available(*, deprecated, ...)`, but a `Package.swift` manifest cannot express that same intent for a `.library`, `.executable`, or `.plugin` product.
 
-This proposal introduces a way to mark products as deprecated directly in the `Package.swift` manifest. Package authors describe the deprecation using a small set of state-specific factories — `.deprecated`, `.renamed`, `.supersededBy`, `.supersededByMajorVersion`, and `.retired`. When a consumer package depends on a deprecated product, SwiftPM emits a warning at build time that surfaces the deprecation message and any replacement information declared by the producing package. A companion `swift package audit` command lists every deprecated product in a package graph on demand, with an exit status that lets CI treat findings as failures.
+This proposal introduces a way to mark products as deprecated directly in the `Package.swift` manifest. Package authors describe the deprecation with a single factory, `.unsupported(message:replacement:)`, where the optional `replacement:` locator points at another product (in the same package or in a different package) that consumers should adopt instead. When a consumer package depends on an unsupported product, SwiftPM emits a warning at build time that surfaces the deprecation message and any replacement information declared by the producing package. A companion `swift package audit` command lists every unsupported product in a package graph on demand, with an exit status that lets CI treat findings as failures.
 
 ## Motivation
 
@@ -30,7 +30,7 @@ Package authors need a lightweight, declarative way to communicate that a produc
 
 ## Proposed solution
 
-Add a `deprecated:` parameter to the `.library(...)`, `.executable(...)`, and `.plugin(...)` factory methods on `Product`. The parameter accepts a `Product.Deprecation` value describing the deprecation. `Product.Deprecation` values are constructed through a small set of state-specific factories so the intent — renamed, superseded by another package, superseded by a newer major, retired, or generically deprecated — is explicit at the call site. Every factory accepts an optional human-readable `message:`.
+Add a `deprecated:` parameter to the `.library(...)`, `.executable(...)`, and `.plugin(...)` factory methods on `Product`. The parameter accepts a `Product.Deprecation` value describing the deprecation. `Product.Deprecation` is constructed through a single factory, `.unsupported(message:replacement:)`, where the optional `replacement:` parameter points at the product a consumer should adopt instead. A replacement is either in the same package (`.renamed(to:)`) or in another package (`.inPackage(_:product:)`).
 
 ```swift
 // swift-tools-version: 6.5
@@ -45,9 +45,9 @@ let package = Package(
         .library(
             name: "PaperLegacy",
             targets: ["PaperLegacy"],
-            deprecated: .renamed(
-                to: "Paper",
-                message: "PaperLegacy is superseded by Paper."
+            deprecated: .unsupported(
+                message: "PaperLegacy is superseded by Paper.",
+                replacement: .renamed(to: "Paper")
             )
         ),
 
@@ -55,7 +55,7 @@ let package = Package(
         .library(
             name: "PaperExperimental",
             targets: ["PaperExperimental"],
-            deprecated: .retired(
+            deprecated: .unsupported(
                 message: "PaperExperimental is going away with no replacement."
             )
         ),
@@ -64,21 +64,9 @@ let package = Package(
         .executable(
             name: "paper-tool-old",
             targets: ["paper-tool-old"],
-            deprecated: .supersededBy(
-                package: "paper-tools",
-                product: "paper-tool",
-                message: "Migrate to the standalone paper-tools package."
-            )
-        ),
-
-        // Superseded by a newer major version of the same package.
-        .library(
-            name: "PaperClassic",
-            targets: ["PaperClassic"],
-            deprecated: .supersededByMajorVersion(
-                3,
-                product: "Paper",
-                message: "Adopt Paper from Paper 3.x."
+            deprecated: .unsupported(
+                message: "Migrate to the standalone paper-tools package.",
+                replacement: .inPackage("paper-tools", product: "paper-tool")
             )
         ),
     ],
@@ -86,13 +74,12 @@ let package = Package(
         .target(name: "Paper"),
         .target(name: "PaperLegacy", dependencies: ["Paper"]),
         .target(name: "PaperExperimental"),
-        .target(name: "PaperClassic"),
         .executableTarget(name: "paper-tool-old"),
     ]
 )
 ```
 
-When any consumer package (or another product within the same package) depends on a deprecated product, SwiftPM emits a warning that includes the product name, the producing package's identity, the author-supplied message, and any replacement information implied by the deprecation kind. In addition, this proposal introduces a `swift package audit` subcommand that lists every deprecated product reachable from the current package graph so authors and consumers can survey their migration surface without having to trigger a full build.
+When any consumer package (or another product within the same package) depends on an unsupported product, SwiftPM emits a warning that includes the product name, the producing package's identity, the author-supplied message, and any replacement information declared by the producer. In addition, this proposal introduces a `swift package audit` subcommand that lists every unsupported product reachable from the current package graph so authors and consumers can survey their migration surface without having to trigger a full build.
 
 Existing manifests are unaffected as the `deprecated:` parameter is optional and defaults to `nil`.
 
@@ -100,65 +87,55 @@ Existing manifests are unaffected as the `deprecated:` parameter is optional and
 
 ### `PackageDescription` API
 
-A new nested type, `Product.Deprecation`, models a product deprecation. The type is an **opaque** struct: it exposes only a set of state-specific static factories for construction, and vends no public properties or nested `Kind` enum. The `Package.swift` manifest is a write-only DSL from the author's perspective — nothing needs to read a deprecation back — so keeping the type opaque minimizes the public API surface of `PackageDescription` and preserves maximum implementation freedom.
+A new nested type, `Product.Deprecation`, models a product deprecation. The type is an **opaque** struct: it exposes only a single static factory for construction and vends no public properties. The `Package.swift` manifest is a write-only DSL from the author's perspective — nothing needs to read a deprecation back — so keeping the type opaque minimizes the public API surface of `PackageDescription` and preserves maximum implementation freedom.
 
-The variant (renamed, superseded by another package, superseded by a newer major, retired, or generically deprecated) and any associated replacement information are captured as internal storage. The manifest-loading pipeline translates each constructed `Product.Deprecation` into the model-layer representation described in [Manifest and model changes](#manifest-and-model-changes), which is where SwiftPM's diagnostics, `swift package audit`, and `swift package dump-package` inspect the variant.
+Every deprecation carries the same base state: the product is unsupported. Producers optionally attach a human-readable `message:` and an optional `replacement:` locator that points consumers at the product they should adopt instead. The manifest-loading pipeline translates each constructed `Product.Deprecation` into the model-layer representation described in [Manifest and model changes](#manifest-and-model-changes), which is where SwiftPM's diagnostics, `swift package audit`, and `swift package dump-package` inspect the value.
 
 ```swift
 extension Product {
     /// Describes the deprecation state of a product.
     ///
     /// Values of this type are constructed exclusively through the
-    /// state-specific static factories below. The type intentionally
-    /// exposes no public properties so that new deprecation variants
-    /// and metadata can be added in future evolution without a source
-    /// or ABI break.
+    /// static factory below. The type intentionally exposes no public
+    /// properties so that new deprecation metadata can be added in
+    /// future evolution without a source or ABI break.
     public struct Deprecation: Sendable, Equatable {
-        /// Marks a product as deprecated with no advertised replacement.
-        public static func deprecated(
-            message: String? = nil
-        ) -> Deprecation
-
-        /// Marks a product as renamed to a product in the same package.
+        /// Marks a product as unsupported.
         ///
         /// - Parameters:
-        ///   - newName: The name of the replacement product in the same package.
         ///   - message: A human-readable explanation of the deprecation.
-        public static func renamed(
-            to newName: String,
-            message: String? = nil
+        ///   - replacement: An optional locator identifying the product
+        ///     consumers should adopt instead. When `nil`, the product is
+        ///     retired with no advertised replacement.
+        public static func unsupported(
+            message: String? = nil,
+            replacement: Replacement? = nil
         ) -> Deprecation
 
-        /// Marks a product as superseded by a product in another package.
+        /// Identifies the product a consumer should adopt in place of an
+        /// unsupported product.
         ///
-        /// - Parameters:
-        ///   - package: The identity of the replacement package.
-        ///   - product: The name of the replacement product in that package.
-        ///   - message: A human-readable explanation of the deprecation.
-        public static func supersededBy(
-            package: String,
-            product: String,
-            message: String? = nil
-        ) -> Deprecation
+        /// Values of this type are constructed exclusively through the
+        /// static factories below.
+        public struct Replacement: Sendable, Equatable {
+            /// The replacement is another product in the same package.
+            ///
+            /// - Parameter newName: The name of the replacement product
+            ///   in the same package.
+            public static func renamed(
+                to newName: String
+            ) -> Replacement
 
-        /// Marks a product as superseded by a product in a newer major version
-        /// of the same package.
-        ///
-        /// - Parameters:
-        ///   - majorVersion: The major version that contains the replacement.
-        ///   - product: The name of the replacement product, if it differs
-        ///     from the current product's name.
-        ///   - message: A human-readable explanation of the deprecation.
-        public static func supersededByMajorVersion(
-            _ majorVersion: Int,
-            product: String? = nil,
-            message: String? = nil
-        ) -> Deprecation
-
-        /// Marks a product as retired: going away with no replacement.
-        public static func retired(
-            message: String? = nil
-        ) -> Deprecation
+            /// The replacement is a product in another package.
+            ///
+            /// - Parameters:
+            ///   - package: The identity of the replacement package.
+            ///   - product: The name of the replacement product in that package.
+            public static func inPackage(
+                _ package: String,
+                product: String
+            ) -> Replacement
+        }
     }
 }
 ```
@@ -208,31 +185,30 @@ public struct ProductDescription: Hashable, Codable, Sendable {
 }
 
 public struct ProductDeprecation: Hashable, Codable, Sendable {
-    /// The deprecation variant and any associated replacement information.
+    /// The product a consumer should adopt in place of an unsupported product.
     ///
     /// The manifest loader constructs one of these cases from the opaque
-    /// `Product.Deprecation` value returned by the corresponding
-    /// `PackageDescription` factory. This enum is the single point at
-    /// which SwiftPM's diagnostics, `swift package audit`, and
-    /// `swift package dump-package` inspect the deprecation.
+    /// `Product.Deprecation.Replacement` value declared in the manifest.
+    /// SwiftPM's diagnostics, `swift package audit`, and
+    /// `swift package dump-package` inspect this enum to render the
+    /// replacement.
     ///
     /// This enum is non-frozen: new cases may be added in future evolution.
-    /// Consumers that switch over `Kind` must include an `@unknown default`
-    /// clause.
-    public enum Kind: Hashable, Codable, Sendable {
-        case deprecated
+    /// Consumers that switch over `Replacement` must include an
+    /// `@unknown default` clause.
+    public enum Replacement: Hashable, Codable, Sendable {
+        /// Replacement product in the same package.
         case renamed(to: String)
-        case supersededBy(package: String, product: String)
-        case supersededByMajorVersion(Int, product: String?)
-        case retired
+        /// Replacement product in another package.
+        case inPackage(package: String, product: String)
     }
 
-    public let kind: Kind
     public let message: String?
+    public let replacement: Replacement?
 }
 ```
 
-The manifest loader serializes and deserializes the new field. Because `ProductDescription` is `Codable`, the field is added as an optional to keep existing serialized manifests compatible. `ProductDeprecation.Kind` is encoded using a discriminated representation (a `type` string plus per-kind fields) so future kinds can be added without breaking existing consumers.
+The manifest loader serializes and deserializes the new field. Because `ProductDescription` is `Codable`, the field is added as an optional to keep existing serialized manifests compatible. `ProductDeprecation.Replacement` is encoded using a discriminated representation (a `kind` string plus per-case fields) so future replacement kinds can be added without breaking existing consumers.
 
 ### Diagnostic behavior at build time
 
@@ -242,13 +218,11 @@ When SwiftPM resolves a package graph, for every product dependency it inspects 
 warning: product 'PaperLegacy' from package 'paper' is deprecated: <trailing message>
 ```
 
-The trailing sentence is derived from the deprecation `Kind`:
+The trailing sentence is composed from the deprecation's `message` (if any) followed by a sentence derived from the `replacement`:
 
-- `.deprecated` — no trailing sentence beyond the author-supplied `message`.
+- `nil` replacement — no replacement sentence beyond the author-supplied `message`. The product is retired with no advertised replacement.
 - `.renamed(to: N)` — `Use 'N' instead.`
-- `.supersededBy(package: P, product: N)` — `Use 'N' from package 'P' instead.`
-- `.supersededByMajorVersion(M, product: N)` — `A replacement is available in major version M of package '<producing-package>'.` If `product` is non-`nil` and differs from the current product name, the sentence names it explicitly: `Use 'N' from major version M of package '<producing-package>'.`
-- `.retired` — `This product is retired and will be removed with no replacement.`
+- `.inPackage(package: P, product: N)` — `Use 'N' from package 'P' instead.`
 
 The warning is emitted:
 
@@ -256,13 +230,13 @@ The warning is emitted:
 2. Only when the *consumer* package's manifest sees the dependency. A package that vends a deprecated product but does not consume it does not receive a diagnostic about its own product.
 3. Independently of whether the product is a library, executable, or plugin.
 
-SwiftPM does not verify that a replacement product named by `.renamed(to:)`, `.supersededBy(package:product:)`, or `.supersededByMajorVersion(_:product:)` actually exists in the referenced package or version; unresolved names are surfaced as-is in the diagnostic, mirroring the behavior of `@available(..., renamed:)` in Swift.
+SwiftPM does not verify that a replacement product named by `.renamed(to:)` or `.inPackage(_:product:)` actually exists in the referenced package; unresolved names are surfaced as-is in the diagnostic, mirroring the behavior of `@available(..., renamed:)` in Swift.
 
 The warning is emitted by SwiftPM itself rather than by the Swift compiler, so it applies uniformly to executable and plugin products for which the compiler has no notion of "product."
 
 ### `swift package audit` subcommand
 
-Warnings surface deprecations only for products a package currently consumes. Package authors often want a broader view — for example, "which of my direct or transitive dependencies vend a deprecated product?" — without waiting for each warning to appear during a build. This proposal adds a new subcommand:
+Warnings surface deprecations only for products a package currently consumes. Package authors often want a broader view — for example, "which of my direct or transitive dependencies vend an unsupported product?" — without waiting for each warning to appear during a build. This proposal adds a new subcommand:
 
 ```
 swift package audit [--format <text|json>] [--include-transitive] [--allow-deprecations]
@@ -272,7 +246,7 @@ Behavior:
 
 - Loads the current package graph without triggering a build.
 - Walks every resolved product (direct or transitive) and reports each one whose `deprecation` is non-`nil`.
-- Groups output by producing package, then product, and includes the deprecation kind, the author-supplied `message`, and any associated replacement information.
+- Groups output by producing package, then product, and includes the author-supplied `message` and any replacement information.
 - **Exit status**:
   - `0` — the audit completed successfully and no deprecated products were reported.
   - Non-zero — either the audit encountered a load failure, or one or more deprecated products were reported.
@@ -290,7 +264,7 @@ Flags:
 
   Passing any value other than `text` or `json` is an error.
 
-  Each entry carries the invariant fields (`package`, `product`, `type`, `message`, `usedBy`) at the top level and nests the deprecation-kind discriminator plus any kind-specific fields under a `payload` object. This keeps the invariant surface flat while grouping the variant-specific fields together — parsers can dispatch on `payload.kind` and consume the sibling fields without probing the outer object.
+  Each entry carries the invariant fields (`package`, `product`, `type`, `message`, `usedBy`) at the top level and nests the replacement discriminator plus any replacement-specific fields under an optional `replacement` object. This keeps the invariant surface flat while grouping the replacement fields together — parsers can dispatch on `replacement.kind` and consume the sibling fields without probing the outer object. When the deprecation carries no replacement, the `replacement` key is omitted.
 
   Object keys in the output are emitted in **alphabetical order** at every nesting level (matching `JSONSerialization.WritingOptions.sortedKeys` / `JSONEncoder.OutputFormatting.sortedKeys`). This makes the output byte-stable across runs, so it is safe to diff, hash, or check into version control.
 
@@ -303,44 +277,29 @@ Flags:
         {
           "message": "PaperLegacy is superseded by Paper.",
           "package": "paper",
-          "payload": {
+          "product": "PaperLegacy",
+          "replacement": {
             "kind": "renamed",
             "to": "Paper"
           },
-          "product": "PaperLegacy",
           "type": "library",
           "usedBy": ["MyApp"]
         },
         {
           "message": "Migrate to the standalone paper-tools package.",
           "package": "paper",
-          "payload": {
-            "kind": "supersededBy",
+          "product": "paper-tool-old",
+          "replacement": {
+            "kind": "inPackage",
             "package": "paper-tools",
             "product": "paper-tool"
           },
-          "product": "paper-tool-old",
           "type": "executable",
-          "usedBy": ["MyApp"]
-        },
-        {
-          "message": "Adopt Paper from Paper 3.x.",
-          "package": "paper",
-          "payload": {
-            "kind": "supersededByMajorVersion",
-            "majorVersion": 3,
-            "product": "Paper"
-          },
-          "product": "PaperClassic",
-          "type": "library",
           "usedBy": ["MyApp"]
         },
         {
           "message": "PaperExperimental is going away with no replacement.",
           "package": "paper",
-          "payload": {
-            "kind": "retired"
-          },
           "product": "PaperExperimental",
           "type": "library",
           "usedBy": ["MyApp"]
@@ -350,7 +309,7 @@ Flags:
   }
   ```
 
-  The output conforms to the following JSON Schema (draft 2020-12). The `payload.kind` discriminator selects one of the payload variants below.
+  The output conforms to the following JSON Schema (draft 2020-12). The `replacement.kind` discriminator selects one of the replacement variants below.
 
   ```json
   {
@@ -368,18 +327,16 @@ Flags:
             "description": "Identity of the producing package.",
             "type": "string"
           },
-          "payload": {
-            "oneOf": [
-              { "$ref": "#/$defs/payloadDeprecated" },
-              { "$ref": "#/$defs/payloadRenamed" },
-              { "$ref": "#/$defs/payloadSupersededBy" },
-              { "$ref": "#/$defs/payloadSupersededByMajorVersion" },
-              { "$ref": "#/$defs/payloadRetired" }
-            ]
-          },
           "product": {
             "description": "Name of the deprecated product.",
             "type": "string"
+          },
+          "replacement": {
+            "description": "The product a consumer should adopt in place of the deprecated product. Omitted when the deprecation has no replacement.",
+            "oneOf": [
+              { "$ref": "#/$defs/replacementRenamed" },
+              { "$ref": "#/$defs/replacementInPackage" }
+            ]
           },
           "type": {
             "description": "SwiftPM product type.",
@@ -392,18 +349,10 @@ Flags:
             "type": "array"
           }
         },
-        "required": ["package", "payload", "product", "type", "usedBy"],
+        "required": ["package", "product", "type", "usedBy"],
         "type": "object"
       },
-      "payloadDeprecated": {
-        "additionalProperties": false,
-        "properties": {
-          "kind": { "const": "deprecated" }
-        },
-        "required": ["kind"],
-        "type": "object"
-      },
-      "payloadRenamed": {
+      "replacementRenamed": {
         "additionalProperties": false,
         "properties": {
           "kind": { "const": "renamed" },
@@ -415,18 +364,10 @@ Flags:
         "required": ["kind", "to"],
         "type": "object"
       },
-      "payloadRetired": {
+      "replacementInPackage": {
         "additionalProperties": false,
         "properties": {
-          "kind": { "const": "retired" }
-        },
-        "required": ["kind"],
-        "type": "object"
-      },
-      "payloadSupersededBy": {
-        "additionalProperties": false,
-        "properties": {
-          "kind": { "const": "supersededBy" },
+          "kind": { "const": "inPackage" },
           "package": {
             "description": "Identity of the replacement package.",
             "type": "string"
@@ -437,23 +378,6 @@ Flags:
           }
         },
         "required": ["kind", "package", "product"],
-        "type": "object"
-      },
-      "payloadSupersededByMajorVersion": {
-        "additionalProperties": false,
-        "properties": {
-          "kind": { "const": "supersededByMajorVersion" },
-          "majorVersion": {
-            "description": "Major version that contains the replacement.",
-            "minimum": 0,
-            "type": "integer"
-          },
-          "product": {
-            "description": "Replacement product name if it differs from the current product's name.",
-            "type": "string"
-          }
-        },
-        "required": ["kind", "majorVersion"],
         "type": "object"
       }
     },
@@ -477,13 +401,13 @@ Flags:
   }
   ```
 
-  The schema is versioned via `$id` (`audit-v1.json`). Additive changes — new optional fields, new `payload` variants — remain compatible with `v1`; any breaking change would increment to `audit-v2.json` and be introduced through a subsequent evolution proposal.
+  The schema is versioned via `$id` (`audit-v1.json`). Additive changes — new optional fields, new `replacement` variants — remain compatible with `v1`; any breaking change would increment to `audit-v2.json` and be introduced through a subsequent evolution proposal.
 
 The subcommand is purely a reporting tool. It does not modify any files, does not fail the build, and does not require network access beyond what a normal package graph load already performs.
 
 ### Interaction with existing features
 
-- `swift package dump-package`: The dumped JSON gains an optional `deprecation` object on each product containing `kind`, `message`, and any kind-specific replacement fields (`renamed`, `supersededBy`, `supersededByMajorVersion`) when present. Tools that already consume `dump-package` output are unaffected because the field is additive and optional.
+- `swift package dump-package`: The dumped JSON gains an optional `deprecation` object on each product containing `message` and, when present, a `replacement` object with a `kind` discriminator plus its associated fields. Tools that already consume `dump-package` output are unaffected because the field is additive and optional.
 - Package traits (SE-0450): Deprecation applies to the product itself, independent of which traits enable it. If a product is only available under a particular trait, its deprecation is reported when that trait is enabled and the product is consumed.
 - Registry and source-control dependencies: The deprecation information travels with the manifest, so the mechanism works uniformly for packages fetched from a registry (SE-0292) or from source control.
 - Tools-version gating: Manifests that use the new `deprecated:` parameter must declare `swift-tools-version:6.5` or later. Older tools versions parse the manifest without recognizing the parameter, matching existing behavior for other version-gated API.
@@ -522,21 +446,31 @@ A product-level marker is a better fit for the semantic being communicated.
 
 We considered modeling deprecation with a version at which the product is deprecated and (optionally) obsoleted, similar to `@available(_, introduced:, deprecated:, obsoleted:)`. Embedding a *deprecation* version in the manifest creates opportunities for the manifest and the actual package version to drift out of sync, because a package's version is external to the manifest (it comes from git tags or registry metadata) and the *state* of being deprecated does not depend on it — declaring `deprecated:` at all is sufficient to communicate "this product should no longer be used." Extending the model with a future *obsolescence* version is discussed in [Future directions](#future-directions).
 
+### State-specific factories per deprecation kind
+
+An alternative design exposes five state-specific factories — `.deprecated`, `.renamed`, `.supersededBy`, `.supersededByMajorVersion`, and `.retired` — each with its own signature. This design carries more API surface than the semantic distinctions warrant:
+
+- `.deprecated(message:)` reads redundantly at the call site (`deprecated: .deprecated(...)`).
+- `.renamed(to:)` and `.supersededBy(package:product:)` differ only in whether the replacement is in the same package, which is a locator concern, not a state concern.
+- `.supersededByMajorVersion` couples the replacement to a version that the current manifest cannot itself verify, and the same intent can be conveyed via `message:` until a stronger versioned mechanism (see [Future directions](#future-directions)) exists.
+- `.retired` is `deprecated with no replacement`.
+
+The `.unsupported(message:replacement:)` shape adopted by this proposal collapses these five factories into a single deprecation state with an optional replacement locator. The intent that state-specific factories would make explicit at the call site — "renamed", "superseded by another package", "retired" — is expressed by the presence, kind, and contents of the `replacement` argument. This preserves the fidelity of the state-specific design (SwiftPM can still tailor diagnostic wording per replacement kind) while keeping the surface small.
+
 ### Single generic factory with a `renamed:` string
 
-A simpler shape would expose a single factory, `Product.Deprecation.deprecated(message:renamed:)`, with `renamed:` as an optional product name string. This is smaller at the type level but loses fidelity:
+An even smaller shape would expose `.unsupported(message:renamed:)` with `renamed:` as a bare product name string. This is smaller still but loses fidelity:
 
-- It cannot distinguish "renamed within this package" from "superseded by another package's product," which are meaningfully different for consumers.
-- It cannot express "retired: going away with no replacement" without overloading `message:` semantics.
-- It cannot signal "the replacement is in a future major version," which is common for packages planning a breaking release.
+- It cannot distinguish "renamed within this package" from "superseded by another package's product," which are meaningfully different for consumers and for the diagnostic wording SwiftPM emits.
+- It has no natural extension point for future replacement kinds (a same-package major-version pointer, for example, discussed in [Future directions](#future-directions)).
 
-The state-specific factories chosen for this proposal (`.deprecated`, `.renamed`, `.supersededBy`, `.supersededByMajorVersion`, `.retired`) make each of these intents explicit at the call site, and let SwiftPM tailor the diagnostic wording per case.
+The `Replacement` type used by this proposal keeps the top-level factory surface small (one `.unsupported` factory) while letting each replacement locator carry the fields it actually needs.
 
 ### Enum-based `Deprecation` type
 
-We considered exposing `Deprecation` as a public enum with one case per kind. Modeling `Deprecation` as an opaque struct with static factories keeps the primary construction API self-documenting at the call site (`.renamed(to: "Paper")` reads better than `.init(kind: .renamed(to: "Paper"))`) without committing `PackageDescription` to a specific case layout. Because manifests are a write-only DSL — nothing on the `PackageDescription` side needs to read a `Deprecation` back — the struct exposes no public properties, and the variant is inspected only in the model layer (`PackageModel.ProductDeprecation.Kind`), where SwiftPM's diagnostics, `audit`, and `dump-package` consume it. This split keeps the manifest-facing surface small and lets future evolution add variants or metadata without a source or ABI break on `PackageDescription`.
+We considered exposing `Deprecation` as a public enum. Modeling `Deprecation` as an opaque struct with a single static factory keeps the construction API self-documenting at the call site (`.unsupported(replacement: .renamed(to: "Paper"))` reads better than `.init(replacement: .renamed(to: "Paper"))`) without committing `PackageDescription` to a specific layout. Because manifests are a write-only DSL — nothing on the `PackageDescription` side needs to read a `Deprecation` back — the struct exposes no public properties, and the replacement variant is inspected only in the model layer (`PackageModel.ProductDeprecation.Replacement`), where SwiftPM's diagnostics, `audit`, and `dump-package` consume it. This split keeps the manifest-facing surface small and lets future evolution add metadata without a source or ABI break on `PackageDescription`.
 
-We also considered exposing a public `Kind` enum on `Product.Deprecation` alongside the factories, mirroring the model-layer type so tooling that inspects live manifest values could switch on it. We rejected that direction: `PackageDescription` values are consumed by the manifest loader, not by third-party tooling in general, and doubling the surface (public enum on both `PackageDescription` and `PackageModel`) locks in a case-for-case correspondence that constrains later evolution without a clear payoff.
+We also considered exposing a public `Replacement`-shaped enum on `Product.Deprecation` alongside the factories, mirroring the model-layer type so tooling that inspects live manifest values could switch on it. We rejected that direction: `PackageDescription` values are consumed by the manifest loader, not by third-party tooling in general, and doubling the surface (public enum on both `PackageDescription` and `PackageModel`) locks in a case-for-case correspondence that constrains later evolution without a clear payoff.
 
 ### Chainable modifier on `Product`
 
@@ -575,6 +509,12 @@ Pitch feedback observed that SwiftPM does not currently inform users when a newe
 
 This is a distinct feature that touches the resolver and registry client rather than product metadata, and is out of scope for this proposal. A future evolution could extend `swift package audit` (or introduce a companion subcommand) to combine deprecation reporting with newer-version reporting, giving users a single command to survey the health of their dependency graph.
 
+### Same-package major-version replacement locator
+
+A producer preparing a breaking release may want to point consumers at a product in a *future major version of the same package* — for example, "this v2.x product is superseded by a v3.x product of the same package." The `Replacement` type in this proposal deliberately omits such a locator: a v2.x manifest cannot verify the existence or name of a v3.x product, and consumers resolving v2.x cannot resolve v3.x, so the locator would serve only as documentation. Producers who want to communicate this today can do so via `message:` (for example, `"Adopt Paper from 3.x."`).
+
+A future evolution could add a `.inMajorVersion(_ major: Int, product: String? = nil)` case to `Replacement`, most naturally in combination with the "obsolete on" mechanic below so the locator can be validated against the resolved producing-package version. The shape of that case, and whether it should be validated during graph resolution, are left to that proposal.
+
 ### Escalating deprecations to errors via an "obsolete on" version
 
 The warnings introduced by this proposal give consumers time to migrate, but they rely on the consumer eventually paying attention. Package authors often want a stronger commitment: "you may keep using this product through version *X*, but starting in version *X+1* it is a hard error." Today, there is no declarative way for a producer to express that deadline in the manifest — the alternatives are either continuing to warn indefinitely (which invites indefinite delay) or removing the product outright (which forces every consumer to react in a single release).
@@ -598,12 +538,12 @@ An `executableTarget` in `Package.swift` is (implicitly or explicitly) exposed a
 ```swift
 .executableTarget(
     name: "paper-tool-old",
-    deprecated: .supersededBy(
-        package: "paper-tools",
-        product: "paper-tool",
-        message: "Migrate to the standalone paper-tools package."
+    deprecated: .unsupported(
+        message: "Migrate to the standalone paper-tools package.",
+        replacement: .inPackage("paper-tools", product: "paper-tool")
     )
 )
 ```
-This is currently output the score of this pitch.
+
+This is currently outside the scope of this pitch.
 
