@@ -9,7 +9,7 @@
 
 ## Introduction
 
-It is very common for Swift packages to using the same settings flags across all their targets.
+It is very common for Swift packages to use the same settings flags across all their targets.
 A built-in mechanism to apply these base settings
 offers improved readability and convenience for package manifests.
 
@@ -45,11 +45,11 @@ let package = Package(
 ```
 
 This pattern comes up over and over again across the package ecosystem.
-Selectively adopting upcoming language features across all targets is very common.
+Selectively adopting upcoming language features for all targets is very common.
 For the prototypical primary-test target pair,
 duplicating one or two settings might not be ideal, but it is feasible.
 For packages with many targets and/or complex manifest files,
-it came become quite challenging to reason about the setting being applied.
+it can become quite challenging to reason about the setting being applied.
 
 A possible solution involves applying a constant array to each target.
 This is sufficient as long as all targets use identical settings.
@@ -81,7 +81,7 @@ And, all of this is just discussing how a uniform list of settings could be appl
 There are packages that have much more complex requirements.
 Typically, this requires at least some logic within the manifest file.
 
-These existing solutiuons are inconvenient, verbose, and error-prone.
+These existing solutions are inconvenient, verbose, and error-prone.
 And because of the subtleties that can arise from compiler behavior differences,
 errors here can be particularly painful.
 
@@ -107,10 +107,10 @@ The `Package` class is extended to define a set of default settings:
 public final class Package {
   // ...
 
-  public var defaultSwiftSettings: Set<SwiftSetting>
-  public var defaultCSettings: Set<CSetting>
-  public var defaultCXXSettings: Set<CXXSetting>
-  public var defaultLinkerSettings: Set<LinkerSetting>
+  public var defaultSwiftSettings: [SwiftSetting]?
+  public var defaultCSettings: [CSetting]?
+  public var defaultCXXSettings: [CXXSetting]?
+  public var defaultLinkerSettings: [LinkerSetting]?
 
   public init(
     name: String,
@@ -123,34 +123,34 @@ public final class Package {
     dependencies: [Dependency] = [],
     targets: [Target] = [],
     swiftLanguageVersions: [SwiftVersion]? = nil,
-    defaultSwiftSettings: Set<SwiftSetting> = [],
+    defaultSwiftSettings: [SwiftSetting] = [],
     cLanguageStandard: CLanguageStandard? = nil,
-    defaultCSettings: Set<CSetting> = [],
+    defaultCSettings: [CSetting] = [],
     cxxLanguageStandard: CXXLanguageStandard? = nil,
-    defaultCXXSettings: Set<CXXSetting> = [],
-    defaultLinkerSettings: Set<LinkerSetting> = []
+    defaultCXXSettings: [CXXSetting] = [],
+    defaultLinkerSettings: [LinkerSetting] = []
   )
 }
 ```
 
 ```swift
-struct SwiftSettings {
+struct SwiftSetting {
   // ...
   
-  public static func inherited() -> SwiftSettings {
+  public static func inherited() -> SwiftSetting {
     // ...
   }
 }
 
-struct CSettings {
+struct CSetting {
   // ...
   
-  public static func inherited() -> CSettings {
+  public static func inherited() -> CSetting {
     // ...
   }
 }
 
-struct CXXSettings {
+struct CXXSetting {
   // ...
   
   public static func inherited() -> CXXSettings {
@@ -158,10 +158,10 @@ struct CXXSettings {
   }
 }
 
-struct LinkerSettings {
+struct LinkerSetting {
   // ...
   
-  public static func inherited() -> LinkerSettings {
+  public static func inherited() -> LinkerSetting {
     // ...
   }
 }
@@ -216,13 +216,13 @@ let package = Package(
     .target(
       name: "D",
       swiftSettings: [
-        .enableExperimentalFeature("Lifetimes"),
         .inherited(),
+        .enableExperimentalFeature("Lifetimes"),
       ]
     ),
   ],
   defaultSwiftSettings: [
-    .defaultIsolation(MainActor.self),
+    .enableUpcomingFeature("ApproachableConcurrency"),
   ]
 )
 ```
@@ -238,15 +238,15 @@ For compatibility with conditional compilation,
 empty default settings arrays are accepted and do not have any special meaning.
 
 This inheritance mechanism matches the existing behaivor of the settings definition APIs.
-This means that duplicates and invalid combinations are perimitted.
-This situations are handled either by later stages of package validation or by the build tools themselves.
+This means that duplicates and invalid combinations are permitted.
+These situations are handled either by later stages of package validation or by the build tools themselves.
 In many cases, this results in "last entry wins" semantics.
 
 ### Restrictions
 
 Default settings can have conditions, just like regular target settings.
 Supporting and resolving this correctly represents considerable additional complexity.
-For now, the `inherited` placeholder setting it self does not accept conditions.
+For now, the `inherited` placeholder setting itself does not accept conditions.
 
 ## Source compatibility
 
