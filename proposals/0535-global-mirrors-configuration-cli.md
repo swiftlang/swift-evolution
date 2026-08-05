@@ -3,9 +3,9 @@
 * Proposal: [SE-0535](0535-global-mirrors-configuration-cli.md)
 * Authors: [Samuel Murray](https://github.com/samuelmurray)
 * Review Manager: [Tim Condon](https://github.com/0xTim)
-* Status: **Active review (July 6...July 20, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift-package-manager#9950](https://github.com/swiftlang/swift-package-manager/pull/9950)
-* Review: ([pitch](https://forums.swift.org/t/pitch-add-cli-to-edit-global-configuration-of-mirrors/86091)) ([review](https://forums.swift.org/t/se-0535-add-cli-for-editing-global-mirrors-configuration/88091))
+* Review: ([pitch](https://forums.swift.org/t/pitch-add-cli-to-edit-global-configuration-of-mirrors/86091)) ([review](https://forums.swift.org/t/se-0535-add-cli-for-editing-global-mirrors-configuration/88091)) ([acceptance]([https://forums.swift.org/t/se-0535-add-cli-for-editing-global-mirrors-configuration/88091](https://forums.swift.org/t/accepted-se-0535-add-cli-for-editing-global-mirrors-configuration/88795)))
 
 ## Introduction
 
