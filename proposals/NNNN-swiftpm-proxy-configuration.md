@@ -26,6 +26,13 @@ This means a developer behind a proxy can `swift package resolve` a source depen
 
 Additionally, environment variables are problematic for GUI-based workflows on macOS. When Xcode invokes SPM, it does not inherit shell environment variables — it launches from `launchd` with a minimal environment. Users cannot easily configure `http_proxy` for Xcode-initiated SPM operations without resorting to non-ergonomic workarounds like `launchctl setenv`.
 
+It is worth noting that SPM's existing [dependency mirror configuration](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0219-package-manager-dependency-mirroring.md) (SE-0219) can partially work around this problem — by mirroring external URLs to internal hosts that don't require a proxy, users can bypass the issue for specific dependencies. However, mirrors are not a general solution:
+
+- Mirrors require a 1:1 mapping for each dependency URL. In a large project with dozens of dependencies across different hosts, maintaining mirrors for all of them is impractical.
+- Mirrors are a URL-rewriting mechanism, not a network-routing mechanism. If the destination host requires a proxy (even after mirroring), mirrors cannot help.
+- Organizations with a blanket "all external traffic goes through a proxy" policy need transport-level proxy support, not per-URL rewrites.
+- Mirrors are designed for availability and caching use cases, not for network routing. Using them as a proxy workaround is a misuse of the abstraction.
+
 A file-based configuration approach solves both problems: it works regardless of how SPM is invoked (terminal, Xcode, CI) and is portable across platforms.
 
 ## Proposed solution
@@ -59,23 +66,25 @@ Example:
 New subcommands are added under `swift package config`:
 
 ```
-swift package config set-proxy [--http <url>] [--https <url>] [--no-proxy <hosts>]
-swift package config get-proxy
-swift package config unset-proxy [--http] [--https] [--no-proxy]
+swift package config set-proxy [--global] [--http <url>] [--https <url>] [--no-proxy <hosts>]
+swift package config get-proxy [--global]
+swift package config unset-proxy [--global] [--http] [--https] [--no-proxy]
 ```
 
-`set-proxy` requires at least one flag. It is **additive** — it updates only the fields specified, leaving existing settings intact.
+`set-proxy` requires at least one of `--http`, `--https`, or `--no-proxy`. It is **additive** — it updates only the fields specified, leaving existing settings intact.
 
 `unset-proxy` with flags removes specific settings. With no flags, it removes all proxy configuration.
+
+The `--global` flag targets the user-level configuration (`~/.swiftpm/configuration/proxy.json`) and can be run from any directory — it does not require a `Package.swift` in the current directory. Without `--global`, commands operate on the project-level configuration. This is consistent with [SE-0535](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0535-swiftpm-global-mirrors-cli.md)'s `--global` flag for mirror commands.
 
 Examples:
 
 ```bash
-# Set HTTP proxy
+# Set HTTP proxy for current project
 swift package config set-proxy --http http://proxy:8080
 
-# Set HTTPS proxy
-swift package config set-proxy --https http://proxy:8080
+# Set HTTP proxy globally (user-level, all projects)
+swift package config set-proxy --global --http http://proxy:8080
 
 # Set both at once
 swift package config set-proxy --http http://proxy:8080 --https http://proxy:8080
@@ -86,13 +95,16 @@ swift package config set-proxy --no-proxy "localhost,.internal.corp"
 # View current effective configuration
 swift package config get-proxy
 
+# View only global configuration
+swift package config get-proxy --global
+
 # Remove just the HTTPS proxy setting
 swift package config unset-proxy --https
 
-# Remove just the exclusions
-swift package config unset-proxy --no-proxy
+# Remove all global proxy configuration
+swift package config unset-proxy --global
 
-# Remove all proxy configuration
+# Remove all proxy configuration (project-level)
 swift package config unset-proxy
 ```
 
@@ -102,7 +114,7 @@ When determining proxy configuration, SPM uses the first source that provides a 
 
 1. **Environment variables** (`http_proxy`/`HTTP_PROXY`, `https_proxy`/`HTTPS_PROXY`, `no_proxy`/`NO_PROXY`) — highest priority
 2. **Local project config** (`<project>/.swiftpm/configuration/proxy.json`)
-3. **User-level config** (`~/.swiftpm/configuration/proxy.json`)
+3. **User-level (global) config** (`~/.swiftpm/configuration/proxy.json`)
 4. **macOS system proxy** (from System Settings → Network → Proxies; macOS only)
 5. **No proxy** (direct connection) — default behavior
 
@@ -203,13 +215,28 @@ On macOS, `URLSessionConfiguration.connectionProxyDictionary` uses CoreFoundatio
 
 On Linux (`FoundationNetworking`), the same property exists but may use string-based keys. The implementation uses conditional compilation to handle platform differences.
 
+### Interaction with dependency mirrors
+
+SPM's [dependency mirror configuration](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0219-package-manager-dependency-mirroring.md) (SE-0219) rewrites package URLs before dependency resolution begins. The proxy configuration operates at a lower layer — the HTTP client — and sees only the *final* URL after mirror translation has already been applied.
+
+The resolution order is:
+
+1. SPM resolves the dependency graph and applies mirror rewrites (original URL → mirror URL)
+2. When SPM makes an HTTP request (e.g., downloading a binary artifact), it uses the post-mirror URL
+3. The HTTP client evaluates `noProxy` rules against the post-mirror URL
+4. If no bypass matches, the request is routed through the configured proxy
+
+This means `noProxy` patterns should reference the *mirror* URL (the actual destination), not the original URL declared in `Package.swift`. For example, if a dependency at `https://github.com/Org/Lib` is mirrored to `https://internal.corp/Org/Lib`, users should add `internal.corp` to their `noProxy` list if the internal host does not require a proxy.
+
+This is the natural and expected behavior — the proxy layer should not need to be aware of the higher-level URL-rewriting semantics of mirrors.
+
 ### CLI command behavior
 
 `swift package config set-proxy`:
 - Requires at least one of `--http`, `--https`, or `--no-proxy`
 - Additive: only updates the fields specified, preserving existing settings
-- Writes to the **user-level** `proxy.json` by default
-- The `--package` flag writes to the project-level configuration instead
+- Writes to the **project-level** `proxy.json` by default
+- The `--global` flag writes to the user-level configuration (`~/.swiftpm/configuration/proxy.json`) and does not require a `Package.swift` in the current directory
 - Validates that proxy URLs are well-formed before writing
 
 `swift package config get-proxy`:
@@ -255,7 +282,7 @@ No proxy configuration.
 `swift package config unset-proxy`:
 - With `--http`, `--https`, or `--no-proxy` flags: removes only the specified settings
 - With no flags: removes all proxy configuration (deletes the file if empty)
-- Operates on the **user-level** config by default; `--package` targets project-level
+- Operates on the **project-level** config by default; `--global` targets user-level
 
 ### Authenticated proxies
 
@@ -322,6 +349,10 @@ We considered making the config file override environment variables. This was re
 ### Extend `registries.json` with proxy settings
 
 Adding a `proxy` key to the existing `registries.json` was considered. However, proxy configuration is a transport-level concern that applies to all HTTP traffic (binary artifacts, collections, signing, SDKs), not just registry operations. Coupling it to the registry config would be a conceptual mismatch and could confuse users who use proxy but not registries.
+
+### Extend `mirrors.json` with proxy settings
+
+The mirror configuration (SE-0219) is another existing configuration file that deals with network access patterns. We considered placing proxy settings there. However, mirrors and proxies solve fundamentally different problems: mirrors rewrite *where* a request goes (URL translation), while proxies control *how* the request is routed at the transport layer. A mirror changes the destination; a proxy changes the path to get there. Conflating the two concepts in one file would be confusing and architecturally unsound. Furthermore, proxy configuration applies uniformly to all HTTP traffic regardless of whether a dependency is mirrored.
 
 ### macOS System Proxy as the sole mechanism
 
