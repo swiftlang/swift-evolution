@@ -1,9 +1,11 @@
 # Package Manager Conditional Plugin
 
-* Proposal: SE-NNNN
+* Proposal: [SE-0542](0542-package-manager-conditionals.md)
 * Authors: [Clive Liu](https://github.com/clive819)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [David Cummings](https://github.com/daveyc123)
+* Status: **Active Review (August 6th - August 21st)**
+* Implementation: [swiftlang/swift-package-manager#10119](https://github.com/swiftlang/swift-package-manager/pull/10119)
+* Review: [Pitch](https://forums.swift.org/t/pitch-package-manager-conditional-plugin/86217)
 
 ## Introduction
 
