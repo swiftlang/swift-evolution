@@ -5,7 +5,7 @@
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Active Review (August 7...17, 2026)**
 * Implementation: https://github.com/swiftlang/swift/pull/91004
-* Review: ([pitch](https://forums.swift.org/t/conform-inlinearray-to-hashable/88432))
+* Review: ([pitch](https://forums.swift.org/t/conform-inlinearray-to-hashable/88432)) ([review](https://forums.swift.org/t/se-0543-inlinearray-hashable/88843))
 
 
 ## Summary of changes
