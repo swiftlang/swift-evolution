@@ -126,9 +126,9 @@ range is a RangeExpression which could be a Range and not just a ClosedRange-->
 <issue> ::= {
  ...
 +  ["expression": <expression>,] ; an expression associated with the issue
-+  ["error": <error>,] ; the associated error or exception if produced by a language that supports them
++  ["error": <error>,] ; the associated error or exception, if any
 +  ["miscount": <miscount>,] ; an associated miscount (too high or too low)
-+  ["exceededTimeLimit": <time>,] ; the time limit, in seconds, for the test that was exceeded
++  ["exceededTimeLimit": <time>,] ; the time limit, in seconds, that was exceeded
 -  "isKnown": <bool>,
 +  ["isKnown": <bool> | <comment>] ; whether the issue is known (optionally, the comment associated with the known issue)
 }
@@ -160,7 +160,7 @@ range is a RangeExpression which could be a Range and not just a ClosedRange-->
 
 `type-info` will support types from all languages, not just Swift, so only
 applicable fields will be present. For example, C doesn't have fully qualified
-names nor mangle names.
+names nor, in most implementations, mangled names.
 
 ```diff
 +<type-info> ::= {
@@ -216,7 +216,7 @@ targeted interoperability needs to be updated to read the error from the
   backtrace can be added in a follow-up proposal once there are solutions to
   both of these challenges.
 
-- We'd also like to include **exception information** in the issue event.
+- We'd also like to include **exception information** in the `<issue>` structure.
   Although Swift doesn't use exceptions for error handling, test code may
   interoperate with languages which do (e.g. Objective-C, Java). The `error`
   field in the issue metadata may be a good candidate to place exception
