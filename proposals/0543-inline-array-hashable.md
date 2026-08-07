@@ -51,7 +51,7 @@ N/A
 
 ## Implications on adoption
 
-The actual protocol conformance implementations will back-deploy to the
+The methods implementing the protocol requirements will back-deploy to the
 introduction of InlineArray, allowing users to declare their own retroactive
 conformance if needed.
 
