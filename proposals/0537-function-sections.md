@@ -25,7 +25,7 @@ This motivation was also [outlined in the Future Directions of SE-0492](https://
 
 ## Proposed solution
 
-Enable the `@section` attribute on all kinds of functions, including normal functions (`func`), initializers (`init`), deinitializers (`deinit`), closures, and accessors (`get`, `set`, etc.).
+Enable the `@section` attribute on all kinds of functions, including normal functions (`func`), initializers (`init`), deinitializers (`deinit`), closures, and accessors (`get`, `set`, etc.). Also introduce the spelling `@section(default)`, which applies the default section, overriding any inference rules.
 
 ## Detailed design
 
@@ -88,6 +88,19 @@ When `@section` isn't explicitly specified of an accessor or a closure, it can b
 
 Note that there is no inference of `@section` from a variable to its accessors, because code and data tend to be in different sections. Local types (and members thereof) also do not have sections inferred.
 
+### Suppressing inference of `@section`
+
+The `default` keyword can be used as the section to specify that the platform-appropriate default section should be used for this declaration. This overrides any inference rules that would otherwise apply. For example:
+
+```swift
+@section("__TEXT,boot")
+func firmwareBootEntrypoint() {
+  @section(default) func helper() { // suppresses inference of @section("__TEXT,boot")
+
+  }
+}
+```
+
 ### Lifting restriction on didSet/willSet
 
 SE-0492 placed this restriction on variables with `@section`:
@@ -115,9 +128,13 @@ This feature can be freely adopted and un-adopted in source code with no deploym
 Some declarations in Swift involve emitting both data and function symbols. For example, when defining a type, there can be both a metadata symbol (data) and also a metadata accessor function (a function). Neither this proposal nor SE-0492 allows a `@section` attribute on a type definition, but if it did, we would need a way to express different sections for data vs. functions. For example, it could look like this:
 
 ```swift
-@section(data, "__DATA,mysection")
-@section(function, "__FUNCTION,mysection")
+@section(data: "__DATA,mysection")
+@section(function: "__FUNCTION,mysection")
 public struct MyStruct { ... }
 ```
 
-A `@section` that specifies neither `data` nor `function` would only apply in the places where the determination is unambiguous, as covered by this proposal and SE-0492. New places that emit both data and function symbols, such as type definitions, extensions, or protocol conformances, could then make use of this new syntax.
+A `@section` that specifies neither `data` nor `function` would only apply in the places where the determination is unambiguous, as covered by this proposal and SE-0492. New places that emit both data and function symbols, such as type definitions, extensions, protocol conformances, or a file-level default, could then make use of this new syntax.
+
+## Revision history
+
+As part of acceptance of this proposal, the `@section(default)` feature was introduced to specify the default section, suppressing inference.
