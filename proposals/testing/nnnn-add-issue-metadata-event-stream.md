@@ -59,13 +59,15 @@ We propose adding new fields to the issue event type.
 These changes are proposed for event stream schema version `6.5`.
 
 These new fields provide structured information about issues that previously
-weren't available in a machine-readable form.
+weren't available in a machine-readable form:
 
 - **Error:** an error was thrown.
 
 - **Miscount:** a miscount of something led to this issue. Currently, Swift
   Testing will fill this if a confirmation was confirmed more/fewer times than
   expected.
+
+<!-- TODO: Consider a more specific field name e.g. "confirmationMiscount"-->
 
 - **Time limit:** the test exceeded a time limit. The unit is seconds, which
   follows the precedent set in an
@@ -92,10 +94,12 @@ The following field is added for all events:
 
 ### Schema changes
 
-We propose the following changes to the [event stream JSON schema][].
+We propose the following changes to the [event stream JSON schema][]:
 
 [event stream JSON schema]:
   https://github.com/swiftlang/swift-testing/blob/main/Documentation/ABI/JSON.md
+
+New common data types:
 
 - `comment` and `time` are currently type aliases which unify references to
   their respective concepts throughout the schema. In the future, we could
@@ -117,10 +121,16 @@ range is a RangeExpression which could be a Range and not just a ClosedRange-->
 +}
 ```
 
+Events changes:
+
+<!-- TODO: fill out justification for messages -->
+
 ```diff
 <event> ::= {
 ...
 +  ["comments": <array:comment>,] ; comments provided by the test author
+-  "messages": <array:message>,
++  ["messages": <array:message>,] ; messages become optional and are omitted by default
 }
 
 <issue> ::= {
@@ -167,14 +177,12 @@ names nor, in most implementations, mangled names.
 +  ["fullyQualifiedName": <string>,]  ; e.g. "Swift.Bool", "std::string"
 +  ["unqualifiedName": <string>,]   ; e.g. "Bool", "string"
 +  ["mangledName": <string>,] ; e.g. "Sb", "NSt3__112basic_string..."
-   (std::string mangling on )
 +}
 ```
 
 <!-- TODO: Impl details:
 - Fill in <comment> elsewhere in the JSON ABI spec
 - Fill in <time> elsewhere in the JSON ABI spec
-- Disambiguate the other issue kinds without any associated values: known issue not recorded, api misuse, system
 -->
 
 ### Sample JSON output
@@ -217,7 +225,7 @@ targeted interoperability needs to be updated to read the error from the
   may interoperate with languages which do (e.g. Objective-C, Java). The `error`
   field in the issue metadata may be a good candidate to place exception
   metadata, but exceptions do not share many of the same fields (code, domain,
-  type) as errors in Swift.
+  type) as errors derived from `NSError` in Foundation.
 
 ## Alternatives considered
 
