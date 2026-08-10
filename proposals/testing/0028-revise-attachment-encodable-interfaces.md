@@ -122,7 +122,7 @@ extension Attachment {
     using encoder: E,
     named preferredName: String? = nil,
     sourceLocation: SourceLocation = #_sourceLocation
-  ) throws where AttachableValue == _AttachableEncodableWrapper<T, E>, T: Encodable, E: TopLevelEncoder, E.Output: ContiguousBytes
+  ) throws where AttachableValue == _AttachableEncodableWrapper<T, E>, T: Encodable, E: TopLevelEncoder & Sendable, E.Output: ContiguousBytes
 #endif
 
   /// Initialize an instance of this type representing a value that conforms to
@@ -283,14 +283,14 @@ extension Attachment {
     using encoder: E,
     named preferredName: String? = nil,
     sourceLocation: SourceLocation = #_sourceLocation
-  ) throws where AttachableValue == _AttachableEncodableWrapper<T, E>, T: Encodable, E: PropertyListEncoder
+  ) throws where AttachableValue == _AttachableEncodableWrapper<T, E>, T: Encodable, E: PropertyListEncoder & Sendable
 
   public init<T, E>(
     encoding encodableValue: T,
     using encoder: E,
     named preferredName: String? = nil,
     sourceLocation: SourceLocation = #_sourceLocation
-  ) throws where AttachableValue == _AttachableEncodableWrapper<T, E>, T: Encodable, E: JSONEncoder
+  ) throws where AttachableValue == _AttachableEncodableWrapper<T, E>, T: Encodable, E: JSONEncoder & Sendable
 }
 #endif
 ```
