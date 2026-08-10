@@ -73,12 +73,13 @@ weren't available in a machine-readable form:
   follows the precedent set in an
   [earlier event stream proposal](./0019-include-tags-bugs-and-timeline-in-event-stream.md).
 
-- **Known issue comment:** if a known issue [that was expected but did not occur
-  at test time][resolve-a-known-issue] has a human-readable comment, it is
-  included as the value of the existing `"isKnown"` field.
+<!-- TODO: Not sure if it would just be better to keep this field as non-optional -->
 
-[resolve-a-known-issue]:
-  https://developer.apple.com/documentation/Testing/known-issues#Resolve-a-known-issue
+- **Known issue comment:** if an [issue was marked as known][known-issues] with
+  a human-readable comment, it is included as the value of the existing
+  `"isKnown"` field.
+
+[known-issues]: https://developer.apple.com/documentation/Testing/known-issues
 
 - **Expression:** the expression associated with the issue. This is primarily
   used to capture the body of a failed expectation. However, it can also
@@ -106,9 +107,6 @@ New common data types:
   easily change the definition of these types to more complex nested structures.
 
 - `numeric-range` is limited, for simplicity, to representing inclusive bounds.
-
-<!-- TODO: we might need to support exclusive bounds since the confirmation
-range is a RangeExpression which could be a Range and not just a ClosedRange-->
 
 ```diff
 +<comment> ::= <string> ; human-readable, developer-supplied text
@@ -176,18 +174,54 @@ names nor, in most implementations, mangled names.
 +<type-info> ::= {
 +  ["fullyQualifiedName": <string>,]  ; e.g. "Swift.Bool", "std::string"
 +  ["unqualifiedName": <string>,]   ; e.g. "Bool", "string"
-+  ["mangledName": <string>,] ; e.g. "Sb", "NSt3__112basic_string..."
++  ["mangledName": <string>,] ; e.g. "$sSb", "_ZNSt3__112basic_string..."
 +}
 ```
+
+### Sample JSON output
 
 <!-- TODO: Impl details:
 - Fill in <comment> elsewhere in the JSON ABI spec
 - Fill in <time> elsewhere in the JSON ABI spec
 -->
 
-### Sample JSON output
-
 <!-- TODO: after demo impl is ready -->
+<!--TODO: open qs:
+- Hard to disambiguate the withKnownIssue not matched
+- We might need to support exclusive bounds since the confirmation range is a RangeExpression which could be a Range and not just a ClosedRange
+-->
+
+<!-- TODO: Need example of mangled name in output as well? -->
+
+<!--
+
+```swift
+Issue.record("Issue recorded with user comment")
+```
+
+```swift
+#expect(Bool(false), "Expectation fail with user comment")
+```
+
+```swift
+struct SampleError: Error {}
+throw SampleError()
+```
+
+#### Known Issue
+
+```swift
+withKnownIssue("This issue is known") {
+  Issue.record("Some failure")
+}
+```
+
+```swift
+withKnownIssue("Expected an issue but none recorded") {
+  // Intentionally blank with nothing to match
+}
+```
+-->
 
 ## Source compatibility
 
