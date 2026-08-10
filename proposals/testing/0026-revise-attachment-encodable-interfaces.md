@@ -1,9 +1,9 @@
 # Revise Swift Testing's `Attachment`/`Encodable` interop
 
-* Proposal: [ST-NNNN](NNNN-revise-attachment-encodable-interfaces.md)
+* Proposal: [ST-0026](0026-revise-attachment-encodable-interfaces.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Paul LeMarquand](https://github.com/plemarquand)
+* Status: **Status: Active Review (Aug 10...Aug 24, 2026)**
 * Implementation: [swiftlang/swift-testing#1770](https://github.com/swiftlang/swift-testing/pull/1770)
 * Review: ([pitch](https://forums.swift.org/t/pitch-revise-swift-testings-attachment-encodable-interop/88122))
 
