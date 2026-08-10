@@ -5,7 +5,7 @@
 * Review Manager: [David Cummings](https://github.com/daveyc123)
 * Status: **Active Review (August 6th - August 21st)**
 * Implementation: [swiftlang/swift-package-manager#10119](https://github.com/swiftlang/swift-package-manager/pull/10119)
-* Review: [Pitch](https://forums.swift.org/t/pitch-package-manager-conditional-plugin/86217) [Review](https://forums.swift.org/t/se-0542-package-manager-condition-plugins/88820)
+* Review: ([pitch](https://forums.swift.org/t/pitch-package-manager-conditional-plugin/86217)) ([review](https://forums.swift.org/t/se-0542-package-manager-condition-plugins/88820))
 
 ## Introduction
 
