@@ -1,6 +1,6 @@
 # Revise Swift Testing's `Attachment`/`Encodable` interop
 
-* Proposal: [ST-0026](0026-revise-attachment-encodable-interfaces.md)
+* Proposal: [ST-0028](0028-revise-attachment-encodable-interfaces.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Paul LeMarquand](https://github.com/plemarquand)
 * Status: **Status: Active Review (Aug 10...Aug 24, 2026)**
