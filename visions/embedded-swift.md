@@ -100,7 +100,7 @@ In order to achieve the goals listed above, Embedded Swift will impose limitatio
 
 * String APIs requiring Unicode data tables will be unavailable by default (to avoid paying the associated codesize cost), and will require opting in. For example, string iteration, comparing two strings, hashing a string, string splitting are features needing Unicode data tables. The Unicode data tables will be available when they are needed.
 
-**Non-allocating Embedded Swift** will identify places where the the implementation requires a heap allocation. This includes:
+**Non-allocating Embedded Swift** will identify places where the implementation requires a heap allocation. This includes:
 
 * Allocating instances of classes on the heap.
 * Constructing an indirect enum case.
@@ -180,3 +180,7 @@ _swift_deallocate
 ```
 
 The `_swift_allocate`/`_swift_deallocate` APIs are expected to be provided by the platform. They use the C calling convention so they can be implemented in either C or (non-allocating) Embedded Swift via `@c`. The Swift runtime APIs that build on top of these platform APIs will be provided as an implementation that’s optimized for small codesize and will be available as a static library in the toolchain for common CPU architectures. In addition to `_swift_allocate` and `_swift_deallocate`, there will be other APIs that a platform is expected to provide that enable more functionality in Embedded Swift, such as thread-local storage (for exclusivity checking and concurrency) and mutexes (for `Mutex` and concurrency). These will be documented in a central place to make porting Embedded Swift easier.
+
+## Revision history
+
+The [initial version](https://github.com/swiftlang/swift-evolution/blob/1b92e4c816e817ce1717c3d6ae6aa54c10fe5ce4/visions/embedded-swift.md) of this vision, published in October 2023, described a more limited subset of the language for Embedded Swift. It prohibited type metadata, existential (`any`) types, and other features that had runtime or code size overhead. The current vision reflects a different philosophy, where these dynamic language features are available so long as their costs can be scoped to their actual usage. This effectively expanded the Embedded Swift subset, making it cover more of the Swift language.
