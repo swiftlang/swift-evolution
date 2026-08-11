@@ -808,7 +808,7 @@ callee" and then "deinit was called". This is because even though
 `nonIsolatedCallee` is transferred `x`'s region, `x` is still passed to
 `nonIsolatedCallee` using Swift's default guaranteed ownership convention. This
 implies that the caller from an ownership perspective still owns the memory of
-the class implying the lifetime of `x` actually ends at `(1)` despite the caller
+the class implying the lifetime of `x` actually ends at `(2)` despite the caller
 not being able to use `x` directly at that point.
 
 This illustrates how the transfer convention used when passing a value over an
