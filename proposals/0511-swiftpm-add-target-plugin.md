@@ -3,7 +3,7 @@
 * Proposal: [SE-0511](0511-swiftpm-add-target-plugin.md)
 * Authors: [Gage Halverson](https://github.com/hi2gage)
 * Review Manager: [Mikaela Caron](https://github.com/mikaelacaron)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.4)**
 * Bug: [swiftlang/swift-package-manager#8169](https://github.com/swiftlang/swift-package-manager/issues/8169)
 * Implementation: [swiftlang/swift-package-manager#8432](https://github.com/swiftlang/swift-package-manager/pull/8432)
 * Review: ([pitch](https://forums.swift.org/t/proposal-swift-package-add-target-plugin-command-to-swiftpm/77930)) ([review](https://forums.swift.org/t/se-0511-swiftpm-add-target-plugin-command/84587)) ([acceptance](https://forums.swift.org/t/accepted-se-0511-add-target-plugin-command-to-swift-package-manager/86206))
