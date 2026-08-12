@@ -31,7 +31,7 @@ The [Trace Event Format](https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn
 
 Here's an example of a trace emitted when building SwiftPM itself, visualized using Perfetto:
 
-![A Perfetto timeline view of a SwiftPM build trace, showing parallel compilation tasks across multiple lanes over time](NNNN-build-debugging-options-trace-example.png)
+![A Perfetto timeline view of a SwiftPM build trace, showing parallel compilation tasks across multiple lanes over time](0545-build-debugging-options-trace-example.png)
 
 This type of visualization can be very helpful when optimizing a clean build to improve parallelism, identifying expensive work on the critical path, or identifying the full set of tasks running in an incremental build after making a particular change.
 
