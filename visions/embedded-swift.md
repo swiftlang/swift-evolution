@@ -69,7 +69,7 @@ In order to achieve the goals listed above, Embedded Swift will impose limitatio
     
     extension Int: P { ... }
     
-    let p: any = 42
+    let p: Any = 42
     p.f() // okay
     p.g(1) // not okay: requires unspecialized generics
     ```
