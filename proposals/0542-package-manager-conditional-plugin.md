@@ -1,6 +1,6 @@
 # Package Manager Build Tool Plugin Usage Conditionals
 
-* Proposal: [SE-0542](0542-package-manager-build-tool-plugin-usage-conditionals.md)
+* Proposal: [SE-0542](0542-package-manager-conditional-plugin.md)
 * Authors: [Clive Liu](https://github.com/clive819)
 * Review Manager: [David Cummings](https://github.com/daveyc123)
 * Status: **Active Review (August 6th - August 21st)**
