@@ -1,7 +1,9 @@
 # SwiftPM Build Performance Debugging Options
 
-* Proposal: [SE-NNNN](NNNN-build-debugging-options.md)
+* Proposal: [SE-0545](0545-build-debugging-options.md)
 * Authors: [Owen Voorhees](https://github.com/owenv)
+* Review Manager: [Mishal Shah](https://github.com/shahmishal)
+* Status: **Active Review (August 12th...26th, 2026)**
 * Implementation: Nightly snapshot toolchains via experimental flags `--experimental-trace-events-file` and `--experimental-task-backtraces`
 * Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-build-performance-debugging-options/87369))
 
