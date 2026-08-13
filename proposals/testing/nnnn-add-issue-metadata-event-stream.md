@@ -6,7 +6,7 @@
 - Status: **Awaiting implementation**
 - Implementation:
   [swiftlang/swift-testing#NNNNN](https://github.com/swiftlang/swift-testing/pull/NNNNN)
-- Review: ([pitch](https://forums.swift.org/...))
+- Review: ([pitch](https://forums.swift.org/t/pitch-add-issue-fields-to-json-abi-schema/88898))
 
 ## Introduction
 
@@ -16,6 +16,8 @@ an event which includes a limited amount of issue metadata. We propose enriching
 this metadata with additional fields.
 
 ## Motivation
+
+### Provide richer issue metadata for tools
 
 Tools such as Xcode and VS Code can consume the "issue recorded" event from
 Swift Testing's JSON event stream and use that to present test failure details
@@ -63,27 +65,35 @@ weren't available in a machine-readable form:
 
 - **Error:** an error was thrown.
 
-- **Miscount:** a miscount of something led to this issue. Currently, Swift
-  Testing will fill this if a confirmation was confirmed more/fewer times than
+- **Confirmation miscount:** a confirmation was confirmed more/fewer times than
   expected.
-
-<!-- TODO: Consider a more specific field name e.g. "confirmationMiscount"-->
 
 - **Time limit:** the test exceeded a time limit. The unit is seconds, which
   follows the precedent set in an
   [earlier event stream proposal](./0019-include-tags-bugs-and-timeline-in-event-stream.md).
 
-<!-- TODO: Not sure if it would just be better to keep this field as non-optional -->
-
-- **Known issue comment:** if an [issue was marked as known][known-issues] with
-  a human-readable comment, it is included as the value of the existing
-  `"isKnown"` field.
-
-[known-issues]: https://developer.apple.com/documentation/Testing/known-issues
-
 - **Expression:** the expression associated with the issue. This is primarily
   used to capture the body of a failed expectation. However, it can also
   describe a confirmation that was miscounted.
+
+Modify these pre-existing fields:
+
+- **Known issue with optional comment:** whether this issue is a [known
+  issue][known-issues]. This field becomes optional, and resolves to false by
+  default. If an issue was marked as known with a human-readable comment, the
+  field contains the comment instead of a boolean.
+
+[known-issues]: https://developer.apple.com/documentation/Testing/known-issues
+
+- **Messages:** in the context of issues, this field contains human-readable
+  descriptions of the failure. But, after adding the issue fields in this
+  proposal, tools can reconstruct a human-readable description from the updated
+  structure. Therefore, this field becomes optional and will no longer be
+  included by default to avoid the performance cost of generating and
+  serializing this redundant field.
+
+  Tools can continue to receive messages in the event stream using the
+  environment variable `SWT_EXPERIMENTAL_EVENT_STREAM_MESSAGES_FIELD_ENABLED`.
 
 The following field is added for all events:
 
@@ -92,6 +102,9 @@ The following field is added for all events:
   For issues, users can supply comments when recording issues or creating
   expectations, e.g. `Issue.record("A comment")` or
   `#expect(a == b, "A comment")`.
+
+  User-provided comments for `withKnownIssue` are not included here, and are
+  instead included in the `isKnown` field.
 
 ### Schema changes
 
@@ -121,8 +134,6 @@ New common data types:
 
 Events changes:
 
-<!-- TODO: fill out justification for messages -->
-
 ```diff
 <event> ::= {
 ...
@@ -135,7 +146,7 @@ Events changes:
  ...
 +  ["expression": <expression>,] ; an expression associated with the issue
 +  ["error": <error>,] ; the associated error, if any
-+  ["miscount": <miscount>,] ; an associated miscount (too high or too low)
++  ["confirmationMiscount": <miscount>,] ; an associated confirmation miscount (too high or too low)
 +  ["exceededTimeLimit": <time>,] ; the time limit, in seconds, that was exceeded
 -  "isKnown": <bool>,
 +  ["isKnown": <bool> | <comment>] ; whether the issue is known (optionally, the comment associated with the known issue)
@@ -190,7 +201,6 @@ names nor, in most implementations, mangled names.
 - Hard to disambiguate the withKnownIssue not matched
 - We might need to support exclusive bounds since the confirmation range is a RangeExpression which could be a Range and not just a ClosedRange
 -->
-
 <!-- TODO: Need example of mangled name in output as well? -->
 
 <!--
@@ -229,11 +239,14 @@ There are no source compatibility concerns.
 
 ## Integration with supporting tools
 
-The definition of the `isKnown` field will change from the 6.4 schema. It will
-no longer be a required boolean-valued field, and will instead be an optional
-boolean-valued or string-valued field.
+Changes from the 6.4 schema:
 
-All other fields are purely additive to the JSON ABI.
+- `isKnown` will no longer be a required boolean-valued field, and will instead
+  be an optional boolean-valued or string-valued field.
+
+- `messages` field becomes optional.
+
+- All other fields are purely additive to the JSON ABI.
 
 Existing tools that integrate with Swift Testing will need to update their
 integration code to read the new fields. For example, the implementation of
@@ -287,8 +300,8 @@ library, and not all tools that consume test events support all the issue kinds
 that the testing library emits.
 
 Furthermore, tools can derive the same information that issue kind provides by
-inspecting the issue fields. For example, presence of an `miscount` field
-indicates this issue was the "confirmationMiscounted" kind.
+inspecting the issue fields. For example, presence of an `confirmationMiscount`
+field indicates this issue was the "confirmationMiscounted" kind.
 
 ## Acknowledgments
 
