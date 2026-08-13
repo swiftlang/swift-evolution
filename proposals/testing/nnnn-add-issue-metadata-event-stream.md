@@ -53,6 +53,17 @@ With the proposed solution, tools can access additional metadata to distinguish
 between issue types and provide richer context for test failures to their end
 users.
 
+### Support languages and libraries beyond Swift and Swift Testing
+
+We envision that tools which consume Swift Testing events can also support other
+test libraries and their respective test events. If Swift Testing defines an
+issue schema that can be re-used for issues across testing libraries, tools can
+take advantage of the format to unify their issue handling logic for different
+test libraries.
+
+Therefore, we designed new data types to support languages other than Swift, and
+ensured that new issue fields would be relevant for other testing libraries.
+
 ## Proposed solution
 
 We propose adding new fields to the issue event type.
