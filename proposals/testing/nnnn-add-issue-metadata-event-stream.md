@@ -120,6 +120,7 @@ New common data types:
   easily change the definition of these types to more complex nested structures.
 
 - `numeric-range` is limited, for simplicity, to representing inclusive bounds.
+  Both bounds, if present, must be integer-valued, otherwise they are ignored.
 
 ```diff
 +<comment> ::= <string> ; human-readable, developer-supplied text
@@ -160,7 +161,7 @@ Events changes:
 +}
 
 +<miscount> ::= {
-+  "actual": <number>,
++  "actual": <number>, ; integer-valued actual confirmation count
 +  "expected": <number> ; when the confirmation specifies a single count
 +            | <numeric-range> ; when the confirmation specifies a range
 +}
@@ -173,9 +174,16 @@ Events changes:
 +}
 +
 +<expression-value> ::= <string> ; a description of the value
-+                       | <number> ; the value, if numeric
 
 ```
+
+<!-- TODO
++                       | <number> ; the value, if numeric
+Support for numeric values? For integer values, it might be confusing to have
+them appear as floats (e.g. 5 -> 5.0) after the conversion to a JS number. For
+simplicity, keep the expression value as a description of the value (e.g. 5 ->
+"5" for numerics)
+-->
 
 `type-info` will support types from all languages, not just Swift, so only
 applicable fields will be present. For example, C doesn't have fully qualified
