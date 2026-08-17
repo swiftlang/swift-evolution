@@ -1,0 +1,263 @@
+# Improved error handling for `Task` initializers and `TaskLocal`
+
+* Proposal: [SE-NNNN](0NNN-unstructured-task-error-handling.md)
+* Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Matt Massicotte](https://github.com/mattmassicotte)
+* Review Manager: TBD
+* Status: **Awaiting review**
+* Implementation: [#84802](https://github.com/swiftlang/swift/pull/84802)
+* Review: ([pitch](https://forums.swift.org/t/pitch-non-discardable-throwing-tasks/74138))
+
+## Introduction
+
+This proposal modifies the `Task` creation and `TaskLocal` accessor APIs to adopt typed throws.
+It also makes it more difficult to accidential ignore errors thrown by a task.
+
+## Motivation
+
+Tasks are typed using both the `Success` and `Failure`.
+However, until the introduction of [typed throws][] to the language,
+the `Failure` type could only ever have been `Never` or `any Error`.
+
+For example, the following snippet showcases how we lose the error type
+information when throwing within a task:
+
+```swift
+let task = Task {
+  throw MyError.somethingBadHappened
+}
+
+do {
+  _ = try await task.value
+} catch {
+  // type information has been lost and error is now `any Error`
+}
+```
+
+Another, related API that is not capable of preserving error types
+are the `TaskLocal` accessor `withValue` functions.
+
+Additionally, all the `Task` creation APIs are annotated with
+`@discardableResult`, including those that permit failure.
+This makes it extremely easy for the code creating the task to
+unintentionally ignore errors thrown in the body.
+This default has proven to be surprising and leads to accidentally missing thrown errors,
+like in this example:
+
+```swift
+Task {
+  try first()
+  try second()
+  try third()
+}
+```
+
+Because the creating site has not captured a reference to the task,
+this code is ignoring all failures.
+This *could* be the author's intention, but it not really possible to
+determine this by looking the code.
+The community has frequently requested this be addressed,
+such that ignoring an error requires a more explicit expression of intent.
+
+[typed throws]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0413-typed-throws.md
+
+## Proposed solution
+
+We propose two changes.
+First, to adopt typed throws for the `Task` initialization and `TaskLocal` `withValue` functions.
+And second, to remove the use of `@discardableResult` for `Task` initialization unless `Failure` is `Never`.
+
+## Detailed design
+
+`Task` currently has many initializers and matching detached and immediate variants.
+We propose to adjust these initializers in two ways.
+
+### `Task` non-throwing overloads
+
+In the case of a non-throwing overload, the `@discardableResult` remains useful.
+It is common to create fire-and-forget tasks that do not require access to the
+result at the point of creation.
+
+```swift
+Task { await doSomething() }
+```
+
+All variants of these signatures would be unchanged.
+
+```swift
+extension Task where Failure == Never {
+  @discardableResult
+  public init(
+    priority: TaskPriority? = nil,
+    operation: sending @escaping @isolated(any) () async -> Success
+  ) {
+    // ...
+  }
+
+  @discardableResult
+  public static func detached(
+    priority: TaskPriority? = nil,
+    operation: sending @escaping @isolated(any) () async -> Success
+  ) -> Task<Success, Never> {
+    // ...
+  }
+  
+  // ... same for: immediate, immediateDetached
+}
+```
+
+### `Task` throwing overloads
+
+In the cases of a non-`Never` error, the signatures would be adjusted by:
+
+- removing the `@discardableResult` attribute
+- adopting typed throws
+
+Accidentally forgetting to handle an error is both more common and "risky"
+than forgetting to obtain the result value of an unstructured task.
+If a task is created and its result is important to handle,
+developers naturally will store and await it.
+However, ignoring errors, even in the simple "fire-and-forget" task case,
+may yield to unexpected and silent dropping of errors.
+
+Therefore we argue that the discardable result behavior need only be dropped
+from the throwing versions of these APIs.
+
+These signatures would be modified:
+
+```swift
+extension Task {
+  init(
+      name: String? = nil,
+      priority: TaskPriority? = nil,
+      operation: sending @escaping @isolated(any) () async throws(Failure) -> Success
+  ) {
+    // ...
+  }
+
+  init(
+      name: String? = nil,
+      executorPreference taskExecutor: (any TaskExecutor)?,
+      priority: TaskPriority? = nil,
+      operation: sending @escaping () async throws(Failure) -> Success
+  ) {
+    // ...
+  }
+
+  static func detached(
+      name: String? = nil,
+      priority: TaskPriority? = nil,
+      operation: sending @escaping @isolated(any) () async throws(Failure) -> Success
+  ) -> Task<Success, Failure> {
+    // ...
+  }
+
+  static func detached(
+      name: String? = nil,
+      executorPreference taskExecutor: (any TaskExecutor)?,
+      priority: TaskPriority? = nil,
+      operation: sending @escaping () async throws(Failure) -> Success
+  ) -> Task<Success, Failure> {
+    // ...
+  }
+
+  static func immediate(
+      name: String? = nil,
+      priority: TaskPriority? = nil,
+      executorPreference taskExecutor: consuming (any TaskExecutor)? = nil,
+      operation: sending @escaping @isolated(any) () async throws(Failure) -> Success
+  ) -> Task<Success, Failure> {
+    // ...
+  }
+
+  static func immediateDetached(
+      name: String? = nil,
+      priority: TaskPriority? = nil,
+      executorPreference taskExecutor: consuming (any TaskExecutor)? = nil,
+      operation: sending @escaping @isolated(any) () async throws(Failure) -> Success
+  ) -> Task<Success, Failure> {
+    // ...
+  }
+}
+```
+
+The `value` property used a typed throws clause to expose the `Failure` at
+the site of access.
+
+```swift
+extension Task {
+  public var value: Success {
+    get async throws(Failure) {
+      // ...
+    }
+  }
+}
+```
+
+### `TaskLocal` accessors
+
+Similarly, the two accessor functions for `TaskLocal` will be modified to adopt typed throws.
+
+```swift
+extension TaskLocak {
+  @discardableResult
+  final func withValue<R, Failure: Error>(
+    _ valueDuringOperation: Value,
+    operation: () throws(Failure) -> R,
+    file: String = #fileID,
+    line: UInt = #line
+  ) throws(Failure) -> R
+  
+  @discardableResult
+  final func withValue<R, Failure: Error>(
+    _ valueDuringOperation: Value,
+    operation: () async throws(Failure) -> R,
+    isolation: isolated (any Actor)? = #isolation,
+    file: String = #fileID,
+    line: UInt = #line
+  ) async throws(Failure) -> R
+}
+```
+
+## Source compatibility
+
+This proposal is source compatible.
+
+However, it does intentionally introduce a warning into code that is
+ignoring errors that may be thrown by awaiting on an unstructured `Task`.
+
+If the developer's intent was truly to ignore the task handle and the
+potentially thrown error,
+they can explicitly ignore it to silence the warning.
+
+```swift
+let _ = Task {
+  throw MyError.somethingBadHappened
+}
+```
+
+The should improve code quality by making it more obvious when potential
+errors are being ignored.
+
+## ABI compatibility
+
+This proposal is ABI additive.
+
+APIs that require change are all annotated with `@_alwaysEmitIntoClient`,
+so there is no ABI impact on changing them.
+
+## Alternatives considered
+
+It is completely possible to adopt typed throws for these APIs without
+changing the behavior of the throwing case.
+Further, introducing a warning in cases where ignoring errors is intentionally
+could be an annoyance.
+
+However, choosing a surprising and potentially error-prone behavior as the
+default goes against Swift's general philosophy of safety.
+Changing this default feels like a much better balance, especially since
+re-expressing the existing behavior involves such a familiar language pattern.
+
+## Acknowledgments
+
+Thanks to John McCall for engaging with the community on this topic and helping
+to articulate the history and reasoning around the design.
