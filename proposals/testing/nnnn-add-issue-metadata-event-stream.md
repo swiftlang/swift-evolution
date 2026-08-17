@@ -5,8 +5,9 @@
 - Review Manager: TBD
 - Status: **Awaiting implementation**
 - Implementation:
-  [swiftlang/swift-testing#NNNNN](https://github.com/swiftlang/swift-testing/pull/NNNNN)
-- Review: ([pitch](https://forums.swift.org/t/pitch-add-issue-fields-to-json-abi-schema/88898))
+  [swiftlang/swift-testing#1839](https://github.com/swiftlang/swift-testing/pull/1839)
+- Review:
+  ([pitch](https://forums.swift.org/t/pitch-add-issue-fields-to-json-abi-schema/88898))
 
 ## Introduction
 
