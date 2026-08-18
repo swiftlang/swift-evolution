@@ -57,6 +57,18 @@ extension Post.Draft {
 }
 ```
 
+Further, it is impossible to conform a public macro-generated type to a protocol
+with a requirement matching its internal synthesized initializer:
+
+```swift
+protocol TitleInitializable {
+  public init(title: String?)
+}
+
+// 🛑 Initializer 'init(title:)' must be declared public...
+extension Post.Draft: TitleInitializable {}
+```
+
 ## Proposed solution
 
 Allow memberwise initializers to be defined in same-file extensions of the
