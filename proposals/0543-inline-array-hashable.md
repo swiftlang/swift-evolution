@@ -3,9 +3,9 @@
 * Proposal: [SE-0543](0543-inline-array-hashable.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy), [Steve Canon](https://github.com/stephentyrone)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Active Review (August 7...17, 2026)**
+* Status: **Accepted**
 * Implementation: https://github.com/swiftlang/swift/pull/91004
-* Review: ([pitch](https://forums.swift.org/t/conform-inlinearray-to-hashable/88432)) ([review](https://forums.swift.org/t/se-0543-inlinearray-hashable/88843))
+* Review: ([pitch](https://forums.swift.org/t/conform-inlinearray-to-hashable/88432)) ([review](https://forums.swift.org/t/se-0543-inlinearray-hashable/88843)) ([acceptance](https://forums.swift.org/t/accepted-se-0543-inlinearray-hashable/89056))
 
 
 ## Summary of changes
