@@ -3,7 +3,7 @@
 * Proposal: [SE-0537](0537-function-sections.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Becca Royal-Gordon](https://github.com/beccadax)
-* Status: **Accepted**
+* Status: **Implemented (Swift Next)**
 * Implementation: https://github.com/swiftlang/swift/pull/89740
 * Review: ([pitch](https://forums.swift.org/t/pitch-extending-section-to-functions/87174)) ([review](https://forums.swift.org/t/se-0537-section-placement-control-for-functions/88298)) ([accepted with modification](https://forums.swift.org/t/accepted-with-modifications-se-0537-section-placement-control-for-functions/88933))
 
