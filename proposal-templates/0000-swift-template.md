@@ -66,24 +66,25 @@ is spread across multiple PRs, just link to the most important ones.
 `Experimental Feature Flag` should be the feature name used to identify
 this feature for the `-enable-experimental-feature` compiler flag.
 Proposals only need an experimental feature flag if their implementation
-needs to be merged into `main` prior to review.  Experimental features
+has been merged into `main` prior to review.  Experimental features
 can typically only be enabled in development Swift toolchains, not in
 official releases.  The name of the experimental feature flag should
 be appropriate and historically unique, but it is not under review
 because it is a temporary aspect of the implementation.  Remove this
-field when the proposal status changes to `Implemented`.
+field when the proposal status changes to an end state, such as
+`Implemented`, `Rejected`, or `Withdrawn`.
 
 `Upcoming Feature Flag` should be the feature name used to identify this
 feature under [SE-0362](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md#proposals-define-their-own-feature-identifier).  Proposals only require
 an upcoming feature flag if they change behavior for existing valid code,
-including potentially causing it to no longer build.  You should think
-about whether an upcoming feature flag would be necessary for your
-proposal when filling this field out.  The name and existence of the
-upcoming feature is part of the language design and is under review
-along with the rest of the proposal.  The upcoming feature flag does
-not need to be the same as the experimental feature flag, if both are
-required.  A proposal with an upcoming feature flag should discuss why
-it is necessary in the Source Compatibility section.
+such as causing it to no longer build.  You should think about whether
+an upcoming feature flag would be necessary for your proposal when
+filling this field out.  The name and existence of the upcoming feature
+is part of the language design and is under review along with the rest
+of the proposal.  The upcoming feature flag does not need to be the same
+as the experimental feature flag, if both are required.  A proposal
+with an upcoming feature flag should discuss why it is necessary in the
+Source Compatibility section.
 
 `Previous Proposal` should be used when there is a specific line of
 succession between this proposal and another proposal.  For example,
