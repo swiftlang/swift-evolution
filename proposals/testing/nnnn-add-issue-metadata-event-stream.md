@@ -131,8 +131,7 @@ New common data types:
   their respective concepts throughout the schema. In the future, we could
   easily change the definition of these types to more complex nested structures.
 
-- `numeric-range` is limited, for simplicity, to representing inclusive bounds.
-  Both bounds, if present, must be integer-valued, otherwise they are ignored.
+- `numeric-range` represents inclusive bounds.
 
 ```diff
 +<comment> ::= <string> ; human-readable, developer-supplied text
@@ -140,8 +139,8 @@ New common data types:
 +<time> ::= <number> ; a timestamp or duration expressed in (floating-point) seconds
 
 +<numeric-range> ::= {
-+  ["min": <number>,] ; lower-bound, inclusive
-+  ["max": <number>] ; upper-bound, inclusive, must be ≥ min (if present)
++  ["min": <integer>,] ; lower-bound, inclusive
++  ["max": <integer>] ; upper-bound, inclusive, must be ≥ min (if present)
 +}
 ```
 
@@ -166,15 +165,15 @@ Events changes:
 }
 
 +<error> ::= {
-+  ["code": <number>,]
++  ["code": <integer>,]
 +  ["domain": <string>,]
 +  ["description": <string>,]
 +  ["type": <type-info>]
 +}
 
 +<miscount> ::= {
-+  "actual": <number>, ; integer-valued actual confirmation count
-+  "expected": <number> ; when the confirmation specifies a single count
++  "actual": <integer>, ; actual confirmation count
++  "expected": <integer> ; when the confirmation specifies a single count
 +            | <numeric-range> ; when the confirmation specifies a range
 +}
 
@@ -188,14 +187,6 @@ Events changes:
 +<expression-value> ::= <string> ; a description of the value
 
 ```
-
-<!-- TODO
-+                       | <number> ; the value, if numeric
-Support for numeric values? For integer values, it might be confusing to have
-them appear as floats (e.g. 5 -> 5.0) after the conversion to a JS number. For
-simplicity, keep the expression value as a description of the value (e.g. 5 ->
-"5" for numerics)
--->
 
 `type-info` will support types from all languages, not just Swift, so only
 applicable fields will be present. For example, C doesn't have fully qualified
@@ -211,47 +202,261 @@ names nor, in most implementations, mangled names.
 
 ### Sample JSON output
 
-<!-- TODO: Impl details:
-- Fill in <comment> elsewhere in the JSON ABI spec
-- Fill in <time> elsewhere in the JSON ABI spec
--->
+<!-- TODO: Impl details: Fill in <comment>, <time>, <integer> elsewhere in the JSON ABI spec -->
 
-<!-- TODO: after demo impl is ready -->
-<!--TODO: open qs:
-- Hard to disambiguate the withKnownIssue not matched
-- We might need to support exclusive bounds since the confirmation range is a RangeExpression which could be a Range and not just a ClosedRange
--->
-<!-- TODO: Need example of mangled name in output as well? -->
+#### Issue recorded with user comment
 
-<!--
+`Issue.record("Issue recorded with user comment")`
 
-```swift
-Issue.record("Issue recorded with user comment")
+```
+{
+  "kind": "event",
+  "payload": {
+    "comments": [
+      "Issue recorded with user comment"
+    ],
+    "instant": { ... },
+    "issue": {
+      "isFailure": true,
+      "severity": "error",
+      "sourceLocation": { ... }
+    },
+    "iteration": 1,
+    "kind": "issueRecorded",
+    "testID": "SampleTests.`Issue record`()/SampleTests.swift:3:2"
+  },
+  "version": "6.5.0"
+}
 ```
 
-```swift
-#expect(Bool(false), "Expectation fail with user comment")
-```
+#### Thrown error
 
 ```swift
 struct SampleError: Error {}
 throw SampleError()
 ```
 
-#### Known Issue
-
-```swift
-withKnownIssue("This issue is known") {
-  Issue.record("Some failure")
+```
+{
+  "kind": "event",
+    "payload": {
+      "comments": [],
+      "instant": { ... },
+      "issue": {
+        "error": {
+          "code": 1,
+          "description": "SampleError()",
+          "domain": "SampleTests.(unknown context at $109ada6ac).(unknown context at $109ada6b8).SampleError",
+          "type": {
+            "fullyQualifiedName": "SampleTests.SampleError",
+            "mangledName": "$s11SampleTests10$109ada6acyXZ10$109ada6b8yXZ0A5ErrorV",
+            "unqualifiedName": "SampleError"
+          }
+        },
+        "isFailure": true,
+        "severity": "error",
+        "sourceLocation": { ... }
+      },
+      "iteration": 1,
+      "kind": "issueRecorded",
+      "testID": "SampleTests.`Thrown error`()/SampleTests.swift:11:2"
+    },
+    "version": "6.5.0"
 }
 ```
 
-```swift
-withKnownIssue("Expected an issue but none recorded") {
-  // Intentionally blank with nothing to match
+#### Expectation failure with expression
+
+`#expect(Bool(false), "Expectation fail with user comment")`
+
+```
+{
+  "kind": "event",
+    "payload": {
+      "comments": [
+        "Expectation fail with user comment"
+      ],
+      "instant": { ... },
+      "issue": {
+        "expression": {
+          "children": [
+          {
+            "sourceCode": "false",
+            "type": {
+              "fullyQualifiedName": "()",
+              "mangledName": "$syt",
+              "unqualifiedName": "()"
+            },
+            "value": "()"
+          }
+          ],
+            "sourceCode": "Bool(false)",
+            "type": {
+              "fullyQualifiedName": "Swift.Bool",
+              "mangledName": "$sSb",
+              "unqualifiedName": "Bool"
+            },
+            "value": "false"
+        },
+        "isFailure": true,
+        "severity": "error",
+        "sourceLocation": { ... }
+      },
+      "iteration": 1,
+      "kind": "issueRecorded",
+      "testID": "SampleTests.`Expectation failed`()/SampleTests.swift:7:2"
+    },
+    "version": "6.5.0"
 }
 ```
--->
+
+#### Test timeout: `@Test(.timeLimit(.minutes(1)))`
+
+```
+{
+  "kind": "event",
+    "payload": {
+      "comments": [],
+      "instant": { ... },
+      "issue": {
+        "exceededTimeLimit": 60,
+        "isFailure": true,
+        "severity": "error",
+        "sourceLocation": { ... }
+      },
+      "iteration": 1,
+      "kind": "issueRecorded",
+      "testID": "SampleTests.`Time limit exceeded`()/SampleTests.swift:46:2"
+    },
+    "version": "6.5.0"
+}
+```
+
+#### Known Issues
+
+##### Known issue that is matched
+
+```swift
+withKnownIssue("This matches and doesn't fail") {
+    Issue.record("This is the known issue")
+}
+```
+
+```
+{
+  "kind": "event",
+    "payload": {
+      "comments": [
+        "This is the known issue"
+      ],
+      "instant": { ... },
+      "issue": {
+        "isFailure": false,
+        "isKnown": "This matches and doesn't fail",
+        "severity": "error",
+        "sourceLocation": { ... }
+      },
+      "iteration": 1,
+      "kind": "issueRecorded",
+      "testID": "SampleTests.`Known issue, matched`()/SampleTests.swift:16:2"
+    },
+    "version": "6.5.0"
+}
+```
+
+##### Known issue NOT matched
+
+```swift
+withKnownIssue("This doesn't match and thus fails") {
+    // Intentionally empty
+}
+```
+
+```
+{
+  "kind": "event",
+    "payload": {
+      "comments": [
+        "This doesn't match and thus fails"
+      ],
+      "instant": { ... },
+      "issue": {
+        "isFailure": true,
+        "severity": "error",
+        "sourceLocation": { ... }
+      },
+      "iteration": 1,
+      "kind": "issueRecorded",
+      "testID": "SampleTests.`Known issue, NOT matched`()/SampleTests.swift:22:2"
+    },
+    "version": "6.5.0"
+}
+```
+
+#### Confirmation Miscount
+
+##### Single expected count
+
+`await confirmation { _ in }`
+
+```
+{
+  "kind": "event",
+    "payload": {
+      "comments": [],
+      "instant": { ... },
+      "issue": {
+        "confirmationMiscount": {
+          "actual": 0,
+          "expected": 1
+        },
+        "isFailure": true,
+        "severity": "error",
+        "sourceLocation": { ... }
+      },
+      "iteration": 1,
+      "kind": "issueRecorded",
+      "testID": "SampleTests.`Confirmation miscount, expected single`()/SampleTests.swift:42:2"
+    },
+    "version": "6.5.0"
+}
+```
+
+##### Ranged of expected counts
+
+```swift
+await confirmation(expectedCount: 1...5) { confirmation in
+    for _ in 0..<10 {
+        confirmation()
+    }
+}
+```
+
+```
+{
+  "kind": "event",
+  "payload": {
+    "comments": [],
+    "instant": { ... },
+    "issue": {
+      "confirmationMiscount": {
+        "actual": 10,
+        "expected": {
+          "max": 5,
+          "min": 1
+        }
+      },
+      "isFailure": true,
+      "severity": "error",
+      "sourceLocation": { ... }
+    },
+    "iteration": 1,
+    "kind": "issueRecorded",
+    "testID": "SampleTests.`Confirmation miscount, expected range`()/SampleTests.swift:34:2"
+  },
+  "version": "6.5.0"
+}
+```
 
 ## Source compatibility
 
