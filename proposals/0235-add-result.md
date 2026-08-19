@@ -15,7 +15,7 @@ Swift's current error-handling, using `throws`, `try`, and `catch`, offers autom
 
 ## Motivation
 
-Swift's [Error Handling Rationale and Proposal](https://github.com/apple/swift/blob/master/docs/ErrorHandlingRationale.rst) document lays out the reasoning behind and high level details of the current Swift error handling story. Types conforming to `Error` can be propagated and handled using the `do` `try` `catch` `throw` syntax. The rationale document refers to this model as a typed and automatically propagating error system. However, this system has several drawbacks, some of which are mentioned in the rationale document. Namely, it cannot compose with asynchronous work, more complex error handling, or with failure values which don't conform to `Error`. The added flexibility of typed, marked, but manually propagating error type can address these shortcomings. Namely `Result<Value, Error>`.
+Swift's [Error Handling Rationale and Proposal](https://github.com/swiftlang/swift/blob/main/docs/ErrorHandlingRationale.md) document lays out the reasoning behind and high level details of the current Swift error handling story. Types conforming to `Error` can be propagated and handled using the `do` `try` `catch` `throw` syntax. The rationale document refers to this model as a typed and automatically propagating error system. However, this system has several drawbacks, some of which are mentioned in the rationale document. Namely, it cannot compose with asynchronous work, more complex error handling, or with failure values which don't conform to `Error`. The added flexibility of typed, marked, but manually propagating error type can address these shortcomings. Namely `Result<Value, Error>`.
 
 ## Proposed solution
 
