@@ -4,7 +4,7 @@
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-* Implementation: TBD
+* Implementation: https://github.com/swiftlang/swift/pull/91610
 
 ## Summary of changes
 
