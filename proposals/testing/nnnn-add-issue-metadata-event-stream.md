@@ -118,6 +118,12 @@ The following field is added for all events:
   User-provided comments for `withKnownIssue` are not included here, and are
   instead included in the `isKnown` field.
 
+- **Source Location:** this field is already present in the issue schema, but
+  the event stream can include the source location for other event kinds: value
+  attached and skipped test cases.
+
+  Since it is a shared field, this proposal moves it to the top-level `<event>`.
+
 ### Schema changes
 
 We propose the following changes to the [event stream JSON schema][]:
@@ -152,6 +158,7 @@ Events changes:
 +  ["comments": <array:comment>,] ; comments provided by the test author
 -  "messages": <array:message>,
 +  ["messages": <array:message>,] ; messages become optional and are omitted by default
++  ["sourceLocation": <source-location>,] ; source location is moved to the top level event
 }
 
 <issue> ::= {
@@ -162,6 +169,7 @@ Events changes:
 +  ["exceededTimeLimit": <time>,] ; the time limit, in seconds, that was exceeded
 -  "isKnown": <bool>,
 +  ["isKnown": <bool> | <comment>] ; whether the issue is known (optionally, the comment associated with the known issue)
+-  ["sourceLocation": <source-location>,] ; Moved to <event>
 }
 
 +<error> ::= {
@@ -470,6 +478,9 @@ Changes from the 6.4 schema:
   be an optional boolean-valued or string-valued field.
 
 - `messages` field becomes optional.
+
+- `sourceLocation` field moves to `<event>` out of the individual event
+  structures.
 
 - All other fields are purely additive to the JSON ABI.
 
