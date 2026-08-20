@@ -187,6 +187,8 @@ func consumingCapture(s: consuming S) {
   }
 }
 ```
+
+Since the closure is called at most once, there are exactly two ways a capture consumed by a closure is released: the capture is consumed by the single call if the closure is called, or the closure's context — along with all of its consumed captures — is destroyed along with the closure value itself if it's never called. This follows from ordinary ownership semantics for the closure, so it holds identically whether the closure is escaping or non-escaping.
      
 #### `sending` captures
 
