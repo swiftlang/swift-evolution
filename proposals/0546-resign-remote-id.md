@@ -1,10 +1,11 @@
 # resignRemoteID for remote distributed actor references
 
-* Proposal: [SE-NNNN](NNNN-resign-id-remote-actors.md)
+* Proposal: [SE-0546](0546-resign-remote-id.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-* Implementation: https://github.com/swiftlang/swift/pull/91610
+* Status: **Awaiting review**
+* Implementation: [swiftlang/swift#91610](https://github.com/swiftlang/swift/pull/91610)
+* Review: ([pitch](https://forums.swift.org/))
 
 ## Summary of changes
 
