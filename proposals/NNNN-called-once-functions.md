@@ -187,6 +187,8 @@ func consumingCapture(s: consuming S) {
   }
 }
 ```
+
+The consumed captures of non-Copyable types of a `@called(once)` closure behave the same way stored properties of a `~Copyable` type. The closure consumes the captures when it's formed. If the closure runs it can either consume the captures it owns, pass the ownership of such captures to somewhere else, or the capture will be destroyed by calling its deinit. If the closure is not called, then on destruction of the closure, all consumed non-Copyable captures will be destroyed.
      
 #### `sending` captures
 
