@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift#91610](https://github.com/swiftlang/swift/pull/91610)
-* Review: ([pitch](https://forums.swift.org/))
+* Review: ([pitch](https://forums.swift.org/t/pitch-resignremoteid-for-remote-distributed-actor-references/89078))
 
 ## Summary of changes
 
