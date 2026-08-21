@@ -11,6 +11,7 @@
   ([second
   pitch](https://forums.swift.org/t/pitch-2-custom-main-and-global-executors/78437))
   ([third pitch](https://forums.swift.org/t/pitch-3-custom-main-and-global-executors/80638))
+  ([fourth pitch](https://forums.swift.org/t/pitch-4-custom-main-and-global-executors/89107))
 
 ## Introduction
 
