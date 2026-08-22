@@ -5,7 +5,7 @@
 * Review Manager: [Stephen Canon](https://github.com/stephentyrone)
 * Status: **Active Review (Aug 21...Sep 4, 2026)**
 * Implementation: [swiftlang/swift#90710](https://github.com/swiftlang/swift/pull/90710)
-* Review: ([pitch](https://forums.swift.org/t/same-file-memberwise-initializer-extensions/88466))(review)
+* Review: ([pitch](https://forums.swift.org/t/same-file-memberwise-initializer-extensions/88466))([review](https://forums.swift.org/t/se-0546-same-file-memberwise-initializer-extensions/89120))
 
 ## Summary of changes
 
