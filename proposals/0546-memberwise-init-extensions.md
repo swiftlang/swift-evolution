@@ -1,11 +1,11 @@
 # Same-file memberwise initializer extensions
 
-* Proposal: [SE-NNNN](NNNN-memberwise-init-extensions.md)
+* Proposal: [SE-0546](0546-memberwise-init-extensions.md)
 * Authors: [Stephen Celis](https://github.com/stephencelis), [Brandon Williams](https://github.com/mbrandonw)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Stephen Canon](https://github.com/stephentyrone)
+* Status: **Active Review (Aug 21...Sep 4, 2026)**
 * Implementation: [swiftlang/swift#90710](https://github.com/swiftlang/swift/pull/90710)
-* Review: ([pitch](https://forums.swift.org/t/same-file-memberwise-initializer-extensions/88466))
+* Review: ([pitch](https://forums.swift.org/t/same-file-memberwise-initializer-extensions/88466))(review)
 
 ## Summary of changes
 
