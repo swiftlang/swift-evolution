@@ -325,7 +325,7 @@ and `"version": "3.0"` for backward compatibility, but for consistency with `inf
   "schemaVersion": "4.0",
   "targetTriples": {
     "<triple1>": {
-      "sdkRootPath": "<a required path relative to `swift-sdk.json` containing SDK root>",
+      "sdkRootPath": "<an optional path relative to `swift-sdk.json` containing SDK root>",
       // all of the properties listed below are optional:
       "swiftResourcesPath": "<a path relative to `swift-sdk.json` containing Swift resources for dynamic linking>",
       "swiftStaticResourcesPath": "<a path relative to `swift-sdk.json` containing Swift resources for static linking>",
@@ -335,7 +335,7 @@ and `"version": "3.0"` for backward compatibility, but for consistency with `inf
     },
     // a Swift SDK can support more than one target triple:
     "<triple2>": {
-      "sdkRootPath": "<a required path relative to `swift-sdk.json` containing SDK root>",
+      "sdkRootPath": "<an optional path relative to `swift-sdk.json` containing SDK root>",
       // all of the properties listed below are optional:
       "swiftResourcesPath": "<a path relative to `swift-sdk.json` containing Swift resources for dynamic linking>",
       "swiftStaticResourcesPath": "<a path relative to `swift-sdk.json` containing Swift resources for static linking>",
