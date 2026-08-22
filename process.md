@@ -520,6 +520,35 @@ Review Manager
 
 </details>
 
+## Vision documents
+
+Like proposals, vision documents should generally not be renamed once they've been added to the repository.
+It's okay to change the title in the text, but the filename should remain stable.
+
+Vision documents generally have fewer formatting guidelines to follow compared to proposal documents.
+However, they should start with the following basic structure and use standard fields:
+
+```text
+# Name of vision
+
+* Field1: value
+* Field2: value
+
+The remainder of the document has no specific requirements.
+```
+
+Standard fields include:
+* `Vision`:
+  exactly `[prefix-number](filename.md)`, where `prefix` is the appropriate document prefix (generally `SV` for all visions),
+  `number` is the sequence number of this vision within that prefix, and `filename.md` is the filename of this vision document.
+  Required in all vision documents.
+* `Proposal`:
+  a comma-separated list of links to proposal documents which are related to this vision.
+  This field is typically not used when a vision is first written, since there are no related proposals
+  for it yet, but it may be added retrospectively. Optional.
+
+These standard fields should be provided in this order.
+
 </details>
 
 [forums]: https://forums.swift.org/
