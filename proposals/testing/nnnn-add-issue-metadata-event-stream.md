@@ -105,7 +105,7 @@ Modify these pre-existing fields:
   serializing this redundant field.
 
   Tools can continue to receive messages in the event stream using the
-  environment variable `SWT_EXPERIMENTAL_EVENT_STREAM_MESSAGES_FIELD_ENABLED`.
+  environment variable `SWIFT_TESTING_EVENT_STREAM_MESSAGES_FIELD_ENABLED`.
 
 The following field is added for all events:
 
