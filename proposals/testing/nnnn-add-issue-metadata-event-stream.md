@@ -216,7 +216,7 @@ names nor, in most implementations, mangled names.
 
 `Issue.record("Issue recorded with user comment")`
 
-```
+```json
 {
   "kind": "event",
   "payload": {
@@ -226,9 +226,9 @@ names nor, in most implementations, mangled names.
     "instant": { ... },
     "issue": {
       "isFailure": true,
-      "severity": "error",
-      "sourceLocation": { ... }
+      "severity": "error"
     },
+    "sourceLocation": { ... },
     "iteration": 1,
     "kind": "issueRecorded",
     "testID": "SampleTests.`Issue record`()/SampleTests.swift:3:2"
@@ -244,32 +244,32 @@ struct SampleError: Error {}
 throw SampleError()
 ```
 
-```
+```json
 {
   "kind": "event",
-    "payload": {
-      "comments": [],
-      "instant": { ... },
-      "issue": {
-        "error": {
-          "code": 1,
-          "description": "SampleError()",
-          "domain": "SampleTests.(unknown context at $109ada6ac).(unknown context at $109ada6b8).SampleError",
-          "type": {
-            "fullyQualifiedName": "SampleTests.SampleError",
-            "mangledName": "$s11SampleTests10$109ada6acyXZ10$109ada6b8yXZ0A5ErrorV",
-            "unqualifiedName": "SampleError"
-          }
-        },
-        "isFailure": true,
-        "severity": "error",
-        "sourceLocation": { ... }
+  "payload": {
+    "comments": [],
+    "instant": { ... },
+    "issue": {
+      "error": {
+        "code": 1,
+        "description": "SampleError()",
+        "domain": "SampleTests.(unknown context at $109ada6ac).(unknown context at $109ada6b8).SampleError",
+        "type": {
+          "fullyQualifiedName": "SampleTests.SampleError",
+          "mangledName": "$s11SampleTests10$109ada6acyXZ10$109ada6b8yXZ0A5ErrorV",
+          "unqualifiedName": "SampleError"
+        }
       },
-      "iteration": 1,
-      "kind": "issueRecorded",
-      "testID": "SampleTests.`Thrown error`()/SampleTests.swift:11:2"
+      "isFailure": true,
+      "severity": "error"
     },
-    "version": "6.5.0"
+    "sourceLocation": { ... },
+    "iteration": 1,
+    "kind": "issueRecorded",
+    "testID": "SampleTests.`Thrown error`()/SampleTests.swift:11:2"
+  },
+  "version": "6.5.0"
 }
 ```
 
@@ -277,66 +277,66 @@ throw SampleError()
 
 `#expect(Bool(false), "Expectation fail with user comment")`
 
-```
+```json
 {
   "kind": "event",
-    "payload": {
-      "comments": [
-        "Expectation fail with user comment"
-      ],
-      "instant": { ... },
-      "issue": {
-        "expression": {
-          "children": [
-          {
-            "sourceCode": "false",
-            "type": {
-              "fullyQualifiedName": "()",
-              "mangledName": "$syt",
-              "unqualifiedName": "()"
-            },
-            "value": "()"
-          }
-          ],
-            "sourceCode": "Bool(false)",
-            "type": {
-              "fullyQualifiedName": "Swift.Bool",
-              "mangledName": "$sSb",
-              "unqualifiedName": "Bool"
-            },
-            "value": "false"
-        },
-        "isFailure": true,
-        "severity": "error",
-        "sourceLocation": { ... }
+  "payload": {
+    "comments": [
+      "Expectation fail with user comment"
+    ],
+    "instant": { ... },
+    "issue": {
+      "expression": {
+        "children": [
+        {
+          "sourceCode": "false",
+          "type": {
+            "fullyQualifiedName": "()",
+            "mangledName": "$syt",
+            "unqualifiedName": "()"
+          },
+          "value": "()"
+        }
+        ],
+          "sourceCode": "Bool(false)",
+          "type": {
+            "fullyQualifiedName": "Swift.Bool",
+            "mangledName": "$sSb",
+            "unqualifiedName": "Bool"
+          },
+          "value": "false"
       },
-      "iteration": 1,
-      "kind": "issueRecorded",
-      "testID": "SampleTests.`Expectation failed`()/SampleTests.swift:7:2"
+      "isFailure": true,
+      "severity": "error"
     },
-    "version": "6.5.0"
+    "sourceLocation": { ... },
+    "iteration": 1,
+    "kind": "issueRecorded",
+    "testID": "SampleTests.`Expectation failed`()/SampleTests.swift:7:2"
+  },
+  "version": "6.5.0"
 }
 ```
 
 #### Test timeout: `@Test(.timeLimit(.minutes(1)))`
 
-```
+```json
 {
   "kind": "event",
-    "payload": {
-      "comments": [],
-      "instant": { ... },
-      "issue": {
-        "exceededTimeLimit": 60,
-        "isFailure": true,
-        "severity": "error",
-        "sourceLocation": { ... }
-      },
-      "iteration": 1,
-      "kind": "issueRecorded",
-      "testID": "SampleTests.`Time limit exceeded`()/SampleTests.swift:46:2"
+  "payload": {
+    "comments": [],
+    "instant": { ... },
+    "issue": {
+      "exceededTimeLimit": 60,
+      "isFailure": true,
+      "severity": "error"
     },
-    "version": "6.5.0"
+    "sourceLocation": { ... },
+    "iteration": 1,
+    "kind": "issueRecorded",
+    "testID": "SampleTests.`Time limit exceeded`()/SampleTests.swift:46:2"
+  },
+  "version": "6.5.0"
 }
 ```
 
@@ -350,25 +350,25 @@ withKnownIssue("This matches and doesn't fail") {
 }
 ```
 
-```
+```json
 {
   "kind": "event",
-    "payload": {
-      "comments": [
-        "This is the known issue"
-      ],
-      "instant": { ... },
-      "issue": {
-        "isFailure": false,
-        "isKnown": "This matches and doesn't fail",
-        "severity": "error",
-        "sourceLocation": { ... }
-      },
-      "iteration": 1,
-      "kind": "issueRecorded",
-      "testID": "SampleTests.`Known issue, matched`()/SampleTests.swift:16:2"
+  "payload": {
+    "comments": [
+      "This is the known issue"
+    ],
+    "instant": { ... },
+    "issue": {
+      "isFailure": false,
+      "isKnown": "This matches and doesn't fail",
+      "severity": "error"
     },
-    "version": "6.5.0"
+    "sourceLocation": { ... },
+    "iteration": 1,
+    "kind": "issueRecorded",
+    "testID": "SampleTests.`Known issue, matched`()/SampleTests.swift:16:2"
+  },
+  "version": "6.5.0"
 }
 ```
 
@@ -380,24 +380,24 @@ withKnownIssue("This doesn't match and thus fails") {
 }
 ```
 
-```
+```json
 {
   "kind": "event",
-    "payload": {
-      "comments": [
-        "This doesn't match and thus fails"
-      ],
-      "instant": { ... },
-      "issue": {
-        "isFailure": true,
-        "severity": "error",
-        "sourceLocation": { ... }
-      },
-      "iteration": 1,
-      "kind": "issueRecorded",
-      "testID": "SampleTests.`Known issue, NOT matched`()/SampleTests.swift:22:2"
+  "payload": {
+    "comments": [
+      "This doesn't match and thus fails"
+    ],
+    "instant": { ... },
+    "issue": {
+      "isFailure": true,
+      "severity": "error"
     },
-    "version": "6.5.0"
+    "sourceLocation": { ... },
+    "iteration": 1,
+    "kind": "issueRecorded",
+    "testID": "SampleTests.`Known issue, NOT matched`()/SampleTests.swift:22:2"
+  },
+  "version": "6.5.0"
 }
 ```
 
@@ -407,26 +407,26 @@ withKnownIssue("This doesn't match and thus fails") {
 
 `await confirmation { _ in }`
 
-```
+```json
 {
   "kind": "event",
-    "payload": {
-      "comments": [],
-      "instant": { ... },
-      "issue": {
-        "confirmationMiscount": {
-          "actual": 0,
-          "expected": 1
-        },
-        "isFailure": true,
-        "severity": "error",
-        "sourceLocation": { ... }
+  "payload": {
+    "comments": [],
+    "instant": { ... },
+    "issue": {
+      "confirmationMiscount": {
+        "actual": 0,
+        "expected": 1
       },
-      "iteration": 1,
-      "kind": "issueRecorded",
-      "testID": "SampleTests.`Confirmation miscount, expected single`()/SampleTests.swift:42:2"
+      "isFailure": true,
+      "severity": "error"
     },
-    "version": "6.5.0"
+    "sourceLocation": { ... },
+    "iteration": 1,
+    "kind": "issueRecorded",
+    "testID": "SampleTests.`Confirmation miscount, expected single`()/SampleTests.swift:42:2"
+  },
+  "version": "6.5.0"
 }
 ```
 
@@ -440,7 +440,7 @@ await confirmation(expectedCount: 1...5) { confirmation in
 }
 ```
 
-```
+```json
 {
   "kind": "event",
   "payload": {
@@ -455,9 +455,9 @@ await confirmation(expectedCount: 1...5) { confirmation in
         }
       },
       "isFailure": true,
-      "severity": "error",
-      "sourceLocation": { ... }
+      "severity": "error"
     },
+    "sourceLocation": { ... },
     "iteration": 1,
     "kind": "issueRecorded",
     "testID": "SampleTests.`Confirmation miscount, expected range`()/SampleTests.swift:34:2"
