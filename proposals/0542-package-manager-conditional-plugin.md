@@ -11,7 +11,7 @@
 
 This proposal adds conditional use of build tool plugins ([SE-0303](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md)) declared in a target's `plugins:` parameter. It reuses `TargetDependencyCondition` and adds an optional `hostPlatforms` filter. Plugin usages can combine this filter with target-platform and trait filters. All target dependencies can also use the host filter. Command plugins ([SE-0332](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0332-swiftpm-command-plugins.md)) are invoked explicitly through `swift package <verb>` and are not affected.
 
-Here, a **build tool plugin** is a sandboxed Swift script that returns `Command` values. A `Command` tells the build system how to invoke an executable before or during a build. The executable is the **build tool**. Platform constraints apply to build tools, including generators and other executables invoked during a build. A host condition prevents commands that invoke a build tool on an unsupported host. A target-platform condition filters the commands and their outputs without giving the target platform to the plugin.
+Here, a **build tool plugin** is a sandboxed Swift script that returns `Command` values. A `Command` tells the build system how to invoke an executable before or during a build. The executable is the **build tool**. Platform constraints apply to build tools, including generators and other executables invoked during a build. A host condition prevents commands that invoke a build tool on an unsupported host. A target-platform condition is intended to filter the commands and their outputs.
 
 ## Motivation
 
@@ -116,7 +116,7 @@ This would let users opt into linting via `swift build --traits Lint` without re
 
 All specified filters must match. An omitted filter does not limit that axis.
 
-SwiftPM evaluates the host and trait filters before it invokes the build tool plugin. A target-platform filter works differently because the build tool plugin does not receive the target platform. SwiftPM applies the target-platform filter to build commands and generated outputs from the plugin usage. For a prebuild command, the filter applies to outputs discovered after the command runs. SwiftPM may execute a prebuild command even when no configured target matches. The build system uses the filter for each configured target.
+SwiftPM evaluates the host and trait filters before it invokes the build tool plugin. A target-platform filter works differently because the build tool plugin does not receive the target platform. SwiftPM applies the target-platform filter to commands and generated outputs from the plugin usage. The build system uses the filter for each configured target.
 
 SwiftPM still resolves the package that contains the plugin. This behavior is consistent with [SE-0273](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0273-swiftpm-conditional-target-dependencies.md).
 
@@ -200,10 +200,10 @@ When SwiftPM finds a plugin usage with a condition, it does these actions:
 
 1. **Evaluate the host and traits.** SwiftPM compares `hostPlatforms` with the host platform. It compares `traits` with the enabled traits. If a filter does not match, SwiftPM does not invoke the build tool plugin.
 2. **Invoke the plugin without a target platform.** The build tool plugin returns its commands in a context that does not depend on a build request. SwiftPM does not give the target platform to the build tool plugin.
-3. **Filter commands and outputs.** SwiftPM applies the `platforms` filter to each build command and each generated source or resource. For a prebuild command, SwiftPM applies the filter to generated files discovered in the output directory. SwiftPM may execute the prebuild command even when no configured target matches. The build system selects the matching build commands and generated files for each configured target.
+3. **Filter commands and outputs.** SwiftPM applies the `platforms` filter to each command and each generated source or resource. The build system selects the matching commands and generated files for each configured target.
 4. **Keep dependency resolution unchanged.** SwiftPM still resolves and fetches the package dependency. This behavior is consistent with [SE-0273](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0273-swiftpm-conditional-target-dependencies.md).
 
-On an excluded platform, SwiftPM does not run filtered build commands or add generated files to the target. SwiftPM may still run prebuild commands before it filters their discovered outputs. The target must compile without these files. To use a different generator, add a separate plugin usage with its own condition:
+On an excluded platform, SwiftPM does not run filtered commands or add generated files to the target. The target must compile without these files. To use a different generator, add a separate plugin usage with its own condition:
 
 ```swift
 .target(
@@ -255,13 +255,17 @@ This is the status quo. It works, but it is inconsistent with the rest of the ma
 
 ## Future directions
 
+### Target-platform conditions for prebuild commands
+
+Some build systems lack the information needed to execute prebuild commands conditionally. They report an error when a plugin usage with a target-platform condition returns a prebuild command. Other build systems apply the condition with the same execution behavior as build commands. Future work can extend this support to all build systems.
+
 ### Target-platform control for plugin authors
 
-Today, a build tool plugin does not receive the target platform. This proposal applies the target-platform condition to build commands and generated outputs. For a prebuild command, the condition applies only to discovered outputs. SwiftPM may execute the command when no configured target matches.
+Today, a build tool plugin does not receive the target platform. This proposal applies the target-platform condition to commands and their generated outputs.
 
 A future proposal can let a plugin add conditions to each `Command`. This lets the plugin author provide different commands for different target platforms. SwiftPM first invokes the plugin. It then applies each condition to the command and its declared outputs.
 
-[SE-0303](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md) also identifies target-platform information as a future direction. SwiftPM can provide this information by running plugins as part of build planning. This design can let SwiftPM skip a plugin invocation or prebuild command when no configured target matches. It affects plugin invocation, caching, work directories, output paths, and IDE integration. These changes are outside the scope of this proposal.
+[SE-0303](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md) also identifies target-platform information as a future direction. A future proposal can give a plugin this information so that it can provide commands for a specific target platform. This change is outside the scope of this proposal.
 
 ### Finer-grained platform filtering
 
@@ -270,4 +274,3 @@ The current `Platform` enum cannot distinguish among Linux distributions, libc f
 ### Configuration conditionals for plugins
 
 [SE-0273](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0273-swiftpm-conditional-target-dependencies.md) proposed but has not yet implemented configuration conditionals (`.when(configuration: .debug)`). If configuration conditionals are added to `TargetDependencyCondition`, plugin usages will support them without a separate condition type. A common use case would be applying a linter plugin only in debug builds.
-
