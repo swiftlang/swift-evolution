@@ -4,7 +4,7 @@
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: [swiftlang/swift#91610](https://github.com/swiftlang/swift/pull/91610)
+* Implementation: [swiftlang/swift#91610](https://github.com/swiftlang/swift/pull/91610), available under experimental feature flag `DistributedActorResignRemoteID `
 * Review: ([pitch](https://forums.swift.org/t/pitch-resignremoteid-for-remote-distributed-actor-references/89078))
 
 ## Summary of changes
