@@ -344,7 +344,7 @@ With one notable exception, the `!!` operator should follow the same semantics a
 
 > "The unsafelyUnwrapped property provides the same value as the forced unwrap operator (postfix !). However, in optimized builds (-O), no check is performed to ensure that the current instance actually has a value. Accessing this property in the case of a nil value is a serious programming error and could lead to undefined behavior or a runtime error."
 
-By following `Optional.unsafelyUnwrapped`, this approach is consistent with Swift's [error handling system](https://github.com/apple/swift/blob/master/docs/ErrorHandlingRationale.rst#logic-failures):
+By following `Optional.unsafelyUnwrapped`, this approach is consistent with Swift's [error handling system](https://github.com/swiftlang/swift/blob/main/docs/ErrorHandlingRationale.md#logic-failures):
 
 > "Logic failures are intended to be handled by fixing the code. It means checks of logic failures can be removed if the code is tested enough. Actually checks of logic failures for various operations, `!`, `array[i]`, `&+` and so on, are designed and implemented to be removed when we use `-Ounchecked`. It is useful for heavy computation like image processing and machine learning in which overhead of those checks is not permissible."
 

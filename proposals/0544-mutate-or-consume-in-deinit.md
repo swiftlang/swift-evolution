@@ -3,9 +3,9 @@
 * Proposal: [SE-0544](0544-mutate-or-consume-in-deinit.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (August 10th...24th, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#90836](https://github.com/swiftlang/swift/pull/90836)
-* Review: ([first pitch](https://forums.swift.org/t/mutation-and-consumption-in-non-copyable-type-deinit-s/82390)) ([second pitch](https://forums.swift.org/t/pitch-2-allowing-for-partial-mutation-and-consumption-inside-of-non-copyable-type-deinit/88437)) ([review](https://forums.swift.org/t/se-0544-mutation-and-consumption-in-non-copyable-type-deinits/88903))
+* Review: ([first pitch](https://forums.swift.org/t/mutation-and-consumption-in-non-copyable-type-deinit-s/82390)) ([second pitch](https://forums.swift.org/t/pitch-2-allowing-for-partial-mutation-and-consumption-inside-of-non-copyable-type-deinit/88437)) ([review](https://forums.swift.org/t/se-0544-mutation-and-consumption-in-non-copyable-type-deinits/88903)) ([acceptance](https://forums.swift.org/t/accepted-se-0544-mutation-and-consumption-in-non-copyable-type-deinits/89190))
 
 ## Introduction
 

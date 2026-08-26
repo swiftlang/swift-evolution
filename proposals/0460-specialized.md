@@ -217,7 +217,7 @@ Doing this allows ABI-stable framework authors to expose specializations without
 
 ### Requiring Specialization
 
-A related feature is the ability to _require_ specialization either at the call site, or on a protocol. Specialization does not always have to happen at the call site even when it could – it remains an optimization (albeit a very aggressively applied one currently). If the specializatino does not happen, it would be useful to force the compiler to override its heuristics, similar to forcing linlining of a long but critical function.
+A related feature is the ability to _require_ specialization either at the call site, or on a protocol. Specialization does not always have to happen at the call site even when it could – it remains an optimization (albeit a very aggressively applied one currently). If the specialization does not happen, it would be useful to force the compiler to override its heuristics, similar to forcing linlining of a long but critical function.
 
 There are also protocols that are only meant to be used in specialized form in optimized builds. Arguably `BinaryInteger` is one of them. It may be worth exploring in these cases an annotation to indicate this to the caller, either via a compile-time errror/warning, or a runtime error.
 

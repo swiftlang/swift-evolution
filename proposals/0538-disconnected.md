@@ -3,9 +3,9 @@
 * Proposal: [SE-0538](0538-disconnected.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Active review (July 17 - July 31, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#89597](https://github.com/swiftlang/swift/pull/89597)
-* Review: ([pitch](https://forums.swift.org/t/pitch-disconnected-type-for-modeling-disconnected-values/86815)) ([review](https://forums.swift.org/t/se-0538-disconnected/88361))
+* Review: ([pitch](https://forums.swift.org/t/pitch-disconnected-type-for-modeling-disconnected-values/86815)) ([review](https://forums.swift.org/t/se-0538-disconnected/88361)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0538-disconnected/89181))
 
 ## Introduction
 
