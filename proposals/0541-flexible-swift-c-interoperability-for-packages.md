@@ -3,9 +3,9 @@
 * Proposal: [SE-0541](0541-flexible-swift-c-interoperability-for-packages.md)
 * Authors: [Owen Voorhees](https://github.com/owenv)
 * Review Manager: [Tim Condon](https://github.com/0xTim)
-* Status: **Active review (August 5...August 19, 2026)**
+* Status: **Accepted**
 * Implementation: [PR #10292](https://github.com/swiftlang/swift-package-manager/pull/10292), [PR #1537](https://github.com/swiftlang/swift-build/pull/1537), [PR #1546](https://github.com/swiftlang/swift-build/pull/1546), [PR #90774](https://github.com/swiftlang/swift/pull/90774)
-* Review: ([pitch](https://forums.swift.org/t/pitch-flexible-swift-c-interoperability-in-packages/88354)) ([review](https://forums.swift.org/t/se-0541-flexible-swift-c-interoperability-for-packages/88796))
+* Review: ([pitch](https://forums.swift.org/t/pitch-flexible-swift-c-interoperability-in-packages/88354)) ([review](https://forums.swift.org/t/se-0541-flexible-swift-c-interoperability-for-packages/88796)) ([acceptance](https://forums.swift.org/t/accepted-se-0541-flexible-swift-c-interoperability-for-packages/89183))
 
 ## Introduction
 
