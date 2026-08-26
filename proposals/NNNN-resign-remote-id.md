@@ -1,6 +1,6 @@
 # resignRemoteID for remote distributed actor references
 
-* Proposal: [SE-0546](0546-resign-remote-id.md)
+* Proposal: [SE-NNNN](NNNN-resign-remote-id.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: TBD
 * Status: **Awaiting review**
