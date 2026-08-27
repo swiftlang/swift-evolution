@@ -4,7 +4,7 @@
 * Authors: [Clive Liu](https://github.com/clive819)
 * Review Manager: [David Cummings](https://github.com/daveyc123)
 * Status: **Active Review (August 6 - August 21, 2026)**
-* Implementation: [swiftlang/swift-package-manager#10119](https://github.com/swiftlang/swift-package-manager/pull/10119) [swift-build#1439](https://github.com/swiftlang/swift-build/pull/1439/changes)
+* Implementation: [swiftlang/swift-package-manager#10119](https://github.com/swiftlang/swift-package-manager/pull/10119) [swift-build#1439](https://github.com/swiftlang/swift-build/pull/1439)
 * Review: ([pitch](https://forums.swift.org/t/pitch-package-manager-conditional-plugin/86217)) ([review](https://forums.swift.org/t/se-0542-package-manager-condition-plugins/88820))
 
 ## Introduction

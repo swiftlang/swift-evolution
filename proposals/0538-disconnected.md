@@ -75,7 +75,7 @@ var deque = UniqueDeque<Disconnected<NonSendable>>()
 deque.append(Disconnected(NonSendable()))
 
 guard var disconnected = deque.popFirst() else { return }
-let element = disconnected.take()
+let element = disconnected.consume()
 
 Task {
     print(element)
@@ -83,7 +83,7 @@ Task {
 ```
 
 The `Disconnected` type wraps a value, ensuring it remains in a disconnected
-region. The `take()` method consumes the `Disconnected` wrapper and returns
+region. The `consume()` method consumes the `Disconnected` wrapper and returns
 the value as `sending`, allowing it to cross isolation boundaries.
 
 ## Detailed design
@@ -129,9 +129,10 @@ the type system:
 /// ## Operations
 ///
 /// Values enter the wrapper through ``init(_:)``, which requires a `sending`
-/// argument. They leave through ``take()`` or ``swap(newValue:)``, both of
-/// which return `sending Value`. ``withValue(body:)`` lends the wrapped value
-/// in place to a closure that receives an `inout sending Value`.
+/// argument. They leave through ``consume()`` or ``exchange(newValue:)``,
+/// both of which return `sending Value`. ``withValue(body:)`` lends the
+/// wrapped value in place to a closure that receives an `inout sending
+/// Value`.
 ///
 /// Every operation either consumes the wrapper or replaces the wrapped value
 /// through a `sending` boundary, so no alias into the wrapper's storage can
@@ -140,7 +141,7 @@ the type system:
 ///
 /// ## Producing values that can cross isolation boundaries
 ///
-/// Use ``take()`` to remove the wrapped value. The call consumes the
+/// Use ``consume()`` to remove the wrapped value. The call consumes the
 /// wrapper, so no further operations on it are possible. The returned
 /// value is in a disconnected region, so you can transfer it across an
 /// isolation boundary in the same expression, or store it and transfer it
@@ -153,7 +154,7 @@ the type system:
 /// // `Disconnected<Resource>` values, so the resource it holds is
 /// // already known to be disconnected from the surrounding context.
 /// func process(wrapper: consuming Disconnected<Resource>) async {
-///     let resource = wrapper.take()
+///     let resource = wrapper.consume()
 ///     await Task.detached {
 ///         use(resource) // OK: `resource` is in a disconnected region.
 ///     }.value
@@ -166,23 +167,23 @@ the type system:
 ///
 /// ## Replacing the wrapped value in place
 ///
-/// Use ``swap(newValue:)`` to exchange the held value for a new one in a
+/// Use ``exchange(newValue:)`` to exchange the held value for a new one in a
 /// single step. The `newValue` argument is required to be in a disconnected
-/// region. `swap` returns the previously stored value, which is in a
+/// region. `exchange` returns the previously stored value, which is in a
 /// disconnected region:
 ///
 /// ```swift
 /// final class Resource: ~Sendable {}
 ///
-/// func swapResources(in wrapper: inout Disconnected<Resource>) async {
-///     let old = wrapper.swap(newValue: Resource())
+/// func exchangeResources(in wrapper: inout Disconnected<Resource>) async {
+///     let old = wrapper.exchange(newValue: Resource())
 ///     await Task.detached {
 ///         dispose(old) // OK: `old` is in a disconnected region.
 ///     }.value
 /// }
 /// ```
 ///
-/// Both directions of the swap cross a disconnected-region boundary: the
+/// Both directions of the exchange cross a disconnected-region boundary: the
 /// new value is required to be disconnected when it goes in, and the old
 /// value is known to be disconnected when it comes out.
 ///
@@ -230,15 +231,15 @@ public struct Disconnected<Value: ~Copyable>: ~Copyable, Sendable {
     ///
     /// ```swift
     /// let wrapper = Disconnected(Resource())
-    /// let resource = wrapper.take()
+    /// let resource = wrapper.consume()
     /// // `resource` can now be sent to another isolation region.
     /// ```
     ///
-    /// After `take()` returns, the wrapper has been consumed and no further
-    /// operations on it are possible.
+    /// After `consume()` returns, the wrapper has been consumed and no
+    /// further operations on it are possible.
     ///
     /// - Returns: The previously wrapped value, in a disconnected region.
-    public consuming func take() -> sending Value
+    public consuming func consume() -> sending Value
 
     /// Replaces the wrapped value with a new value and returns the previous
     /// one.
@@ -248,14 +249,14 @@ public struct Disconnected<Value: ~Copyable>: ~Copyable, Sendable {
     ///
     /// ```swift
     /// var wrapper = Disconnected(Resource())
-    /// let old = wrapper.swap(newValue: Resource())
+    /// let old = wrapper.exchange(newValue: Resource())
     /// // `old` can now be sent to another isolation region.
     /// ```
     ///
     /// - Parameter newValue: The replacement value.
     /// - Returns: The previously wrapped value, in a disconnected region.
     @discardableResult
-    public mutating func swap(
+    public mutating func exchange(
         newValue: consuming sending Value
     ) -> sending Value
 
@@ -295,8 +296,8 @@ that the compiler will enforce static and dynamic exclusivity checking
 prohibiting overlapping and concurrent access.
 
 The API is intentionally restricted to atomic transfers at `sending`
-boundaries: `init` consumes a `sending` value; `take` consumes the wrapper
-and returns a `sending` value; `swap` exchanges the wrapped value for
+boundaries: `init` consumes a `sending` value; `consume` consumes the wrapper
+and returns a `sending` value; `exchange` exchanges the wrapped value for
 another `sending` value; and `withValue` lends the wrapped value as
 `inout sending` for the duration of a closure that must leave a
 disconnected value behind. There is no accessor that exposes the wrapped
@@ -395,7 +396,7 @@ actor A {
 
     Task.detached {
       var d = consume disconnected         // Sendable, so this is allowed
-      d.take().box.state += 1              // detached task touches the Box
+      d.consume().box.state += 1           // detached task touches the Box
     }
 
     escaped.state += 1                     // actor A touches the same Box
@@ -439,7 +440,7 @@ extension Disconnected where Value: ~Copyable & Sendable {
 
 This accessor was not included because no compelling use case has emerged
 so far. Code that is generic over `Value: Sendable` can already unwrap the
-wrapper through `take()` or `swap(newValue:)` and operate on the value
+wrapper through `consume()` or `exchange(newValue:)` and operate on the value
 directly; code that has a concrete `Disconnected<T>` for a `Sendable T` can
 work with `T` directly without going through the wrapper at all. Adding a
 `Sendable`-only accessor would also split the API surface along
