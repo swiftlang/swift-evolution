@@ -11,6 +11,6 @@ on:
 jobs:
   validate:
     name: Validate Proposals
-    uses: swiftlang/github-workflows/.github/workflows/proposal_validation.yml@0.0.13
+    uses: swiftlang/github-workflows/.github/workflows/proposal_validation.yml@0.0.14
     with:
       project: "swift"
