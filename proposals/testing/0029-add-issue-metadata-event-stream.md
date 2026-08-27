@@ -1,9 +1,9 @@
 # Include additional issue metadata in event stream
 
-- Proposal: [ST-NNNN](NNNN-filename.md)
+- Proposal: [ST-0029](0029-add-issue-metadata-event-stream.md)
 - Authors: [Jerry Chen](https://github.com/jerryjrchen)
-- Review Manager: TBD
-- Status: **Awaiting implementation**
+- Review Manager: [Rachel Brindle](https://github.com/younata)
+- Status: **Active Review (Aug 27...Sep 10, 2026)**
 - Implementation:
   [swiftlang/swift-testing#1839](https://github.com/swiftlang/swift-testing/pull/1839)
 - Review:
