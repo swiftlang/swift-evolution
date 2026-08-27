@@ -74,7 +74,7 @@ Function execution semantics are important for both the programmer and compiler 
 
 ## Proposed solution
 
-I propose that an at-most once execution guarantee be expressed with a new `@called(once)` annotation.
+I propose that an at-most once execution guarantee be expressed with a new `@called(once)` annotation on a function type. A function type annotated with `@called(once)` does not conform to `Copyable`, and calling such a value is a consuming operation — this static enforcement guarantees that it's impossible to call the value more than once.
 
 With this guarantee, the compiler will no longer be forced to make pessimistic assumptions about captures and can relax some restrictions. Specifically, closures can consume captures that have unique ownership, since there's no risk of the value being needed again on a second call (see [Closure captures](#closure-captures)); and implicitly capturing `self` carries much less risk of introducing a reference cycle, since the closure can't be copied and calling it consumes the capture. This is why the attribute can also take the place of `@_implicitSelfCapture` (see [Interaction with `@_implicitSelfCapture`](#interaction-with-_implicitselfcapture)).
 
@@ -154,6 +154,7 @@ struct S: ~Copyable {
 `@called(once)` functions are well-suited for implicit capture of `self`, since they carry much lower risk of introducing a reference cycle than a plain function value. Because the value can't be copied, the reference can't be shared, and calling it consumes it and releases the captures, execution breaks the cycle. The one case where a cycle could still persist is a closure stored in a property that captures `self` but is never called — the case that seems unlikely in practice.
 
 This makes the attribute a suitable replacement for `@_implicitSelfCapture` in general and in `Task` creation APIs in particular.
+
 
 ### Closure captures
 
