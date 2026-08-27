@@ -155,6 +155,39 @@ struct S: ~Copyable {
 
 This makes the attribute a suitable replacement for `@_implicitSelfCapture` in general and in `Task` creation APIs in particular.
 
+#### Interaction with `consuming` methods and `defer` blocks
+
+`consuming` methods of non-Copyable types are implicitly treated as `@called(once)`. Such methods can already be called at most once on a given value, so this doesn't affect existing call sites, and it makes it possible to take an unapplied reference to such a method, which isn't currently possible:
+
+```swift
+struct Box<V>: ~Copyable {
+   // ...
+
+   consuming func take() -> V {
+      // ...
+   }
+}
+
+let box = Box<Int>()
+let fn = box.take // Ok! Returns `@called(once) () -> Int` value
+```
+
+`defer` blocks receive similar treatment, which allows moving a value into them and consuming it inside:
+
+```swift
+struct FileHandle: ~Copyable {
+  consuming func close() {
+    // ...
+  }
+}
+
+func process(_ handle: consuming FileHandle) {
+  defer {
+    handle.close() // Ok! `handle` is consumed by the `defer` block
+  }
+  // ...
+}
+```
 
 ### Closure captures
 
