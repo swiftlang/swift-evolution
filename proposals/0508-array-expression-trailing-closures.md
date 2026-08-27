@@ -150,7 +150,9 @@ Most examples result in a `closure expression is unused` error:
 { "a" } // error: closure expression is unused
 ```
 
-The only case that this doesn't currently result in an error would be a result builder that accepts closure values:
+### Result builders
+
+One case that this doesn't currently result in an error would be a result builder that accepts closure values:
 
 ```swift
 @resultBuilder
@@ -222,6 +224,38 @@ var buildFunctions: [() -> Void] {
 ```
 
 This use case is already very fragile, and there are no known examples of this use case (a standalone closure expression following an array literal within a result builder) happening in practice. Rather than accommodating it with more complicated or inconsistent parsing rules, we will accept this specific source break.
+
+### Init accessors
+
+One other case where this can result in an error is for properties with both an `init` accessor and initial value that is either an array or dictionary literal. If the getter is declared before the `init` accessor, we will now attempt to parse as a trailing closure:
+
+```swift
+struct S {
+  var _strings: [String]
+  var strings: [String] = ["hello"] { // Was previously an accessor block, becomes a trailing closure.
+    get { _strings }
+    @storageRestrictions(initializes: _strings)
+    init { _strings = newValue }
+  }
+}
+```
+
+This only affects properties with `init` accessors since other kinds of computed properties cannot have initial values. It is consistent with the existing parsing rule for other initial value expressions, if you replace `["hello"]` with a non-literal expression, it will already be parsed as a trailing closure in 6.3. This is due to the fact that `get`/`set` are not currently considered as disambiguating tokens for trailing closures, so when written first we prefer to parse as a trailing closure. `init` accessors are however considered for disambiguation, so swapping the accessors is sufficient to make this valid regardless of initial value used.
+
+This particular case appears to be quite rare in practice, it does not appear in the source compatibility suite, or for internal Swift projects at Apple.
+
+We may want to choose changing the behavior here in general and making it such that `get`/`set` are also considered as disambiguation tokens, however this is source breaking in the other direction since cases like the following are currently valid:
+
+```swift
+func foo(_ fn: () -> Void) -> Int { 0 }
+func get(_ fn: () -> Void) {}
+
+var x: Int = foo {
+  get {}
+}
+```
+
+So this ought to be considered as part of a separate proposal.
 
 ## ABI compatibility
 

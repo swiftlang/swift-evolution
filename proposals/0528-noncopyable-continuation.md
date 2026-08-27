@@ -3,7 +3,7 @@
 * Proposal: [SE-0528](0528-noncopyable-continuation.md)
 * Authors: [Fabian Fett](https://github.com/fabianfett), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted with revisions** 
+* Status: **Implemented (Swift 6.4)**
 * Implementation: [swiftlang/swift#88182](https://github.com/swiftlang/swift/pull/88182)
 * Related Proposals: 
     - [SE-0300: Continuations for interfacing async tasks with synchronous code](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0300-continuation.md)

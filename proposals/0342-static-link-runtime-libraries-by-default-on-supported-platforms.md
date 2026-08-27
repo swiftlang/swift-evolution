@@ -3,7 +3,7 @@
 * Proposal: [SE-0342](0342-static-link-runtime-libraries-by-default-on-supported-platforms.md)
 * Authors: [neonichu](https://github.com/neonichu) [tomerd](https://github.com/tomerd)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Accepted**
+* Status: **Expired**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0342-statically-link-swift-runtime-libraries-by-default-on-supported-platforms/56517)
 * Implementation: [apple/swift-package-manager#3905](https://github.com/apple/swift-package-manager/pull/3905)
 * Initial discussion: [Forum Thread](https://forums.swift.org/t/pre-pitch-statically-linking-the-swift-runtime-libraries-by-default-on-linux)

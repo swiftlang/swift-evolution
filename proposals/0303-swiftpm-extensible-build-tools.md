@@ -3,17 +3,10 @@
 * Proposal: [SE-0303](0303-swiftpm-extensible-build-tools.md)
 * Authors: [Anders Bertelrud](https://github.com/abertelrud), [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Tom Doron](https://github.com/tomerd)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Implemented (5.6)**
+* Status: **Implemented (Swift 5.6)**
 * Amendment status: **Accepted**
-* Revision Pitch and Discussion: [Pitch: Amend SE-0303 Plugin API to Use `@main` for Plugin Entry Point](https://forums.swift.org/t/pitch-amend-se-0303-plugin-api-to-use-main-for-plugin-entry-point/51250)
-* Original Pitch and Discussion: [Pitch: SwiftPM Extensible Build Tools](https://forums.swift.org/t/pitch-swiftpm-extensible-build-tools/44715)
-* Original Reviews: 
-  * [First review](https://forums.swift.org/t/se-0303-package-manager-extensible-build-tools/)
-  * [Second review](https://forums.swift.org/t/se-0303-2nd-review-package-manager-extensible-build-tools/)
-* Amendment (Amend SE-0303 Plugin API to Use `@main` for Plugin Entry Point)
-  * [Pitch and Discussion](https://forums.swift.org/t/pitch-amend-se-0303-plugin-api-to-use-main-for-plugin-entry-point/51250)
-  * [Review](https://forums.swift.org/t/amendment-se-0303-package-manager-extensible-build-tools/)
-  * [Implementation](https://github.com/apple/swift-package-manager/pull/3712)
+* Implementation: [apple/swift-package-manager#3712](https://github.com/apple/swift-package-manager/pull/3712)
+* Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-extensible-build-tools/44715)) ([first review](https://forums.swift.org/t/se-0303-package-manager-extensible-build-tools/45106)) ([second review](https://forums.swift.org/t/se-0303-2nd-review-package-manager-extensible-build-tools/47438)) ([acceptance](https://forums.swift.org/t/accepted-se-0303-package-manager-extensible-build-tools/47741)) ([amendment pitch](https://forums.swift.org/t/pitch-amend-se-0303-plugin-api-to-use-main-for-plugin-entry-point/51250)) ([amendment review](https://forums.swift.org/t/amendment-se-0303-package-manager-extensible-build-tools/51763)) ([amendment acceptance](https://forums.swift.org/t/accepted-with-modifications-amendment-to-se-0303-package-manager-extensible-build-tools/52060))
 * Previous Revisions:
   * [First revision](https://github.com/swiftlang/swift-evolution/blob/878e496eb799fa407ad704d89fb401952fe8fd02/proposals/0303-swiftpm-extensible-build-tools.md) 
   * [Second revision](https://github.com/swiftlang/swift-evolution/blob/38731efc140a53553aff923a6616a1dee28c973a/proposals/0303-swiftpm-extensible-build-tools.md)

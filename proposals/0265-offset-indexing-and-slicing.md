@@ -773,13 +773,13 @@ Index manipulation through methods such as `index(after:)`, `index(_:offsetBy:)`
 * `index(_:offsetBy:)`’s offset must not advance an index past the collection’s bounds and must not be negative unless the collection is also bidirectional.
 * `subscript(_:Index) -> Element` must be passed a valid index less than `endIndex`.
 
-A violation of the above requirements leading to a potential memory safety issue causes a trap. I.e. such violations are [irrecoverable logic errors](https://github.com/apple/swift/blob/master/docs/ErrorHandlingRationale.rst#logic-failures) and the process is safely taken down.
+A violation of the above requirements leading to a potential memory safety issue causes a trap. I.e. such violations are [irrecoverable logic errors](https://github.com/swiftlang/swift/blob/main/docs/ErrorHandlingRationale.md#logic-failures) and the process is safely taken down.
 
 Additionally, such low-level index-manipulation-heavy code is most often written within a context where indices are known to be valid, e.g. because the indices were vended by the collection itself. Subscript taking an index is similarly non-optional, as an index is an assumed-valid “key” to a specific element. Swift, being a memory-safe language, will still bounds-check the access, but this is not surfaced to the programmer’s code and bounds checks can be eliminated by the optimizer if safe to do so. Again, invalid indices for these operations represent irrecoverable logic errors, so a trap is issued.
 
 #### Optional Returning APIs
 
-In contrast, higher-level operations are often written in a context where the existence of a desired element is not known. Whether there is or is not such an element represents cases that should be handled explicitly by code, most often through the use of an optional result. That is, non-existence is not a logic error but a simple domain error, for which Optional is [the best tool for the job](https://github.com/apple/swift/blob/master/docs/ErrorHandlingRationale.rst#simple-domain-errors).
+In contrast, higher-level operations are often written in a context where the existence of a desired element is not known. Whether there is or is not such an element represents cases that should be handled explicitly by code, most often through the use of an optional result. That is, non-existence is not a logic error but a simple domain error, for which Optional is [the best tool for the job](https://github.com/swiftlang/swift/blob/main/docs/ErrorHandlingRationale.md#simple-domain-errors).
 
 For example, Dictionary has the regular `subscript(_:Index) -> Element` trapping subscript for indices derived from the dictionary itself, but additionally provides a `subscript(_:Key) -> Value?`, which returns `nil` if the key is not present in the dictionary. A missing key is not necessarily a logic error, just another case to handle in code. Similarly, `first`, `last`, `.randomElement()`, `min()`, etc., all return optionals, where emptiness is not necessarily a logic error, but a case to be handled in code.
 

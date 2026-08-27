@@ -4,11 +4,9 @@
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Implemented (Swift 6.2)**
-* Implementation: underscored `_extracting()` members of `Span` and `RawSpan`, pending elsewhere.
 * Review: ([pitch](https://forums.swift.org/t/pitch-apply-the-extracting-slicing-pattern-to-span-and-rawspan/80322)) ([review](https://forums.swift.org/t/se-0488-apply-the-extracting-slicing-pattern-more-widely/80854)) ([acceptance](https://forums.swift.org/t/accepted-se-0488-apply-the-extracting-slicing-pattern-more-widely/81235))
 
 [SE-0437]: 0437-noncopyable-stdlib-primitives.md
-[SE-0447]: 0447-span-access-shared-contiguous-storage.md
 [SE-0467]: 0467-MutableSpan.md
 [Forum-LifetimeAnnotations]: https://forums.swift.org/t/78638
 
@@ -44,19 +42,15 @@ Span<T>
 RawSpan
 UnsafeBufferPointer<T>
 UnsafeMutableBufferPointer<T>
-Slice<UnsafeBufferPointer<T>>
-Slice<UnsafeMutableBufferPointer<T>>
 UnsafeRawBufferPointer
 UnsafeMutableRawBufferPointer
-Slice<UnsafeRawBufferPointer>
-Slice<UnsafeMutableRawBufferPointer>
 ```
 Some of the types in the list above already have a subset of the `extracting()` functions; their support will be rounded out to the full set.
 
 
 ## Detailed design
 
-The general declarations for these functions is as follows:
+The general declarations for these functions are as follows:
 ```swift
 /// Returns an extracted slice over the items within
 /// the supplied range of positions.
@@ -115,10 +109,10 @@ For escapable types, the `@_lifetime` attribute is not applied.
 
 ### Usage hints
 
-The `extracting()` pattern, while not completely new, is still a departure over the slice pattern established by the `Collection` protocol. For `Span`, `RawSpan`, `MutableSpan` and `MutableRawSpan`, we can add unavailable subscripts and function with hints towards the corresponding `extracting()` function:
+The `extracting()` pattern, while not completely new, is still a departure from the slice pattern established by the `Collection` protocol. For `Span`, `RawSpan`, `MutableSpan` and `MutableRawSpan`, we can add unavailable subscripts and functions with hints towards the corresponding `extracting()` function:
 
 ```swift
-@available(*, unavailable, renamed: "extracting(_ bounds:)")
+@available(*, unavailable, renamed: "extracting(_:)")
 public subscript(bounds: Range<Index>) -> Self { extracting(bounds) }
 
 @available(*, unavailable, renamed: "extracting(first:)")
@@ -137,8 +131,11 @@ The additions described in this proposal require a new version of the Swift stan
 ## Alternatives considered
 This is an extension of an existing pattern. We are not considering a different pattern at this time.
 
+### `extracting()` functions for `Slice` of unsafe buffers
+The proposal as accepted included extensions to `Slice` where `Base` is from the `UnsafeBufferPointer` family, of the form `public func extracting(_ bounds: Range<Index>) -> Self`, returning a `Slice`. These `Slice` extensions have not been implemented, and so have been removed from the proposal. They can be proposed again at a later time if further experience indicates that they are highly desirable.
+
 ## Future directions
-#### Disambiguation over ownership type
+### Disambiguation over ownership type
 The `extracting()` functions proposed here are borrowing. `MutableSpan` has versions defined as mutating, but it could benefit from consuming ones as well. In general there could be a need for all three ownership variants of a given operation (`borrowing`, `consuming`, or `mutating`.) In order to handle these variants, we could establish a pattern for disambiguation by name, or we could invent new syntax to disambiguate by ownership type. This is a complex topic left to future proposals.
 
 ## Acknowledgements

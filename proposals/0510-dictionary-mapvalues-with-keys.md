@@ -1,4 +1,4 @@
-# Introduce `Dictionary.mapValuesWithKeys`
+# Introduce `Dictionary.mapKeyedValues`
 
 * Proposal: [SE-0510](0510-dictionary-mapvalues-with-keys.md)
 * Authors: [Diana Ma](https://github.com/tayloraswift) (tayloraswift)
@@ -12,7 +12,7 @@
 
 ## Introduction
 
-I propose adding a method `Dictionary.mapValuesWithKeys` that passes the `Key` to the transformation closure.
+I propose adding a method `Dictionary.mapKeyedValues` that passes the `Key` to the transformation closure.
 
 This enables us to transform dictionary values with their associated key context without incurring the performance cost of rehashing (or in the case of `reduce`, reallocating) the dictionary storage, which is currently unavoidable when using `init(uniqueKeysWithValues:)` or `reduce(into:)`.
 
@@ -36,32 +36,37 @@ Although users occasionally also want to [transform dictionary keys](https://for
 
 ## Proposed solution
 
-I propose adding the following method to `Dictionary`:
+I propose adding the following methods to `Dictionary`:
 
 ```swift
 extension Dictionary {
-    @inlinable public func mapValuesWithKeys<T, E>(
+    public func mapKeyedValues<T, E>(
         _ transform: (Key, Value) throws(E) -> T
     ) throws(E) -> Dictionary<Key, T>
-}
 
+    public func compactMapKeyedValues<T, E>(
+        _ transform: (Key, Value) throws(E) -> T?
+    ) throws(E) -> Dictionary<Key, T>
+}
 ```
+
+> [!NOTE]
+> The original proposal did not include `compactMapKeyedValues` except as an alternative considered, as it does not gain the same performance advantage that `mapKeyedValues` does. However, it's still a useful operation (even if it can also be spelled as a reduce), and reviewers felt that having a name for it was valuable, so it was added in the acceptance of this proposal.
 
 ### Usage example
 
 ```swift
 let balances: [Currency: Int64] = [.USD: 13, .EUR: 15]
-let displayText: [Currency: String] = balances.mapValuesWithKeys {
+let displayText: [Currency: String] = balances.mapKeyedValues {
     "\($0.alpha3) balance: \($1)"
 }
 ```
-
 
 ## Detailed design
 
 The implementation would mirror the existing `mapValues` method but inside the storage iteration loop it would pass the key along with the value to the transformation closure.
 
-On Apple platforms, `Dictionary` may be backed by a Cocoa dictionary. This does not pose any major issues, as `__CocoaDictionary` can be retrofitted with essentially the same machinery as `_NativeDictionary` within the standard library, and the new `mapValuesWithKeys` can dispatch between the two exactly as the existing `mapValues` does.
+On Apple platforms, `Dictionary` may be backed by a Cocoa dictionary. This does not pose any major issues, as `__CocoaDictionary` can be retrofitted with essentially the same machinery as `_NativeDictionary` within the standard library, and the new `mapKeyedValues` can dispatch between the two exactly as the existing `mapValues` does.
 
 
 ## Source compatibility
@@ -72,11 +77,7 @@ This is an ABI and API-additive change.
 
 ### Alternative naming
 
-The original draft of this proposal planned on overloading the existing `mapValues` method to accept a closure that takes both `Key` and `Value`. This was discovered to be source-breaking in rare scenarios where `mapValues` was being called on a dictionary with a 2-tuple value type. Thus, the new name `mapValuesWithKeys` was chosen to avoid source compatibility issues.
-
-### Additional companion method for `compactMapValues`
-
-The new `mapValuesWithKeys` method would introduce an API asymmetry with `compactMapValues`, which would not support key context. I believe this is justified, as `compactMapValues` is essentially a shorthand for calling `reduce(into:)`, which makes the performance aspect considerably less motivating.
+The original draft of this proposal planned on overloading the existing `mapValues` method to accept a closure that takes both `Key` and `Value`. This was discovered to be source-breaking in rare scenarios where `mapValues` was being called on a dictionary with a 2-tuple value type. Thus, the new name `mapKeyedValues` was chosen to avoid source compatibility issues.
 
 ### Doing nothing
 
@@ -91,19 +92,16 @@ In the future, we may wish to rename the existing `mapValues` method to somethin
 
 ### Changes to `OrderedDictionary` (swift-collections)
 
-As a natural extension of this proposal, the `OrderedDictionary` type in the `swift-collections` package could also gain a `mapValuesWithKeys` method with similar performance benefits. 
+As a natural extension of this proposal, the `OrderedDictionary` type in the `swift-collections` package could also gain a `mapKeyedValues` method with similar performance benefits. 
 
 It would have the following signature:
 
-
 ```swift
 extension OrderedDictionary {
-    @inlinable public func mapValuesWithKeys<T, E>(
+    @inlinable public func mapKeyedValues<T, E>(
         _ transform: (Key, Value) throws(E) -> T
     ) throws(E) -> OrderedDictionary<Key, T>
 }
 ```
 
 The performance gain for `OrderedDictionary` could be even more significant than for `Dictionary`. `OrderedDictionary` maintains a standard `Array` for keys and values, plus a sidecar hash table for lookups. The current workaround (`reduce` or `init`) forces the reconstruction of the entire hash table and an eager copy of the keys array. We could instead use zipped iteration to map the underlying `_keys` and `_values` arrays to a new array of values, and then copy the `_keys` table – which includes the hash table `__storage` – and is an O(1) copy-on-write if not mutated, or O(*n*) on later mutation.
-
-For completeness, I have provided a draft implementation in a PR to the `swift-collections` repository: [`swift-collections:#556`](https://github.com/apple/swift-collections/pull/556).

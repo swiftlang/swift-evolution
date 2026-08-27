@@ -103,6 +103,45 @@ A re-exported module is one that another module makes visible to any client that
 
 Note that there are some imports that are added to every source file implicitly by the compiler for normal programs. The implicitly imported modules include the standard library and the module being compiled. As a subtle consequence implicitly importing the current module, any module that the current module re-exports in any of its source files will be considered visible in every other source file.
 
+### Protocol conformances
+
+* Amendment status: **Accepted**
+* Amendment review: ([pitch](https://forums.swift.org/t/amending-se-0444-exempt-default-implementations-of-protocol-requirements-from-member-import-visibility-rules/86127)) ([review](https://forums.swift.org/t/se-0444-amendment-exempt-default-implementations-of-protocol-requirements-from-member-import-visibility-rules/86683)) ([acceptance](https://forums.swift.org/t/accepted-se-0444-amendment-exempt-default-implementations-of-protocol-requirements-from-member-import-visibility-rules/86936))
+* Amendment implementation: [swiftlang/swift#88489](https://github.com/swiftlang/swift/pull/88489)
+
+Types conforming to a protocol must have a witness for every requirement declared by that protocol. Witnesses to protocol requirements may be members that have been imported from other modules. Under the rules of this proposal, members that witness protocol requirements must be visible in the source file that declares the conformance. However, a default implementation that is not visible from a source file may still satisfy a protocol requirement under specific circumstances:
+
+1. The default implementation is defined in an unconstrained extension of the protocol that defines the requirement.
+2. That extension belongs to the same module as the protocol.
+
+For example:
+
+```swift
+// External module: GroceryKit
+
+public protocol GroceryItem {
+  var name: String { get } // existing requirement
+  var aisle: String? { get } // new requirement
+}
+
+extension GroceryItem {
+  public var aisle: String? { nil } // default implementation
+}
+
+// File: ShoppingList.swift (imports GroceryKit)
+import GroceryKit
+
+internal protocol ShoppingListItem: GroceryItem { }
+
+// File: IceCream.swift (a simple model file that does not need to import GroceryKit)
+struct IceCream: ShoppingListItem {
+  var name: String { "Ice cream" }
+  // `aisle` requirement satisfied by inherited default implementation from GroceryKit
+}
+```
+
+Such a default implementation is effectively inherited by conformances that do not explicitly provide a witness for the requirement. These default implementations are already the default witnesses at runtime when a module with library evolution enabled adds a new requirement. This exception to member import visibility rules gives library owners a consistent way to preserve both source compatibility and ABI compatibility when evolving a protocol.
+
 ## Source compatibility
 
 The proposed change in behavior is source breaking because it adds stricter requirements to name lookup. There is much existing Swift code that will need to be updated to adhere to these new requirements, either by introducing additional import statements in some source files or by reorganizing code among files. This change in behavior therefore must be opt-in, which is why it should be limited to a future language mode with an upcoming feature identifier that allows opt-in with previous language modes.
@@ -151,6 +190,29 @@ Swift has bespoke rules for looking up operators and operator precedence groups 
 #### Introduce module qualification syntax for extension members instead
 
 One alternative approach to the problem would be to rely exclusively on a new syntax for disambiguation of extension members (as discussed in Future directions). The limitation of that approach is that alone it only empowers the developer to solve conflicts *reactively*. On the other hand, the solution provided by this proposal is preventative because it stops unnecessary conflicts from arising in the first place. In the fullness of time, it would be best for both solutions to be available simultaneously.
+
+#### Allow more default implementations to satisfy protocol requirements without being imported
+
+This proposal allows conformances to inherit default witnesses that have not been imported as long as that default witness would be the default witness at runtime for a protocol in a module with library evolution. This is a consistent choice for ABI stable libraries, but libraries that are not concerned with ABI could potentially use more diverse strategies to preserve source compatibility when evolving a protocol. For example, a library that declares both a protocol and a refinement of that protocol might only implement the default witness in an extension of the refinement:
+
+```swift
+public protocol P {
+  func newRequirement()
+}
+
+public protocol Q: P {
+  func existingRequirement()
+}
+
+extension Q {
+  public func newRequirement() { ... } // not implicitly inherited
+}
+
+```
+
+In the example above, the default implementation of `newRequirement()` on `Q` would not be guaranteed to preserve source compatibility for clients that further refine `Q` and have `MemberImportVisibility` enabled.
+
+Having different rules for the default witnesses that provide ABI stability and those that are guaranteed to provide source stability does not seem justified without a demonstration of the prevalence of patterns that require the flexibility. Having consistent rules for both ABI stable and source stable evolution of protocols in the language is valuable simplicity.
 
 ## Acknowledgments
 

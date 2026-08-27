@@ -3,7 +3,7 @@
 * Proposal: [SE-0522](0522-source-warning-control.md)
 * Authors: [Artem Chikin](https://github.com/artemcm), [Doug Gregor](https://github.com/douggregor), [Holly Borla](https://github.com/hborla)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.4)**
 * Implementation: [swiftlang/swift#85036](https://github.com/swiftlang/swift/pull/85036), [swiftlang/swift-syntax#3174](https://github.com/swiftlang/swift-syntax/pull/3174)
 * Experimental Feature Flag: `SourceWarningControl`
 * Review: ([pitch](https://forums.swift.org/t/pitch-source-level-control-over-compiler-warnings/82766)) ([review](https://forums.swift.org/t/se-0522-source-level-control-over-compiler-warnings/85453)) ([acceptance](https://forums.swift.org/t/accepted-se-0522-source-level-control-over-compiler-warnings/85860))

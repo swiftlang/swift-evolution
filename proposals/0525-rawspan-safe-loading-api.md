@@ -3,10 +3,10 @@
 * Proposal: [SE-0525](0525-rawspan-safe-loading-api.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Accepted with Modifications**
-* Implementation: [swiftlang/swift#88304](https://github.com/swiftlang/swift/pull/88304)
+* Status: **Implemented (Swift 6.4)**
+* Implementation: [swiftlang/swift#88640](https://github.com/swiftlang/swift/pull/88640), [swiftlang/swift#88702](https://github.com/swiftlang/swift/pull/88702)
 * Related Proposals: [SE-0447](0447-span-access-shared-contiguous-storage.md)
-* Review: ([pitch 1](https://forums.swift.org/t/83966)) ([pitch 2](https://forums.swift.org/t/84144)) ([review](https://forums.swift.org/t/se-0525-safe-loading-api-for-rawspan/85811)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0525-safe-loading-api-for-rawspan/86329/12))
+* Review: ([first pitch](https://forums.swift.org/t/83966)) ([second pitch](https://forums.swift.org/t/84144)) ([review](https://forums.swift.org/t/se-0525-safe-loading-api-for-rawspan/85811)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0525-safe-loading-api-for-rawspan/86329/12))
 
 [SE-0447]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
 [swift-binary-parsing]: https://github.com/apple/swift-binary-parsing
@@ -644,6 +644,34 @@ extension CollectionOfOne: ConvertibleToBytes
 extension CollectionOfOne: ConvertibleFromBytes
   where Element: ConvertibleFromBytes {}
 
+extension SIMD2: ConvertibleToBytes
+  where Scalar: ConvertibleToBytes {}
+extension SIMD4: ConvertibleToBytes
+  where Scalar: ConvertibleToBytes {}
+extension SIMD8: ConvertibleToBytes
+  where Scalar: ConvertibleToBytes {}
+extension SIMD16: ConvertibleToBytes
+  where Scalar: ConvertibleToBytes {}
+extension SIMD32: ConvertibleToBytes
+  where Scalar: ConvertibleToBytes {}
+extension SIMD64: ConvertibleToBytes
+  where Scalar: ConvertibleToBytes {}
+
+extension SIMD2: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+extension SIMD3: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+extension SIMD4: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+extension SIMD8: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+extension SIMD16: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+extension SIMD32: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+extension SIMD64: ConvertibleFromBytes
+  where Scalar: ConvertibleFromBytes {}
+
 extension ClosedRange: ConvertibleToBytes
   where Bound: ConvertibleToBytes {}
 extension Range: ConvertibleToBytes
@@ -674,6 +702,8 @@ extension UnsafeMutableRawBufferPointer: ConvertibleToBytes {}
 ```
 
 > **Note:** any of the types in the list above which is missing a prerequisite `BitwiseCopyable` conformance will gain one. 
+
+> **Note:** `SIMD3` does not conform to `ConvertibleToBytes` because it has the same storage as `SIMD4`, but with one element's worth of tail padding.
 
 ##### Top-level safe `bitCast` function
 
@@ -729,9 +759,9 @@ Alongside validation, we could consider automatically inserting stored null byte
 
 The Clang importer could be taught which basic C types support these protocols. It would be useful to have a way to declare a conformance to these protocols for C types which are aggregates. For example, we could relax the restriction that these conformances can only be declared in a type's containing module, for imported C types only.
 
-#### Support for tuples and SIMD types
+#### Support for tuples
 
-Tuples composed of `ConvertibleToBytes` types should themselves be `ConvertibleToBytes`. The same applies to `ConvertibleFromBytes`. The standard library's SIMD types also seem to be naturally suited to these protocols.
+Tuples composed of `ConvertibleToBytes` types should themselves be `ConvertibleToBytes`. The same applies to `ConvertibleFromBytes`.
 
 #### Utilities to examine the alignment of a `RawSpan`
 

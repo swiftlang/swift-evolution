@@ -6,9 +6,7 @@
 * Status: **Implemented (Swift 6.2)**
 * Roadmap: [BufferView Language Requirements](https://forums.swift.org/t/roadmap-language-support-for-bufferview)
 * Implementation: **Implemented** in `main` branch
-* Upcoming Feature Flag: `NonescapableTypes`
-* Review: ([pitch](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency/69865))
-* Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0446-nonescapable-types/75504)
+* Review: ([pitch](https://forums.swift.org/t/pitch-non-escapable-types-and-lifetime-dependency/69865)) ([review](https://forums.swift.org/t/se-0446-nonescapable-types/74666)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0446-nonescapable-types/75504))
 
 ## Introduction
 

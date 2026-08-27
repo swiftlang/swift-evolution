@@ -257,6 +257,29 @@ accessors do not require any code execution at the end of the access, so
 `Ref` and `MutableRef` values targeting those are only limited by the parent
 access from which the property or subscript was projected.
 
+### References to `Sendable` values are `Sendable`
+
+`Ref` and `MutableRef` conditionally conform to `Sendable` when the target
+`Value` type is `Sendable`:
+
+```swift
+extension Ref: Sendable where Value: Sendable & ~Copyable {}
+extension MutableRef: Sendable where Value: Sendable & ~Copyable {}
+```
+
+This is analogous to `Span` and `MutableSpan` being `Sendable` when their
+`Element` type is `Sendable`.
+
+### `Ref` is `BitwiseCopyable`
+
+`Ref` is always `BitwiseCopyable`. `MutableRef` is not `Copyable`, so cannot be
+`BitwiseCopyable`, but we guarantee that it will never have non-trivial move
+or deinit operations.
+
+```
+extension Ref: BitwiseCopyable {}
+```
+
 ### Representation of `Ref`
 
 Reading the following section is not necessary to use `Ref`, but is

@@ -3,10 +3,10 @@
 * Proposal: [ST-0024](0024-per-test-case-repetitions.md)
 * Authors: [Harlan Haskins](https://github.com/harlanhaskins)
 * Review Manager: [Brian Croom](https://github.com/briancroom)
-* Status: **Active Review (April 29 - May 8)**
+* Status: **Implemented (Swift 6.4)**
 * Bugs: [swiftlang/swift-testing#1392](https://github.com/swiftlang/swift-testing/issues/1392), rdar://130508488
-* Implementation: [swiftlang/swift-testing#1528](https://github.com/swiftlang/swift-testing/pull/1528), [swiftlang/swift-package-manager#9944](https://github.com/swiftlang/swift-package-manager/pull/9944)
-* Review: ([pitch](https://forums.swift.org/t/pitch-make-test-repetition-per-test-case-instead-of-global/85552)) ([review](https://forums.swift.org/t/st-0024-per-test-case-repetition/85957)) ([second review](https://forums.swift.org/t/st-0024-second-review-test-case-repetition/86352))
+* Implementation: [swiftlang/swift-testing#1528](https://github.com/swiftlang/swift-testing/pull/1528), [swiftlang/swift-package-manager#9944](https://github.com/swiftlang/swift-package-manager/pull/9944), [swiftlang/swift-testing#1718](https://github.com/swiftlang/swift-testing/pull/1718)
+* Review: ([pitch](https://forums.swift.org/t/pitch-make-test-repetition-per-test-case-instead-of-global/85552)) ([review](https://forums.swift.org/t/st-0024-per-test-case-repetition/85957)) ([second review](https://forums.swift.org/t/st-0024-second-review-test-case-repetition/86352)) ([acceptance](https://forums.swift.org/t/accepted-st-0024-test-case-repetition/86830))
 
 ## Introduction
 
@@ -83,7 +83,7 @@ like these between test functions should be avoided.
 The following flags will be added:
 
 | Flag                    | Description |
-| ======================= | =========== |
+| ----------------------- | ----------- |
 | `--maximum-repetitions` | The maximum number of times a test should be repeated. |
 | `--repeat-until`        | The condition by which a test should be repeated. This accepts either `pass` or `fail`, and if it is not provided, repetition is unconditional (and all tests will repeat `maximum-iterations` times) |
 

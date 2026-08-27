@@ -3,7 +3,7 @@
 * Proposal: [SE-0520](0520-discardableresult-task-initializers.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.4)**
 * Implementation: [PR #87439](https://github.com/swiftlang/swift/pull/87439/)
 * Review: ([pitch](https://forums.swift.org/t/pitch-remove-discardableresult-from-throwing-task-initializers/84721)) ([review](https://forums.swift.org/t/se-0520-discardable-result-use-in-task-initializers/85374)) ([acceptance](https://forums.swift.org/t/accepted-se-0520-discardable-result-use-in-task-initializers/86159))
 

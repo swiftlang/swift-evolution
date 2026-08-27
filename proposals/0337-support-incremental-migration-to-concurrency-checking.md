@@ -59,7 +59,7 @@ We propose a suite of features to aid in the adoption of concurrency annotations
 
 1. Enable concurrency checking, by adopting concurrency features (such as `async/await` or actors), enabling Swift 6 mode, or adding the `-warn-concurrency` flag. This causes new errors or warnings to appear when concurrency constraints are violated.
 
-2. Start solving those problems. If they relate to types from another module, a fix-it will suggest using a special kind of import, `@preconcurrency import`, which silences these warnings.
+2. Start solving those problems. If they relate to types from another module, a fix-it will suggest using a special kind of import, `@preconcurrency import`, which silences or downgrades these warnings.
 
 3. Once you've solved these problems, integrate your changes into the larger build.
 
@@ -69,9 +69,9 @@ We propose a suite of features to aid in the adoption of concurrency annotations
 
 Achieving this will require several features working in tandem:
 
-* In Swift 6 mode, all code will be checked completely for missing `Sendable` conformances and other concurrency violations, with mistakes generally diagnosed as errors. The `-warn-concurrency` flag will diagnose these violations as warnings in older language versions.
+* In Swift 6 mode, all code will be checked completely for missing `Sendable` conformances and other concurrency violations, with mistakes generally diagnosed as errors unless downgraded by `@preconcurrency`. The `-warn-concurrency` flag will diagnose these violations as warnings in older language versions.
 
-* When applied to a nominal declaration, the `@preconcurrency` attribute specifies that a declaration was modified to update it for concurrency checking, so the compiler should allow some uses in Swift 5 mode that violate concurrency checking, and generate code that interoperates with pre-concurrency binaries.
+* When applied to a nominal declaration, the `@preconcurrency` attribute specifies that a declaration was modified to update it for concurrency checking, so the compiler should allow some uses in Swift 5 and later that violate concurrency checking, and generate code that interoperates with pre-concurrency binaries.
 
 * When applied to an `import` statement, the `@preconcurrency` attribute tells the compiler that it should only diagnose `Sendable`-requiring uses of non-`Sendable` types from that module if the type explicitly declares a `Sendable` conformance that is unavailable or has constraints that are not satisfied; even then, this will only be a warning, not an error.
 
@@ -90,7 +90,7 @@ When this proposal speaks of an error being emitted as a warning or suppressed, 
 
 Every scope in Swift can be described as having one of two "concurrency checking modes":
 
-* **Strict concurrency checking**: Missing `Sendable` conformances or global-actor annotations are diagnosed. In Swift 6, these will generally be errors; in Swift 5 mode and with nominal declarations visible via  `@preconcurrency import` (defined below), these diagnostics will be warnings.
+* **Strict concurrency checking**: Missing `Sendable` conformances or global-actor annotations are diagnosed. In Swift 6 without `@preconcurrency`, these will generally be errors; in Swift 5 mode, with nominal declarations marked `@preconcurrency`, and with nominal declarations visible via `@preconcurrency import` (both defined below), these diagnostics will be warnings.
 
 * **Minimal concurrency checking**: Missing `Sendable` conformances or global-actor annotations are diagnosed as warnings; on nominal declarations, `@preconcurrency` (defined below) has special effects in this mode which suppress many diagnostics.
 
@@ -135,6 +135,8 @@ When a nominal declaration uses `@preconcurrency`:
 * Its name is mangled as though it does not use any of the listed features.
 
 * At use sites whose enclosing scope uses Minimal concurrency checking, the compiler will suppress any diagnostics about mismatches in these traits.
+
+* At use sites whose enclosing scope uses Strict concurrency checking, including in Swift 6 and later, the compiler will downgrade any such diagnostics from errors to warnings.
 
 * The ABI checker will remove any use of these features when it produces its digests.
 
@@ -214,16 +216,18 @@ struct ProblematicError: Error {
 }
 ```
 
-To address this, SE-0302 says the following about the additional of `Sendable` to the `Error` protocol:
+To address this, SE-0302 says the following about the addition of `Sendable` to the `Error` protocol:
 
 > To ease the transition, errors about types that get their `Sendable` conformances through `Error` will be downgraded to warnings in Swift < 6.
 
-We propose to replace this bespoke rule for `Error` and `CodingKey` to apply to every protocol that is annotated with `@preconcurrency` and inherits from `Sendable`. These two standard-library protocols will use `@preconcurrency`:
+We propose to replace this bespoke rule for `Error` and `CodingKey` to apply to every protocol that is annotated with `@preconcurrency` and inherits from `Sendable`.[3] These two standard-library protocols will use `@preconcurrency`:
 
 ```swift
 @preconcurrency protocol Error: Sendable { ... }
 @preconcurrency protocol CodingKey: Sendable { ... }
 ```
+
+> [3] Unlike the original SE-0302 rule, this downgrade applies in all language modes, including Swift 6 and later. It covers any diagnostic arising from the inherited `Sendable` requirement, such as a stored property of non-`Sendable` type or conformance by a non-final class.
 
 ### `@preconcurrency` attribute on `import` declarations
 
@@ -239,17 +243,17 @@ When an import is marked `@preconcurrency`, the following rules are in effect:
 
 * If an explicitly non-`Sendable` type is used where a `Sendable` type is needed:
 
-  * If the type is visible through an `@preconcurrency import`, a warning is emitted instead of an error, even in Swift 6.
+  * If the type is visible through an `@preconcurrency import`, a warning is emitted instead of an error, even in Swift 6 and later.
 
   * Otherwise, the diagnostic is emitted normally.
 
-* If the `@preconcurrency` attribute is unused[3], a warning will be emitted recommending that it be removed.
+* If the `@preconcurrency` attribute is unused[4], a warning will be emitted recommending that it be removed.
 
-> [3] We don't define "unused" more specifically because we aren't sure if we can refine it enough to, for instance, recommend removing one of a pair of `@preconcurrency` imports which both import an affected type.
+> [4] We don't define "unused" more specifically because we aren't sure if we can refine it enough to, for instance, recommend removing one of a pair of `@preconcurrency` imports which both import an affected type.
 
 ## Source compatibility
 
-This proposal is largely motivated by source compatibility concerns. Correct use of `@preconcurrency` should prevent source breaks in code built with Minimal concurrency checking, and `@preconcurrency import` temporarily weakens concurrency-checking rules to preserve source compatibility if a project adopts Full or Strict concurrency checking before its dependencies have finished adding concurrency annotations.
+This proposal is largely motivated by source compatibility concerns. Correct use of `@preconcurrency` should prevent source breaks: in Minimal concurrency checking by suppressing affected diagnostics, and in Strict concurrency checking (including Swift 6 and later) by downgrading them from errors to warnings. `@preconcurrency import` temporarily weakens concurrency-checking rules to preserve source compatibility if a project adopts Full or Strict concurrency checking before its dependencies have finished adding concurrency annotations.
 
 ## Effect on ABI stability
 
