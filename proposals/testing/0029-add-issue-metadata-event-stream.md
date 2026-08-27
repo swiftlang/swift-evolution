@@ -8,6 +8,7 @@
   [swiftlang/swift-testing#1839](https://github.com/swiftlang/swift-testing/pull/1839)
 - Review:
   ([pitch](https://forums.swift.org/t/pitch-add-issue-fields-to-json-abi-schema/88898))
+  ([review](https://forums.swift.org/t/st-0029-include-additional-issue-metadata-in-event-stream/89234))
 
 ## Introduction
 
