@@ -5,6 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift#88152](https://github.com/swiftlang/swift/pull/88152)
+* Review: ([pitch](https://forums.swift.org/t/89189))
 
 ## Summary of changes
 
@@ -14,7 +15,7 @@ Add initializers to form a single-element `Span` over any value, and to form a s
 
 Occasionally, programmers need adaptors between single values and `Span`-taking API. Currently it is possible to use the `span` property of `CollectionOfOne` in order to pass a single value to a `Span` parameter, but it requires a copy that `Span` doesn't need, or that non-copyable values cannot support. We can provide initializers for `Span`, `RawSpan`, `MutableSpan` and `MutableRawSpan` that borrow single values in place.
 
-These initializers will also act as safe versions of `withUnsafePointer(to:)`, `withUnsafeMutablePointer(to:)`, `withUnsafeBytes(of:)` and `withUnsafeMutableBytes(of:)`
+These initializers will also act as safe versions of `withUnsafePointer(to:)`, `withUnsafeMutablePointer(to:)`, `withUnsafeBytes(of:)` and `withUnsafeMutableBytes(of:)`
 
 ## Proposed solution
 
