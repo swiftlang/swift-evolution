@@ -16,10 +16,7 @@
         * [Add .snippet and .snippetGroup kind](https://github.com/apple/swift-docc-symbolkit/pull/15)
     * Swift DocC Plugin
         * [Swift DocC Plugin Snippets](https://github.com/apple/swift-docc-plugin/pull/7)
-* Review threads
-    * [Pitch](https://forums.swift.org/t/pitch-swift-snippets/56348)
-    * [Review](https://forums.swift.org/t/se-0356-swift-snippets/57097)
-    
+* Review: ([pitch](https://forums.swift.org/t/pitch-swift-snippets/56348)) ([review](https://forums.swift.org/t/se-0356-swift-snippets/57097)) ([acceptance with modifications](https://forums.swift.org/t/accepted-with-modifications-se-0356-swift-snippets/58150))
 
 ## Introduction
 
