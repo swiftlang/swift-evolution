@@ -2,9 +2,10 @@
 
 * Proposal: [SE-0348](0348-buildpartialblock.md)
 * Author: [Richard Wei](https://github.com/rxwei)
-* Implementation: [apple/swift#41576](https://github.com/apple/swift/pull/41576)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5.7)**
+* Implementation: [apple/swift#41576](https://github.com/apple/swift/pull/41576)
+* Review: ([pitch](https://forums.swift.org/t/pitch-buildpartialblock-for-result-builders/55561)) ([review](https://forums.swift.org/t/se-0348-buildpartialblock-for-result-builders/56143)) ([acceptance](https://forums.swift.org/t/accepted-se-0348-buildpartialblock-for-result-builders/56527))
 
 ## Overview
 
