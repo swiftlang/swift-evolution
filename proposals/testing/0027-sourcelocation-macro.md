@@ -3,7 +3,7 @@
 * Proposal: [ST-0027](0027-sourcelocation-macro.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Stuart Montgomery](https://github.com/stmontgomery)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.5)**
 * Bug: rdar://178259171
 * Implementation: [swiftlang/swift-testing#1733](https://github.com/swiftlang/swift-testing/pull/1733)
 * Review: ([pitch](https://forums.swift.org/t/pitch-swift-testing-macro-for-getting-the-current-source-location/87025)) ([review](https://forums.swift.org/t/st-0027-macro-for-getting-the-current-source-location/88743)) ([acceptance](https://forums.swift.org/t/accepted-st-0027-macro-for-getting-the-current-source-location/89233))
