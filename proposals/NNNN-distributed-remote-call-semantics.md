@@ -5,7 +5,7 @@
 * Review Manager: TODO
 * Status: **Awaiting review**
 * Implementation: https://github.com/swiftlang/swift/pull/91316
-* Review: TODO
+* Review: [Pitch thread](https://forums.swift.org/t/pitch-distributed-remotecall-semantics/89357)
 
 ## Introduction
 
