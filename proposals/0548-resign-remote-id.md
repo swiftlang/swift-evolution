@@ -2,9 +2,10 @@
 
 * Proposal: [SE-0548](0548-resign-remote-id.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
-* Review Manager: TBD
+* Review Manager: [Doug Gregor](https://github.com/douggregor)
 * Status: **Active review (September 3...17, 2026)**
-* Implementation: [swiftlang/swift#91610](https://github.com/swiftlang/swift/pull/91610), available under experimental feature flag `DistributedActorResignRemoteID `
+* Implementation: [swiftlang/swift#91610](https://github.com/swiftlang/swift/pull/91610)
+* Experimental Feature Flag: `DistributedActorResignRemoteID`
 * Review: ([pitch](https://forums.swift.org/t/pitch-resignremoteid-for-remote-distributed-actor-references/89078))([review](https://forums.swift.org/t/se-0548-resignremoteid-for-remote-distributed-actor-references/89365))
 
 ## Summary of changes
