@@ -53,10 +53,20 @@ The **Modified Backus-Naur Form (BNF)** delta would be:
 
 ```diff
 diff --git a/Documentation/ABI/JSON.md b/Documentation/ABI/JSON.md
-index e4ff24a4..edcd4481 100644
+index 6aef434c..15aabcac 100644
 --- a/Documentation/ABI/JSON.md
 +++ b/Documentation/ABI/JSON.md
-@@ -157,10 +157,21 @@ additional `"testCases"` field describing the individual test cases.
+@@ -152,6 +152,9 @@ additional `"testCases"` field describing the individual test cases.
+   ["displayName": <string>,] ; the user-supplied custom display name
+   "sourceLocation": <source-location>, ; where the test suite is defined
+   "id": <test-id>,
++  ["tags": <array:tag>,] ; the tags associated with this test suite
++  ["bugs": <array:bug>,] ; the bugs associated with this test suite
++  ["timeLimit": <number>,] ; the time limit associated with this test suite
+ }
+ 
+ <test-function> ::= {
+@@ -160,10 +163,21 @@ additional `"testCases"` field describing the individual test cases.
    ["displayName": <string>,] ; the user-supplied custom display name
    "sourceLocation": <source-location>, ; where the test is defined
    "id": <test-id>,
@@ -64,7 +74,7 @@ index e4ff24a4..edcd4481 100644
 +  "isParameterized": <bool>, ; is this a parameterized test function or not?
 +  ["tags": <array:tag>,] ; the tags associated with this test function
 +  ["bugs": <array:bug>,] ; the bugs associated with this test function
-+  ["timeLimit": <number>] ; the time limit associated with this test function
++  ["timeLimit": <number>,] ; the time limit associated with this test function
  }
 
  <test-id> ::= <string> ; an opaque string representing the test case
