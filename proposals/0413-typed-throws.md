@@ -1169,7 +1169,7 @@ This inference rule will change the thrown error types of existing closures that
 }
 ```
 
-will currently be inferred as `throws`. With the rule specified here, it will be inferred as `throws(CatError)`. This could break some code that depends on the precisely inferred type. To prevent this from becoming a source compatibility problem, we apply the same rule as for `do...catch` statements to limit inference: `throw` statements within the closure body are treated as having the type `any Error` in Swift 5. This way, one can only infer a more specific thrown error type in a closure when the `try` operations are calling functions that make use of typed errors.
+will currently be inferred as `throws`. With the rule specified here, it will be inferred as `throws(CatError)`. This could break some code that depends on the precisely inferred type. To prevent this from becoming a source compatibility problem, we apply the same rule as for `do...catch` statements to limit inference: `throw` statements within the closure body are treated as having the type `any Error`. This way, one can only infer a more specific thrown error type in a closure when the `try` operations are calling functions that make use of typed errors.
 
 Note that one can explicitly specify the thrown error type of a closure to disable this type inference, which has the nice effect of also providing a contextual type for throw statements:
 
