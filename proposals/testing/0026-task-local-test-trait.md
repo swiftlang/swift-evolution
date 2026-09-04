@@ -69,7 +69,7 @@ A `.taskLocal` trait will be defined in Testing that allows overriding a task lo
 test or a whole suite:
 
 ```swift
-@Suite(.taskLocal(FeatureFlags.$isEnabled, true))
+@Suite(.taskLocal(FeatureFlags.$isEnabled, withValue: true))
 struct MySuite {
   // ...
 }
@@ -90,7 +90,7 @@ extension Trait {
   ///   - value: The value to set.
   ///
   /// ```swift
-  /// @Suite(.taskLocal($myValue, 42))
+  /// @Suite(.taskLocal($myValue, withValue: 42))
   /// struct MyTests {
   ///   // ...
   /// }
@@ -99,7 +99,7 @@ extension Trait {
   /// - Note: You must define the task local outside the test target where the trait is used.
   public static func taskLocal<Value: Sendable>(
     _ taskLocal: TaskLocal<Value>,
-    _ value: @autoclosure @escaping @Sendable () throws -> Value
+    withValue value: @autoclosure @escaping @Sendable () throws -> Value
   ) -> Self
   where Self == TaskLocalTrait<Value>
 }
@@ -130,7 +130,7 @@ bound _must_ be defined outside the test target. One cannot bind a task local va
 ```swift
 @TaskLocal var isEnabled = false
 
-@Test(.taskLocal($isEnabled, true))  // 🛑 Cannot find '$isEnabled' in scope
+@Test(.taskLocal($isEnabled, withValue: true))  // 🛑 Cannot find '$isEnabled' in scope
 func test() {
  // ...
 }
@@ -149,16 +149,7 @@ The proposed APIs are purely additive.
 
 ## Alternatives considered
 
-A few other spellings have been proposed:
-
-* `$isEnabled.set(true)`
-* `.withValue(true, for: $isEnabled)`
-* `.binding($isEnabled, to: true)`
-
-We prefer the naming `.taskLocal(_:_:)` because it unambiguously refers to task locals, and keeps
-the arguments in the same order as `withValue`.
-
-We could also decide to not add the trait since technically it is possible to implement its 
+We can decide to not add the trait since technically it is possible to implement its 
 functionality manually for each task local.
 
 ## Future directions
