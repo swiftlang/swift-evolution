@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Previous Proposal: [SE-0273](0273-swiftpm-conditional-target-dependencies.md)
-* Implementation: [swiftlang/swift-build#1427](https://github.com/swiftlang/swift-build/pull/1427)
+* Implementation: [swiftlang/swift-package-manager#10529](https://github.com/swiftlang/swift-package-manager/pull/10529), [swiftlang/swift-build#1427](https://github.com/swiftlang/swift-build/pull/1427)
 * Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-build-configuration-conditionals-for-target-dependencies/88981))
 
 ## Introduction
