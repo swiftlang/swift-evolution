@@ -3,7 +3,7 @@
 * Proposal: [SE-0516](0516-borrowing-sequence.md)
 * Authors: [Nate Cook](https://github.com/natecook1000), [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Holly Borla](https://github.com/hborla)
-* Status: **Accepted**
+* Status: **Implemented (Swift 6.4)**
 * Implementation: [swiftlang/swift#86811](https://github.com/swiftlang/swift/pull/86811), [swiftlang/swift#87483](https://github.com/swiftlang/swift/pull/87483), [swiftlang/swift#89630](https://github.com/swiftlang/swift/pull/89630)
 * Toolchain: [swift-PR-89630-2329-osx.tar.gz](https://download.swift.org/tmp/pull-request/89630/2329/xcode/swift-PR-89630-2329-osx.tar.gz)
 * Review: ([pitch](https://forums.swift.org/t/pitch-borrowing-sequence/84332)) ([review](https://forums.swift.org/t/se-0516-borrowing-sequence/85122)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0516-borrowing-sequence/85846)) ([second pitch](https://forums.swift.org/t/revision-pitch-iterable-formerly-borrowingsequence/86834)) ([second review](https://forums.swift.org/t/second-review-se-0516-iterable/87106)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0516-iterable/88806))
@@ -22,8 +22,8 @@ The Swift compiler will support use of this protocol via the familiar `for`-`in`
 
 This version of the proposal includes the following changes from the [original `BorrowingSequence` proposal][prev1]:
 
-- *Renamed to `Iterable`:* The protocol and all associated types and methods have been renamed to reflect the protocol's more universal role.
-- *Throwing iteration:* Both `Iterable` and `IterableIteratorProtocol` now include a `Failure: Error` associated type, enabling typed throws during iteration.
+- *Renamed to `Iterable`:* The protocol has been renamed to reflect the protocol's more universal role.
+- *Throwing iteration:* Both `Iterable` and `BorrowingIteratorProtocol` now include a `Failure: Error` associated type, enabling typed throws during iteration.
 
 ## Motivation
 
@@ -74,11 +74,11 @@ public protocol Iterable<Element, Failure>: ~Copyable, ~Escapable {
 
   /// A type that provides the iteration interface and
   /// encapsulates its iteration state.
-  associatedtype IterableIterator: IterableIteratorProtocol<Element, Failure> & ~Copyable & ~Escapable
+  associatedtype BorrowingIterator: BorrowingIteratorProtocol<Element, Failure> & ~Copyable & ~Escapable
 
   /// Returns a borrowing iterator over the elements of this sequence.
   @_lifetime(borrow self)
-  func makeIterableIterator() -> IterableIterator
+  func makeBorrowingIterator() -> BorrowingIterator
   
   /// A value less than or equal to the number of elements in the sequence,
   /// calculated nondestructively.
@@ -104,10 +104,10 @@ The differences from the `Sequence` protocol are as follows:
 - `Iterable` allows conformance by noncopyable and nonescapable types. 
 Note that copyable and escapable types can also conform, but the protocol is designed to not require it.
 - The `Element` type is also not required to be copyable.
-- There is an `IterableIterator` associated type, and a `makeIterableIterator()`
+- There is an `BorrowingIterator` associated type, and a `makeBorrowingIterator()`
 method that returns one. These play a similar role to `Iterator` and `makeIterator()`
 on `Sequence`.
-- The iterator returned by `makeIterableIterator` is constrained to the lifetime
+- The iterator returned by `makeBorrowingIterator` is constrained to the lifetime
 of the sequence. This allows the iterator to be implemented in terms of properties 
 borrowed from the sequence or a `Ref` of the sequence itself.
 - `Iterable` defines an associated `Failure` type that enables throwing during iteration.
@@ -119,10 +119,10 @@ with existing names on `Sequence`, allowing a type to have different implementat
 for both `Iterable` and `Sequence`. The `underestimatedCount` and `_customContains...` requirements,
 however, must have the same semantics between the two protocols, and therefore have the same names.
 
-The `IterableIteratorProtocol` is similar to its analog, but differs a little more:
+The `BorrowingIteratorProtocol` is similar to its analog, but differs a little more:
 
 ```swift
-public protocol IterableIteratorProtocol<Element, Failure>: ~Copyable, ~Escapable {
+public protocol BorrowingIteratorProtocol<Element, Failure>: ~Copyable, ~Escapable {
   /// A type representing the iterated elements.
   associatedtype Element: ~Copyable
   
@@ -132,7 +132,7 @@ public protocol IterableIteratorProtocol<Element, Failure>: ~Copyable, ~Escapabl
   /// Returns a span over the next group of contiguous elements, up to the
   /// specified maximum number.
   @_lifetime(&self)
-  mutating func nextSpan(maximumCount: Int) throws(Failure) -> Span<Element>
+  mutating func nextSpan(maxCount: Int) throws(Failure) -> Span<Element>
   
   /// Advances this iterator by up to the specified number of elements and
   /// returns the number of elements that were actually skipped.
@@ -140,32 +140,28 @@ public protocol IterableIteratorProtocol<Element, Failure>: ~Copyable, ~Escapabl
 }
 
 // Default implementations
-extension IterableIteratorProtocol where Element: ~Copyable {
+extension BorrowingIteratorProtocol where Element: ~Copyable {
   public mutating func nextSpan() throws(Failure) -> Span<Element> { ... }
   public mutating func skip(by maximumOffset: Int) throws(Failure) -> Int { ... }
 }
 ```
 
 Instead of returning individual elements from a `next()` method as `IteratorProtocol` does,
-`IterableIteratorProtocol` offers up spans of elements. The iterator indicates there 
-are no more elements to iterate by returning an empty `Span`.
-
-As with `Sequence`, once an iterator returns an empty `Span`, 
+`BorrowingIteratorProtocol` offers up spans of elements. The iterator indicates there 
+are no more elements to iterate by returning an empty `Span`. 
+As with the `Sequence`/`IteratorProtocol` system, 
+once an iterator indicates the end of elements by returning an empty `Span`,
 every subsequent call to `nextSpan()` must return an empty `Span` as well.
-An iterator's behavior after throwing an error is undefined:
-some iterators may treat that as the end of the sequence,
-some may continue to throw the same error or a different error,
-and some may resume iteration on the next call. 
-Generic code should therefore not assume any particular behavior,
-with a recommendation that the error be propagated to the caller.
+
 
 ### Iterator and element lifetimes
 
 For noncopyable and/or nonescapable types, the `Iterable` protocols provide lifetimes 
-that are tightly scoped to the providing types. In general, the `IterableIterator`
+that are tightly scoped to the providing types. In general, the `BorrowingIterator`
 of an iterable type is a nonescapable type with a lifetime borrowed from the
-original type. For example, the iterator for `InlineArray` is `SpanIterator`,
-a nonescapable type that provides access to the array's storage via a `Span`.
+original type. For example, the iterator for all standard library types use,
+`Span`'s `BorrowingIterator`, a nonescapable type that provides access to 
+their storage via a `Span`.
 
 To support a broad range of iterator types, the `Span` returned from an iterator's `nextSpan(...)` method has an exclusive access dependency on the iterator (i.e. `@_lifetime(&self)`). This means that the elements accessed via that span also have an exclusive access dependency, with lifetimes ending on the next call to `nextSpan()` or another mutating call to the iterator.
 
@@ -193,7 +189,7 @@ aren't stored directly in memory, the iterator would provide access to a span
 of a single element at a time. Note that this is how any `Sequence` can be adapted to conform
 to `Iterable` (see later in this proposal).
 - *Callers that only process a certain number of elements at a time* would pass
-their limit as `maximumCount`, with successive calls to `nextSpan` until the returned
+their limit as `maxCount`, with successive calls to `nextSpan` until the returned
 span is empty.
 
 Specifying a maximum number of elements is important for use cases where an 
@@ -214,7 +210,7 @@ the caller actually wants to consume.
 
 ### Throwing iteration
 
-Both `Iterable` and `IterableIteratorProtocol` include a `Failure` associated type 
+Both `Iterable` and `BorrowingIteratorProtocol` include a `Failure` associated type 
 that defaults to `Never`. When iteration is simply providing access to a type's
 storage, as with `InlineArray` and `UniqueArray`, the `Never` failure type allows
 iteration without the `try` keyword or handling of throwing in the surrounding
@@ -233,6 +229,17 @@ non-throwing when the concrete `Iterable` has a `Failure` type equal to `Never`,
 and will throw the specific error type otherwise. See the `example_reduce(into:_:)`
 declaration below for an example.
 
+A `BorrowingIterator` type has no specific required semantics after throwing an error,
+providing flexibility for iterator types to have the most efficient implementation.
+While some iterators may treat a thrown error as the end of the series of elements,
+types are not required to store or track the fact that an error has been returned.
+To prevent loss of data, when throwing an error, a `span` representing any elements 
+before an error occurrs must be returned before an error can be thrown.
+
+Generic code, as a matter of course, must treat a thrown error as unrecoverable,
+since the behavior of subsequent calls to `nextSpan` or other iterator methods
+doesn't have a consistent, guaranteed meaning.
+
 ### Use of the new protocols
 
 To illustrate how these new protocols would be used, we can also look at the proposed
@@ -248,9 +255,9 @@ for element in myIterable {
 would cause the compiler to generate code similar to:
 
 ```swift
-var iterator = myIterable.makeIterableIterator()
+var iterator = myIterable.makeBorrowingIterator()
 while true {
-    let span = iterator.nextSpan(maximumCount: Int.max)
+    let span = iterator.nextSpan(maxCount: Int.max)
     if span.isEmpty { break }	  
 
     for i in span.indices {
@@ -312,19 +319,19 @@ extension Iterable where Self: ~Escapable & ~Copyable, Element: ~Copyable & Equa
    ) throws(Failure) -> Bool
       where S: ~Escapable & ~Copyable
    {
-      var iter1 = makeIterableIterator()
-      var iter2 = rhs.makeIterableIterator()
+      var iter1 = makeBorrowingIterator()
+      var iter2 = rhs.makeBorrowingIterator()
       while true {
-         var span1 = try iter1.nextSpan(maximumCount: .max)
+         var span1 = try iter1.nextSpan(maxCount: .max)
    
          if span1.isEmpty {
             // LHS is empty - sequences are equal iff RHS is also empty
-            let span2 = try iter2.nextSpan(maximumCount: 1)
+            let span2 = try iter2.nextSpan(maxCount: 1)
             return span2.isEmpty
          }
    
          while span1.count > 0 {
-            let span2 = try iter2.nextSpan(maximumCount: span1.count)
+            let span2 = try iter2.nextSpan(maxCount: span1.count)
             if span2.isEmpty { return false }
             for i in 0..<span2.count {
                if span1[i] != span2[i] { return false }
@@ -345,31 +352,38 @@ extension Span: Iterable
    where Self: ~Copyable & ~Escapable, Element: ~Copyable
 {
    @_lifetime(borrow self)
-   func makeIterableIterator() -> SpanIterator<Element>
+   func makeBorrowingIterator() -> SpanIterator<Element>
 }
 
 extension MutableSpan: Iterable
    where Self: ~Copyable & ~Escapable, Element: ~Copyable
 {
    @_lifetime(borrow self)
-   func makeIterableIterator() -> SpanIterator<Element>
+   func makeBorrowingIterator() -> SpanIterator<Element>
 }
 
 extension RawSpan: Iterable {
    @_lifetime(borrow self)
-   func makeIterableIterator() -> SpanIterator<UInt8>
+   func makeBorrowingIterator() -> SpanIterator<UInt8>
 }
 
 extension MutableRawSpan: Iterable {
    @_lifetime(borrow self)
-   func makeIterableIterator() -> SpanIterator<UInt8>
+   func makeBorrowingIterator() -> SpanIterator<UInt8>
 }
 
 extension InlineArray: Iterable
    where Self: ~Copyable & ~Escapable, Element: ~Copyable
 {
    @_lifetime(borrow self)
-   func makeIterableIterator() -> SpanIterator<Element>
+   func makeBorrowingIterator() -> SpanIterator<Element>
+}
+
+extension UniqueArray: Iterable
+   where Self: ~Copyable & ~Escapable, Element: ~Copyable
+{
+   @_lifetime(borrow self)
+   func makeBorrowingIterator() -> SpanIterator<Element>
 }
 ```
 
@@ -382,7 +396,7 @@ future kinds of iteration.
 ```swift
 /// A borrowing iterator type that provides access to the contents of a single
 /// span of elements.
-public struct SpanIterator<Element>: IterableIteratorProtocol, ~Copyable, ~Escapable
+public struct SpanIterator<Element>: BorrowingIteratorProtocol, ~Copyable, ~Escapable
   where Element: ~Copyable
 {
   public typealias Failure = Never
@@ -391,7 +405,7 @@ public struct SpanIterator<Element>: IterableIteratorProtocol, ~Copyable, ~Escap
   public init(_ elements: Span<Element>)
   
   @_lifetime(&self)
-  public mutating func nextSpan(maximumCount: Int) -> Span<Element>
+  public mutating func nextSpan(maxCount: Int) -> Span<Element>
   
   public mutating func skip(by offset: Int) -> Int
 }
@@ -406,7 +420,7 @@ the following addition to the standard library:
 ```swift
 // An adapter type that, given an IteratorProtocol instance, serves up spans
 // of each element generated by `next` one at a time.
-public struct IterableIteratorAdapter<Iterator: IteratorProtocol>: IterableIteratorProtocol {
+public struct BorrowingIteratorAdapter<Iterator: IteratorProtocol>: BorrowingIteratorProtocol {
   public typealias Failure = Never
 
   var iterator: Iterator
@@ -417,7 +431,7 @@ public struct IterableIteratorAdapter<Iterator: IteratorProtocol>: IterableItera
   }
 
   @_lifetime(&self)
-  public mutating func nextSpan(maximumCount: Int) -> Span<Iterator.Element> {
+  public mutating func nextSpan(maxCount: Int) -> Span<Iterator.Element> {
 	// It may be surprising to some readers not used to Swift's ownership
 	// model that currentValue is a stored property, not just a local variable.
 	// This is because currentValue must be storage owned by the adapter
@@ -430,8 +444,8 @@ public struct IterableIteratorAdapter<Iterator: IteratorProtocol>: IterableItera
 }
 
 extension Sequence {
-  public func makeIterableIterator() -> IterableIteratorAdapter<Iterator> {
-    IterableIteratorAdapter(iterator: makeIterator())
+  public func makeBorrowingIterator() -> BorrowingIteratorAdapter<Iterator> {
+    BorrowingIteratorAdapter(iterator: makeIterator())
   }
 }
 ```
@@ -441,10 +455,10 @@ conform to `Iterable`. The conformance of existing sequence types,
 like `Array`, `Dictionary`, and `UnfoldSequence`, will be included in a
 future proposal. Some of these types (such as `Array`) will merit a custom
 iterator exposing an underlying `Span`. For other types, the conformance
-will trivially make use of the `IterableIteratorAdapter` shown above.
+will trivially make use of the `BorrowingIteratorAdapter` shown above.
 
 
-### Suppressed conformance of the `IterableIterator` associated type
+### Suppressed conformance of the `BorrowingIterator` associated type
 
 Proposal [SE-0503](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0503-suppressed-associated-types.md)
 allows the suppression of `Copyable` and `Escapable` on associated types.
@@ -458,7 +472,7 @@ as specified by SE-0503. Swift users unaware of the concept of
 noncopyable types can extend `Iterable` without being aware of that 
 feature of the language.
 
-The `IterableIterator` associated type is _not_ a primary associated type; rather
+The `BorrowingIterator` associated type is _not_ a primary associated type; rather
 it's an implementation detail of an `Iterable` type. Therefore,
 per SE-0503, it will _not_ default to being either copyable or escapable.
 
@@ -479,8 +493,8 @@ into when implementing most sequence algorithms.
 
 ### Use of `@_lifetime`
 
-Both `Iterable` and `IterableIteratorProtocol` have methods that 
-return a non-escapable type (the `IterableIterator` and a `Span`, respectively), 
+Both `Iterable` and `BorrowingIteratorProtocol` have methods that 
+return a non-escapable type (the `BorrowingIterator` and a `Span`, respectively), 
 with a lifetime tied to `self`. This will require conforming types to
 enable the `Lifetimes` experimental feature.
 
@@ -509,14 +523,14 @@ model for existing code that they use today.
 
 ## Source compatibility
 
-This proposal introduces the new protocols `Iterable` and `IterableIteratorProtocol`,
+This proposal introduces the new protocols `Iterable` and `BorrowingIteratorProtocol`,
 as well as additional supporting types. Existing conformers to `Sequence` can 
 also implement `Iterable` by simply declaring their conformance. 
 This is entirely source compatible.
 
 ## ABI compatibility
 
-This proposal adds two new protocols, the `SpanIterator` and `IterableIteratorAdapter` types,
+This proposal adds two new protocols, the `SpanIterator` and `BorrowingIteratorAdapter` types,
 and  conformances for the span and `InlineArray` types to the standard library ABI.
 
 ## Future directions
@@ -577,7 +591,7 @@ protocol Container<Element>: Iterable, ~Copyable, ~Escapable {
   func distance(from start: Index, to end: Index) -> Int
 
   @_lifetime(borrow self)
-  func nextSpan(after index: inout Index, maximumCount: Int) -> Span<Element>
+  func nextSpan(after index: inout Index, maxCount: Int) -> Span<Element>
 
   subscript(index: Index) -> Element { 
     @_lifetime(borrow self) borrow { get }
@@ -742,7 +756,7 @@ for conforming sequence types.
 ### Using an opaque iterator type
 
 As a way to mitigate the challenge of customizing the borrowing iterator in ABI-stable
-frameworks, `Iterable` could declare `makeIterableIterator()` as returning
+frameworks, `Iterable` could declare `makeBorrowingIterator()` as returning
 an opaque iterator type instead of giving the protocol an associated type. However,
 using an opaque type in this position creates barriers to optimization that render 
 this approach unworkable.
