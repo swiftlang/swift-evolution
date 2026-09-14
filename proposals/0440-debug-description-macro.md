@@ -94,7 +94,7 @@ struct Organization: CustomDebugStringConvertible {
 The macro expands the body of `debugDescription` into the following LLDB Summary String:
 
 ```
-#${var.id} ${var.name} (${var.manage.name})
+#${var.id} ${var.name} (${var.manager.name})
 ```
 
 This summary string is emitted into the binary, where LLDB will load it automatically. Using this definition, LLDB can now present this description in contexts it previously could not, including the variable view and other parts of the debugger UI.
