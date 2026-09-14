@@ -10,7 +10,7 @@
 ## Summary of changes
 
 This proposal introduces a new attribute `@noSanitize(<kind>...)` which can be applied to functions, subscripts, and closures to disable one or more kinds of sanitizer instrumentation. It also introduces a `sanitized(<kind>)` compilation
-condition, which evaluates truthy the specific sanitizer is enabled.
+condition, which evaluates truthy if the specific sanitizer is enabled.
 
 ## Motivation
 
