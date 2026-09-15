@@ -1,5 +1,7 @@
 # Using C++ from Swift 
 
+* Vision: [SV-0003](using-c++-from-swift.md)
+
 ## Introduction
 
 This document lays out a vision for the development of the "forward" half of C++ and Swift interoperability: using C++ APIs from Swift. It sets overarching goals that drive the project’s design decisions, outlines some high-level topics related to C++ interoperability, and, finally, investigates a collection of specific API patterns and potential ways for the compiler to import them. This vision is a sketch, rather than a final design for C++ and Swift interoperability. Towards the end, this document suggests a process for evolving C++ interoperability over time, and it lays out the path for finalizing the designs discussed here.

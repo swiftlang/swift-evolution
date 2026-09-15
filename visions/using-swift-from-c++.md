@@ -1,5 +1,7 @@
 # Using Swift from C++
 
+* Vision: [SV-0001](using-swift-from-c++.md)
+
 This vision document presents a high level overview of the "reverse" (i.e. Swift-to-C++) half of the C++ interoperability Swift language feature. It highlights the key principles and goals that determine how Swift APIs are exposed to C++ users. It also outlines the evolution process for this feature. This document does not present the final design for how Swift APIs get mapped to C++ language constructs. The final design of this feature will evolve as this feature goes through the Swift evolution process. This document does not cover the "forward" (i.e. using C++ APIs from Swift) aspect of the C++ interoperability, as it’s covered by a [sibling document](https://github.com/apple/swift/pull/60501/files).
 
 This document is an official feature vision document, as described in the [draft review management guidelines](https://github.com/rjmccall/swift-evolution/blob/057b2383102f34c3d0f5b257f82bba0f5b94683d/review_management.md#future-directions-and-roadmaps) of the Swift evolution process. The Language Workgroup has endorsed the goals and basic approach laid out in this document. This endorsement is not a pre-approval of any of the concrete proposals that may come out of this document. All proposals will undergo normal evolution review, which may result in rejection or revision from how they appear in this document.
