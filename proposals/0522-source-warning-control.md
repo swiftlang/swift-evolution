@@ -113,7 +113,7 @@ Compilation **error** diagnostics, even when belonging to a specified diagnostic
 
 The `@diagnose` attribute can be applied on:
 
-* *`enum-declaration`*, *`struct-declaration`*, *`extension-declaration`*, *`class-declaration`*, *`actor-declaration`*, *`protocol-declaration`*, *`function-declaration`*, *`initializer-declaration`*, *`deinitializer-declaration`*, *`subscript-declaration`*, *`macro-declaration`*, computed property declaration (with a *`code-block`*), accessors (*`getter-clause`*, *`setter-clause`*, etc.), observers (*`willSet-clause`*, *`willSet-clause`*).
+* *`enum-declaration`*, *`struct-declaration`*, *`extension-declaration`*, *`class-declaration`*, *`actor-declaration`*, *`protocol-declaration`*, *`function-declaration`*, *`initializer-declaration`*, *`deinitializer-declaration`*, *`subscript-declaration`*, *`macro-declaration`*, computed property declaration (with a *`code-block`*), accessors (*`getter-clause`*, *`setter-clause`*, etc.), observers (*`willSet-clause`*, *`didSet-clause`*).
     Setting behavior of all warning diagnostics belonging to the indicated group in the ***lexical scope*** of the body of the corresponding declaration and the declaration's signature.
 * *`union-style-enum-clause`*, *`raw-value-style-enum-case-clause`*, *`typealias-declaration`*, *`protocol-associated-type-declaration`*
     Setting behavior of all warning diagnostics belonging to the indicated group in the declaration's signature (these declaration kinds do not open a further lexical scope).
