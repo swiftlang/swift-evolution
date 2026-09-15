@@ -34,6 +34,8 @@ This proposal addresses the naming deficiencies of the earlier API. We introduce
 
 We are proposing the word "padded" to denote a possible hazard where some of the bytes being read or written may have values that haven't been explicitly set by the running program. Such bytes can lead to potential correctness issues if they are used to drive program state, and it is worth denoting the points at which they could be introduced. It is used for conversions where the safe equivalent only adds a `ConvertibleToBytes` constraint. The word chosen also indicates that this hazard is milder than the memory unsafety denoted by "unsafe".
 
+Note that the `MutableRawSpan` accessor from `MutableSpan` retains the word `unsafe`, because it is not constrained to types that are `ConvertibleFromBytes`.
+
 ## Detailed design
 
 The `@unsafe` declarations are renamed as follows (omitting lifetime and inlining attributes for brevity):
