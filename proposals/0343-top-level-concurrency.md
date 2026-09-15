@@ -5,6 +5,7 @@
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
 * Status: **Implemented (Swift 5.7)**
 * Implementation: [Fix top-level global-actor isolation crash](https://github.com/apple/swift/pull/40963), [Add `@MainActor @preconcurrency` to top-level variables](https://github.com/apple/swift/pull/40998), [Concurrent top-level inference](https://github.com/apple/swift/pull/41061)
+* Review: ([pitch](https://forums.swift.org/t/concurrency-in-top-level-code/55001)) ([review](https://forums.swift.org/t/se-0343-concurrency-in-top-level-code/55477)) ([acceptance](https://forums.swift.org/t/accepted-se-0343-concurrency-in-top-level-code/55904))
 
 ## Introduction
 
