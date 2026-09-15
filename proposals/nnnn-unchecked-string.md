@@ -1,11 +1,11 @@
 # UncheckedString (raw string support for Swift)
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-unchecked-string.md)
 * Authors: [Alastair Houghton](https://github.com/al45tair)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN) or [swiftlang/swift-evolution-staging#NNNNN](https://github.com/swiftlang/swift-evolution-staging/pull/NNNNN)
-* Review: ([pitch](https://forums.swift.org/...))
+* Implementation: [swiftlang/swift#91970](https://github.com/swiftlang/swift/pull/91970), [swiftlang/swift-syntax#3428](https://github.com/swiftlang/swift-syntax/pull/3428)
+* Review: ([pitch](https://forums.swift.org/t/pitch-uncheckedstring-raw-string-support-for-swift/89571))
 
 ## Summary of changes
 
