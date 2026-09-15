@@ -126,9 +126,9 @@ a cheap, O(1), check for whether two values share the same underlying
 storage, as distinct from `==`s O(*n*) check for equal content.
 
 There are also counterparts of `CustomStringConvertible`,
-`ExpressibleByStringLiteral`, and `ExpressibleByStringInterpolation`
-that support the use of literals and even interpolation with
-`UncheckedString`.
+`ExpressibleByStringLiteral`, `ExpressibleByStringInterpolation` and
+`DefaultStringInterpolation` that support the use of literals and even
+interpolation with `UncheckedString`.
 
 ## Detailed design
 
@@ -395,6 +395,34 @@ non-printable and non-ASCII elements using the same `\x{hh}` notation used
 by its literals, and escapes literal backslash and double-quote characters,
 so that `String(reflecting:)`/`debugPrint` produce output that could, in
 most cases, be pasted back in as a literal.
+
+### Interpolation
+
+While `UncheckedString` itself directly implements `init(stringInterpolation:)`
+in a similar manner to `String`, we also provide an analogue of
+`DefaultStringInterpolation`, namely `DefaultUncheckedStringInterpolation`;
+if a type is `ExpressibleByUncheckedStringInterpolation` and has a
+`StringInterpolation` that is equal to
+`DefaultUncheckedStringInterpolation<Element>`, then the type will have an
+  `init(stringInterpolation:)` method generated for it automatically.
+
+For instance:
+
+```swift
+struct WrappedUncheckedString: ExpressibleByUncheckedStringInterpolation {
+  typealias StringInterpolation = DefaultUncheckedStringInterpolation<UInt8>
+
+  var storage: UncheckedString<UInt8>
+
+  init(uncheckedStringLiteral value: UncheckedString<UInt8>) {
+    storage = value
+  }
+}
+
+let s: WrappedUncheckedString = "Hello"
+let w: UncheckedString<UInt8> = "World"
+let h: WrappedUncheckedString = "Hello, \(w)!"
+```
 
 ### Identity comparison
 
