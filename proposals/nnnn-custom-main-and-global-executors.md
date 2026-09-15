@@ -349,13 +349,16 @@ the default executors:
 /// An ExecutorFactory is used to create the default main and task
 /// executors.
 public protocol ExecutorFactory {
+  associatedtype MainExecutorType: MainExecutor
+  associatedtype DefaultExecutorType: TaskExecutor
+  
   /// Constructs and returns the main executor, which is started implicitly
   /// by the `async main` entry point and owns the "main" thread.
-  static var mainExecutor: any MainExecutor { get }
+  static var mainExecutor: MainExecutorType { get }
 
   /// Constructs and returns the default or global executor, which is the
   /// default place in which we run tasks.
-  static var defaultExecutor: any TaskExecutor { get }
+  static var defaultExecutor: DefaultExecutorType { get }
 }
 
 ```
