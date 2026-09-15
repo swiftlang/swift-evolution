@@ -5,6 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: Not yet implemented
+* Review: ([pitch](https://forums.swift.org/t/pitch-add-rawspan-primitive-to-hasher/89583))
 
 ## Summary of changes
 
