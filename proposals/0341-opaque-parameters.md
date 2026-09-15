@@ -5,6 +5,7 @@
 * Review Manager: [Ben Cohen](https://github.com/AirspeedSwift)
 * Status: **Implemented (Swift 5.7)**
 * Implementation: [apple/swift#40993](https://github.com/apple/swift/pull/40993)
+* Review: ([pitch](https://forums.swift.org/t/pitch-opaque-parameter-types/54914)) ([review](https://forums.swift.org/t/se-0341-opaque-parameter-declarations/55082)) ([acceptance with modifications](https://forums.swift.org/t/accepted-with-modifications-se-0341-opaque-parameters/55397))
 
 ## Introduction
 
