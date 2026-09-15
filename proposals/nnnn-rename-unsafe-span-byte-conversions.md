@@ -66,7 +66,7 @@ extension MutableRawSpan {
 }
 ```
 
-`MutableRawSpan` has a third `@unsafe` overload of `storeBytes` which omits bounds-checking (`storeBytes(of:toUncheckedByteOffset:as:)`). We do not propose to rename it, because the bounds-checking unsafety is more serious than the padding hazard, and there is no confusable overload that could overstate safety.
+`MutableRawSpan` has a third `@unsafe` overload of `storeBytes` which omits bounds-checking (`storeBytes(of:toUncheckedByteOffset:as:)`). We do not propose to rename it, because the bounds-checking unsafety is more serious than the padding hazard, and there is no confusable overload that might overstate safety.
 
 ```swift
 extension OutputRawSpan {
@@ -80,7 +80,7 @@ extension OutputRawSpan {
 }
 ```
 
-Each original name is retained, with a deprecation scheduled for a future Swift language mode. This will discourage IDEs from suggesting the deprecated symbols, while avoiding the immediate appearance of warnings until a new language mode is introduced.
+Each original name is retained, with a deprecation scheduled for a future Swift language mode. This will discourage IDEs from suggesting the deprecated symbols, while avoiding the immediate appearance of warnings in user projects. When the new language mode is introduced, the compiler will begin issuing warnings about the deprecated symbols.
 
 ```swift
 extension Span where Element: BitwiseCopyable {
