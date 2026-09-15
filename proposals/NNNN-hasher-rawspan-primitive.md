@@ -28,7 +28,7 @@ Add a new primitive API to `Hasher` that accepts a `RawSpan` as its argument. Th
 var values: InlineArray<_, UInt8> = /* ... */
 
 var hasher = Hasher()
-hasher.combine(bytes: values.bytes)
+hasher.combine(bytes: values.span.bytes)
 ```
 
 ## Detailed design
