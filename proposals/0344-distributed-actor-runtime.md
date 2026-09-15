@@ -7,10 +7,7 @@
 * Implementation:
   * Partially available in [recent `main` toolchain snapshots](https://swift.org/download/#snapshots) behind the `-enable-experimental-distributed` feature flag.
   * This flag also implicitly enables `-enable-experimental-concurrency`.
-* Review threads
-  * [First Review](https://forums.swift.org/t/se-0344-distributed-actor-runtime/55525) ([summary](https://forums.swift.org/t/returned-for-revision-se-0344-distributed-actor-runtime/55836))
-  * [Second Review](https://forums.swift.org/t/se-0344-second-review-distributed-actor-runtime/56002) ([summary](https://forums.swift.org/t/accepted-se-0344-distributed-actor-runtime/56416))
-
+* Review: ([first pitch](https://forums.swift.org/t/pitch-distributed-actor-runtime/54045)) ([second pitch](https://forums.swift.org/t/pitch-2-distributed-actor-runtime/55124)) ([first review](https://forums.swift.org/t/se-0344-distributed-actor-runtime/55525)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0344-distributed-actor-runtime/55836)) ([second review](https://forums.swift.org/t/se-0344-second-review-distributed-actor-runtime/56002)) ([acceptance](https://forums.swift.org/t/accepted-se-0344-distributed-actor-runtime/56416))
 
 ## Table of Contents
 
