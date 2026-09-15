@@ -35,10 +35,10 @@ Similarly, `RawSpan` and `MutableRawSpan` gain initializers that form spans over
 
 ```swift
 let header = PacketHeader(...)
-let c = checksum(RawSpan(ofOne: header))
+let c = checksum(RawSpan(bytesOf: header))
 
 var timestamp = UInt64.zero
-var bytes = MutableRawSpan(ofOne: &timestamp)
+var bytes = MutableRawSpan(bytesOf: &timestamp)
 parser.read(into: bytes)
 ```
 
@@ -87,7 +87,7 @@ extension RawSpan {
   ///   - value: a value to be borrowed by the span
   @_lifetime(borrow value)
   public init<Element: ConvertibleToBytes>(
-    ofOne value: borrowing Element
+    bytesOf value: borrowing Element
   )
 }
 ```
@@ -107,7 +107,7 @@ extension MutableRawSpan {
   ///   - value: a value to be mutated through the span
   @_lifetime(&value)
   public init<Element: ConvertibleToBytes & ConvertibleFromBytes>(
-    ofOne value: inout Element
+    bytesOf value: inout Element
   )
 }
 ```
@@ -138,6 +138,14 @@ single-element span, but they are limited to values of copyable types. They are 
 These initializers were originally pitched without an argument label, as `Span(header)` and `MutableSpan(&timestamp)`. There were two objections to the unlabeled spelling. The first is that an unlabeled initializer in Swift conventionally denotes a conversion of its argument. The second is that users might expect `Span(someArray)` to produce the same thing as `someArray.span`.
 
 The `ofOne:` label makes it obvious that the created `Span` is over 1 value, and references `CollectionOfOne`, which has filled a similar role for copyable values.
+
+#### Same label for `RawSpan` and `Span` initializers
+
+We could use the same `ofOne:` label used for the `Span` initializer with the `RawSpan`. We feel that `ofOne` connotes a single element, which for `RawSpan` means one byte. The `bytesOf:` label has an appropriately plural connotation.
+
+#### Add a `RawSpan` initializer for unsafe byte views
+
+The proposed `RawSpan`initializer is constrained to `some ConvertibleToBytes`. We could also add an unsafe initializer with no constraints, with a label such as `paddedBytesOf:`. We would prefer not to proliferate the initializers, and let the current API compose for the unsafe case. For example, one could obtain a `RawSpan` from a `SIMD3<UInt16>`instance as follows: `Span(ofOne: coordinates).unsafeBytes`.
 
 ## Acknowledgments
 
