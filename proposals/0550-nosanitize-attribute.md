@@ -5,7 +5,7 @@
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Active review (September 16–30, 2026)**
 * Implementation: https://github.com/swiftlang/swift/pull/91137/changes
-* Review: ([pitch](https://forums.swift.org/t/pitch-nosanitize-attribute-for-functions/88972))
+* Review: ([pitch](https://forums.swift.org/t/pitch-nosanitize-attribute-for-functions/88972)) ([review](https://forums.swift.org/t/se-0550-nosanitize-attribute-for-functions/89593))
 
 ## Summary of changes
 
