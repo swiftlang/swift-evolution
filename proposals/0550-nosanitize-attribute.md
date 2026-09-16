@@ -1,11 +1,11 @@
 # @noSanitize attribute for functions
 
-* Proposal: [SE-NNNN](NNNN-nosanitize-attribute.md]
+* Proposal: [SE-0550](NNNN-nosanitize-attribute.md]
 * Authors: [Andrew Haberlandt](https://github.com/ndrewh)
-* Review Manager: TBD
-* Status: **Awaiting Review**
+* Review Manager: [Tony Allevato](https://github.com/allevato)
+* Status: **Active review (September 16–30, 2026)**
 * Implementation: https://github.com/swiftlang/swift/pull/91137/changes
-* Review: ([pitch](tbd))
+* Review: ([pitch](https://forums.swift.org/t/pitch-nosanitize-attribute-for-functions/88972))
 
 ## Summary of changes
 
@@ -78,14 +78,15 @@ Combining `@inline(always)` with `@noSanitize` on the same declaration is not su
 ### Compilation condition for enabled sanitizers
 
 Because `@inline(always)` and `@noSanitize` cannot be combined on the same declaration, a mechanism is needed to support functions that are `@inline(always)` in non-sanitized builds but out-of-line-and-uninstrumented in sanitized builds.
-A new `sanitized(<kind>)` compilation condition, with the same supported kinds as `noSanitize`, will evaluate truthy if the specified sanitizer is enabled. Each `sanitized` condition may only list a single sanitizer kind, but can
+A new `sanitized(<kind>)` compilation condition, with the same supported kinds as `noSanitize`, will evaluate true if the specified sanitizer is enabled. Each `sanitized` condition may only list a single sanitizer kind, but can
 be combined using the usual logical operators.
 
 ```swift
 #if !sanitized(address)
 @inline(always)
-#endif
+#else
 @noSanitize(address)
+#endif
 func f() { ... }
 ```
 
