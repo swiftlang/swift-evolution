@@ -1,6 +1,6 @@
 # @noSanitize attribute for functions
 
-* Proposal: [SE-0550](0550-nosanitize-attribute.md]
+* Proposal: [SE-0550](0550-nosanitize-attribute.md)
 * Authors: [Andrew Haberlandt](https://github.com/ndrewh)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Active review (September 16–30, 2026)**
