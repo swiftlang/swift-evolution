@@ -5,8 +5,9 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift-testing#1115](https://github.com/swiftlang/swift-testing/pull/1115)
-* Review: ([Pitch 1](https://forums.swift.org/t/pitch-polling-expectations/79866),
-[Pitch 2](https://forums.swift.org/t/pitch-2-polling-confirmations-in-the-testing-library/81711))
+* Review:
+  ([Pitch 1](https://forums.swift.org/t/pitch-polling-expectations/79866))
+  ([Pitch 2](https://forums.swift.org/t/pitch-2-polling-confirmations-in-the-testing-library/81711))
 
 ## Introduction
 
@@ -21,10 +22,10 @@ APIs or awaiting on an `async` callable in order to block test execution until
 a callback is called, or an async callable returns. However, this requires the
 code being tested to support callbacks or return a status as an async callable.
 
-Consider the common case of verifying an analytics logger, which, for
-performance reasons, does all of its processing off of the calling thread
-without awaiting. For this example, the `Logger` records all logs to an
-on-device [JSON Lines](https://jsonlines.org) document for later retrieval.
+Consider the case of verifying an analytics logger, which, for performance
+reasons, does all of its processing off of the calling thread without awaiting.
+For this example, the `Logger` records all logs to an on-device
+[JSON Lines](https://jsonlines.org) document for later retrieval.
 
 ```swift
 import Foundation
@@ -128,12 +129,13 @@ another entry has been recorded to the specified log url:
 }
 ```
 
-This is inefficient. Using `Task.sleep` to wait for data to be written to the
-log file extends the test runtime unnecessarily, leading test authors to attempt
-to figure out a middle ground where they're not waiting too long, but also not
-waiting too little. This unnecessarily wastes test authors time, and introduces
-potential flakiness as that middle ground of optimal waiting is extremely
-dependent on the environment the test runs in.
+This is inefficient and introduces potential flakiness. Using `Task.sleep` to
+wait for data to be written to the log file extends the test runtime
+unnecessarily, leading test authors to attempt to figure out a middle ground
+where they're not waiting too long, but also not waiting too little. This
+unnecessarily wastes test authors time, and introduces potential flakiness as
+that middle ground of optimal waiting is extremely dependent on the environment
+the test runs in.
 
 Note: On some platforms, test authors are able to use the [Dispatch Source](https://developer.apple.com/documentation/dispatch/dispatch-source)
 APIs to monitor when a file is changed, and to receive a callback.
@@ -191,36 +193,36 @@ absolutely necessary.
 
 This proposal introduces polling to help test authors address these cases. In
 this and other similar cases, polling makes these classes of tests practical or
-even possible, as well as speeding up the execution of individual tests as well
-as the entire test suite.
+even possible. Polling also speeds up the execution of individual tests and
+overall the entire test suite.
 
 ## Proposed solution
 
-This proposal introduces new members of the `confirmation` family of functions:
-`confirmation(_:until:within:pollingEvery:sourceLocation:_:)`. These
-functions take in a closure to be repeatedly evaluated until the specific
-condition passes, waiting at least some amount of time - specified by
-`pollingEvery`/`interval` and defaulting to 1 millisecond - before evaluating
-the closure again.
+This proposal introduces a new member of the `confirmation` family of functions:
+`confirmation(_:until:within:pollingEvery:sourceLocation:_:)`. This function
+takes in a closure to be repeatedly evaluated until the specific condition
+passes, waiting at least some amount of time - specified by `pollingEvery` and
+defaulting to 1 millisecond - before evaluating the closure again. When polling
+is successful, this function will return the value returned by the last
+invocation of the `body` closure.
 
-Both of these use the new `PollingStopCondition` enum to determine when to end
+This function uses the new `PollingStopCondition` type to determine when to end
 polling: `PollingStopCondition.firstPass` configures polling to stop as soon
-as the `body` closure returns `true` or a non-`nil` value. At this point,
-the confirmation will be marked as passing.
+as the `body` closure does not record any issues. At this point, the
+confirmation will be marked as passing, and all of the issues recorded in the
+`body` closure will be discarded.  
 `PollingStopCondition.stopsPassing` configures polling to stop once the `body`
-closure returns `false` or a `nil` value. At this point, the confirmation will
-be marked as failing: an error will be thrown, and an issue will be recorded.
+closure records any issue. Once an issue is recorded, the confirmation will be
+marked as failing: an error will be thrown, and the reported issues will be
+recorded and displayed to the test runner.
 
-Under both `PollingStopCondition` cases, when the early stop condition isn't
+Under both `PollingStopCondition` values, when the early stop condition isn't
 reached, polling will continue up until approximately the `within`/`duration`
 value has elapsed. When `PollingStopCondition.firstPass` is specified, reaching
-the duration stop point will mark the confirmation as failing.
-When `PollingStopCondition.stopsPassing` is specified, reaching the duration
-stop point will mark the confirmation as passing.
-
-To aid with deciphering polling failures, we will also add a new `PollResult`
-type. This contains both the result of a particular polling attempt, as well as
-an optional `Comment` describing what happened in that particular poll attempt.
+the duration stop point will mark the confirmation as failing and report the
+issues for the most recent polling attempt. When `PollingStopCondition.stopsPassing`
+is specified, reaching the duration stop point will mark the confirmation as
+passing, and no issues will be reported.
 
 Tests will now be able to poll code updating in the background using either of
 the stop conditions. For the example of verifying that file logger, valid tests
@@ -258,7 +260,8 @@ final class LoggerTests: Sendable {
       decoder.dateDecodingStrategy = .iso8601
       let messages = try decoder.decoding(Log.self, from: data)
 
-      return messages.count == 1 && messages.first?.message == "Hello world"
+      #expect(messages.count == 1)
+      #expect(messages.first?.message == "Hello world")
     }
   }
 
@@ -275,7 +278,7 @@ final class LoggerTests: Sendable {
       decoder.dateDecodingStrategy = .iso8601
       let messages = try decoder.decoding(Log.self, from: data)
 
-      return messages.count == 1
+      #expect(messages.count == 1)
     }
   }
 }
@@ -285,11 +288,11 @@ final class LoggerTests: Sendable {
 
 ### New confirmation functions
 
-We will introduce 4 new members of the confirmation family of functions to the
+We will introduce 1 new member of the confirmation family of functions to the
 testing library:
 
 ```swift
-/// Poll expression within the duration based on the given stop condition
+/// Confirm that some expression eventually meets the stop condition.
 ///
 /// - Parameters:
 ///   - comment: A user-specified comment describing this confirmation.
@@ -313,121 +316,13 @@ testing library:
 ///     `interval` must be greater than 0.
 ///   - sourceLocation: The location in source where the confirmation was called.
 ///   - body: The function to invoke. The expression is considered to pass if
-///     the `body` returns true. Similarly, the expression is considered to fail
-///     if `body` returns false.
+///     no expectation fails and no error is thrown. Similarly, the expression
+///     is considered to fail if expectation fails or an error is thrown.
 ///
-/// - Throws: A `PollingFailedError` if the `body` does not return true within
-///   the polling duration.
+/// - Throws: A `PollingFailedError` if the `body` does not pass during the
+///   polling duration.
 ///
-/// Use polling confirmations to check that an event while a test is running in
-/// complex scenarios where other forms of confirmation are insufficient. For
-/// example, waiting on some state to change that cannot be easily confirmed
-/// through other forms of `confirmation`.
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public func confirmation(
-  _ comment: Comment? = nil,
-  until stopCondition: PollingStopCondition,
-  within duration: Duration? = nil,
-  pollingEvery interval: Duration? = nil,
-  sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: nonisolated(nonsending) @escaping () async throws -> Bool
-) async throws
-
-/// Poll expression within the duration based on the given stop condition
-///
-/// - Parameters:
-///   - comment: A user-specified comment describing this confirmation.
-///   - stopCondition: When to stop polling.
-///   - duration: The expected length of time to continue polling for.
-///     This value does not incorporate the time to run `body`, and may not
-///     correspond to the wall-clock time that polling lasts for, especially on
-///     highly-loaded systems with a lot of tests running.
-///     If nil, this uses whatever value is specified under the last
-///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
-///     with a matching stopCondition.
-///     If no such trait has been added, then polling will be attempted for
-///     about 1 second before recording an issue.
-///     `duration` must be greater than or equal to `interval`.
-///   - interval: The minimum amount of time to wait between polling attempts.
-///     If nil, this uses whatever value is specified under the last
-///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
-///     with a matching stopCondition.
-///     If no such trait has been added, then polling will wait at least
-///     1 millisecond between polling attempts.
-///     `interval` must be greater than 0.
-///   - sourceLocation: The location in source where the confirmation was called.
-///   - body: The function to invoke. The expression is considered to pass if
-///     the `body` returns a ``PollResult`` where `value` is true. Similarly, the
-///     expression is considered to fail if `body` returns a ``PollResult``
-///     where `value` is false.
-///
-/// - Throws: A ``PollingFailedError`` if the `body` does not return true within
-///   the polling duration.
-///
-/// Use polling confirmations to check that an event while a test is running in
-/// complex scenarios where other forms of confirmation are insufficient. For
-/// example, waiting on some state to change that cannot be easily confirmed
-/// through other forms of `confirmation`.
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public func confirmation(
-  _ comment: Comment? = nil,
-  until stopCondition: PollingStopCondition,
-  within duration: Duration? = nil,
-  pollingEvery interval: Duration? = nil,
-  sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: nonisolated(nonsending) @escaping () async throws -> PollResult<Bool>
-) async throws {
-  let poller = Poller(
-    stopCondition: stopCondition,
-    duration: stopCondition.duration(with: duration),
-    interval: stopCondition.interval(with: interval),
-    comment: comment,
-    sourceContext: SourceContext(
-      backtrace: .current(),
-      sourceLocation: sourceLocation
-    )
-  )
-  try await poller.evaluate() {
-    do {
-      return try await body()
-    } catch {
-      return false
-    }
-  }
-}
-
-
-/// Confirm that some expression eventually returns a non-nil value
-///
-/// - Parameters:
-///   - comment: A user-specified comment describing this confirmation.
-///   - stopCondition: When to stop polling.
-///   - duration: The expected length of time to continue polling for.
-///     This value does not incorporate the time to run `body`, and may not
-///     correspond to the wall-clock time that polling lasts for, especially on
-///     highly-loaded systems with a lot of tests running.
-///     If nil, this uses whatever value is specified under the last
-///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
-///     with a matching stopCondition.
-///     If no such trait has been added, then polling will be attempted for
-///     about 1 second before recording an issue.
-///     `duration` must be greater than or equal to `interval`.
-///   - interval: The minimum amount of time to wait between polling attempts.
-///     If nil, this uses whatever value is specified under the last
-///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
-///     with a matching stopCondition.
-///     If no such trait has been added, then polling will wait at least
-///     1 millisecond between polling attempts.
-///     `interval` must be greater than 0.
-///   - sourceLocation: The location in source where the confirmation was called.
-///   - body: The function to invoke. The expression is considered to pass if
-///     the `body` returns a non-nil value. Similarly, the expression is
-///     considered to fail if `body` returns nil.
-///
-/// - Throws: A `PollingFailedError` if the `body` does not return true within
-///   the polling duration.
-///
-/// - Returns: The last non-nil value returned by `body`.
+/// - Returns: The last value returned by `body`.
 ///
 /// Use polling confirmations to check that an event while a test is running in
 /// complex scenarios where other forms of confirmation are insufficient. For
@@ -441,79 +336,13 @@ public func confirmation<R>(
   within duration: Duration? = nil,
   pollingEvery interval: Duration? = nil,
   sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: nonisolated(nonsending) @escaping () async throws -> sending R?
+  _ body: nonisolated(nonsending) @escaping () async throws -> sending R
 ) async throws -> R
-
-/// Confirm that some expression eventually returns a non-nil value
-///
-/// - Parameters:
-///   - comment: A user-specified comment describing this confirmation.
-///   - stopCondition: When to stop polling.
-///   - duration: The expected length of time to continue polling for.
-///     This value does not incorporate the time to run `body`, and may not
-///     correspond to the wall-clock time that polling lasts for, especially on
-///     highly-loaded systems with a lot of tests running.
-///     If nil, this uses whatever value is specified under the last
-///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
-///     with a matching stopCondition.
-///     If no such trait has been added, then polling will be attempted for
-///     about 1 second before recording an issue.
-///     `duration` must be greater than or equal to `interval`.
-///   - interval: The minimum amount of time to wait between polling attempts.
-///     If nil, this uses whatever value is specified under the last
-///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
-///     with a matching stopCondition.
-///     If no such trait has been added, then polling will wait at least
-///     1 millisecond between polling attempts.
-///     `interval` must be greater than 0.
-///   - sourceLocation: The location in source where the confirmation was called.
-///   - body: The function to invoke. The expression is considered to pass if
-///     the `body` returns a ``PollResult`` where `value` is non-nil. Similarly, the
-///     expression is considered to fail if `body` returns a ``PollResult``
-///     where `value` is nil.
-///
-/// - Throws: A `PollingFailedError` if the `body` does not return true within
-///   the polling duration.
-///
-/// - Returns: The last non-nil value returned by `body`.
-///
-/// Use polling confirmations to check that an event while a test is running in
-/// complex scenarios where other forms of confirmation are insufficient. For
-/// example, waiting on some state to change that cannot be easily confirmed
-/// through other forms of `confirmation`.
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-@discardableResult
-public func confirmation<R>(
-  _ comment: Comment? = nil,
-  until stopCondition: PollingStopCondition,
-  within duration: Duration? = nil,
-  pollingEvery interval: Duration? = nil,
-  sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: nonisolated(nonsending) @escaping () async throws -> sending PollResult<R>
-) async throws -> R {
-  let poller = Poller(
-    stopCondition: stopCondition,
-    duration: stopCondition.duration(with: duration),
-    interval: stopCondition.interval(with: interval),
-    comment: comment,
-    sourceContext: SourceContext(
-      backtrace: .current(),
-      sourceLocation: sourceLocation
-    )
-  )
-  return try await poller.evaluateOptional() {
-    do {
-      return try await body()
-    } catch {
-      return nil
-    }
-  }
-}
 ```
 
-### New `PollingStopCondition` enum
+### New `PollingStopCondition` type
 
-A new enum type, `PollingStopCondition` will be defined, specifying when to stop
+A new type, `PollingStopCondition` will be defined, specifying when to stop
 polling before the duration has elapsed. Additionally, if the early stop
 condition isn't fulfilled before the duration elapses, then this also defines
 how the confirmation should be handled.
@@ -521,48 +350,21 @@ how the confirmation should be handled.
 ```swift
 /// A type defining when to stop polling early.
 /// This also determines what happens if the duration elapses during polling.
-public enum PollingStopCondition: Sendable, Equatable, Codable {
+public struct PollingStopCondition: Sendable, Equatable, Codable {
   /// Evaluates the expression until the first time it passes
   /// If it does not pass once by the time the duration is reached, then a
   /// failure will be reported.
-  case firstPass
+  public static var firstPass: PollingStopCondition { get }
 
-  /// Evaluates the expression until the first time it returns fails.
+  /// Evaluates the expression until the first time it fails.
   /// If the expression fails, then a failure will be reported.
   /// If the expression only passes before the duration is reached, then
   /// no failure will be reported.
   /// If the expression does not finish evaluating before the duration is
   /// reached, then a failure will be reported.
-  case stopsPassing
+  public static var stopsPassing: PollingStopCondition { get }
 }
 ```
-
-### New `PollResult` type
-
-To aid with deciphering why a particular polling attempt failed, we will
-add the `PollResult` type. This helps test authors to debug their polling
-confirmations, and drastically improves the debuggability of polling
-confirmations.
-
-```swift
-/// The result of a polling body, with an attached comment.
-/// This allows test authors to include information about why a particular poll
-/// attempt failed (or didn't fail).
-public struct PollResult<T>: ExpressibleByNilLiteral {
-  /// The value to (potentially) return to the caller of the polling
-  /// confirmation.
-  public let value: T?
-  /// A message explaining what happened in this particular polling attempt.
-  /// These messages are only used when the polling confirmation fails
-  /// and only the comment from the last polling attempt is ever used.
-  public let comment: Comment?
-}
-
-extension PollResult: ExpressibleByBooleanLiteral where T == Bool {}
-```
-
-The `ExpressibleBy(Nil|Boolean)Literal` conformances exist to aid in the case
-where a poll attempt might fast fail for an obvious reason.
 
 ### New `PollingFailedError` Error type and `PollingFailedError.Reason` enum
 
@@ -609,9 +411,7 @@ public struct Issue {
     ///     confirmation failed.
     ///
     /// This issue can occur when calling
-    /// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)->_``
-    /// and
-    /// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)->()``
+    /// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)``
     /// whenever the polling fails, as described in ``PollingStopCondition``.
     case pollingConfirmationFailed(reason: PollingFailureReason)
 
@@ -633,9 +433,8 @@ extension Issue.Kind {
 
     /// An issue due to a polling confirmation having failed.
     ///
-    /// This issue can occur when calling ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-455gr``
-    /// or
-    /// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-5tnlk``
+    /// This issue can occur when calling
+    /// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)``
     /// whenever the polling fails, as described in ``PollingStopCondition``.
     case pollingConfirmationFailed
   }
@@ -652,9 +451,7 @@ are separate traits for configuring defaults for these functions.
 
 ```swift
 /// A trait to provide a default polling configuration to all usages of
-/// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)->_``
-/// and
-/// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)->()``
+/// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)``
 /// within a test or suite using the specified stop condition.
 ///
 /// To add this trait to a test, use the ``Trait/pollingConfirmationDefaults``
@@ -783,20 +580,19 @@ actor Counter {
     await subject.increment()
   }
   try await confirmation(until: .firstPass) {
-    await subject.count == 1
+    #expect(await subject.count == 1)
   }
 }
 ```
 
 As written, the closure may only run a handful of times before it starts
-returning true. At which point polling will end, and no failure will be
-reported.
+passing. At which point polling will end, and no issue will be reported.
 
 Polling will be stopped when either:
 
 - the specified `duration` has elapsed,
 - the task that started the polling is cancelled,
-- the closure returns a value that satisfies the stopping condition, or
+- the closure satisfies the stopping condition, or
 - the closure throws an error.
 
 ### When Polling should not be used
@@ -818,23 +614,23 @@ working as intended.
 
 Polling also only offers a snapshot in time of the state. When
 `PollingStopCondition.firstPass` is used, polling will stop and return a pass
-after the first time the `body` returns true, even if any subsequent calls
-would've returned false.
+after the first time no issues are reported when running `body`, even if any
+subsequent calls would've resulted in issues being reported.
 
 Furthermore, polling introduces delays to the running code. This isn't that
 much of a concern for `PollingStopCondition.firstPass`, where the passing
 case minimizes test execution time. However, the passing case when using 
 `PollingStopCondition.stopsPassing` utilizes the full duration specified. If 
 the test author specifies the polling duration to be 10 minutes, then the test 
-will poll for approximately that long, so long as the polling body keeps 
-returning true.
+will poll for approximately that long, so long as the polling body keeps not
+finding issues.
 
 Additionally, polling should not be used to wait out long delays in
 implementation code. If there is a 0.5 second delay in the implementation code,
-then a 1-second polling confirmation will exhaust at least half of its polling
-attempts just waiting out that long delay. In high-load environments such as
-CI systems or systems running in virtual machines, that 0.5 second delay can
-often last longer than the amount of time spent polling, resulting in
+then a 1-second polling confirmation will exhaust approximately half of its
+polling attempts just waiting out that long delay. In high-load environments
+such as CI systems or systems running in virtual machines, that 0.5 second delay
+can often last longer than the amount of time spent polling, resulting in
 unstable tests.  
 To address this, developers should write the implementation code to use an
 injected clock, allowing for the test to inject a clock where the delay can be
@@ -892,7 +688,8 @@ reached.
 Instead, polling could be implemented as a curve. For example, poll very
 frequently at first, but progressively wait longer and longer between poll
 attempts. Or the opposite: poll sporadically at first, increasing in frequency
-as polling continues. We could even offer custom curve options.
+as polling continues. We could even offer the ability for test authors to
+specify custom curves.
 
 For this initial implementation, I wanted to keep this simple. As such, while
 a curve is promising, I think it is better considered on its own as a separate
@@ -984,14 +781,13 @@ execution time, and would always fail the confirmation:
 }
 ```
 
-Conversely, this this test would not count the time spent waiting for
-`Task.sleep` as part of the test execution, leading the test to pass:
+Conversely, this test would not count the time spent waiting for `Task.sleep` as
+part of the test execution, leading the test to pass:
 
 ```swift
 @Test func `sleeping using Task.sleep`() async throws {
   try await confirmation(until: .firstPass, within: .seconds(1)) {
     try await Task.sleep(for: .milliseconds(1_500))
-    return true
   }
 }
 ```
@@ -1002,6 +798,22 @@ infeasible to do so for all OSes the testing library supports. This inability
 to implement support for test execution time for all OSes the testing library
 supports makes this approach infeasible as the primary method for tracking
 when to stop a polling confirmation.
+
+### Use the return value of the `body` closure to determine if the stop condition is met
+
+Instead of detecting stop condition by the issues reported by the `body`
+closure, `confirmation(_:until:within:pollingEvery:sourceLocation:_:)` could
+instead determine stop condition on if the `body` closure returned a nil/non-nil
+value, or if it returned true/false. While this works, it's suboptimal. It is a
+heavier maintenance burden: requiring at least a second
+`confirmation(_:until:within:pollingEvery:sourceLocation:_:)` in order to
+capture the case when `body` returns an optional as well as when `body` returns
+a boolean. Additionally, this approach is harder to debug why the polling
+confirmation failed, any non-trivial polling body would require the use of a
+debugger to determine why exactly the confirmation failed. By capturing the
+issues recorded in the body closure, polling confirmations can re-use the
+existing infrastructure for capturing why an issue occurred to better surface
+to the test author what exactly is going on.
 
 ### Use separate functions instead of the `PollingStopCondition` enum
 
@@ -1049,3 +861,7 @@ original implementation of Nimble's Polling Expectations.
 Additionally, I'd like to thank [Jonathan Grynspan](https://github.com/grynspan)
 for his help with API design, as well as for investigating tracking task
 execution time.
+
+Furthermore, I'd like to thank [Brandon Williams](https://github.com/mbrandonw)
+for suggesting that polling confirmations capture reported issues to determine
+if a polling attempt has succeeded or failed.
