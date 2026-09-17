@@ -1,7 +1,7 @@
 # Deployment target conditional compilation
 
 * Proposal: [SE-NNNN](NNNN-deployment-target-conditional-compilation.md)
-* Authors: [Jiaxu Li](https://github.com/Jiaxu-Li)
+* Author: [Jiaxu Li](https://github.com/Jiaxu-Li)
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [swift prototype](https://github.com/Jiaxu-Li/swift/tree/deployment-target-ifconfig),
@@ -77,8 +77,8 @@ Introduce `deploymentTargetAtLeast(...)` as a condition accepted by `#if`:
 ```
 
 The arguments use the platform-version spelling of availability queries. Only
-the active platform's requirement is tested. The final `*` leaves unlisted
-platforms unrestricted.
+the active platform's requirement is tested. The final `*` means the condition
+evaluates to `true` on all other platforms.
 
 For the example above:
 
@@ -116,9 +116,8 @@ version -> decimal-digits
 version -> version '.' decimal-digits
 ```
 
-A trailing comma is permitted. The required wildcard may appear only once and
-must be last. `deploymentTargetAtLeast(*)` is valid and always evaluates to
-`true`.
+The wildcard is required, may appear only once, and must be the last argument.
+`deploymentTargetAtLeast(*)` is valid and always evaluates to `true`.
 
 As with other conditional compilation predicates, the condition can be combined
 with `!`, `&&`, `||`, and parentheses:
@@ -135,35 +134,23 @@ components treated as zero. For example, `15` and `15.0` compare as equal.
 
 ### Platform matching
 
-Platform names come from `os(...)`; `anyAppleOS` and `macCatalyst` are also
-supported for availability-style fallback and target-environment
-specialization. Existing aliases such as `OSX`/`macOS` and `xrOS`/`visionOS`
-refer to the same platform and cannot both appear in one condition.
+Platform names and their aliases are the same as in `if #available(...)`, and a
+platform may not be listed twice. A requirement applies only when its platform
+names the target being compiled for, using the same platform names that
+`os(...)` and `targetEnvironment(...)` test. When more than one listed platform
+names the target, the most specific one determines the version that is tested,
+so a `macCatalyst` requirement is preferred over an `iOS` one when compiling for
+Mac Catalyst. If no listed platform names the target, `*` applies and the
+condition evaluates to `true`.
 
-The compiler chooses at most one version requirement:
-
-1. When compiling for Mac Catalyst, a `macCatalyst` requirement takes
-   precedence over an `iOS` requirement.
-2. A requirement for the active operating system takes precedence over
-   `anyAppleOS`.
-3. If no requirement matches the active target, `*` applies and the condition
-   evaluates to `true`.
-
-For example:
-
-```swift
-#if deploymentTargetAtLeast(anyAppleOS 26, iOS 18, macCatalyst 19, *)
-// ...
-#endif
-```
-
-This tests against 19 when compiling for Mac Catalyst, 18 when compiling for
-iOS, 26 when compiling for another Apple OS, and imposes no requirement on
-non-Apple platforms.
-
-As with existing `anyAppleOS` availability, versions earlier than 26 produce a
-warning because Apple OS version numbers are aligned only beginning with version
-26.
+This differs from `if #available(...)`, where a requirement written for one
+platform can also describe another that inherits its availability. Applying an
+iOS requirement to visionOS is meaningful there only because the compiler
+translates the version through a mapping supplied by the SDK. Conditional
+compilation is evaluated before that information is available, so this condition
+matches on the platform name alone. Compiling for visionOS with a requirement
+written only for iOS therefore falls to `*`, and a requirement naming
+`visionOS` is needed to test a visionOS deployment target.
 
 An unrecognized platform name produces a warning and cannot match a target
 known to that compiler, so the wildcard determines the result. This allows
@@ -192,6 +179,12 @@ obtain a deployment version for it, compilation fails:
 #endif
 ```
 
+`if #available(...)` accepts such a platform and treats the check as satisfied,
+because a runtime query can fall back on the running system. This condition has
+nothing to compare against when the target carries no deployment version, and
+silently answering `true` or `false` would select a branch for a reason the
+source does not state, so it is diagnosed instead.
+
 The same target can remain portable by leaving Linux to the wildcard:
 
 ```swift
@@ -202,8 +195,8 @@ The same target can remain portable by leaving Linux to the wildcard:
 ```
 
 Malformed arguments, invalid versions, duplicate platforms, a missing or
-misplaced wildcard, and an unavailable deployment version are errors. Unknown
-platforms and invalid `anyAppleOS` versions produce warnings.
+misplaced wildcard, and an unavailable deployment version are errors. An
+unrecognized platform name produces a warning.
 
 ### Compilation model
 
