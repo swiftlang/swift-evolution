@@ -3,9 +3,9 @@
 * Proposal: [ST-0028](0028-revise-attachment-encodable-interfaces.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Paul LeMarquand](https://github.com/plemarquand)
-* Status: **Status: Active Review (Aug 10...Aug 24, 2026)**
+* Status: **Implemented (Swift 6.5)**
 * Implementation: [swiftlang/swift-testing#1770](https://github.com/swiftlang/swift-testing/pull/1770)
-* Review: ([pitch](https://forums.swift.org/t/pitch-revise-swift-testings-attachment-encodable-interop/88122))
+* Review: ([pitch](https://forums.swift.org/t/pitch-revise-swift-testings-attachment-encodable-interop/88122)) ([review](https://forums.swift.org/t/st-0028-revise-swift-testing-s-attachment-encodable-interop/88904)) ([acceptance](https://forums.swift.org/t/accepted-st-0028-revise-swift-testing-s-attachment-encodable-interop/89254))
 
 ## Introduction
 
