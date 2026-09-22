@@ -6,7 +6,7 @@
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift#91894](https://github.com/swiftlang/swift/pull/91894), behind `-enable-experimental-feature ObjCDirect`. Targets `rebranch` rather than `main`, because the clang ABI it depends on ships in LLVM 23.
 * Experimental Feature Flag: `ObjCDirect`
-* Review: ([first pitch](https://forums.swift.org/t/pitch-introduce-objc-direct-attribute/65138))
+* Review: ([first pitch](https://forums.swift.org/t/pitch-introduce-objc-direct-attribute/65138)) ([second pitch](https://forums.swift.org/t/pitch-2-objcdirect-direct-dispatch-for-objective-c-exposed-methods/89708))
 
 ## Summary of changes
 
@@ -34,7 +34,7 @@ The asymmetry has a practical edge for anyone maintaining a mixed-language targe
 
 **Exposure and dispatch cannot be decided separately.** `@objc` settles both at once. An author who wants a method reachable from the Objective-C code next to it, and nothing more, cannot say so, and pays for a runtime entry point nothing ever looks up. The same coupling runs one level down, into which symbols get exported; *Controlling export* takes that up.
 
-### Size
+### Binary size
 
 A direct method stops paying for its Objective-C metadata: the method-list entry, and the selector string that names it.
 
@@ -362,20 +362,6 @@ That flag has been running in production in large applications for some time, an
 * **Test doubles that stub by selector** will stop intercepting. This fails in test runs rather than in production, which is the good outcome.
 
 **Adoption is reversible in source** with no Swift-side consequences, but reversing it is an Objective-C ABI change as described above.
-
-### Measured impact
-
-We measured this on synthetic Objective-C benches and on one large application surface, at `-Os` for arm64. The *direction* of each term is robust and is what we report here. The magnitudes are not, and we are deliberately not quoting per-method byte figures: the benches are too narrow for a reader to treat them as transferable, and a number in a proposal outlives the caveat attached to it.
-
-**What is removed, in every case.** A direct method has no entry in its class's method list. Its selector string and selector reference go with it unless something else in the image still uses that selector — the method-list entry is the only part that cannot be shared, so it is the only part guaranteed to disappear. This is the term the feature exists for, and it is the one we have reproduced most often: the same coefficient turns up on a synthetic bench and on real annotated code, with sibling plain-`@objc` selectors left in place as controls.
-
-**What is added, when the symbol is exported.** A cross-image direct call needs an exported symbol: an export-trie entry in the defining image, and in each calling image a symbol string, a chained-fixup entry, a symbol-table entry, and a stub or GOT slot. Against that it gives up one *shared* `objc_msgSend` import and a selector reference. The trade does not pay, and it is what turns the cross-image case into a regression rather than a smaller saving.
-
-**What happens at the call site** depends on the receiver. A call through `self` is byte-identical — a four-byte branch either way. A receiver that may be `nil` costs a little, for the thunk. A class method costs the most, since the class must be realized before dispatch: clang emits that into the shared thunk, but at `-Os` the thunk inlines into its callers, so in practice the cost is paid per call site rather than per method.
-
-**How far this generalizes.** The metadata terms are structural and should hold anywhere. The export-trie cost is the least transferable figure we have, because it depends on prefix sharing across the whole symbol set, and a bench of a few dozen methods on a couple of classes compresses quite differently from thousands across hundreds of classes. The benches are also Objective-C rather than Swift, so they do not price Swift's native-to-foreign ARC thunk, which `@objcDirect` retains. Treat the signs as settled and the magnitudes as indicative. An adopter with a whole-program view can classify their methods in advance; one without should measure.
-
-Whole-program analysis across four large applications found roughly 29,300 methods satisfying an approximation of the rules in *Applicability* — the analyzer's rules are close to, but not identical with, what the compiler enforces.
 
 ## Future directions
 
