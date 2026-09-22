@@ -24,12 +24,38 @@ We would like to extend `Optional` so that it can vend its storage to API that e
 ```swift
 var array: UniqueArray<Person> = ...
 let someone: Optional<Person> = ...
-// currently required:
+// currently:
 if let someone {
   array.append(someone)
 }
+
 // with the proposed API:
 array.append(copying: someone.span)
+```
+
+For noncopyable wrapped types, these additions can provide a quality of life improvement and help write more straightforward code:
+
+```swift
+// currently:
+func processOld(_ b: inout UniqueArray<UInt8>?) throws -> Processed? {
+  guard let bytes = b.take() else { return nil }
+  do {
+		try validate(bytes)
+    return Processed(bytes)
+  } catch {
+    b = consume bytes // restore parameter in case of error to avoid data loss
+    throw error
+  }
+}
+
+// with the proposed API:
+func processNew(_ b: inout UniqueArray<UInt8>?) throws -> Processed? {
+  try b.edit { outputSpan in
+    if outputSpan.isEmpty { return nil }
+    try validate(outputSpan[0])
+    return Processed(outputSpan.removeLast())
+  }
+}
 ```
 
 ## Proposed solution
