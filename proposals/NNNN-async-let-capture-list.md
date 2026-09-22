@@ -1,7 +1,7 @@
 # Async-let capture list
 
 * Proposal: [SE-NNNN](NNNN-async-let-capture-list.md)
-* Authors: Dan Jabbour (https://github.com/picnicbob)
+* Authors: [Dan Jabbour](https://github.com/picnicbob)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: Not yet implemented
@@ -127,59 +127,57 @@ like the existing closure capture list that goes between the `async`
 and `let` of the `async let` call with optional leading whitespace
 and required trailing whitespace.
 
-Valid examples:
+async-let-declaration → 'async' capture-list? 'let' pattern-initializer-list
+
+Capture list expressions evaluate synchronously on the calling task,
+in source order, before the child task for the `async let` is created —
+identical to how a closure's capture list evaluates at the point the
+closure is formed, not when it's called.
+
+Each captured value is checked for `Sendable` conformance at the point
+of capture, using the same isolation-crossing diagnostics already
+applied to values referenced from the right-hand side of `async let`
+today.
+
+Since the capture list is a modifier of the whole `async let` declaration
+rather than of any single binding, it applies uniformly when the pattern
+is a tuple:
+
+​```swift
+async [request = ImageRequest(name: user.name)]
+let (thumbnail, fullSize) = (
+    self.avatarImage(for: request, size: .thumbnail),
+    self.avatarImage(for: request, size: .full)
+)
+​```
+
+A single capture list is shared by all elements of the pattern — there is
+no way to scope a capture to only one element of a multi-binding
+`async let`. If that granularity is needed, the two results should be
+split into separate `async let` statements, each with its own capture
+list.
+
+Capture list bindings are always immutable, matching closure capture list
+semantics — `var` is not a valid capture specifier, consistent with the
+existing closure grammar this feature reuses.
+
+Some valid examples:
 ```swift
 async let myVar = ...
 async[] let myVar = ...
 async [] let myVar = ...
-async[
-
-] let myVar = ...
-async [
-
-] let myVar = ...
-
-async
-let myVar = ...
-async[]
-let myVar = ...
-async []
-let myVar = ...
-
 async[capture1, capture2, capture3] let myVar = ...
 async [capture1, capture2, capture3] let myVar = ...
-async[
-	capture1,
-	capture2,
+async [
+	weak capture1,
+	unowned capture2,
 	capture3,
 ] let myVar = ...
 async [
-	capture1,
-	capture2,
-	capture3,
+	weak capture1 = existing1.foo,
+	unowned capture2 = existing2.bar,
+	capture3 = existing3,
 ] let myVar = ...
-async
-[
-	capture1,
-	capture2,
-	capture3,
-] let myVar = ...
-
-async[capture1, capture2, capture3]
-let myVar = ...
-async [capture1, capture2, capture3]
-let myVar = ...
-
-async
-[capture1, capture2, capture3]
-let myVar = ...
-async
-[
-	capture1,
-	capture2,
-	capture3,
-]
-let myVar = ...
 ```
 
 ## Source compatibility
@@ -190,8 +188,8 @@ capture list.
 
 ## ABI compatibility
 
-This proposal is purely an extension of the ABI of the
-standard library and does not change any existing features.
+This is a purely syntactic addition resolved at compile time;
+it has no ABI impact.
 
 ## Implications on adoption
 
