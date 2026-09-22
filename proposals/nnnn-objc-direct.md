@@ -1,6 +1,6 @@
 # Direct dispatch for Objective-C-exposed methods
 
-* Proposal: [SE-0560](0560-objc-direct.md)
+* Proposal: [SE-NNNN](nnnn-objc-direct.md)
 * Authors: [Peter Rong](https://github.com/DataCorrupted), [Sharon Xu](https://github.com/sharonxu)
 * Review Manager: TBD
 * Status: **Awaiting review**
