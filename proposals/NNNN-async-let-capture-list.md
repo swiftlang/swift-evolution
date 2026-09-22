@@ -143,13 +143,13 @@ Since the capture list is a modifier of the whole `async let` declaration
 rather than of any single binding, it applies uniformly when the pattern
 is a tuple:
 
-​```swift
+```swift
 async [request = ImageRequest(name: user.name)]
 let (thumbnail, fullSize) = (
     self.avatarImage(for: request, size: .thumbnail),
     self.avatarImage(for: request, size: .full)
 )
-​```
+```
 
 A single capture list is shared by all elements of the pattern — there is
 no way to scope a capture to only one element of a multi-binding
