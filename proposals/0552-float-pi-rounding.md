@@ -1,9 +1,9 @@
-# Indiana π bill, take 2
+# Rounding of `Float.pi`
 
-* Proposal: [SE-NNNN](NNNN-indiana-pi-bill.md)
+* Proposal: [SE-0552](0552-float-pi-rounding.md)
 * Authors: [Stephen Canon](https://github.com/stephentyrone)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (September 22...October 6, 2026)**
 * Implementation: https://github.com/swiftlang/swift/pull/92206
 * Review: [(pitch)](https://forums.swift.org/t/pitch-round-to-nearest/89497)
 
