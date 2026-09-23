@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active review (September 22...October 6, 2026)**
 * Implementation: [swiftlang/swift#88152](https://github.com/swiftlang/swift/pull/88152)
-* Review: ([pitch](https://forums.swift.org/t/89189))
+* Review: ([pitch](https://forums.swift.org/t/89189))([review](https://forums.swift.org/t/se-0551/89715))
 
 ## Summary of changes
 
