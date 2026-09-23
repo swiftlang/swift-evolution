@@ -1,9 +1,9 @@
 # `Span` over a single value
 
-* Proposal: [SE-NNNN](nnnn-span-of-one.md)
+* Proposal: [SE-0551](0551-span-of-one.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (September 22...October 6, 2026)**
 * Implementation: [swiftlang/swift#88152](https://github.com/swiftlang/swift/pull/88152)
 * Review: ([pitch](https://forums.swift.org/t/89189))
 
