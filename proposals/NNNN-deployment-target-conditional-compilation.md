@@ -134,23 +134,16 @@ components treated as zero. For example, `15` and `15.0` compare as equal.
 
 ### Platform matching
 
-Platform names and their aliases are the same as in `if #available(...)`, and a
-platform may not be listed twice. A requirement applies only when its platform
-names the target being compiled for, using the same platform names that
-`os(...)` and `targetEnvironment(...)` test. When more than one listed platform
-names the target, the most specific one determines the version that is tested,
-so a `macCatalyst` requirement is preferred over an `iOS` one when compiling for
-Mac Catalyst. If no listed platform names the target, `*` applies and the
-condition evaluates to `true`.
+Platform names, aliases, and the applicability of platform requirements follow
+`if #available(...)`. A platform may not be listed twice. When more than one
+requirement applies, the most specific one determines the version that is
+tested. For example, a `macCatalyst` requirement takes precedence over an
+`iOS` requirement on Mac Catalyst. If no requirement applies, `*` makes the
+condition `true`.
 
-This differs from `if #available(...)`, where a requirement written for one
-platform can also describe another that inherits its availability. Applying an
-iOS requirement to visionOS is meaningful there only because the compiler
-translates the version through a mapping supplied by the SDK. Conditional
-compilation is evaluated before that information is available, so this condition
-matches on the platform name alone. Compiling for visionOS with a requirement
-written only for iOS therefore falls to `*`, and a requirement naming
-`visionOS` is needed to test a visionOS deployment target.
+The platform owner determines the applicability relationships and any version
+mapping needed for this behavior. The proposal does not prescribe how the
+compiler obtains or stores that information.
 
 An unrecognized platform name produces a warning and cannot match a target
 known to that compiler, so the wildcard determines the result. This allows
@@ -210,7 +203,7 @@ cross-module inlining. If a library is compiled for macOS 14 and later linked
 into an application targeting macOS 15, its condition remains evaluated for
 macOS 14. Rebuilding the library for another target evaluates it again.
 
-The condition does not inspect the SDK version, make declarations visible, or
+The condition does not compare the SDK version, make declarations visible, or
 bypass normal availability checking. Source in the selected branch must still
 compile against the SDK used for the build.
 
