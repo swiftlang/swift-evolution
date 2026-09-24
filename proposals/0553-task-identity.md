@@ -5,7 +5,7 @@
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Active review (September 23...October 7, 2026)**
 * Implementation: [swiftlang/swift#89237](https://github.com/swiftlang/swift/pull/89237)
-* Review: ([pitch](https://forums.swift.org/t/pitch-cheap-task-identity-for-high-performance-instrumentation/86666))
+* Review: ([pitch](https://forums.swift.org/t/pitch-cheap-task-identity-for-high-performance-instrumentation/86666)) ([review](https://forums.swift.org/t/se-0553-task-identity/89728))
 
 ## Summary of changes
 
