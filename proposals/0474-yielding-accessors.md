@@ -188,7 +188,7 @@ When called, it borrows `self`, and then runs until reaching a `yield`, at which
 Once the caller is finished accessing the value, it resumes the accessor's execution.
 The accessor continues running where it left off after the `yield`.
 
-If a a property or subscript provides a `yielding borrow`, it cannot also provide a `get`.
+If a property or subscript provides a `yielding borrow`, it cannot also provide a `get`.
 
 #### `yielding borrow` as a protocol requirement
 
