@@ -1,5 +1,7 @@
 # A Vision for Macros in Swift
 
+* Vision: [SV-0002](macros.md)
+
 As Swift evolves, it gains new language features and capabilities. There are different categories of features: some fill in gaps, taking existing syntax that is not permitted and giving it a semantics that fit well with the existing language, for example conditional conformance or allowing existential values for protocols with `Self` or associated type requirements. Others introduce new capabilities or paradigms to the language, such as the addition of concurrency, ownership types, or comprehensive reflection. 
 
 There is another large category of language features that provide syntactic sugar to eliminate common boilerplate, taking something that can be written out in long-form and making it more concise. Such features don't technically add any expressive power to the language, because you can always write the long-form version, but their effect can be transformational if it enables use cases that would otherwise have been unwieldy. The synthesis of `Codable` conformances, for example, is sheer boilerplate reduction, but it makes `Codable` support ubiquitous throughout the Swift ecosystem. Property wrappers allow one to factor out logic for property access, and have enabled a breadth of powerful libraries. New language features in this category are hard to evaluate, because there is a fundamental question of whether the feature is "worth it": does the set of use cases made better by this feature outweigh the cost of making the language larger and more complicated?

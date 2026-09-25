@@ -1,5 +1,7 @@
 # A Vision for Embedded Swift
 
+* Vision: [SV-0004](embedded-swift.md)
+
 ## Introduction
 
 Swift is a general purpose programming language suitable for both high-level application software and for low-level systems software. The existing major supported deployments of Swift are primarily targeting “large” operating systems (Linux, Windows, macOS, iOS), where storage and memory are relatively plentiful, multiple applications share code via dynamic linking, and the system can be expected to provide a number of common libraries (such as the C and C++ standard libraries). The typical size of the Swift runtime and standard library in these environments is around 5MB of binary size.
