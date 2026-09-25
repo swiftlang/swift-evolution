@@ -193,7 +193,7 @@ extension MutableSpan where Element: Copyable {
   ) -> Index
 }
 
-extension MutableSpan where Element: ~Copyable
+extension MutableSpan where Element: ~Copyable {
   /// Updates the span's elements with every element of the source.
   mutating func update(
     fromContentsOf source: Span<Element>

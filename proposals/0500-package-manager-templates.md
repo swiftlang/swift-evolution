@@ -139,7 +139,7 @@ The command-line plugin allows the template executable to run in a separate proc
 The executable allows authors to define user-facing interfaces which gather important consumer input needed by the template to run, using Swift Argument Parser for a rich command-line experience with subcommands, options, and flags.
 In order for a consumer to initialize a package based on a template, authors must declare the `templateTarget` type within their package's manifest:
 
-```
+```swift
 let package = Package(
     name: "TemplateExample",
     products: .template(name: "Template1"),
@@ -213,7 +213,7 @@ Below is an example of the directory structure of an author's package:
 
 This proposal also introduces the new `templateProduct` type to the `PackageDescription` API.
 
-```
+```swift
 public extension [Product] {
     @available(_PackageDescription, introduced: 6.3.0)
     static func template(
@@ -245,7 +245,7 @@ At the same time, this flexibility requires a reliable way for templates to comm
 
 >The following excerpt how to author a template with swift-argument-parser.
 
-```
+```swift
 @Flag(help: "Add a README.md file with an introduction and tour of the code")
 var readme: Bool = false
 
@@ -263,7 +263,7 @@ However, a template is not simply a list of options, flags, and arguments. It is
 
 >The following excerpt how to author a template with swift-argument-parser. If a different argument parsing technology is chosen, the output and schema may differ. However, any tool aiming to integrate with the template ecosystem should be able to respond to the `--experimental-dump-help` flag and emit compatible JSON
 
-```
+```swift
 @main
 struct ServerGenerator: ParsableCommand {
     public static let configuration = CommandConfiguration(
@@ -534,7 +534,7 @@ Templates, like any other shippable software, should be testable. The flexibilit
 
 Below is an example of a simple unit test, verifying whether a file generation function correctly interpolates configuration values into an output file and reflects logging-related settings in the generated code:
 
-```
+```swift
 import Testing
 import Foundation
 @testable import ServerTemplate

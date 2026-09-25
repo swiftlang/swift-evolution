@@ -59,7 +59,7 @@ We add a new protocol `BitwiseCopyable` to the standard library:
 
 That a type conforms to the protocol [implies](#transient-and-permanent) that the type is bitwise-copyable; the reverse is _not_ true.
 
-Many basic types in the standard library will conformed to this protocol.
+Many basic types in the standard library will conform to this protocol.
 
 Developer's own types may be conformed to the protocol, as well.
 The compiler will check any such conformance and emit a diagnostic if the type contains elements that are not `BitwiseCopyable`.

@@ -116,7 +116,7 @@ struct InvalidExamples {
 ```
 
 The restrictions on returning temporary values also restricts certain uses of optionals:
-```
+```swift
 struct Source {
     var _s: String? = ""
     var s: String? {
@@ -442,7 +442,7 @@ until the next mutating operation on `self`.
 
 The current implementation does not handle `borrow` or `mutate` accessors that
 have more than one `return` statement.
-```
+```swift
 struct Wrapper {
     var selector: Bool
     var i: SomeType
@@ -465,7 +465,7 @@ struct Wrapper {
 The current implementation does not support borrowing `switch` statements,
 due to known gaps in the borrowing switch implementation that would need
 to be resolved first.
-```
+```swift
 struct Box {
     enum E {
 	case a(SomeType)
@@ -488,7 +488,7 @@ struct Box {
 
 We do not support using `borrow` or `mutate` to define a closure.
 
-```
+```swift
 func f() {
   var storage: [Int]
 

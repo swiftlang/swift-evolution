@@ -136,7 +136,7 @@ struct Person: ~Copyable, ~Escapable {
 parameters, allowing containers and wrappers which support non-`Escapable` types
 to contain references:
 
-```
+```swift
 @_lifetime(&array)
 func element(of array: inout [Int], at: Int) -> MutableRef<Int>? {
   if at >= 0 && at < array.count {
@@ -276,7 +276,7 @@ This is analogous to `Span` and `MutableSpan` being `Sendable` when their
 `BitwiseCopyable`, but we guarantee that it will never have non-trivial move
 or deinit operations.
 
-```
+```swift
 extension Ref: BitwiseCopyable {}
 ```
 

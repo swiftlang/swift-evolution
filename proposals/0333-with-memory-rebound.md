@@ -146,7 +146,7 @@ Homogeneous aggregate types (tuples, array storage, and frozen structs) are layo
 ### Instance methods of `UnsafePointer<Pointee>` and `UnsafeMutablePointer<Pointee>`
 
 We propose to lift the restriction that the strides of `T` and `Pointee` must be equal when calling `withMemoryRebound`.
-`T` and `Pointee` must either be layout compatible (see above,)
+`T` and `Pointee` must either be layout compatible (see above),
 or one must be a homogeneous aggregate of the other.
 The function declarations remain the same on these two types,
 though given the updated rules, 

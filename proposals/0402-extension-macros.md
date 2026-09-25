@@ -42,7 +42,7 @@ This proposal removes the `conformance` macro role in favor of an `extension` ma
 
 ```swift
 protocol MyProtocol {
-  func requirement
+  func requirement()
 }
 
 @attached(extension, conformances: MyProtocol, names: named(requirement))

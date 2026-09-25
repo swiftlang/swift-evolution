@@ -612,7 +612,7 @@ extension Result where Success: ~Copyable {
 
   consuming func mapError<NewFailure>(
     _ transform: (Failure) -> NewFailure
-  ) -> Result<Success, NewFailure
+  ) -> Result<Success, NewFailure>
 
   consuming func flatMapError<NewFailure>(
     _ transform: (Failure) -> Result<Success, NewFailure>
@@ -1079,7 +1079,7 @@ All of these (and especially the borrowing variant) is subject to the same limit
 
 ### Temporary Allocation Facility
 
-The [Standard Library's facility for allocating temporary uninitialozed buffers][SE-0322] needs to be generalized to support allocating storage for noncopyable types, as well as returning a potentially noncopyable type:
+The [Standard Library's facility for allocating temporary uninitialized buffers][SE-0322] needs to be generalized to support allocating storage for noncopyable types, as well as returning a potentially noncopyable type:
 
 [SE-0322]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0322-temporary-buffers.md
 
