@@ -168,9 +168,13 @@ Existing adopters of `@_cdecl` can replace the attribute with `@objc` to preserv
 
 ## ABI compatibility
 
-The compiler emits a single symbol for `@c` and `@objc` functions, the symbol uses the C calling convention.
+For `@c` functions, and for `@objc` functions whose signatures require no bridging, the compiler emits a single symbol using the C calling convention. An `@objc` function whose signature requires Objective-C bridging (for example `String` to `NSString`) additionally emits a native Swift body alongside the C entry point.
 
-Adding or removing the attributes `@c` and `@objc` on a function is an ABI breaking change. Changing between `@c` and `@objc` is ABI stable. Changing between `@_cdecl` and either `@c` or `@objc` is an ABI breaking change since `@_cdecl` emits two symbols and Swift clients of `@_cdecl` call the one with the Swift calling convention.
+Adding or removing the attributes `@c` and `@objc` on a function is an ABI breaking change. Changing between `@c` and `@objc` is ABI stable for C-compatible signatures, where both emit the same single C entry point.
+
+Swift clients of single-symbol functions call the C calling convention symbol directly, so Swift-to-Swift calls use the C ABI even when the Swift implementation is visible to the caller. Swift clients of a bridged `@objc` function call its native Swift body instead.
+
+Changing an `@objc` function signature across the bridging boundary is necessarily also an API change, and it changes the emitted symbols: in particular, removing bridging removes the native Swift entry point, which is an ABI breaking change for Swift clients. This cannot be avoided with an overload preserving the old signature, since two functions claiming the same C symbol are rejected with a multiple-definitions error. This is also the same behavior exhibited by `@objc @implementation` methods in both directions.
 
 Adding or removing the `@c` attribute on an enum is ABI stable, but changing its raw type is not.
 
