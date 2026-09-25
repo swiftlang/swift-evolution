@@ -4,10 +4,9 @@
 * Authors: [Nate Cook](https://github.com/natecook1000), [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Implemented (Swift 6.4)**
-* Implementation: [swiftlang/swift#86811](https://github.com/swiftlang/swift/pull/86811), [swiftlang/swift#87483](https://github.com/swiftlang/swift/pull/87483), [swiftlang/swift#89630](https://github.com/swiftlang/swift/pull/89630)
-* Toolchain: [swift-PR-89630-2329-osx.tar.gz](https://download.swift.org/tmp/pull-request/89630/2329/xcode/swift-PR-89630-2329-osx.tar.gz)
+* Implementation: [`for`-`in` support: swiftlang/swift#86811](https://github.com/swiftlang/swift/pull/86811), [`Iterable` naming: swiftlang/swift#89630](https://github.com/swiftlang/swift/pull/89630), [Additional `skip(by:)`: swiftlang/swift#92109](https://github.com/swiftlang/swift/pull/92109)
 * Review: ([pitch](https://forums.swift.org/t/pitch-borrowing-sequence/84332)) ([review](https://forums.swift.org/t/se-0516-borrowing-sequence/85122)) ([returned for revision](https://forums.swift.org/t/returned-for-revision-se-0516-borrowing-sequence/85846)) ([second pitch](https://forums.swift.org/t/revision-pitch-iterable-formerly-borrowingsequence/86834)) ([second review](https://forums.swift.org/t/second-review-se-0516-iterable/87106)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0516-iterable/88806))
-* Previous Revision: [1][prev1]
+* Previous Revisions: [1][prev1], [2][prev2], [3][prev3]
 
 ## Summary of changes
 
@@ -18,12 +17,12 @@ can have noncopyable elements,
 and can throw during iteration. 
 The Swift compiler will support use of this protocol via the familiar `for`-`in` syntax.
 
-#### Changes from Original Version
+#### Revisions
 
-This version of the proposal includes the following changes from the [original `BorrowingSequence` proposal][prev1]:
-
-- *Renamed to `Iterable`:* The protocol has been renamed to reflect the protocol's more universal role.
-- *Throwing iteration:* Both `Iterable` and `BorrowingIteratorProtocol` now include a `Failure: Error` associated type, enabling typed throws during iteration.
+1. [original `BorrowingSequence` proposal][prev1]
+2. [Revises name of primary protocol to `Iterable` and adds throwing iteration][prev2]
+3. [Accepted proposal; reverts secondary protocols back to `Borrowing...` names][prev3]
+4. Adds `BorrowingIteratorProtocol.skip(by:)` that takes an `inout` offset parameter (this version)
 
 ## Motivation
 
@@ -134,15 +133,38 @@ public protocol BorrowingIteratorProtocol<Element, Failure>: ~Copyable, ~Escapab
   @_lifetime(&self)
   mutating func nextSpan(maxCount: Int) throws(Failure) -> Span<Element>
   
-  /// Advances this iterator by up to the specified number of elements and
-  /// returns the number of elements that were actually skipped.
-  mutating func skip(by maximumOffset: Int) throws(Failure) -> Int
+  /// Advances the position of this iterator by the specified offset, or until
+  /// the end of the underlying type's elements.
+  ///
+  /// - Parameter maxOffset: The maximum number of elements
+  ///   to offset the position of this iterator. `maxOffset` must be
+  ///   nonnegative.
+  /// - Returns: The number of items that were skipped. If the returned count
+  ///   is less than `maxOffset`, then the underlying type did not have
+  ///   enough elements left to skip the requested number of items.
+  ///   In that case, the iterator's position is set to the end of the
+  ///   underlying type.
+  mutating func skip(by maximumOffset: Int) throws(Failure) -> Int  
+  
+  /// Advances the position of this iterator by the specified offset, or until
+  /// the end of the underlying type's elements.
+  ///
+  /// Call this method when you need to know how many elements were actually
+  /// skipped even after an error is thrown.
+  ///
+  /// - Parameter offset: The maximum number of elements
+  ///   to offset the position of this iterator. `offset` must be
+  ///   nonnegative. On return, `offset` is set to zero if the
+  ///   operation succeeded without hitting the limit; otherwise,
+  ///   `offset` reflects the number of elements that couldn’t be skipped.
+  mutating func skip(by offset: inout Int) throws(Failure)
 }
 
 // Default implementations
 extension BorrowingIteratorProtocol where Element: ~Copyable {
-  public mutating func nextSpan() throws(Failure) -> Span<Element> { ... }
-  public mutating func skip(by maximumOffset: Int) throws(Failure) -> Int { ... }
+  mutating func nextSpan() throws(Failure) -> Span<Element> { ... }
+  mutating func skip(by maximumOffset: Int) throws(Failure) -> Int { ... }
+  mutating func skip(by offset: inout Int) throws(Failure) { ... }
 }
 ```
 
@@ -408,6 +430,7 @@ public struct SpanIterator<Element>: BorrowingIteratorProtocol, ~Copyable, ~Esca
   public mutating func nextSpan(maxCount: Int) -> Span<Element>
   
   public mutating func skip(by offset: Int) -> Int
+  public mutating func skip(by offset: inout Int)
 }
 ```
 
@@ -806,6 +829,8 @@ Many thanks to Karoy Lorentey, Kavon Favardin, Joe Groff, Tony Parker, and Aleja
 
 [SE-0499]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0499-support-non-copyable-simple-protocols.md
 [SE-0503]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0503-suppressed-associated-types.md
-[prev1]: https://github.com/swiftlang/swift-evolution/commit/230fb0e4ace8ddf8e4867233251aa2e32bfe0a66
+[prev1]: https://github.com/swiftlang/swift-evolution/blob/8d983349861c43f4e6c56b7ad94b4a7bc6d01709/proposals/0516-borrowing-sequence.md
+[prev2]: https://github.com/swiftlang/swift-evolution/blob/be2453343c457e27570c8b03fe6ed2442b6fd485/proposals/0516-borrowing-sequence.md
+[prev3]: https://github.com/swiftlang/swift-evolution/blob/2d3a82b379cc5723fc1283d9da2b1d4f239c79da/proposals/0516-borrowing-sequence.md
 [collections]: https://github.com/apple/swift-collections/
 [container-prototype]: https://github.com/apple/swift-collections/blob/main/Sources/ContainersPreview/Protocols/Container/Container.swift
