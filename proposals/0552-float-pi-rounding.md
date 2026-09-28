@@ -4,7 +4,7 @@
 * Authors: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active review (September 22...October 6, 2026)**
-* Implementation: https://github.com/swiftlang/swift/pull/92206
+* Implementation: [swiftlang/swift#92206](https://github.com/swiftlang/swift/pull/92206)
 * Review: [(pitch)](https://forums.swift.org/t/pitch-round-to-nearest/89497)([review](https://forums.swift.org/t/se-0552-rounding-of-float-pi/89716))
 
 ## Summary of changes
