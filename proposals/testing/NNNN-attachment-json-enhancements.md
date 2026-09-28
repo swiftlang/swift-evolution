@@ -162,3 +162,20 @@ the `"bytes"` field entirely.
   But it's simply not practical: we know we have real-world use cases for Swift
   Testing and for attachments where the consumer isn't located on the same
   physical device or at the same time as the producer.
+
+- **Making `"bytes"` an opt-in feature if `--attachments-path` is specified.**
+  As proposed, we emit `"bytes"` regardless of whether an attachment has been
+  saved or not. We could use the presence of that command-line argument as a
+  heuristic. We don't, by design: we cannot know in advance whether the consumer
+  of the event stream has access to the specified directory, and it is valid to
+  save files locally while also streaming events to an IDE or visualization tool
+  on a completely different system.
+
+  Embedded Swift targets and targets like iOS and Android, where you can run
+  tests but cannot run `swift test` itself, may have proprietary mechanisms for
+  copying files out, but we can't assert this is true at the JSON schema
+  specification layer. We _can_ optimize the implementation in Swift Testing to
+  cover scenarios where we know we can acquire the attachment files another way,
+  but such optimizations are implementation details and are beyond the scope of
+  this proposal.
+  
