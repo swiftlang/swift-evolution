@@ -102,6 +102,12 @@ fields, and will need to accept `"path"` being `nil`.
 Tools using the `ABI.Record` SPI type in Swift Testing will gain this support
 automatically.
 
+For some tools, the direct encoding of an attachment's bytes is redundant
+because they know they have access to the same file system. For those tools,
+they can specify the environment variable
+`"SWT_EVENT_STREAM_ATTACHMENT_BYTES_FIELD_ENABLED"` to skip encoding the
+`"bytes"` field entirely.
+
 ## Future directions
 
 - **Supporting compression formats for `"bytes"`.** The schema as described does
