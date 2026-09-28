@@ -1,6 +1,6 @@
 # Ownership for Subscript Parameters
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-subscript-ownership-parameters.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: TBD
 * Status: **Awaiting review**
