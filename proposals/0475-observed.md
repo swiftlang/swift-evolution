@@ -191,7 +191,7 @@ For the example if `Person` then has a new optional field of `homePage` which
 is an optional URL it then means that the construction can disambiguate
 by returning the iteration as the `next` value or the `finished` value.
 
-```
+```swift
 @Observable
 final class Person {
   var firstName: String

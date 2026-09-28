@@ -1,7 +1,7 @@
 # Region based Isolation
 
 * Proposal: [SE-0414](0414-region-based-isolation.md)
-* Authors: [Michael Gottesman](https://github.com/gottesmm) [Joshua Turcotti](https://github.com/jturcotti)
+* Authors: [Michael Gottesman](https://github.com/gottesmm), [Joshua Turcotti](https://github.com/jturcotti)
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Implemented (Swift 6.0)**
 * Upcoming Feature Flag: `RegionBasedIsolation`

@@ -178,7 +178,7 @@ While any weak reference to the object will be `nil` when a `.deinit` event is r
 
 The continuous version works similarly except that it has one major behavioral difference: the closure will be invoked after the event at the next suspension point of the isolating calling context. That means that if `withContinuousObservationTracking` is called in a `@MainActor` isolation, then the closure will always be called on the main actor.
 
-```
+```swift
 @MainActor
 final class Controller {
   var view: MyView

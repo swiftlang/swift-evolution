@@ -502,13 +502,13 @@ Examples
 Changing from
 
 ```
-closure-signature → capture-list(opt) closure-parameter-clause async(opt) throws(opt) function-result opt in
+closure-signature → capture-list(opt) closure-parameter-clause async(opt) throws(opt) function-result(opt) in
 ```
 
 to
 
 ```
-closure-signature → capture-list(opt) closure-parameter-clause async(opt) throws-clause(opt) function-result opt in
+closure-signature → capture-list(opt) closure-parameter-clause async(opt) throws-clause(opt) function-result(opt) in
 ```
 
 Examples

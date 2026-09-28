@@ -371,7 +371,7 @@ Note: The `@_lifetime` attribute is not real; it is merely a didactic placeholde
 
 [SE-0446] has introduced the concept of a nonescapable enum type to Swift. While that proposal did not explicitly spell this out, this inherently included a set of implicit lifetime rules for the principal language features that interact with enum types: enum construction using case factories and pattern matching. To generalize `Optional` and `Result`, we need to understand how these implicit inference rules work for enum types with a single nonescapable associated value.
 
-1. When constructing an enum case with a single nonescapable associated value, the resulting enum value is inferred to carry precisely the same lifetime dependencies as the origional input.
+1. When constructing an enum case with a single nonescapable associated value, the resulting enum value is inferred to carry precisely the same lifetime dependencies as the original input.
 2. Pattern matching over such an enum case exposes the nonescapable associated value, inferring precisely the same lifetime dependencies for it as the original enum.
 
 ```swift

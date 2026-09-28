@@ -68,7 +68,7 @@ It is possible to silence the issue by explicitly ignoring the value:
 _ = Task { throws in ... }
 ```
 
-Or just by actually using the value, which is the way how you'd observe thr thrown error:
+Or just by actually using the value, which is the way how you'd observe the thrown error:
 
 ```swift
 let task = Task { throws in } 

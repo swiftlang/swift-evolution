@@ -157,7 +157,7 @@ The arguments are a literal array of strings that the user specified when invoki
 
 #### Accessing Package Manager Services
 
-In addition to invoking invoking tool executables and using Foundation APIs, command plugins can use the `packageManager` property to obtain more specialized information and to invoke certain SwiftPM services. This is a proxy to SwiftPM or to the IDE that is hosting the plugin, and provides access to some of its functionality. The set of services provided in this API is expected to grow over time, and would ideally, over time, comprise most of the SwiftPM functionality available in its CLI.
+In addition to invoking tool executables and using Foundation APIs, command plugins can use the `packageManager` property to obtain more specialized information and to invoke certain SwiftPM services. This is a proxy to SwiftPM or to the IDE that is hosting the plugin, and provides access to some of its functionality. The set of services provided in this API is expected to grow over time, and would ideally, over time, comprise most of the SwiftPM functionality available in its CLI.
 
 ```swift
 /// Provides specialized information and services from the Swift Package Manager or
