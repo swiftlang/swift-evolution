@@ -105,8 +105,8 @@ automatically.
 For some tools, the direct encoding of an attachment's bytes is redundant
 because they know they have access to the same file system. For those tools,
 they can specify the environment variable
-`"SWT_EVENT_STREAM_ATTACHMENT_BYTES_FIELD_ENABLED"` to skip encoding the
-`"bytes"` field entirely.
+`"SWIFT_TESTING_EVENT_STREAM_ATTACHMENT_BYTES_FIELD_ENABLED"` to skip encoding
+the `"bytes"` field entirely.
 
 ## Future directions
 
