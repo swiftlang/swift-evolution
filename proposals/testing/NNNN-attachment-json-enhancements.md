@@ -55,6 +55,8 @@ The JSON schema is amended as follows as of the `"6.5"` schema version:
    <attachment> ::= {
   -  "path": <string>, ; the absolute path to the attachment on disk
   +  ["path": <string>,] ; the absolute path to the attachment on disk
+     ; ...
+   }
   ```
 
   This field will not be emitted in the event stream if an attachment has never
@@ -64,12 +66,11 @@ The JSON schema is amended as follows as of the `"6.5"` schema version:
 - The following new fields are added to the `<attachment>` rule:
 
   ```diff
-  +  ["bytes": <bytes>,] ; the serialized form of the attachment
-  +  ["error": <error>,] ; an error previously encountered when trying to save the
-  +                      ; attachment
-  +  ["preferredName": <string>,] ; the preferred name of the attachment when
-  +                               ; saving it to disk
-   }
+  +["bytes": <bytes>,] ; the serialized form of the attachment
+  +["error": <error>,] ; an error previously encountered when trying to save the
+  +                    ; attachment
+  +["preferredName": <string>,] ; the preferred name of the attachment when
+  +                             ; saving it to disk
   ```
 
   The `"bytes"` field describes the bytes of the attachment (unsurprisingly).
