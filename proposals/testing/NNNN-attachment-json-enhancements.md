@@ -49,7 +49,7 @@ The JSON schema is amended as follows as of the `"6.5"` schema version:
   These rules describe a sequence of bytes encoded in JSON; more on the optional
   use of Base64 in a moment.
 
-- The `"path""` field in the `<attachment>` rule becomes optional:
+- The `"path"` field in the `<attachment>` rule becomes optional:
 
   ```diff
    <attachment> ::= {
