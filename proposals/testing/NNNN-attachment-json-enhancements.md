@@ -90,7 +90,7 @@ The JSON schema is amended as follows as of the `"6.5"` schema version:
   very small embedded system that can stream arbitrary amounts of data out via a
   serial port, but which has limited storage space for firmware.
 
-> ![NOTE]
+> [!NOTE]
 > Both `"bytes"` and `"path"` are optional. An event stream producer (Swift
 > Testing or otherwise) is not required to provide `"path"`` if there is no
 > valid file system path to the attachment's bytes, nor is it required to
