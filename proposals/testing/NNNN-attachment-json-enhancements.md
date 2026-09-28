@@ -92,12 +92,12 @@ The JSON schema is amended as follows as of the `"6.5"` schema version:
 
 > [!NOTE]
 > Both `"bytes"` and `"path"` are optional. An event stream producer (Swift
-> Testing or otherwise) is not required to provide `"path"`` if there is no
-> valid file system path to the attachment's bytes, nor is it required to
-> provide `"bytes"` if the consumer is able to read the attachment's bytes via
-> another implementation-defined mechanism. However, if the event stream
-> producer provides neither field, the consumer will likely be unable to save
-> its attachments.
+> Testing or otherwise) is not required to provide `"path"` if there is no valid
+> file system path to the attachment's bytes, nor is it required to provide
+> `"bytes"` if the consumer is able to read the attachment's bytes via another
+> implementation-defined mechanism. However, if the event stream producer
+> provides neither field, the consumer will likely be unable to save its
+> attachments.
 >
 > Swift Testing's `ABI.Record` SPI will accept an encoded attachment with
 > neither field defined, but if you create an instance of `Attachment` from such
