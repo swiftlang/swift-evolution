@@ -3,7 +3,7 @@
 * Proposal: [ST-NNNN](NNNN-attachments-in-swift-testing-json.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: TBD
-* Status: **Awaiting implementation** or **Awaiting review**
+* Status: **Awaiting review**
 * Implementation: [swiftlang/swift-testing#1845](https://github.com/swiftlang/swift-testing/pull/1845)
 * Review: ([pitch](https://forums.swift.org/...))
 
