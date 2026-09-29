@@ -352,7 +352,7 @@ Overload resolution generally prefers overload choices with the most specific ty
 
 ## Source compatibility
 
-Adding `@called(once)` to a function-typed parameter of an existing API is source-compatible for callers: per the [function conversion rules](#function-conversions) above, a plain function value is always convertible to a `@called(once)` parameter type, so existing call sites that pass an ordinary closure continue to type-check without modifications. The reverse change — removing `@called(once)` from a parameter, widening it back to a plain function type — is source-compatible for callers as well, since it can only broaden the set of arguments a caller is permitted to pass.
+Adding `@called(once)` to a function-typed parameter of an existing API is source-compatible for callers: per the [function conversion rules](#function-conversions) above, a plain function value is always convertible to a `@called(once)` parameter type, so existing call sites that pass an ordinary closure continue to type-check without modifications. The reverse change — removing `@called(once)` from a parameter, widening it back to a plain function type — is source-breaking for callers, since it such parameters can no longer accept `@called(once)` arguments.
 
 Adding `@called(once)` is not source-compatible for the *implementation* of the function that declares the parameter: because the parameter becomes non-copyable and implicitly `consuming`, any existing function body that calls the parameter more than once, attempts to copy it, or passes it to a non-consuming context will stop compiling.
 
