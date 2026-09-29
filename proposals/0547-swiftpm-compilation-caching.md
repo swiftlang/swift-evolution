@@ -20,7 +20,7 @@ During many common workflows, the build of a package may repeat a compile task f
 
 Recompiling sources in these cases is wasteful and reduces development velocity. Furthermore, these are all workflows which do not benefit from traditional incremental builds, which rely on timestamp-based invalidation and reusing intermediates in the build directory. Compilation caching is able to accelerate these workflows by quickly replaying the results of a previous compilation after dependency scanning computes a content-based cache key derived from its inputs (sources, compiler command lines, imported modules, etc.). For example, on a 12-core machine a fully cached clean debug build of SwiftPM is 68% faster than one with an empty cache, a similar build of SwiftSyntax is 75% faster, and a build of Vapor is 67% faster.
 
-Effectively leveraging compilation caching often requires configuring parameters like the cache location, size, and eviction policy to support a particular use case, like local builds or remote CI. As the build system driving the compilers, SwiftPM is in the best position to manage this configuration and expose it to the end user.
+Effectively leveraging compilation caching often requires configuring parameters like the cache location, size, and eviction policy to support a particular use case, like local builds or CI. As the build system driving the compilers, SwiftPM is in the best position to manage this configuration and expose it to the end user.
 
 ## Proposed solution
 
@@ -41,7 +41,6 @@ All three mechanisms support configuring:
 - The path to the build cache. If caching is enabled but no path is specified, the build cache uses a subdirectory of SwiftPM's default global cache directory (~/Library/Caches/org.swift.swiftpm/ on macOS, ~/.cache/org.swift.swiftpm/ on Linux, etc.). It is set per-build with `--build-cache-path`, or persistently with `swift package build-cache configure --path`.
 - A size limit, specified either in absolute terms (e.g. 50G) or as a percentage of available disk space (e.g. 10%). At the end of a build, entries will be evicted from the cache if this limit is exceeded. It is set per-build with `--build-cache-size-limit`, or persistently with `swift package build-cache configure --size-limit`. The default size limit is implementation-defined.
 - Enablement of diagnostic remarks which emit information about cache hits and misses in the build log. By default, diagnostic remarks are disabled. They are configurable per-build with `--enable-build-cache-diagnostic-remarks`/`--disable-build-cache-diagnostic-remarks`, or persistently with `swift package build-cache configure --enable-diagnostic-remarks`/`--disable-diagnostic-remarks`.
-- The path to a plugin implementing the [LLVM CAS Plugin API](https://github.com/swiftlang/llvm-project/tree/next/llvm/include/llvm-c/CAS), and optionally a unix domain socket path for a [gRPC remote caching service](https://github.com/swiftlang/llvm-project/tree/next/llvm/lib/RemoteCachingService/RemoteCacheProto) to provide to the plugin. These options can be used to integrate SwiftPM build caching with a custom local or distributed cache implementation. The plugin path is set per-build with `--build-cache-plugin-path`, or persistently with `swift package build-cache configure --plugin-path`. The remote service path is set per-build with `--build-cache-remote-service-path`, or persistently with `swift package build-cache configure --remote-service-path`. On macOS, SwiftPM will default to using the CAS plugin from an Xcode toolchain if it is available, allowing the user to specify only a remote service path. A plugin is not required to take advantage of compilation caching. If none is available or provided, the LLVM on-disk CAS implementation will be used.
 
 In SwiftPM's user-facing interface, we consistently use the terminology "build cache" instead of "compilation cache". This is intended to future proof these options so that they could evolve naturally in the future to configure CAS-based caching of additional task types.
 
@@ -54,7 +53,7 @@ In addition to `configure`, the `swift package build-cache` command provides the
 
 ## Security
 
-The build cache stores and retrieves compiler outputs from a local (or, via the specified service/plugin, remote) cache. As a result, an adversary with the ability to modify the cache could tamper with compiler outputs and the resulting build artifacts, similar to the capabilities of an adversary with the ability to modify the original source code. Users of build caching in a shared environment like a CI node should keep this in mind when configuring permissions and assessing the risk of adopting the feature.
+The build cache stores and retrieves compiler outputs from a local cache. As a result, an adversary with the ability to modify the cache could tamper with compiler outputs and the resulting build artifacts, similar to the capabilities of an adversary with the ability to modify the original source code. Users of build caching in a shared environment like a CI node should keep this in mind when configuring permissions and assessing the risk of adopting the feature.
 
 ## Impact on existing packages
 
@@ -65,6 +64,12 @@ None. Compilation caching is an opt in build performance optimization which shou
 ### Only expose command line options
 
 We could expose compilation caching purely through command line flags to simplify the design by eliminating the `swift package build-cache configure` command. This would likely work well in CI environments, but would limit the usefulness of caching in local builds, where the per-package and global configurations eliminate a lot of tedious command line boilerplate the user would need to add to each `swift build`, likely via a hand-authored script.
+
+## Future Directions
+
+### Remote Caching
+
+The original version of this proposal included additional options to allow using compilation caching with a remote cache service or custom LLVM CAS plugin library. This functionality remains valuable, but has been deferred to a future proposal to pursue a slightly different approach where it is consistently available across all Swift's supported host platforms via a default cache plugin shipped as part of the toolchain.
 
 ## Acknowledgements
 
