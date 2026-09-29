@@ -1,11 +1,10 @@
 # Deployment target conditional compilation
 
-* Proposal: [SE-NNNN](NNNN-deployment-target-conditional-compilation.md)
+* Proposal: [SE-0554](0554-deployment-target-conditional-compilation.md)
 * Author: [Jiaxu Li](https://github.com/Jiaxu-Li)
-* Review Manager: TBD
-* Status: **Awaiting review**
-* Implementation: [swift prototype](https://github.com/Jiaxu-Li/swift/tree/deployment-target-ifconfig),
-  [swift-syntax prototype](https://github.com/Jiaxu-Li/swift-syntax/tree/deployment-target-ifconfig)
+* Review Manager: [Xiaodi Wu](https://github.com/xwu)
+* Status: **Active review (September 29...October 12, 2026)**
+* Implementation: swiftlang/swift#92598, swiftlang/swift-syntax#3450
 * Review: ([pitch](https://forums.swift.org/t/pitch-conditional-compilation-for-the-deployment-target/89282))
 
 ## Summary of changes
