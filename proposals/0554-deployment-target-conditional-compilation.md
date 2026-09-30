@@ -4,7 +4,7 @@
 * Author: [Jiaxu Li](https://github.com/Jiaxu-Li)
 * Review Manager: [Xiaodi Wu](https://github.com/xwu)
 * Status: **Active review (September 29...October 12, 2026)**
-* Implementation: swiftlang/swift#92598, swiftlang/swift-syntax#3450
+* Implementation: [swiftlang/swift#92598](https://github.com/swiftlang/swift/pull/92598), [swiftlang/swift-syntax#3450](https://github.com/swiftlang/swift-syntax/pull/3450)
 * Review: ([pitch](https://forums.swift.org/t/pitch-conditional-compilation-for-the-deployment-target/89282)) ([review](https://forums.swift.org/t/se-0554-deployment-target-conditional-compilation/89822))
 
 ## Summary of changes
