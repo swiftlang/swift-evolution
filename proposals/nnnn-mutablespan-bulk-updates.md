@@ -56,9 +56,11 @@ The source argument of each method can have three different labels, depending on
 
 The names we propose establish a nomenclature for bulk operations that specifies both what happens with the destination and how the source is to be handled.
 
-The first part of each name is "update", because the functions change values in place in the container. Other related bulk operations include removing elements (`removeAll`, `removeSubrange`) and replacing subranges of elements (`replaceSubrange`)[^2]. These actions should be proposed as part of a range-replaceable container protocol, and we would the methods proposed here to have a family resemblance with them.
+The first part of each of the names proposed here is "update", because the functions change values in place in the container. Other related bulk operations include removing elements (`removeAll`, `removeSubrange`) and replacing subranges of elements (`replaceSubrange`)[^2]. These actions, as well as `insert` and `append`, should be proposed as part of a range-replaceable container protocol, and we would like the methods proposed here to have a family resemblance with them.
 
-[^2]: These related operations are part of `UniqueArray`'s API ([SE-0527][SE-0527]).
+The label for the source, either `copying:` or `moving:`, will also apply to all of the above base function names. We expect a type like `UniqueArray` to be usable with both `copying:` and `moving:` overloads, providing control over runtime overhead in ways the `Collection` protocols cannot provide.
+
+[^2]: The related operations `remove`, `replace`, `insert` and `append` are part of `UniqueArray`'s API ([SE-0527][SE-0527]).
 
 #### Copying from a `Span`
 
@@ -160,6 +162,9 @@ extension MutableSpan {
   /// of the source.
   ///
   /// `source` must have exactly as many elements as this span.
+  ///
+  /// - Note: When `Element: BitwiseCopyable`, this function lowers
+  ///     to LLVM's `memcpy` primitive.
   ///
   /// - Parameter source: The elements to copy into this span.
   mutating func updateAll(copying source: Span<Element>)
