@@ -268,13 +268,13 @@ This proposal is additive and source-compatible with existing code.
 
 ## ABI compatibility
 
-This proposal is additive and ABI-compatible with existing code.
+The bodies of the proposed methods are exported into clients and are not new ABI.
 
 ## Implications on adoption
 
-The bodies of all six methods are emitted into clients, and none of them depend on API introduced later than the span types themselves. They are therefore available wherever those types are available, and require no new library version.
+The proposed methods are back-deployed as far back as the availability of the span types they operate on, and can run on older Swift runtimes where those types are available. However, adoption requires building with the Swift version in which they are introduced or later.
 
-All six are `@unsafe`, so code built with `-strict-memory-safety` must mark calls to them with `unsafe`.
+The methods are `@unsafe`, so code built with `-strict-memory-safety` must mark calls to them with `unsafe`.
 
 ## Alternatives considered
 
