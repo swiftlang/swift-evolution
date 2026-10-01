@@ -118,14 +118,6 @@ the `TestingTools` module.
 // TODO: Define `withIssueResponder`
 ```
 
-### New `IssueEventReporter` internal type
-
-The existing functionality for reporting issues to the event system will be
-converted to utilize a new internal `IssueEventReporter` type, which sends the
-issue to the event system. This will always be the root link in the Issue
-Responder Chain, and no APIs will be made available to add additional
-`IssueEventReporters`.
-
 ### New `KnownIssueResponder` internal type
 
 `withKnownIssue` will be converted to use a `KnownIssueResponder` type.
