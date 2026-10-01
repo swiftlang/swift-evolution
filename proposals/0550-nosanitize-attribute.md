@@ -29,7 +29,7 @@ The `@instrumentation(disable: <kind>...)` attribute takes one or more instrumen
 - `memtagStack` — suppresses [MemTag](https://llvm.org/docs/MemTagSanitizer.html) stack tagging (`sanitize_memtag`) instrumentation.
 - `coverage` — suppresses SanitizerCoverage instrumentation.
 
-Kind names correspond to the lowerCamelCased form of the matching `-sanitize=` command-line flag (so `-sanitize=memtag-stack` becomes `memtagStack`).
+Kind names that represent sanitizers correspond to the lowerCamelCased form of the matching `-sanitize=` command-line flag (so `-sanitize=memtag-stack` becomes `memtagStack`).
 
 Each kind opts out independently, so `@instrumentation(disable: address)` on a function built with `-sanitize=thread` has no effect. Multiple kinds may be listed in a single attribute (`@instrumentation(disable: address, thread)`), and multiple `@instrumentation` attributes may also be stacked on the same declaration; the two forms are equivalent.
 
