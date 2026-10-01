@@ -3,8 +3,9 @@
 * Proposal: [ST-NNNN](NNNN-issue-responder-chain.md)
 * Authors: [Rachel Brindle](https://github.com/younata)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-* Implementation: TBD
+* Status: **Awaiting Review**
+* Implementation:
+  [swiftlang/swift-testing#1939](https://github.com/swiftlang/swift-testing/pull/1939)
 * Review: ()
 
 ## Introduction
