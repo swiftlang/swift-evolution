@@ -1,5 +1,7 @@
 # Optional Strict Memory Safety for Swift
 
+* Vision: [SV-0007](memory-safety.md)
+
 Swift is a memory-safe language *by default* , meaning that the major language features and standard library APIs are memory-safe. However, it is possible to opt out of memory safety when it’s pragmatic using certain “unsafe” language or library constructs. This document proposes a path toward an optional “strict” subset of Swift that prohibits any unsafe features. This subset is intended to be used for Swift code bases where memory safety is an absolute requirement, such as security-critical libraries.
 
 This document is an official feature [vision document](https://forums.swift.org/t/the-role-of-vision-documents-in-swift-evolution/62101). The Language Steering Group has endorsed the goals and basic approach laid out in this document. This endorsement is not a pre-approval of any of the concrete proposals that may come out of this document. All proposals will undergo normal evolution review, which may result in rejection or revision from how they appear in this document.
