@@ -107,16 +107,66 @@ Issue Responder Chain. We will convert the existing Issue Recording system to
 make use of the Issue Responder Chain for any issues reported within a test.
 
 ```swift
-// TODO: Define `IssueResponder`
+/// A protocol for types in the Issue Responder Chain.
+///
+/// The types in the Issue Responder Chain receive and handle issues in the time
+/// between where they are initially reported and before they are sent off to
+/// the testing library's event system. Implementing an IssueResponder allows
+/// you to observe, transform, or even block an issue from being sent up the
+/// chain.
+///
+/// Use ``withIssueResponder(_:body:)`` (available in the TestingTools module)
+/// to add your IssueResponder to the Issue Responder Chain.
+public protocol IssueResponder: Sendable {
+  /// Handle and respond to the given issue.
+  ///
+  /// - Parameters:
+  ///   - issue: The issue to handle or respond to.
+  /// - Returns: The issue to send to the next responder in the chain. This can
+  ///   be the same issue that was sent, a transformed issue, or even nil, to
+  ///   indicate that the Issue Responder Chain should stop processing the
+  ///   issue.
+  func respond(to issue: Issue) -> Issue?
+}
 ```
 
 `IssueResponder` will be made public in the `TestingTools` module. Test tool
 authors may define their own `IssueResponder`s and add them to the Issue
-Responder Chain utilizing the new `withIssueResponder` API, also available in
-the `TestingTools` module.
+Responder Chain utilizing the new `withIssueResponder` functions, also available in
+the `TestingTools` module:
 
 ```swift
-// TODO: Define `withIssueResponder`
+/// Add a new ``IssueResponder`` instance onto the current Issue Responder
+/// Chain.
+///
+/// - Parameters:
+///   - issueResponder: The ``IssueResponder`` to add onto the Issue Responder
+///     Chain.
+///   - body: The function to invoke with the issue responder added to the
+///     chain.
+///
+/// - returns: Whatever is returned by `body`.
+/// - throws: Whatever is thrown by `body`.
+public func withIssueResponder<T>(
+  _ issueResponder: any IssueResponder,
+  body: () throws -> T
+) rethrows -> T
+
+/// Add a new ``IssueResponder`` instance onto the current Issue Responder
+/// Chain.
+///
+/// - Parameters:
+///   - issueResponder: The ``IssueResponder`` to add onto the Issue Responder
+///     Chain.
+///   - body: The function to invoke with the issue responder added to the
+///     chain.
+///
+/// - returns: Whatever is returned by `body`.
+/// - throws: Whatever is thrown by `body`.
+public func withIssueResponder<T>(
+  _ issueResponder: any IssueResponder,
+  body: sending @isolated(any) () async throws -> sending T
+) async rethrows -> sending T
 ```
 
 ### New `KnownIssueResponder` internal type
@@ -144,8 +194,6 @@ the new TestingTools module:
 /// Chain.
 ///
 /// - Parameters:
-///   - sourceLocation: The source location to which any recorded issues should
-///     be attributed.
 ///   - body: The function to invoke.
 ///
 /// Library authors use this function to capture and analyze any issues for
@@ -154,7 +202,6 @@ the new TestingTools module:
 /// Test authors should consider using
 /// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
 func observeIssues(
-  sourceLocation: SourceLocation = #Testing::sourceLocation,
   _ body: () throws -> Void
 ) -> [Issue]
 
@@ -163,8 +210,6 @@ func observeIssues(
 /// Chain.
 ///
 /// - Parameters:
-///   - sourceLocation: The source location to which any recorded issues should
-///     be attributed.
 ///   - body: The function to invoke.
 ///
 /// Library authors use this function to capture and analyze any issues for
@@ -173,7 +218,6 @@ func observeIssues(
 /// Test authors should consider using
 /// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
 func observeIssues(
-  sourceLocation: SourceLocation = #Testing::sourceLocation,
   _ body: sending @isolated(any) () async throws -> Void
 ) async -> [Issue]
 ```
@@ -194,8 +238,6 @@ the new TestingTools module:
 /// Issue Responder Chain.
 ///
 /// - Parameters:
-///   - sourceLocation: The source location to which any recorded issues should
-///     be attributed.
 ///   - body: The function to invoke.
 ///
 /// Library authors use this function to capture and analyze any issues for
@@ -204,7 +246,6 @@ the new TestingTools module:
 /// Test authors should consider using
 /// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
 func captureIssues(
-  sourceLocation: SourceLocation = #Testing::sourceLocation,
   _ body: () throws -> Void
 ) -> [Issue]
 
@@ -213,8 +254,6 @@ func captureIssues(
 /// Issue Responder Chain.
 ///
 /// - Parameters:
-///   - sourceLocation: The source location to which any recorded issues should
-///     be attributed.
 ///   - body: The function to invoke.
 ///
 /// Library authors use this function to capture and analyze any issues for
@@ -223,7 +262,6 @@ func captureIssues(
 /// Test authors should consider using
 /// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
 func captureIssues(
-  sourceLocation: SourceLocation = #Testing::sourceLocation,
   _ body: sending @isolated(any) () async throws -> Void
 ) async -> [Issue]
 ```
@@ -241,8 +279,8 @@ Responder Chain.
 
 ## Source compatibility
 
-This will fix an existing, if very rarely encountered, issue with the current
-`withKnownIssue` API. Test authors would only have encountered this issue if
+This will change an existing, if very rarely encountered, behavior with the current
+`withKnownIssue` API. Test authors would only have encountered this behavior if
 they had multiple `withKnownIssue` scopes nested within each other and one of the
 inner `withKnownIssue` scopes matches a reported issue. In which case
 they will now no longer see a confusing "known issue not encountered" test error
