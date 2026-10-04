@@ -9,7 +9,7 @@
 
 ## Summary of changes
 
-Adds a `bidiClass` property to `Unicode.Scalar.Properties` that returns a scalar's Unicode `Bidi_Class`, the classification that drives the Unicode Bidirectional Algorithm, along with a new `Unicode.BidiClass` type to represent its values.
+Adds a `bidiClass` property to `Unicode.Scalar.Properties` that returns a scalar's Unicode `Bidi_Class`, along with a new `Unicode.BidiClass` type to represent its values.
 
 ## Motivation
 
@@ -57,7 +57,7 @@ extension Unicode {
     /// Creates a new bidirectional class with the given raw integer value.
     ///
     /// - Parameter rawValue: The raw integer value of the bidirectional class.
-    public init(rawValue: UInt8)
+    @export(implementation) public init(rawValue: UInt8)
 
     /// A strong left-to-right character.
     ///
@@ -235,7 +235,7 @@ extension Unicode.Scalar.Properties {
 
 `White_Space` is spelled `whitespace` rather than `whiteSpace`, matching the existing `isWhitespace` property, which corresponds to the `White_Space` binary property.
 
-The raw integer values are assigned by the standard library and are stable, but, unlike `Unicode.CanonicalCombiningClass`, they are not defined by the Unicode Standard, which assigns no integers to `Bidi_Class` values. `init(rawValue:)` is non-failable, so a value from a future version of the Unicode data that this API does not yet name remains representable and round-trips. `Unicode.BidiClass` does not conform to `Comparable`, because `Bidi_Class` values have no meaningful ordering.
+`init(rawValue:)` is non-failable, so a value from a future version of the Unicode data that this API does not yet name remains representable and round-trips. `Unicode.BidiClass` does not conform to `Comparable`, because `Bidi_Class` values have no meaningful ordering.
 
 The values follow the Unicode Character Database's `DerivedBidiClass.txt`, including its `@missing` default rules.
 
@@ -245,9 +245,7 @@ This proposal is purely additive and has no source compatibility impact.
 
 ## ABI compatibility
 
-This proposal is purely an extension of the ABI of the standard library. `Unicode.BidiClass` is a frozen struct wrapping a single `UInt8`, so its layout is fixed and it can be stored and compared as cheaply as that integer. The static members are annotated `@export(implementation)` ([SE-0497](0497-definition-visibility.md)), so each access is emitted into the client and inlines to a constant, adding no accessor symbols to the standard library's ABI. Because those constants are compiled into clients, the raw value of each named member cannot change once it ships.
-
-Future `Bidi_Class` values can be added as new static members without breaking ABI or source compatibility, and any raw value, including one this API does not yet name, remains representable via `init(rawValue:)`.
+This proposal is purely an extension of the ABI of the standard library. `Unicode.BidiClass` is a frozen struct wrapping a single `UInt8`, so its layout is fixed and it can be stored and compared as cheaply as that integer. The static members are annotated `@export(implementation)` ([SE-0497](0497-definition-visibility.md)), so each access is emitted into the client and inlines to a constant, adding no accessor symbols to the standard library's ABI. Because its values are exposed as static members rather than enum cases, future `Bidi_Class` values can be added as new static members without breaking ABI or source compatibility, and any raw value, including one this API does not yet name, remains representable via `init(rawValue:)`. That initializer is also annotated `@export(implementation)`, since otherwise each static member access would still call into the standard library.
 
 ## Implications on adoption
 
