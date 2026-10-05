@@ -151,7 +151,7 @@ A reference to a function that is isolated to a global actor will have a functio
 ```swift
 func functionsAsValues(controller: IconViewController) {
   let fn = controller.updateIcons // okay, type is @MainActor ([[String: Any]]) -> Void
-  let fn2 = IconViewController.controller.updateIcons // okay, type is (IconViewController) -> (@MainActor ([[String: Any]]) -> Void)
+  let fn2 = IconViewController.updateIcons // okay, type is (IconViewController) -> (@MainActor ([[String: Any]]) -> Void)
   fn([]) // error: cannot call main actor-isolated function synchronously from outside the actor
 }
 ```

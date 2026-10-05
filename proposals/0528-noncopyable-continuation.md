@@ -266,7 +266,7 @@ Migrating from `CheckedContinuation` to `Continuation` is mechanical:
 
 Because `Continuation` is `~Copyable`, some code patterns that implicitly copy the continuation (e.g., capturing it in a closure) will produce compile-time errors after migration. In those cases developers have to use the existing `Checked/UnsafeContinuation` syntax, depending on their use-case. 
 
-If and when Swift gains gained "called once" closures, such uses of continuations may slowly move over to `Continuation` 
+If and when Swift gains "called once" closures, such uses of continuations may slowly move over to `Continuation` 
 
 ## Future Directions
 
