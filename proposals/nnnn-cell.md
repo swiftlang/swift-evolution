@@ -247,27 +247,43 @@ func write(to x: borrowing Cell<Volatile<Bool>>) -> Volatile<Bool> {
 
 ```swift
 public struct Cell<Value: ~Copyable>: ~Copyable {
+  /// Initializes a value of this cell with the given initial value.
+  ///
+  /// - Parameter initialValue: The initial value to initialize the cell with.
   public init(_ initialValue: consuming Value)
 
+  /// Calls the given closure with a mutable pointer to the value inside the cell.
   public func withUnsafeMutablePointer<Result: ~Copyable, E>(
     _ body: (UnsafeMutablePointer<Value>) throws(E) -> Result
   ) throws(E) -> Result
 
+  /// Replaces the value in the cell to the given new value and returns the old
+  /// value.
+  ///
+  /// - Parameter newValue: The new value to place inside the cell.
   @discardableResult
   public func replace(with newValue: consuming Value) -> Value
+
+  /// Sets the value in the cell to the given new value.
+  ///
+  /// - Parameter newValue: The new value to place inside the cell.
+  public func set(_ newValue: consuming Value)
 }
 
-extension Cell: Sendable where Value: Sendable & FullyInhabited {}
-
 extension Cell where Value: ~Copyable {
+  /// Unsafely access the value within the cell through a borrow.
+  ///
+  /// This is unsafe because while borrows are outstanding, mutating the value
+  /// within the cell is formally disallowed under the Law of Exclusivity.
   @unsafe
-  public var borrow: Value {
+  public var unsafeBorrow: Value {
     borrow
     nonmutating mutate
   }
 }
 
 extension Cell where Value: Copyable {
+  /// Accesses the value within the cell through a copy.
   public var value: Value {
     get
     nonmutating set
@@ -275,18 +291,16 @@ extension Cell where Value: Copyable {
 }
 ```
 
-`Cell` is `Sendable` when `Value` is both `Sendable` and `FullyInhabited`. The
-nature of non-synchronized shared memory is inherently prone to data race safety
-issues, but if a type is considered `FullyInhabited`, then any such race will
-allow the type to still be considered fully initialized. Races for suhc types
-are not considered undefined behavior.
-
 ### `ConstCell`
 
 ```swift
 public struct ConstCell<Value: ~Copyable>: ~Copyable {
+  /// Initializes a value of this cell with the given initial value.
+  ///
+  /// - Parameter initialValue: The initial value to initialize the cell with.
   public init(_ initialValue: consuming Value)
 
+  /// Calls the given closure with a read-only pointer to the value inside the cell.
   public func withUnsafePointer<Result: ~Copyable, E>(
     _ body: (UnsafePointer<Value>) throws(E) -> Result
   ) throws(E) -> Result
@@ -295,13 +309,18 @@ public struct ConstCell<Value: ~Copyable>: ~Copyable {
 extension ConstCell: Sendable where Value: Sendable & FullyInhabited {}
 
 extension ConstCell where Value: ~Copyable {
+  /// Unsafely access the value within the cell through a borrow.
+  ///
+  /// This is unsafe because while borrows are outstanding, mutating the value
+  /// within the cell is formally disallowed under the Law of Exclusivity.
   @unsafe
-  public var borrow: Value {
+  public var unsafeBorrow: Value {
     borrow
   }
 }
 
 extension ConstCell where Value: Copyable {
+  /// Accesses the value within the cell through a copy.
   public var value: Value {
     get
   }
@@ -311,30 +330,33 @@ extension ConstCell where Value: Copyable {
 ### `Volatile`
 
 ```swift
-public struct Volatile<Value: ~Copyable>: ~Copyable {
+public struct Volatile<Value>: ~Copyable {
+  /// Initializes a volatile value with the given initial value.
+  ///
+  /// - Parameter initialValue: The initial value to initialize the volatile
+  ///                           cell with.
   public init(_ initialValue: consuming Value)
 
+  /// Calls the given closure with a mutable pointer to the value inside the
+  /// volatile cell.
   public func withUnsafeMutablePointer<Result: ~Copyable, E>(
     _ body: (UnsafeMutablePointer<Value>) throws(E) -> Result
   ) throws(E) -> Result
-
-  @discardableResult
-  public func replace(with newValue: consuming Value) -> Value
 }
 
-extension Volatile where Value: BitwiseCopyable {
-  public var value: Value {
-    get
-    set
-  }
+// These extensions all have the same members
+extension Volatile where Value == Unsafe{Mutable}{Raw}Pointer<T>{?}
+extensioin Volatile where Value == {U}Int{8|16|32|64} {
+  /// Performs a volatile load from memory and reads the value out.
+  public func read() -> Value
+
+  /// Performs a volatile write to memory 
+  public func write(_ newValue: Value)
+
+  /// Performs a volatile read from memory and calls the given closure allowing 
+  public func modify<Result: ~Copyable>(_ body: (inout Value) -> Result) -> Result
 }
 ```
-
-It's important to note that `.value` requires a `BitwiseCopyable` conformance
-rather than the usual `Copyable` one seen in the cell types. The volatile pointer
-reads and stores operate directly on the bitwise representation of the type in
-memory. A non-trivial type like `String` that requires a `swift_retain` for its
-copy operation doesn't translate to volatile semantics for example.
 
 ### Conversions
 
@@ -344,12 +366,10 @@ extension MutableRef where Value: ~Copyable {
 }
 
 extension Span where Element: ~Copyable {
-  public var constCell: Span<ConstCell<Element>> {
-    get
-  }
+  public func constCells() -> Span<ConstCell<Element>>
 
   @unsafe
-  public func cells() -> Span<Cell<Element>>
+  public func unsafeCells() -> Span<Cell<Element>>
 }
 
 extension MutableSpan where Element: ~Copyable {
@@ -460,14 +480,49 @@ module for just these is a bit overkill. While it would be ideal if Swift had
 proper namespaces or submodules, we don't currently have such features to land
 these types under.
 
-### `read()` and `write(_:)` functions on `Volatile`
+### Have `Value` conform to `AtomicRepresentable` for `Volatile`
 
-An alternative to `Volatile.value` with its getter and setter are explicit `read()`
-and `write()` functions. There is some prior art here with [swift-mmio](https://github.com/apple/swift-mmio)
-providing a `Register<T>` type which is equivalent to `UnsafePointer<Volatile<T>>`
-which has a `read()` and `write(_:)`. Given the precedent with `UniqueBox` and the
-proposed `Cell` types as well, we thought continuing with this `.value` trend
-would be more consistent.
+Instead of only providing `read`, `write`, and `modify` on the basic integer types,
+we could constrain the generic argument to `Volatile` to `AtomicRepresentable`.
+The same hardware constraints for atomics also somewhat apply to `Volatile`
+(allow load splitting could be allowed for types that aren't `AtomicRepresentable`).
+However, we would either need to sink `AtomicRepresentable` in the `Swift` module
+or we would need to move `Volatile` into the `Synchronization` module. A downside
+of not using this constraint is that things like the following wouldn't compose
+with `Volatile`:
+
+```swift
+enum Color: UInt8, AtomicRepresentable {
+  case red
+  case green
+  case blue
+}
+
+Volatile<Color>.read()
+```
+
+A possible future could be submodules where `Synchronization` becomes a submodule
+of the main `Swift` module and the sinking and moving of types no longer becomes
+a problem.
+
+### `UnsafeCell`
+
+A concern with `Cell` is that the `unsafeBorrow` property causes all uses of
+`value` and `replace` to be considered unsafe as well and needs handling to
+ensure its safety. We could sever the `unsafeBorrow` property out of `Cell` into a
+new `UnsafeCell` to give `Cell` more safety. We could also potentially have a
+freestanding `pointer`/`address` property on `UnsafeCell` instead of the closure
+based API on `Cell`.
+
+We feel this is a little unnecessary as `UnsafeCell` would mimic `Cell` in almost
+all aspects with the added API of `unsafeBorrow`. In Rust, `Cell` is considered
+completely safe, but is limited to single-threaded interior mutability use cases.
+If you wanted to build synchronization primitives or concurrent data structures
+like we mentioned, you would build on top of `UnsafeCell` instead.
+
+However, the presence of `unsafeBorrow` shouldn't be enough to warrant an entirely
+new type. We have similar situations with `withUnsafeBufferPointer` on `Span`
+and any safe type providing pointers to its internal storage.
 
 ## Acknowledgments
 
