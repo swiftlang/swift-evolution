@@ -1,9 +1,9 @@
 # Span-based access to `Optional`'s storage
 
-* Proposal: [SE-NNNN](nnnn-optional-span-access.md)
+* Proposal: [SE-0555](0555-optional-span-access.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active review (Oct ?? - ?? 2026)**
 * Implementation: [swiftlang/swift#88153](https://github.com/swiftlang/swift/pull/88153)
 * Review: ([pitch](https://forums.swift.org/t/89580))
 
