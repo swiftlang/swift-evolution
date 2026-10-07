@@ -3,9 +3,9 @@
 * Proposal: [SE-0551](0551-span-of-one.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (September 22...October 6, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#88152](https://github.com/swiftlang/swift/pull/88152)
-* Review: ([pitch](https://forums.swift.org/t/89189))([review](https://forums.swift.org/t/se-0551/89715))
+* Review: ([pitch](https://forums.swift.org/t/89189))([review](https://forums.swift.org/t/se-0551/89715))([acceptance](https://forums.swift.org/t/accepted-se-0551-span-over-a-single-value/89939))
 
 ## Summary of changes
 
