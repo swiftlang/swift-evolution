@@ -3,9 +3,9 @@
 * Proposal: [SE-0552](0552-float-pi-rounding.md)
 * Authors: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (September 22...October 6, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#92206](https://github.com/swiftlang/swift/pull/92206)
-* Review: [(pitch)](https://forums.swift.org/t/pitch-round-to-nearest/89497)([review](https://forums.swift.org/t/se-0552-rounding-of-float-pi/89716))
+* Review: [(pitch)](https://forums.swift.org/t/pitch-round-to-nearest/89497)([review](https://forums.swift.org/t/se-0552-rounding-of-float-pi/89716))([acceptance](https://forums.swift.org/t/accepted-se-0552-rounding-of-float-pi/89936))
 
 ## Summary of changes
 Change the definition of the property `pi` on `FloatingPoint`, so that it is
