@@ -12,6 +12,7 @@
 [SE-0516]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0516-borrowing-sequence.md
 [SE-0527]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0527-rigidarray-uniquearray.md
 [SE-0532]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0532-optional-noncopyable-improvements.md
+[SE-0551]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0551-span-of-one.md
 
 ## Summary of changes
 
@@ -19,7 +20,7 @@ Adds `span` and `mutableSpan` computed properties to `Optional`. They provide in
 
 ## Motivation
 
-We would like to extend `Optional` so that it can vend its storage to API that expects to receive a `Span` value, without requiring the programmer to explicitly deal with both cases of the `Optional`.
+We would like to extend `Optional` so that it can vend its storage in place to API that expects to receive a `Span` value, without requiring the programmer to explicitly deal with both cases of the `Optional`.
 
 ```swift
 var array: UniqueArray<Person> = ...
@@ -33,7 +34,17 @@ if let someone {
 array.append(copying: someone.span)
 ```
 
-For noncopyable wrapped types, these additions can provide a quality of life improvement and help write more straightforward code:
+These proposed additions serve a similar purpose as the single-value `Span` initializers introduced in [SE-0551][SE-0551], and reduce friction when `Optional`-providing code needs to interact with API that take `Span`-typed parameters.
+
+## Proposed solution
+
+An `Optional<Wrapped>` is, in storage terms, something that holds either zero or one instance of `Wrapped`. We have previously established the `span` and `mutableSpan` properties for containers to vend safe access to the storage they own ([SE-0456][SE-0456], [SE-0467][SE-0467]), and therefore we propose to add those same properties to `Optional`.
+
+The `span` and `mutableSpan` properties will provide enhanced ergonomics when using noncopyable types, alongside the `ref` and `mutableRef` properties ([SE-0532][SE-0532]). The span properties will serve use cases where existing code is written in terms of contiguous storage, and the empty case doesn't require special handling.
+
+The `span` property will allow the implementation of `BorrowingIteratorAdapter` ([SE-0516][SE-0516]) to be expressed entirely in terms of public API, rather than by the internal helper it relies on today.
+
+`Span` and `MutableSpan` can view an existing wrapped value, but neither can add or remove one. An operation that inspects the current wrapped value and dynamically decides whether to keep, remove or replace it, is complicated to write for noncopyable values. `UniqueArray` ([SE-0527][SE-0527]) calls that operation `edit`, and it vends an `OutputSpan` over its whole capacity. `edit`'s closure can inspect, add and remove elements during an exclusive access. We propose adding the `edit` function to `Optional`, vending `Optional`'s storage via an `OutputSpan` with a capacity of one.
 
 ```swift
 // currently:
@@ -58,17 +69,9 @@ func processNew(_ b: inout UniqueArray<UInt8>?) throws -> Processed? {
 }
 ```
 
-## Proposed solution
-
-An `Optional<Wrapped>` is, in storage terms, something that holds either zero or one instance of `Wrapped`. We have previously established the `span` and `mutableSpan` properties for containers to vend safe access to the storage they own ([SE-0456][SE-0456], [SE-0467][SE-0467]), and therefore we propose to add those same properties to `Optional`.
-
-The `span` and `mutableSpan` properties will provide enhanced ergonomics when using noncopyable types, alongside the `ref` and `mutableRef` properties ([SE-0532][SE-0532]). The span properties will serve use cases where existing code is written in terms of contiguous storage, and the empty case doesn't require special handling.
-
-The `span` property will allow the implementation of `BorrowingIteratorAdapter` ([SE-0516][SE-0516]) to be expressed entirely in terms of public API, rather than the internal helper it relies on today.
-
-`Span` and `MutableSpan` can view an existing wrapped value, but neither can add or remove one. An operation that inspects the current wrapped value and dynamically decides whether to keep, remove or replace it, is complicated to write for noncopyable values. `UniqueArray` ([SE-0527][SE-0527]) calls that operation `edit`, and it vends an `OutputSpan` over its whole capacity. `edit`'s closure can inspect, add and remove elements during an exclusive access. We propose adding the `edit` function, vending `Optional`'s storage via an `OutputSpan` with a capacity of one.
-
 ## Detailed design
+
+We add two properties and one function to `Optional`:
 
 ```swift
 extension Optional where Wrapped: ~Copyable & Escapable {
