@@ -144,26 +144,26 @@ extension Widget {
   @objcDirect public final func inExtension() {}
 }
 
-final class AlreadyFinal: NSObject {
-  @objcDirect func noExplicitFinalNeeded() {}   // members of a final class are already final
+class NotFinal: NSObject {
+  @objcDirect public func stillFine() {}   // never overridden, so never dispatched
 }
 ```
 
-A `static` method mangles with `+` rather than `-`, matching clang; a `class` method qualifies once it is `final`. A method-level `@objc(name)` renames the selector segment of the symbol and the header entry together, and a class-level `@objc(Name)` supplies the class segment. A `throws` method bridges the usual way, with a trailing `NSError **`.
+A `static` method mangles with `+` rather than `-`, matching clang; a `class` method qualifies so long as no subclass overrides it. A method-level `@objc(name)` renames the selector segment of the symbol and the header entry together, and a class-level `@objc(Name)` supplies the class segment. A `throws` method bridges the usual way, with a trailing `NSError **`.
 
 #### What is rejected
 
 **It must be statically dispatched.** A direct method has no entry in its class's method list, so nothing may reach it through the runtime. The attribute is rejected on a declaration that:
 
-* is not `final` — an overridable method needs dynamic dispatch. Initializers are excepted, since they are not overridden the same way;
 * is an `override`;
 * is `dynamic`. This is tested semantically rather than as a written attribute, so it also covers `@NSManaged` and `-enable-implicit-dynamic`;
 * is a `required init`, which must be inherited;
 * is `@IBAction` or `@IBSegueAction` — wired up by selector from a nib or storyboard, which the compiler never sees.
+* has a method in any subclass that overrides it
 
 The same property rules out three *uses* of an otherwise-valid direct method, diagnosed at the use site rather than on the declaration:
 
-* `#selector` naming it, including the `getter:` and `setter:` forms — though those can only name a property imported from Objective-C, since the attribute is not accepted on a Swift property. The explanatory note attaches to the declaration rather than the use;
+* `#selector` naming it, a direct method is not in the ObjC method list, thus can't get a meaningful selector;
 * `AnyObject` dynamic lookup. Direct methods are excluded from the candidate set rather than diagnosed, so this surfaces as an ordinary "no member" error — matching how the compiler already treats `objc_direct` methods imported from Objective-C;
 * witnessing an `@objc` protocol requirement. Here the declaration is accepted and the *conformance* is invalidated, because that is where the problem is: a call through the protocol is a message send.
 
@@ -175,6 +175,30 @@ The same property rules out three *uses* of an otherwise-valid direct method, di
 * is `private` or `fileprivate`, which never reach the header.
 
 **Objective-C must be able to express it.** Beyond the ordinary `@objc` representability rules, `async` is rejected: there is no direct calling convention for an asynchronous method.
+
+#### `@objc @implementation`
+
+[SE-0436][se0436] lists `objc_direct` methods among the declarations `@implementation` cannot express. They can now: a member of an `@objc @implementation` extension may be `@objcDirect`, provided it matches a header declaration that is `objc_direct`.
+
+```objc
+@interface Widget : NSObject
+- (int)plainMethod;
+- (int)directMethod __attribute__((objc_direct));
+@end
+```
+
+```swift
+@objc @implementation extension Widget {
+  @objcDirect func directMethod() -> Int32 { 1 }
+  func plainMethod() -> Int32 { 2 }
+}
+```
+
+Directness must agree between the two sides, and a mismatch is diagnosed in either direction with a fix-it to add or remove the attribute. It has to agree because the header is what Objective-C callers compile against: if the header says `objc_direct` and the implementation does not, callers reference a direct symbol nothing defines; if the implementation says it and the header does not, callers message-send a selector that was never registered.
+
+Three things had to change for this to work, all of them consequences of a direct method being statically dispatched. One is dropping the `final` requirement, which a member of an `@implementation` extension cannot satisfy. The attribute now also suppresses the implicit `dynamic` that `@objc` extension members otherwise acquire, and takes no Swift vtable entry. A class whose Objective-C layout is fixed cannot grow vtable slots, so without the latter the member is rejected as an overridable Swift-only method.
+
+Code generation needs no change: the member is emitted under the direct symbol exactly as it would be outside an `@implementation` extension.
 
 #### Future steps
 
@@ -331,12 +355,9 @@ Excluding the attribute from interfaces would also make them rebuildable, but `-
 
 Writing `@objcDirect` requires the experimental feature flag, so no existing spelling changes meaning by acquiring the attribute.
 
-Two of the new checks are **not** gated on that flag, and can therefore affect existing code. They test whether a declaration is direct-dispatched, which is also true of an Objective-C `objc_direct` method imported into Swift. With the feature disabled, and in code that never writes the attribute:
+One new check is **not** gated on that flag, and can therefore affect existing code. It asks whether a declaration is direct-dispatched, which is also true of an Objective-C `objc_direct` method imported into Swift. So, with the feature disabled and in code that never writes the attribute: an imported direct method witnessing an `@objc` protocol requirement now invalidates the conformance. It was previously accepted, and every call made through the protocol failed at runtime — so this converts a guaranteed crash into a build error, and the rejected conformance never worked. Objective-C already forbids the same shape, in `err_objc_direct_protocol_conformance`.
 
-* `#selector` naming an imported direct method is now an error. It previously compiled and produced a selector the class does not respond to. This covers the `getter:` and `setter:` forms naming an imported direct property.
-* An imported direct method witnessing an `@objc` protocol requirement now invalidates the conformance. It was previously accepted, and every call made through the protocol would have failed at runtime.
-
-Each of these replaces a runtime failure with a compile-time one, which is the point. But code that imports Objective-C direct methods can stop building, and this section should not be read as "no impact."
+The `#selector` check would break existing code the same way, but without the same justification. A generated header declares a direct property, and a Swift caller writes `NSStringFromSelector(#selector(getter: …))` to obtain a runtime key. It is therefore gated on the feature instead. Those names do need removing: that one resolves today only because key-value coding falls back to the instance variable, which `direct` leaves in place. Gating gives adopters the trial period to clear them before the feature becomes the default.
 
 ## ABI compatibility
 
@@ -376,9 +397,5 @@ The reason is the shape of the failure, not the size of the work. A direct entry
 Objective-C has `objc_direct_members`, and the 2023 pitch proposed a Swift analogue alongside the per-method attribute. A class-level spelling would avoid repeating the attribute on every member and would compose naturally with `@objcMembers`.
 
 This proposal deliberately covers only the per-method attribute. Methods are where the measured benefit is concentrated, and a class-level attribute raises questions the per-method form does not — in particular how it would interact with the applicability rules above, since a class will typically contain members that cannot be direct. Settling the per-method semantics first gives that design something concrete to build on.
-
-### Interaction with `@implementation`
-
-[SE-0436][se0436] lists `objc_direct` methods and `direct` properties among the declarations `@implementation` cannot currently express. If both features are in the language, the interaction would have to be defined: `ObjCImplementationChecker` would need to require that the directness of the declaration and of the implementation agree, and diagnose a mismatch. Code generation does not appear to need a change.
 
 [se0436]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0436-objc-implementation.md
