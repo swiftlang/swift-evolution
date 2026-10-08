@@ -3,9 +3,9 @@
 * Proposal: [SE-0547](0547-swiftpm-compilation-caching.md)
 * Authors: [Owen Voorhees](https://github.com/owenv)
 * Review Manager: [Mishal Shah](https://github.com/shahmishal)
-* Status: **Active Review (August 25...September 1, 2026)**
+* Status: **Accepted with modifications**
 * Implementation: [PR #10246](https://github.com/swiftlang/swift-package-manager/pull/10246)
-* Review: ([pitch](https://forums.swift.org/t/pitch-compilation-caching-support-in-swiftpm/88079)) ([review](https://forums.swift.org/t/se-0547-swiftpm-support-for-compilation-caching/89191))
+* Review: ([pitch](https://forums.swift.org/t/pitch-compilation-caching-support-in-swiftpm/88079)) ([review](https://forums.swift.org/t/se-0547-swiftpm-support-for-compilation-caching/89191)) ([accepted with modifications](https://forums.swift.org/t/accepted-with-modifications-se-0547-swiftpm-support-for-compilation-caching/89949))
 
 ## Introduction
 
