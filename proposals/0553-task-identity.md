@@ -3,9 +3,9 @@
 * Proposal: [SE-0553](0553-task-identity.md)
 * Authors: [Joakim Hassila](https://github.com/hassila), [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (September 23...October 7, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#89237](https://github.com/swiftlang/swift/pull/89237)
-* Review: ([pitch](https://forums.swift.org/t/pitch-cheap-task-identity-for-high-performance-instrumentation/86666)) ([review](https://forums.swift.org/t/se-0553-task-identity/89728))
+* Review: ([pitch](https://forums.swift.org/t/pitch-cheap-task-identity-for-high-performance-instrumentation/86666)) ([review](https://forums.swift.org/t/se-0553-task-identity/89728)) ([acceptance](https://forums.swift.org/t/accepted-se-0553-task-identity/89958))
 
 ## Summary of changes
 
