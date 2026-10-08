@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift-testing#1845](https://github.com/swiftlang/swift-testing/pull/1845)
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-attachments-in-the-swift-testing-json-event-stream/89956))
 
 ## Introduction
 
