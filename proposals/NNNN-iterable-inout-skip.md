@@ -53,6 +53,34 @@ do {
 
 Not every borrowing iterator has behavior that makes this value useful, since `BorrowingIteratorProtocol` makes no requirements for post-throw iterator behavior. However, for iterators that *do* specify their post-throw behavior, this overload is an important building block for future algorithms.
 
+For example, if `MyConcreteIterator` has been designed such that it is safe to resume work with an iterator immediately after an error has been produced, a `nextElement(afterSkipping:retryCount:)` method could be written like this:
+
+```swift
+extension MyConcreteIterator {
+    func nextElement(afterSkipping n: Int, retryCount: Int = 0) throws -> Span<Element> {
+        var retryCount = retryCount
+        var toSkip = n
+        while toSkip > 0 {
+            do {
+                try skip(by: &toSkip)
+                guard toSkip == 0 else {
+                    return Span()
+                }
+            } catch {
+                if retryCount > 0 {
+                    retryCount -= 1
+                    continue
+                }
+                throw error
+            }
+        }
+        return nextSpan(maxCount: 1)
+    }
+}
+```
+
+Each call to `skip(by:)` decrements `toSkip` by the number of elements actually skipped, allowing attempted continuation of the operation after an error is thrown.
+
 ## Detailed design
 
 The `BorrowingIteratorProtocol` declaration will be modified to include the second `skip(by:)` overload:
@@ -146,6 +174,33 @@ None.
 
 When the `skip(by:)` method either returns or throws an error, the `offset` parameter is updated to the number of items still to be skipped. That is, if you pass an offset of `5`, and only four elements are skipped, the value of `offset` after calling is `1`.
 
-While this is the opposite of the `Int`-returning `skip(by:)`, which returns the number of elements that were skipped, it's generally the right value for when you need to respond to an iteration failure. In addition, it matches the existing behavior of [`UniqueArray.formIndex(_:offsetBy:limitedBy:)`](https://developer.apple.com/documentation/swift/uniquearray/formindex(_:offsetby:limitedby:)), which similarly reports the distance that the index couldn't be moved, rather than the distance it did move.
+While this is the opposite of the `Int`-returning `skip(by:)`, which returns the number of elements that were skipped, it's the right value for continued processing. If we instead modify the `inout` parameter to the number of elements that were successfully skipped, it moves that bookkeeping work into the calling function. The following example shows the `nextElement(afterSkipping:retryCount:)` function from above, but with the alternative semantics. The author has to carefully track the number of elements remaining to skip without assistance from the `skip(by:)` method.
 
+```swift
+extension MyConcreteIterator {
+    func nextElement(afterSkipping n: Int, retryCount: Int = 0) throws -> Span<Element> {
+        var toSkip = n
+        while toSkip > 0 {
+            var offset = toSkip
+            do {
+                try skip(by: &offset)
+                // Potential error #1: Comparing `offset == n` would be incorrect.
+                guard offset == toSkip else {
+                    return Span()
+                }
+            } catch {
+                if retryCount > 0 {
+                    retryCount -= 1
+                    // Potential error #2: Must update `toSkip` in the right location.
+                    toSkip -= offset
+                    continue
+                }
+                throw error
+            }
+        }
+        return nextSpan(maxCount: 1)
+    }
+}
+```
 
+The proposed behavior also matches the existing behavior of [`UniqueArray.formIndex(_:offsetBy:limitedBy:)`](https://developer.apple.com/documentation/swift/uniquearray/formindex(_:offsetby:limitedby:)), which similarly reports the distance that the index couldn't be moved, rather than the distance it did move.
