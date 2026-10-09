@@ -88,8 +88,18 @@ N/A
 
 ## Alternatives considered
 
-None.
+- **Adopting typed throws.** If this were new API, it would make perfect sense
+  for the error thrown from `encode()` and `decode()` to be typed. Because the
+  API already exists and does not use typed throws, it is ABI-breaking on Apple
+  platforms to change the signature. Adding a new associated type with
+  availability and then defaulting it to `any Error` does not satisfy the
+  compiler unless `encode()` and `decode()` also have availability annotations,
+  which would prevent them from being used on older Apple OSes.
 
+- **Adopting typed throws only on non-Apple platforms.** This would not cause
+  ABI breakage as non-Apple platforms do not have a stable Swift API, but it
+  would make it more difficult to write cross-platform code that uses these
+  protocols and wants to take advantage of the typed throws feature.
 [`TopLevelEncoder`]: https://developer.apple.com/documentation/combine/toplevelencoder
 [`TopLevelDecoder`]: https://developer.apple.com/documentation/combine/topleveldecoder
 [`Encodable`]: https://developer.apple.com/documentation/swift/encodable
