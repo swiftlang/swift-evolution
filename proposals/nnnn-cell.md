@@ -1,12 +1,12 @@
 # Cell, ConstCell, and Volatile
 
-* Proposal: [SE-NNNN](NNNN-cell.md)
+* Proposal: [SE-0556](0556-cell.md)
 * Authors: [Alejandro Alonso](https://github.com/azoy), [Doug Gregor](https://github.com/douggregor)
-* Review Manager: TBD
-* Status: **Awaiting review**
-* Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN)
+* Review Manager: [Freddy Kellison-Linn](https://forums.swift.org/u/jumhyn/summary)
+* Status: * Status: **Active review (October 9–23, 2026)**
+* Implementation: [swiftlang/swift#92786](https://github.com/swiftlang/swift/pull/92786)
 * Previous Revision: [AliasedSpan and AliasedRef](https://github.com/DougGregor/swift-evolution/blob/aliased-spans/proposals/nnnn-aliased-spans.md)
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-cell-constcell-and-volatile/89582))
 
 ## Summary of changes
 
