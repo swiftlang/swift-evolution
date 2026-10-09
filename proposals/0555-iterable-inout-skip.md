@@ -1,10 +1,11 @@
 # `inout` overload of `BorrowingIteratorProtocol.skip(by:)`
 
-* Proposal: [SE-NNNN](NNNN-iterable-inout-skip.md)
+* Proposal: [SE-0555](NNNN-iterable-inout-skip.md)
 * Authors: [Nate Cook](https://github.com/natecook1000)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Tony Allevato](https://github.com/allevato)
+* Status: **Active review (October 9–23, 2026)**
 * Implementation: [swiftlang/swift#92109](https://github.com/swiftlang/swift/pull/92109)
+* Review: [(pitch)](https://forums.swift.org/t/pitch-amend-iterable-proposal-with-additional-skip-by/89521)
 
 ## Summary of changes
 
