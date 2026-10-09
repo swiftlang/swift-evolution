@@ -140,7 +140,9 @@ These additions are restricted to `Wrapped: Escapable` because `Span`, `MutableS
 
 ## Source compatibility
 
-This proposal is additive and source compatible.
+This proposal is additive. It can lead to a source break in some cases with implicitly-unwrapped Optionals.
+
+Member lookup for implicitly-unwrapped Optional instances checks symbols of Optional before checking the wrapped type. As a result, an IUO of a wrapped type that has a `span` property or an `edit()` function may change meaning after this proposal is implemented. In every case inserting an explicit unwrap operation restores the previous behaviour.
 
 ## ABI compatibility
 
