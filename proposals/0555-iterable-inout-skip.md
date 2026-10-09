@@ -1,6 +1,6 @@
 # `inout` overload of `BorrowingIteratorProtocol.skip(by:)`
 
-* Proposal: [SE-0555](NNNN-iterable-inout-skip.md)
+* Proposal: [SE-0555](0555-iterable-inout-skip.md)
 * Authors: [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Active review (October 9–23, 2026)**
