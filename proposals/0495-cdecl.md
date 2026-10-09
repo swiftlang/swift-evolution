@@ -168,9 +168,24 @@ Existing adopters of `@_cdecl` can replace the attribute with `@objc` to preserv
 
 ## ABI compatibility
 
-The compiler emits a single symbol for `@c` and `@objc` functions, the symbol uses the C calling convention.
+The ABI model depends on whether the declaration originates in Swift or implements a declaration imported from a C or Objective-C header:
 
-Adding or removing the attributes `@c` and `@objc` on a function is an ABI breaking change. Changing between `@c` and `@objc` is ABI stable. Changing between `@_cdecl` and either `@c` or `@objc` is an ABI breaking change since `@_cdecl` emits two symbols and Swift clients of `@_cdecl` call the one with the Swift calling convention.
+| Declaration | Client-visible entry point | Swift call target |
+| --- | --- | --- |
+| `@c func`, or an `@objc func` whose signature requires no bridging | One C-calling-convention symbol | The C symbol |
+| An `@objc func` whose signature requires bridging | A C entry point and a native Swift entry point | The native Swift entry point |
+| A global `@c @implementation` or `@objc @implementation` function | The C symbol declared by the imported header | The imported C symbol |
+| A method in an `@objc @implementation extension` | The Objective-C method declared by the imported header | Objective-C dispatch |
+
+A plain `@objc func` is a Swift function that adds an Objective-C entry point. For a bridged signature, its C entry point bridges to the native Swift body, while Swift clients call that native entry point directly.
+
+An `@objc @implementation` declaration instead provides a Swift implementation of an existing Objective-C entry point. The implementation declaration is not part of the generated Swift module interface, so Swift clients continue to call the imported declaration: the C symbol for a global function, or Objective-C dispatch for a method. The compiler may emit a native Swift body behind the foreign thunk, but that body is an implementation detail and is not client ABI.
+
+Adding or removing the attributes `@c` and `@objc` on a Swift-declared function is an ABI breaking change. Changing between `@c` and plain `@objc` is ABI stable for C-compatible signatures, where both emit the same single C entry point.
+
+Changing a plain `@objc` function signature across the bridging boundary is necessarily also an API change, and it changes the emitted symbols: in particular, removing bridging removes the native Swift entry point, which is an ABI breaking change for Swift clients. This cannot be avoided with an overload preserving the old signature, since two functions claiming the same C symbol are rejected with a multiple-definitions error.
+
+For the same C-compatible signature and exported name, `@c func` and `@objc @implementation func` have the same exported ABI: callers use the same C-named, C-calling-convention entry point. Their source model and the signatures they permit still differ.
 
 Adding or removing the `@c` attribute on an enum is ABI stable, but changing its raw type is not.
 
