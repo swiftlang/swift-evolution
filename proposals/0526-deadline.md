@@ -386,7 +386,7 @@ the accessor for the active deadline accepts a generic clock instance:
 extension Task where Success == Never, Failure == Never {
   public static var hasActiveDeadline: Bool { get }
 
-  public static func activeDeadline<C: Clock & Identifiable>(for clock: C) -> C.Instant?
+  public static func activeDeadline<C: Clock & Identifiable>(for clock: C = ContinuousClock()) -> C.Instant?
 }
 ```
 
@@ -651,6 +651,73 @@ do {
 // caught LocalError()
 ```
 
+### Interaction with task cancellation shields
+
+Task cancellation shields introduced in [SE-0504](0504-task-cancellation-shields.md) prevent the observation of a cancellation event
+in a given scope. They can be used to effectively "ignore cancellation" in a specific scope,
+and are often used to ensure an operation such as a "cleanup" always runs, even if the task
+the cleanup is to run in was already cancelled.
+
+A deadline causing a cancellation is, similarly to normal cancellation, not observable while executing in a shielded piece of code:
+
+```swift
+let session = try await openSession()
+let past = ContinuousClock.now - .seconds(1) // already expired deadline
+
+await withDeadline(past) {
+  await withTaskCancellationHandler {
+    await withTaskCancellationShield {
+      print("shielded: isCancelled = \(Task.isCancelled)") // shielded: isCancelled = false
+      await session.cleanup()
+    }
+
+    print("unshielded: isCancelled = \(Task.isCancelled)") // unshielded: isCancelled = true
+  } onCancel: { reason in
+    print("cancelled: \(reason)") // cancellation handler triggers, as it was set outside the shielded scope
+  }
+}
+```
+
+This follows the usual semantics of cancellation shields: they prevent a cancellation event passing "through" 
+the shield. 
+
+`Task.hasActiveDeadline` and `Task.activeDeadline(for:)` respect cancellation shields, in the same way
+the static `Task.isCancelled` does. Inside a shield, deadlines established outside of the shield are not
+active, because they would never result in an observable cancellation within the shielded region.
+
+It is possible to set another deadline _inside_ a shielded section which would then cancel the specific 
+new scope, and any child tasks within it:
+
+```swift
+await withDeadline(in: .seconds(1)) { // outer deadline
+  await withTaskCancellationShield {
+    assert(Task.activeDeadline() == nil) // the outer deadline is not visible inside the shield
+
+    try? await withDeadline(in: .seconds(2)) { // inner deadline
+      async let cleanup: Void = slowCleanup() // cancelled after 2s, not 1s
+      try await cleanup
+    }
+  }
+}
+```
+
+This is because the outer deadline cannot ever be triggered, and being able to read a deadline instant,
+which actually is never going to be effective would be confusing and inconsistent.
+
+Without a task cancellation shield preventing the lookup of the outer deadline, the active inner deadline would have
+remained "in 1 second":
+
+Nesting rules for deadlines inside a shielded section are the same as usual and the earliest deadline is active.
+
+```swift
+await withDeadline(in: .seconds(1)) { // outer deadline
+  try? await withDeadline(in: .seconds(2)) { // inner deadline, not effective
+    async let cleanup: Void = slowCleanup() // cancelled after 1 second
+    try await cleanup
+  }
+}
+```
+
 ## Source compatibility
 
 The proposed APIs are additive and the behavior of deadlines are composed 
@@ -857,6 +924,9 @@ nesting. This approach was not taken because:
    explicit `withDeadline` API would remain useful even if such a mechanism were added.
 
 ## Changelog
+- 1.3 Amendment
+  - Clarified the interaction with task cancellation shields
+- 1.3 Amendment #1: Explain interaction with task cancellation shields
 - 1.2 Revised for feedback
   - Added accessors to add a way to access the active deadlines
 - 1.1 Returned for revision
