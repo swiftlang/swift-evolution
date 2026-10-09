@@ -5,7 +5,7 @@
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Active review (October 9–23, 2026)**
 * Implementation: [swiftlang/swift#92109](https://github.com/swiftlang/swift/pull/92109)
-* Review: [(pitch)](https://forums.swift.org/t/pitch-amend-iterable-proposal-with-additional-skip-by/89521)
+* Review: [(pitch)](https://forums.swift.org/t/pitch-amend-iterable-proposal-with-additional-skip-by/89521) [(review)](https://forums.swift.org/t/se-0555-inout-overload-of-borrowingiteratorprotocol-skip-by/89977)
 
 ## Summary of changes
 
