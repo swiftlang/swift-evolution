@@ -5,7 +5,7 @@
 * Review Manager: [Maarten Engels](https://github.com/maartene/)
 * Status: **Implemented (Swift 6.4)**
 * Implementation: [swiftlang/swift-testing#1686](https://github.com/swiftlang/swift-testing/pull/1686), [swiftlang/swift-testing#1594](https://github.com/swiftlang/swift-testing/pull/1594)
-* Review: ([acceptance](https://forums.swift.org/t/accepted-st-0022-custom-reflection-during-testing/86143)) ([review](https://forums.swift.org/t/review-st-0022-custom-reflection-during-testing/85716)), ([pitch](https://forums.swift.org/t/pitch-custom-reflection-during-testing/85190))
+* Review: ([pitch](https://forums.swift.org/t/pitch-custom-reflection-during-testing/85190)) ([review](https://forums.swift.org/t/review-st-0022-custom-reflection-during-testing/85716)) ([acceptance](https://forums.swift.org/t/accepted-st-0022-custom-reflection-during-testing/86143))
 
 ## Introduction
 

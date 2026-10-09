@@ -6,7 +6,7 @@
 - Status: **Implemented (Swift 6.5)**
 - Bugs: [swiftlang/swift-testing#591](https://github.com/swiftlang/swift-testing/issues/591), rdar://132989780
 - Implementation: [swiftlang/swift-testing#1531](https://github.com/swiftlang/swift-testing/pull/1531)
-- Review: [pitch](https://forums.swift.org/t/pitch-tag-based-test-execution-filtering/86001)
+- Review: ([pitch](https://forums.swift.org/t/pitch-tag-based-test-execution-filtering/86001)) ([review](https://forums.swift.org/t/review-st-0025-tag-based-test-execution-filtering/87320)) ([acceptance](https://forums.swift.org/t/accepted-st-0025-tag-based-test-execution-filtering/87921))
 
 ## Introduction
 
