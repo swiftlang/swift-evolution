@@ -3,7 +3,7 @@
 * Proposal: [ST-0020](0020-sourcelocation-filepath.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Rachel Brindle](https://github.com/younata)
-- Status: **Implemented (Swift 6.3)**
+* Status: **Implemented (Swift 6.3)**
 * Bug: rdar://152999195
 * Implementation: [swiftlang/swift-testing#1334](https://github.com/swiftlang/swift-testing/pull/1334),
 [swiftlang/swift-testing#1472](https://github.com/swiftlang/swift-testing/pull/1472)

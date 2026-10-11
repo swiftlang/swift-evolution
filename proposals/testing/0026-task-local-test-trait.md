@@ -7,12 +7,12 @@
 * Implementation: [swiftlang/swift-testing#1764](https://github.com/swiftlang/swift-testing/pull/1764)
 * Review: ([pitch](https://forums.swift.org/t/pitch-add-a-tasklocal-trait-to-swift-testing/87603)) ([review](https://forums.swift.org/t/st-0026-tasklocal-test-trait/88358)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-st-0026-tasklocal-test-trait/88986))
 
-# Introduction
+## Introduction
 
 A `.taskLocal` test trait is added to Testing that allows binding a value to a task local for a suite
 or test.
 
-# Motivation
+## Motivation
 
 In [ST-0007], test scoping traits were introduced to allow wrapping the execution
 of tests so that code could be run before and after each test. The main
@@ -63,7 +63,7 @@ There are two primary motivations for adding this convenience:
   inconvenience when shipping task locals in libraries. A dedicated `.taskLocal` trait allows one
   to bind values to task locals in tests without creating a dedicated test support library.
 
-# Proposed solution
+## Proposed solution
 
 A `.taskLocal` trait will be defined in Testing that allows overriding a task local for a single
 test or a whole suite:
@@ -75,7 +75,7 @@ struct MySuite {
 }
 ```
 
-# Detailed design
+## Detailed design
 
 A new type will be defined to conform to `TestScoping`, as well as a static function for ease of
 constructing the trait:

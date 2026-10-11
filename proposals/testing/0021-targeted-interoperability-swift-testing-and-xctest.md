@@ -3,7 +3,7 @@
 - Proposal: [ST-0021](0021-targeted-interoperability-swift-testing-and-xctest.md)
 - Authors: [Jerry Chen](https://github.com/jerryjrchen)
 - Review Manager: [Rachel Brindle](https://github.com/younata)
-* Status: **Implemented (Swift 6.4)**
+- Status: **Implemented (Swift 6.4)**
 - Implementation: [swiftlang/swift-testing#1523](https://github.com/swiftlang/swift-testing/pull/1523),
   [swiftlang/swift-testing#1573](https://github.com/swiftlang/swift-testing/pull/1573),
   [swiftlang/swift-testing#1542](https://github.com/swiftlang/swift-testing/pull/1542),
@@ -13,11 +13,11 @@
   [swiftlang/swift-testing#1439](https://github.com/swiftlang/swift-testing/pull/1439),
   [swiftlang/swift-testing#1369](https://github.com/swiftlang/swift-testing/pull/1369),
   [swiftlang/swift-corelibs-xctest#525](https://github.com/swiftlang/swift-corelibs-xctest/pull/525)
-- Review: ([pitch](https://forums.swift.org/t/pitch-targeted-interoperability-between-swift-testing-and-xctest/82505),
-  [review](https://forums.swift.org/t/st-0021-targeted-interoperability-between-swift-testing-and-xctest/84965),
-  [acceptance](https://forums.swift.org/t/accepted-st-0021-targeted-interoperability-between-swift-testing-and-xctest/85331)
-  [amendment](https://forums.swift.org/t/amendment-st-0021-targeted-interoperability-between-swift-testing-and-xctest/86142),
-  [amended](https://forums.swift.org/t/amended-st-0021-targeted-interoperability-between-swift-testing-and-xctest/86479))
+- Review: ([pitch](https://forums.swift.org/t/pitch-targeted-interoperability-between-swift-testing-and-xctest/82505))
+  ([review](https://forums.swift.org/t/st-0021-targeted-interoperability-between-swift-testing-and-xctest/84965))
+  ([acceptance](https://forums.swift.org/t/accepted-st-0021-targeted-interoperability-between-swift-testing-and-xctest/85331))
+  ([amendment](https://forums.swift.org/t/amendment-st-0021-targeted-interoperability-between-swift-testing-and-xctest/86142))
+  ([amended](https://forums.swift.org/t/amended-st-0021-targeted-interoperability-between-swift-testing-and-xctest/86479))
 
 > Apr 2026: Amended to change the definition of limited interop mode.
 
