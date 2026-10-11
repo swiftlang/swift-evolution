@@ -29,6 +29,10 @@ This cannot select between imports, type aliases, conformances, stored
 properties, or complete declarations. Those choices have to be made while the
 module is being compiled.
 
+A module's deployment target is fixed for a particular compilation, but the same source can be compiled for different deployment targets. With Bazel's Apple and Swift rules, an application's minimum deployment version can propagate through its dependency graph. A shared, statically linked library can therefore be compiled separately for two applications with different minimum versions, selecting a different implementation in each build.
+
+SwiftPM's package model instead declares minimum platform versions through the package manifest's `platforms` setting, with defaults for unspecified platforms. A dependency's declared minimum must be compatible with its consumer's minimum; this requirement does not itself mean that the dependency is compiled for the consumer's version. The proposed condition observes the target supplied to the compiler, regardless of how the build system determines it. It does not change either build system's deployment-target policy.
+
 For example, a library rebuilt for an application's deployment target might use
 `Mutex` when that target guarantees its availability, while retaining an older
 lock representation for earlier targets:
@@ -60,6 +64,25 @@ this information in the target triple.
 
 This is distinct from an SDK check: two modules can use the same SDK while
 targeting different minimum OS versions.
+
+The choice can also affect a stored property's concrete type. For example, in a macOS-only module:
+
+```swift
+struct PacketBuffer {
+  #if deploymentTargetAtLeast(macOS 26, *)
+  private var bytes: InlineArray<64, UInt8> = .init(repeating: 0)
+  #else
+  private var bytes = [UInt8](repeating: 0, count: 64)
+  #endif
+
+  subscript(index: Int) -> UInt8 {
+    get { bytes[index] }
+    set { bytes[index] = newValue }
+  }
+}
+```
+
+Using the same SDK and a compiler that supports the condition and `InlineArray`, a build targeting macOS 14 selects array-backed storage, while a build targeting macOS 26 selects inline storage. The subscript has the same source interface in both builds, but the stored representation differs. Each build chooses one concrete property type before type checking; it does not choose between representations at runtime.
 
 ## Proposed solution
 
@@ -274,6 +297,10 @@ dependent on project-specific configuration.
 made at runtime. It follows control flow and can make newer APIs available within
 its guarded branch. It cannot, however, select imports, stored representation,
 conformances, type aliases, or other declarations before type checking.
+
+Runtime availability checks can nevertheless support different implementations behind a common interface. A protocol and wrapper can hide an availability-qualified implementation, with the wrapper selecting it during initialization. For example, before [swift-build #1401](https://github.com/swiftlang/swift-build/pull/1401), `Statistic` stored an optional `any _StatisticBackend`, initialized an availability-qualified `_Statistic` on newer systems, and provided fallback behavior otherwise.
+
+This approach is useful when one binary must adapt to the running OS. It requires an abstraction that can represent the runtime choice, rather than changing the declared type of a stored property. When the module's minimum deployment target already determines the desired implementation, conditional compilation allows that build to select its concrete storage directly. The tradeoffs depend on the abstraction and on compiler optimization.
 
 ### Declaration-based compile-time availability
 
