@@ -3,8 +3,8 @@
 * Proposal: [SE-NNNN](NNNN-hasher-combine-rawspan.md)
 * Author: [Jeremy Schonfeld](https://github.com/jmschonfeld)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-* Implementation: Not yet implemented
+* Status: **Awaiting review**
+* Implementation: https://github.com/swiftlang/swift-evolution/pull/3490
 * Review: ([pitch](https://forums.swift.org/t/pitch-add-rawspan-primitive-to-hasher/89583))
 
 ## Summary of changes
