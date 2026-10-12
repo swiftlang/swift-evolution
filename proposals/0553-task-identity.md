@@ -9,7 +9,7 @@
 
 ## Summary of changes
 
-Adds a cheap, stable, process-unique identifier for the currently executing `Task`. `Task.currentID`, with instance accessors on `Task` and `UnsafeCurrentTask`, returns an opaque `Task.ID` at a cost comparable to a thread-local read — enabling always-on instrumentation like tracing and structured logging on the hot path.
+Adds a cheap, stable, process-unique identifier for the currently executing `Task`. `Task.currentID`, with instance accessors on `Task` and `UnsafeCurrentTask`, returns an opaque `Task.ID` at a cost comparable to a thread-local read — enabling always-on instrumentation like tracing and structured logging on the hot path. The identifier is intended for attributing observations and per-task state to a task, not for steering control flow; see [Intended use and pitfalls](#intended-use-and-pitfalls).
 
 ## Motivation
 
@@ -87,6 +87,17 @@ func emit(_ event: Event) {
 ```
 
 ## Detailed design
+
+### Intended use and pitfalls
+
+The use cases above share one shape: record the identifier where work happens and look it up later, in a log, a trace, a profiler sample or a side table. `Task.ID` is a key for attributing observations and per-task state to a task, not a way to steer control flow based on which task is running. Code that branches on task identity deserves the same suspicion as code that branches on thread identity. In particular:
+
+- **Task structure is not a contract.** Whether an API runs a caller-supplied closure on the calling task or on a child task is an implementation detail unless that API documents it. Without such documentation, comparing `Task.currentID` against a known `task.id` observes an accident of implementation that may change between releases.
+- **Cancellation is observed in a context, identity is not.** Inside a task cancellation shield ([SE-0504](0504-task-cancellation-shields.md)), a task cancelled from its enclosing scope reports `Task.isCancelled` as `false` while `task.isCancelled` on a handle to it reports `true`. `Task.ID` can confirm that both observations concern one task. That is the identifier doing its job, not a contradiction to rely on or work around.
+- **An identifier is not a handle.** A `Task.ID` cannot cancel, await or otherwise reach the task, and it encodes no parent/child, group or executor relationship. Values that must follow work into child tasks are inherited automatically through task-locals ([SE-0311](0311-task-locals.md)), not through a side table keyed by identity.
+- **Side tables must be pruned by their owner.** Identifiers are never reused, so a stale entry is never reclaimed by a later task; a table keyed by `Task.ID` (for example per-task accounting in a custom executor) grows without bound unless its owner evicts entries.
+
+Task identity is already observable through debuggers, Instruments, `swift-inspect` or the pointer identity of `UnsafeCurrentTask`; this proposal makes it cheap and stable for the instrumentation that needs it. Using it as a side channel into runtime behaviour is discouraged.
 
 ### `Task.ID`
 
