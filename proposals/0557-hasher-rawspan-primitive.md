@@ -1,6 +1,6 @@
 # Add `RawSpan` primitive to `Hasher`
 
-* Proposal: [SE-0557](0557-hasher-combine-rawspan.md)
+* Proposal: [SE-0557](0557-hasher-rawspan-primitive.md)
 * Author: [Jeremy Schonfeld](https://github.com/jmschonfeld)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Active review (October 12...20, 2026)**
