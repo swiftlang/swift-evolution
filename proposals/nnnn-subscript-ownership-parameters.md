@@ -148,6 +148,19 @@ struct C4 {
 }
 ```
 
+Here are the potential combinations for `consuming` accessors:
+
+| Read-only accessor    | Read-write accessor   | Can parameter be `consuming`? |
+| --------------------- | --------------------- | ----------------------------- |
+| `get`                 | (none)                | ✅                             |
+| `get`                 | `set`                 | ❌                             |
+| `get`                 | (`yielding`) `mutate` | ✅                             |
+| (`yielding`) `borrow` | (none)                | ✅                             |
+| (`yielding`) `borrow` | (yielding) `mutate`   | ✅                             |
+| (`yielding`) `borrow` | `set`                 | ❌                             |
+
+
+
 ## Source compatibility
 
 This is a pure language extension with no effect on source compatibility.
