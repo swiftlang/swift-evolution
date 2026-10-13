@@ -95,10 +95,10 @@ To pass `mapping[17]` as `inout` , Swift will first call the subscript's `get` o
 For an integer parameter that receives a copy, the same value `i` is passed both times. However, when the subscript argument is `borrowing` or `inout`, the argument must remain fixed for the duration of the call to `doSomething(on:)`, so that the same index value is provided to both the `get` and the `set`. Consider another case with a borrowing subscript argument:
 
 ```swift
-struct NC: ~Copyable { }
+struct FileHandle: ~Copyable { /* ... */ }
 
 struct A {
-  subscript(nc: borrowing NC) -> Int {
+  subscript(file: borrowing FileHandle) -> Int {
     get { ... }
     set { ... }
   }
@@ -107,8 +107,8 @@ struct A {
 func f<T, U>(_: inout T, _: inout U) { }
 
 var a = A()
-var nc = NC()
-f(&a[nc], &nc) // error: exclusivity conflict because "nc" is borrowed by the subscript, mutated by the inout
+var file = FileHandle()
+f(&a[file], &file) // error: exclusivity conflict because "file" is borrowed by the subscript, mutated by the inout
 ```
 
 ### Consuming subscript parameters are incompatible with get/set accessors
@@ -117,7 +117,7 @@ When the subscript argument is `consuming`, the subscript cannot define both a `
 
 ```swift
 struct C1 {
-  subscript(c: consuming NC) -> Int { // error: 'consuming' may not be used on the parameter of a subscript whose read and write go through separate accessors
+  subscript(c: consuming FileHandle) -> Int { // error: 'consuming' may not be used on the parameter of a subscript whose read and write go through separate accessors
     get { ... }
     set { ... }
   }
@@ -128,20 +128,20 @@ struct C1 {
 
 ```swift
 struct C2 {
-  subscript(cg: consuming NC) -> Int { // okay, there is no set
+  subscript(cg: consuming FileHandle) -> Int { // okay, there is no set
     get { ... }
   }
 }
 
 struct C3 {
-  subscript(cg: consuming NC) -> Int { // okay, coroutine accessor
+  subscript(cg: consuming FileHandle) -> Int { // okay, coroutine accessor
     borrow { ... }
     mutate { ... }
   }
 }
 
 struct C4 {
-  subscript(cg: consuming NC) -> Int { // okay, coroutine accessor
+  subscript(cg: consuming FileHandle) -> Int { // okay, coroutine accessor
     yielding borrow { ... }
     yielding mutate { ... }
   }
