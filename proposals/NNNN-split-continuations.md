@@ -17,13 +17,14 @@
 
 Introduces a new form of `withContinuation` whose body is `async` and receives
 both halves of a continuation: the existing `Continuation` that is used to
-resume and a new `ContinuationAwaiter` that is used to await. Awaiting the
-awaiter can install cancellation and priority escalation handlers that are only
+resume and a new `ContinuationWaiter` that is used to wait. Waiting on the
+waiter can install cancellation and priority escalation handlers that are only
 active while the task is suspended on the continuation.
 
-Additionally, this proposal adds new `resume` methods to `Continuation` that
-allow an executor to offer its current execution context to the resumed task. If
-the task resumes on the same executor, it runs inline instead of being enqueued.
+Additionally, this proposal adds new `resumeSynchronously` methods to
+`Continuation`, `UnsafeContinuation` and `CheckedContinuation` that allow an
+executor to offer its current execution context to the resumed task. If the task resumes on the same executor, it runs inline
+instead of being enqueued.
 
 ## Motivation
 
@@ -59,16 +60,17 @@ func read(into buffer: ReadBuffer) async throws(IOError) -> Int {
 }
 ```
 
-While looks simple enough it has a few hard-to-handle problems:
+While it looks simple enough it has a few hard-to-handle problems:
 
 1. The cancellation handler can run before the continuation is even created. If
    the task is already cancelled `onCancel` runs inline, before the body of
    `withContinuation` is executed. It can also run concurrently with the body
    from another thread.
 2. Since the handler can't get the continuation, the code has to create an id or
-   another token up front so that the handler and the body can find each other.
+   another token up front so that the handler and the body can be related each
+   other.
 3. The event loop has to handle a `cancel(id)` for an id that it hasn't
-   registered an operation yet. This can either mean the operation was not
+   registered an operation for yet. This can either mean the operation was not
    registered yet, or that it already completed. To tell those apart the event
    loop has to remember the cancelled ids and it has to clean them up again at
    some point. This state tracking is very easy to get wrong.
@@ -104,7 +106,7 @@ final class EventLoop: SerialExecutor {
 
 Today resuming a continuation always enqueues the task on the executor that it
 resumes on. Even if this executor is the event loop that is currently resuming
-the continuation. This adds latency, an extra round through the job queue for
+the continuation. This adds latency with an extra round through the job queue for
 every I/O operation.
 
 Executors can already run a job synchronously with
@@ -118,16 +120,13 @@ no way to do the same when resuming a continuation.
 
 A new `withContinuation` method passes both halves of a continuation to an
 `async` body. The `Continuation` is used to resume, and the
-`ContinuationAwaiter` is used to await.
+`ContinuationWaiter` is used to wait.
 
 ```swift
 func read(into buffer: ReadBuffer) async throws(IOError) -> Int {
-    try await withContinuation(of: Int.self, throwing: IOError.self) { continuation, awaiter in
+    try await withContinuation(of: Int.self, throwing: IOError.self) { continuation, waiter in
         let id = eventLoop.register(.read(fd, buffer), continuation)
-        return try await awaiter.wait(
-            onCancel: { eventLoop.cancel(id) },
-            onEscalate: { _ in }
-        )
+        return try await waiter.wait(onCancel: { eventLoop.cancel(id) })
     }
 }
 ```
@@ -138,13 +137,13 @@ only has to handle a `cancel(id)` for an operation that already completed, which
 it can just ignore.
 
 Similar to the existing `withContinuation` method, the continuation can be
-resumed before the awaiter is awaited. In this case `wait()` returns right away
-without suspending.
+resumed before `wait()` is called on the waiter. In this case `wait()` returns
+right away without suspending.
 
 ### Resuming on the current executor
 
-New `resume` overloads on `Continuation` allow the resumer to offer the executor
-that it is currently running on.
+New `resumeSynchronously` methods on `Continuation` allow the resumer to offer
+the executor that it is currently running on.
 
 ```swift
 final class EventLoop: SerialExecutor {
@@ -152,7 +151,7 @@ final class EventLoop: SerialExecutor {
         while true {
             for completion in selector.waitForCompletions() {
                 // If the task resumes on this event loop it runs right here
-                completion.continuation.resume(
+                completion.continuation.resumeSynchronously(
                     returning: completion.bytesRead,
                     isolatedTo: self.asUnownedSerialExecutor()
                 )
@@ -164,8 +163,8 @@ final class EventLoop: SerialExecutor {
 ```
 
 If the awaiting task resumes on the offered executor, the task runs inline until
-its next suspension point, and `resume` returns afterwards. If the task resumes
-on another executor, it is enqueued as usual. This mirrors how
+its next suspension point, and `resumeSynchronously` returns afterwards. If the
+task resumes on another executor, it is enqueued as usual. This mirrors how
 `ExecutorJob.runSynchronously(on:)` runs a job.
 
 ## Detailed design
@@ -175,9 +174,9 @@ on another executor, it is enqueued as usual. This mirrors how
 ```swift
 /// Creates a continuation and hands `body` both halves: the *resume* half
 /// (a ``Continuation``) to give to whoever performs the work, and the *await*
-/// half (a ``ContinuationAwaiter``) for the task to await.
+/// half (a ``ContinuationWaiter``) for the task to wait on.
 ///
-/// The continuation must be resumed exactly once, and the awaiter awaited
+/// The continuation must be resumed exactly once, and the waiter waited on
 /// exactly once, before `body` returns.
 ///
 /// - Parameters:
@@ -196,7 +195,7 @@ public nonisolated(nonsending) func withContinuation<
     throwing: Failure.Type,
     _ body: nonisolated(nonsending) (
         consuming Continuation<Success, Failure>,
-        consuming ContinuationAwaiter<Success, Failure>
+        consuming ContinuationWaiter<Success, Failure>
     ) async throws(BodyFailure) -> BodyResult
 ) async throws(BodyFailure) -> BodyResult
 ```
@@ -207,9 +206,9 @@ the ones of the continuation. This allows the body to transform the value of the
 continuation or to catch its error and throw another one.
 
 ```swift
-let description = await withContinuation(of: Int.self, throwing: Never.self) { continuation, awaiter in
+let description = await withContinuation(of: Int.self, throwing: Never.self) { continuation, waiter in
     continuation.resume(returning: 42)
-    let value = await awaiter.wait()
+    let value = await waiter.wait()
     return "value: \(value)"
 }
 ```
@@ -218,26 +217,22 @@ The continuation that is passed to the body is the same `Continuation` type from
 [SE-0528]. This means that all existing code that resumes a `Continuation` works
 without any changes with a continuation that was created by the new method.
 
-### `ContinuationAwaiter`
+### `ContinuationWaiter`
 
 ```swift
-/// The *await* half of a continuation, can be used by a task to suspend until
+/// The *wait* half of a continuation, can be used by a task to suspend until
 /// the continuation is resumed.
 ///
-/// It must be awaited exactly once and cannot leave the
-/// ``withContinuation(of:throwing:_:)`` scope it was vended in, and it traps
-/// if it is destroyed without being awaited.
-public struct ContinuationAwaiter<Success: ~Copyable, Failure: Error>: ~Copyable, ~Escapable {
-    /// Suspend until the paired ``Continuation`` is resumed, then return its value
-    /// or throw its error.
-    ///
-    /// If the continuation was already resumed before `wait()` is called, this
-    /// call does not suspend at all and returns the value immediately.
-    public nonisolated(nonsending) consuming func wait() async throws(Failure) -> sending Success
-
+/// It must be waited on exactly once and cannot leave the
+/// ``withContinuation(of:throwing:_:)`` scope it was passed into and it traps
+/// if it is destroyed without being waited on.
+public struct ContinuationWaiter<Success: ~Copyable, Failure: Error>: ~Copyable, ~Escapable {
     /// Suspend until the paired ``Continuation`` is resumed, with a
     /// cancellation handler and a priority-escalation handler installed for the
     /// duration of the suspension.
+    ///
+    /// If the continuation was already resumed before `wait` is called, this
+    /// call does not suspend at all and returns the value immediately.
     ///
     /// If the current task is already cancelled, `onCancel` runs before this
     /// function suspends.
@@ -251,14 +246,27 @@ public struct ContinuationAwaiter<Success: ~Copyable, Failure: Error>: ~Copyable
         onCancel handleCancellation: sending () -> Void,
         onEscalate handleEscalation: sending (TaskPriority) -> Void
     ) async throws(Failure) -> sending Success
+
+    /// Similar to the above, but only installs a cancellation handler.
+    public nonisolated(nonsending) consuming func wait(
+        onCancel handleCancellation: sending () -> Void
+    ) async throws(Failure) -> sending Success
+
+    /// Similar to the above, but only installs a priority-escalation handler.
+    public nonisolated(nonsending) consuming func wait(
+        onEscalate handleEscalation: sending (TaskPriority) -> Void
+    ) async throws(Failure) -> sending Success
+
+    /// Similar to the above, but doesn't install any handlers.
+    public nonisolated(nonsending) consuming func wait() async throws(Failure) -> sending Success
 }
 ```
 
-The awaiter is `~Copyable` since it must be awaited exactly once. Both `wait`
-methods are `consuming`, so the compiler prevents awaiting it twice. Similar to
-`Continuation`, dropping the awaiter without awaiting it traps at runtime.
+The waiter is `~Copyable` since it must be waited on exactly once. All `wait`
+methods are `consuming`, so the compiler prevents waiting on it twice. Similar
+to `Continuation`, dropping the waiter without waiting on it traps at runtime.
 
-The awaiter is `~Escapable` since the storage of the continuation is allocated
+The waiter is `~Escapable` since the storage of the continuation is allocated
 with the task allocator and is deallocated once `withContinuation` returns.
 Hence, must not escape the body, but it can be passed to other functions
 including functions with different isolation.
@@ -289,7 +297,7 @@ extension Continuation where Success: ~Copyable {
     ///   - value: The value to return from the continuation.
     ///   - serialExecutor: The serial executor the resuming thread is running on.
     ///   - taskExecutor: The task executor the resuming thread is running on.
-    public consuming func resume(
+    public consuming func resumeSynchronously(
         returning value: consuming sending Success,
         isolatedTo serialExecutor: UnownedSerialExecutor,
         taskExecutor: UnownedTaskExecutor
@@ -306,7 +314,7 @@ extension Continuation where Success: ~Copyable {
     ///   - error: The error to throw from the continuation.
     ///   - serialExecutor: The serial executor the resuming thread is running on.
     ///   - taskExecutor: The task executor the resuming thread is running on.
-    public consuming func resume(
+    public consuming func resumeSynchronously(
         throwing error: Failure,
         isolatedTo serialExecutor: UnownedSerialExecutor,
         taskExecutor: UnownedTaskExecutor
@@ -324,47 +332,47 @@ extension Continuation where Success: ~Copyable {
     ///   - result: A value to either return or throw from the continuation.
     ///   - serialExecutor: The serial executor the resuming thread is running on.
     ///   - taskExecutor: The task executor the resuming thread is running on.
-    public consuming func resume(
+    public consuming func resumeSynchronously(
         with result: consuming sending Result<Success, Failure>,
         isolatedTo serialExecutor: UnownedSerialExecutor,
         taskExecutor: UnownedTaskExecutor
     )
 
     /// Similar to the above, but only offers a serial executor.
-    public consuming func resume(
+    public consuming func resumeSynchronously(
         returning value: consuming sending Success,
         isolatedTo serialExecutor: UnownedSerialExecutor
     )
 
     /// Similar to the above, but only offers a serial executor.
-    public consuming func resume(
+    public consuming func resumeSynchronously(
         throwing error: Failure,
         isolatedTo serialExecutor: UnownedSerialExecutor
     )
 
     /// Similar to the above, but only offers a serial executor.
-    public consuming func resume(
+    public consuming func resumeSynchronously(
         with result: consuming sending Result<Success, Failure>,
         isolatedTo serialExecutor: UnownedSerialExecutor
     )
 
     /// Similar to the above, but only offers a task executor. The offer is only
     /// taken if the awaiting task resumes without any serial isolation.
-    public consuming func resume(
+    public consuming func resumeSynchronously(
         returning value: consuming sending Success,
         on taskExecutor: UnownedTaskExecutor
     )
 
     /// Similar to the above, but only offers a task executor. The offer is only
     /// taken if the awaiting task resumes without any serial isolation.
-    public consuming func resume(
+    public consuming func resumeSynchronously(
         throwing error: Failure,
         on taskExecutor: UnownedTaskExecutor
     )
 
     /// Similar to the above, but only offers a task executor. The offer is only
     /// taken if the awaiting task resumes without any serial isolation.
-    public consuming func resume(
+    public consuming func resumeSynchronously(
         with result: consuming sending Result<Success, Failure>,
         on taskExecutor: UnownedTaskExecutor
     )
@@ -374,11 +382,11 @@ extension Continuation where Success: ~Copyable {
 The three variants mirror the existing `runSynchronously` methods on
 `ExecutorJob`:
 
-| `Continuation`                                    | `ExecutorJob`                                     |
-| ------------------------------------------------- | ------------------------------------------------- |
-| `resume(returning:isolatedTo:taskExecutor:)`      | `runSynchronously(isolatedTo:taskExecutor:)`      |
-| `resume(returning:isolatedTo:)`                   | `runSynchronously(on: UnownedSerialExecutor)`     |
-| `resume(returning:on:)`                           | `runSynchronously(on: UnownedTaskExecutor)`       |
+| `Continuation`                                            | `ExecutorJob`                                     |
+| --------------------------------------------------------- | ------------------------------------------------- |
+| `resumeSynchronously(returning:isolatedTo:taskExecutor:)` | `runSynchronously(isolatedTo:taskExecutor:)`      |
+| `resumeSynchronously(returning:isolatedTo:)`              | `runSynchronously(on: UnownedSerialExecutor)`     |
+| `resumeSynchronously(returning:on:)`                      | `runSynchronously(on: UnownedTaskExecutor)`       |
 
 Offering an executor is a best effort. The executor that the task resumes on is
 decided when the task awaits the continuation. The resumer, however, gets the
@@ -386,11 +394,43 @@ continuation earlier and can't know in advance whether its executor will match.
 For example, the task might change its isolation or take a task executor
 preference between handing out the continuation and awaiting it. In these cases,
 the offer simply isn't taken and the task is enqueued instead. Since the resumed
-task runs nested inside of the `resume` call, the resumer must only offer an
-executor from a point where that executor could run one of its own jobs.
+task runs nested inside of the `resumeSynchronously` call, the resumer must only
+offer an executor from a point where that executor could run one of its own
+jobs.
 
 These methods work for every `Continuation`, independent of whether it was
-created by the existing `withContinuation` or by the new split form.
+created by the existing `withContinuation` or by the new split form. The same
+methods are also added to `UnsafeContinuation` and `CheckedContinuation`.
+
+```swift
+extension UnsafeContinuation {
+    public func resumeSynchronously(returning value: sending T, isolatedTo serialExecutor: UnownedSerialExecutor, taskExecutor: UnownedTaskExecutor)
+    public func resumeSynchronously(throwing error: E, isolatedTo serialExecutor: UnownedSerialExecutor, taskExecutor: UnownedTaskExecutor)
+    public func resumeSynchronously(with result: sending Result<T, E>, isolatedTo serialExecutor: UnownedSerialExecutor, taskExecutor: UnownedTaskExecutor)
+
+    public func resumeSynchronously(returning value: sending T, isolatedTo serialExecutor: UnownedSerialExecutor)
+    public func resumeSynchronously(throwing error: E, isolatedTo serialExecutor: UnownedSerialExecutor)
+    public func resumeSynchronously(with result: sending Result<T, E>, isolatedTo serialExecutor: UnownedSerialExecutor)
+
+    public func resumeSynchronously(returning value: sending T, on taskExecutor: UnownedTaskExecutor)
+    public func resumeSynchronously(throwing error: E, on taskExecutor: UnownedTaskExecutor)
+    public func resumeSynchronously(with result: sending Result<T, E>, on taskExecutor: UnownedTaskExecutor)
+}
+
+extension CheckedContinuation {
+    public func resumeSynchronously(returning value: sending T, isolatedTo serialExecutor: UnownedSerialExecutor, taskExecutor: UnownedTaskExecutor)
+    public func resumeSynchronously(throwing error: E, isolatedTo serialExecutor: UnownedSerialExecutor, taskExecutor: UnownedTaskExecutor)
+    public func resumeSynchronously(with result: sending Result<T, E>, isolatedTo serialExecutor: UnownedSerialExecutor, taskExecutor: UnownedTaskExecutor)
+
+    public func resumeSynchronously(returning value: sending T, isolatedTo serialExecutor: UnownedSerialExecutor)
+    public func resumeSynchronously(throwing error: E, isolatedTo serialExecutor: UnownedSerialExecutor)
+    public func resumeSynchronously(with result: sending Result<T, E>, isolatedTo serialExecutor: UnownedSerialExecutor)
+
+    public func resumeSynchronously(returning value: sending T, on taskExecutor: UnownedTaskExecutor)
+    public func resumeSynchronously(throwing error: E, on taskExecutor: UnownedTaskExecutor)
+    public func resumeSynchronously(with result: sending Result<T, E>, on taskExecutor: UnownedTaskExecutor)
+}
+```
 
 ## Source compatibility
 
@@ -399,7 +439,7 @@ This proposal is purely additive and doesn't affect source compatibility.
 ## ABI compatibility
 
 This proposal is purely an extension of the ABI of the Concurrency library and
-doesn't change any existing features. It adds the `ContinuationAwaiter` type and
+doesn't change any existing features. It adds the `ContinuationWaiter` type and
 new runtime entry points to create, await, destroy and resume split
 continuations.
 
@@ -414,14 +454,6 @@ The additions described in this proposal require a new version of the Swift
 standard library and runtime. Libraries that want to adopt split continuations
 while supporting older platforms have to keep their current implementation with
 the handlers around `withContinuation` for those platforms.
-
-## Future directions
-
-### Offer executors when resuming other continuation types
-
-The new `resume` overloads are only added to `Continuation`. We could add the
-same overloads to `UnsafeContinuation` and `CheckedContinuation`. However, we
-think that new code should adopt `Continuation`.
 
 ## Alternatives considered
 
@@ -440,8 +472,14 @@ and composes with other scoped methods.
 We could return both halves from a method; however, this doesn't work since the
 storage of the continuation is allocated with the task allocator, which requires
 that it is deallocated in a stack discipline. The scope of `withContinuation`
-defines the lifetime of the storage and the awaiter being `~Escapable` ensures
+defines the lifetime of the storage and the waiter being `~Escapable` ensures
 that it can't outlive it.
+
+### Naming the wait half `ContinuationAwaiter`
+
+We considered naming the wait half `ContinuationAwaiter`. However, the method to
+suspend on it is called `wait()` since `await` is a keyword. Naming the type
+`ContinuationWaiter` matches the name of its method.
 
 [SE-0300]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0300-continuation.md
 [SE-0392]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md
