@@ -23,8 +23,8 @@ active while the task is suspended on the continuation.
 
 Additionally, this proposal adds new `resumeSynchronously` methods to
 `Continuation`, `UnsafeContinuation` and `CheckedContinuation` that allow an
-executor to offer its current execution context to the resumed task. If the task resumes on the same executor, it runs inline
-instead of being enqueued.
+executor to offer its current execution context to the resumed task. If the task
+resumes on the same executor, it runs inline instead of being enqueued.
 
 ## Motivation
 
@@ -224,7 +224,7 @@ without any changes with a continuation that was created by the new method.
 /// the continuation is resumed.
 ///
 /// It must be waited on exactly once and cannot leave the
-/// ``withContinuation(of:throwing:_:)`` scope it was passed into and it traps
+/// ``withContinuation(of:throwing:_:)`` scope it was passed into, and it traps
 /// if it is destroyed without being waited on.
 public struct ContinuationWaiter<Success: ~Copyable, Failure: Error>: ~Copyable, ~Escapable {
     /// Suspend until the paired ``Continuation`` is resumed, with a
