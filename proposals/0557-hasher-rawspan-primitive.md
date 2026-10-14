@@ -5,7 +5,7 @@
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Active review (October 12...20, 2026)**
 * Implementation: https://github.com/swiftlang/swift/pull/93187
-* Review: ([pitch](https://forums.swift.org/t/pitch-add-rawspan-primitive-to-hasher/89583))
+* Review: ([pitch](https://forums.swift.org/t/pitch-add-rawspan-primitive-to-hasher/89583)) ([review](https://forums.swift.org/t/se-0557-add-rawspan-primitive-to-hasher/90025))
 
 ## Summary of changes
 
