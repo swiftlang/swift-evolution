@@ -1,9 +1,9 @@
 # Bulk update operations for `MutableSpan` and `MutableRawSpan`
 
-* Proposal: [SE-NNNN](nnnn-mutablespan-bulk-updates.md)
+* Proposal: [SE-0558](nnnn-mutablespan-bulk-updates.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Active review (October 13...28, 2026)**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Implementation: [swiftlang/swift#92466](https://github.com/swiftlang/swift/pull/92466)
 * Previous Proposal: [SE-0467](0467-MutableSpan.md)
