@@ -42,6 +42,8 @@ var bytes = MutableRawSpan(bytesOf: &timestamp)
 parser.read(into: bytes)
 ```
 
+The lifetime of the instances obtained by `Span(ofOne:)` and the other initializers proposed here is equal to the lifetime of the initializer's argument. Typically, this means the current scope.
+
 ## Detailed design
 
 #### `Span`
