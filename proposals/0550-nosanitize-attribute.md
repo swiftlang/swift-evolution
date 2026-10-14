@@ -9,7 +9,7 @@
 
 ## Summary of changes
 
-This proposal introduces a new attribute `@instrumentation(...)` which can be applied to functions, subscripts, and closures to disable one or more kinds of compiler-inserted instrumentation (such as sanitizers). It also introduces an `instrumentation(<kind>)` compilation condition, which evaluates to true if the specific instrumentation is enabled.
+This proposal introduces a new attribute `@instrumentation(...)` which can be applied to functions, subscripts, and closures to disable one or more kinds of compiler-inserted instrumentation (such as sanitizers). It also introduces a `moduleInstrumentation(<kind>)` compilation condition, which evaluates to true if the specific instrumentation is enabled for the module being compiled.
 
 ## Motivation
 
@@ -94,17 +94,19 @@ Combining `@inline(always)` with `@instrumentation(disable: ...)` on the same de
 ### Compilation condition for enabled instrumentation
 
 Because `@inline(always)` and `@instrumentation(disable: ...)` cannot be combined on the same declaration, a mechanism is needed to support functions that are `@inline(always)` in uninstrumented builds but out-of-line-and-uninstrumented in instrumented builds.
-A new `instrumentation(<kind>)` compilation condition, with the same supported kinds as the attribute, evaluates true if the specified instrumentation is enabled. Each `instrumentation` condition may only list a single kind, but can
+A new `moduleInstrumentation(<kind>)` compilation condition, with the same supported kinds as the attribute, evaluates true if the specified instrumentation is enabled for the module being compiled (e.g. `-sanitize=address` was passed for `moduleInstrumentation(address)`). Each `moduleInstrumentation` condition may only list a single kind, but can
 be combined using the usual logical operators.
 
 ```swift
-#if !instrumentation(address)
+#if !moduleInstrumentation(address)
 @inline(always)
 #else
 @instrumentation(disable: address)
 #endif
 func f() { ... }
 ```
+
+The condition reflects only module-wide build settings. It is *not* contextual: it does not take into account `@instrumentation(disable:)` attributes on enclosing declarations.
 
 ## Source compatibility
 
@@ -129,3 +131,9 @@ Some sanitizers support clang's `no_sanitize` to disable sanitization of globals
 ### Additional instrumentation kinds
 
 Additional kinds may be added in the future as swiftc gains support for more sanitizers or other forms of compiler-inserted instrumentation.
+
+## Alternatives considered
+
+### Per-sanitizer Features
+
+The compilation condition could instead be expressed as `#if hasFeature(<SanitizerName>)`, but this would require a feature be defined for every kind of instrumentation, and would result in three different names for each one (e.g. `-sanitize=memtag-stack`, `@instrumentation(disable: memtagStack)`, `hasFeature(MemtagStack)`).
