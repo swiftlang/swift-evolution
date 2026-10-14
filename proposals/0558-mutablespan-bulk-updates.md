@@ -1,6 +1,6 @@
 # Bulk update operations for `MutableSpan` and `MutableRawSpan`
 
-* Proposal: [SE-0558](nnnn-mutablespan-bulk-updates.md)
+* Proposal: [SE-0558](0558-mutablespan-bulk-updates.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Active review (October 13...28, 2026)**
