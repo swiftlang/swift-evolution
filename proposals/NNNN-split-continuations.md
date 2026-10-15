@@ -4,7 +4,7 @@
 * Authors: [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: Available as experimental SPI behind the `SplitContinuations` feature ([swiftlang/swift#91981](https://github.com/swiftlang/swift/pull/91981))
+* Implementation: [swiftlang/swift#91981](https://github.com/swiftlang/swift/pull/91981)
 * Related Proposals:
     - [SE-0300: Continuations for interfacing async tasks with synchronous code][SE-0300]
     - [SE-0392: Custom Actor Executors][SE-0392]
