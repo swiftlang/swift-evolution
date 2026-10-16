@@ -66,7 +66,7 @@ When the default actor isolation is specified as `MainActor`, declarations are i
 * All declarations inside an `actor` type, including static variables, methods, initializers, and deinitializers
 * Declarations that cannot have global actor isolation, including typealiases, import statements, enum cases, and individual accessors
 * Declarations whose primary definition directly conforms to a protocol that inherits `SendableMetatype`
-* Declarations that are types nested within a nonisolated type
+* Declarations that are nested within a nonisolated type, function, or extension
 
 The following code example shows the inferred actor isolation in comments given the code is built with `-default-isolation MainActor`:
 
@@ -87,6 +87,21 @@ class C {
 
   // @MainActor
   static var value = 10
+
+  nonisolated func f() {
+    // nonisolated
+    struct Nested {
+      // ...
+    }
+  }
+}
+
+nonisolated extension C {
+  // nonisolated
+  func g() { }
+
+  // nonisolated
+  struct NestedInExtension { }
 }
 
 @globalActor
