@@ -67,7 +67,7 @@ func notOnTheMainActor() async {
   increaseTextSize()   // error: increaseTextSize is isolated to MainActor, cannot call synchronously
   await increaseTextSize() // okay: asynchronous call hops over to the main thread and executes there
 }
-``` 
+```
 
 ### Defining global actors
 
@@ -316,7 +316,7 @@ Declarations that are not explicitly annotated with either a global actor or `no
   }
   ```
 
-* A non-actor type that conforms to a global-actor-qualified protocol within the same source file as its primary definition infers actor isolation from that protocol:
+* A non-actor type that conforms to a global-actor-qualified protocol in its primary definition infers actor isolation from that protocol:
 
   ```swift
   @MainActor protocol P {
@@ -324,6 +324,12 @@ Declarations that are not explicitly annotated with either a global actor or `no
   }
   
   class C: P { } // C is implicitly @MainActor
+  
+  class C2 { }
+  
+  extension C2: P { // C2 is not implicitly @MainActor
+    func updateUI() { } // okay, implicitly @MainActor
+  }
   
   // source file D.swift
   class D { }
