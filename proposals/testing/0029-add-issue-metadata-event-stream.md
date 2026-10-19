@@ -3,7 +3,7 @@
 - Proposal: [ST-0029](0029-add-issue-metadata-event-stream.md)
 - Authors: [Jerry Chen](https://github.com/jerryjrchen)
 - Review Manager: [Rachel Brindle](https://github.com/younata)
-- Status: **Accepted**
+- Status: **Implemented (Swift 6.5)**
 - Implementation:
   [swiftlang/swift-testing#1839](https://github.com/swiftlang/swift-testing/pull/1839)
 - Review:
