@@ -284,7 +284,7 @@ and get passed a borrowing reference to the payload, or mutate the optional
 and get passed an `inout` reference to the payload. All three variants are useful,
 but we don't currently have a way to distinguish between them
 if we named them all `map` due to overloading rules/limitations. By making these
-generalizations always consuming by default, `borrow()` and `mutate()` actually
+generalizations always consuming by default, the `ref` and `mutableRef` properties
 help us achieve the other variations by giving us owned optionals values:
 
 ```swift
