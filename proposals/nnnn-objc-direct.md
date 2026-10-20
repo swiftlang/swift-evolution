@@ -1,81 +1,63 @@
-# Direct dispatch for Objective-C-exposed methods
+# Direct dispatch for Objective-C-exposed declarations
 
 * Proposal: [SE-NNNN](nnnn-objc-direct.md)
 * Authors: [Peter Rong](https://github.com/DataCorrupted), [Sharon Xu](https://github.com/sharonxu)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: [swiftlang/swift#91894](https://github.com/swiftlang/swift/pull/91894), behind `-enable-experimental-feature ObjCDirect`. Targets `rebranch` rather than `main`, because the clang ABI it depends on ships in LLVM 23.
+* Implementation: [swiftlang/swift#91894](https://github.com/swiftlang/swift/pull/91894), behind `-enable-experimental-feature ObjCDirect`. Targets `rebranch` rather than `main`, because the Clang ABI it depends on ships in LLVM 23.
 * Experimental Feature Flag: `ObjCDirect`
 * Review: ([first pitch](https://forums.swift.org/t/pitch-introduce-objc-direct-attribute/65138)) ([second pitch](https://forums.swift.org/t/pitch-2-objcdirect-direct-dispatch-for-objective-c-exposed-methods/89708))
 
 ## Summary of changes
 
-Adds `@objcDirect`, which exposes a Swift method, initializer, property or subscript to Objective-C as *direct*: no selector, no method-list entry, and a static call in place of `objc_msgSend`. Trades the ability to reach the method through the Objective-C runtime for a reduction in metadata and dispatch overhead.
+Adds `@objcDirect`, which exposes a Swift method, initializer, property or subscript to Objective-C without a selector or method-list entry. Objective-C calls it the way it calls an `objc_direct` method — as a plain function — rather than through `objc_msgSend`.
 
 ## Motivation
 
-### The incomplete interoperability
+### Exposure and dispatch are welded together
 
-Swift can describe almost everything about how a declaration is exposed to Objective-C — its selector, its nullability, its error convention, its availability, whether it is a class or an instance method. It cannot describe how that declaration is *dispatched*. Marking a method `@objc` always produces the same thing: an entry in the class's method list, a selector, and call sites that go through `objc_msgSend`. There is no way to say that a method should be callable from Objective-C without also being reachable by selector at runtime.
+Swift can describe almost everything about how a declaration is exposed to Objective-C: its selector, nullability, error convention, availability, and whether it is a class or an instance member. It cannot describe how that declaration is *dispatched*. Marking a member `@objc` always produces the same thing: an entry in the class's method list, a selector, and call sites that go through `objc_msgSend`. There is no way to say that a member should be callable from Objective-C without also being reachable by selector at runtime.
 
-Objective-C itself has not had that limitation since 2019. `__attribute__((objc_direct))` exposes a method to callers while omitting its metadata and calling it as a plain function. So the two languages disagree about what "exposed to Objective-C" means: an Objective-C method may opt out of dynamic dispatch, and the Swift method declared beside it — doing the same job, called from the same place — may not.
+Objective-C has had that ability since 2019. `__attribute__((objc_direct))` and `@property (direct)` expose a member to callers while omitting its metadata and calling it as a plain function. So the two languages disagree about what "exposed to Objective-C" means, and the disagreement has practical costs in a mixed-language target:
 
-That is a gap in the interoperability surface rather than an optimization in search of a justification. Swift's Objective-C interop exists so the two languages can meet as equals within one target, and on this one axis they do not.
+* **Migration is penalized.** Rewriting a `direct` Objective-C method in Swift silently turns it back into a message-dispatched one, restoring the metadata and the indirection the Objective-C version was written to avoid. The only alternative is to leave the method in Objective-C.
+* **The workaround is a hand-written shim.** To get a non-message-dispatched call from Objective-C into Swift today, one exposes a free function with a C entry point (`@_cdecl`) and calls that instead: a parallel surface maintained by hand, detached from the class, without the bridging the `@objc` thunk would have done.
+* **Every exposed member pays for runtime reachability.** A member that only the Objective-C code beside it ever calls still gets a selector, a method-list entry and message-send call sites that nothing needs.
+* **`@objc @implementation` cannot implement direct members.** [SE-0436][se0436] lists `objc_direct` methods among the declarations an `@implementation` extension cannot express, so a header-first class with direct members cannot move to Swift.
 
-The gap was not straightforwardly closable until recently, which is why it has stayed open. Objective-C's direct methods were a clang-internal code-generation technique: no stable symbol another compiler could bind to, and no stated contract about which side emitted the runtime preconditions. Both were fixed in LLVM 23, Objective-C-first and upstream. That work is described under *Background*, and it is the reason the Swift change proposed here is a small one.
+### What direct dispatch buys
 
-### Cross-language ergonomics
+A direct member stops paying for its Objective-C metadata — the method-list entry, the method type encoding, the selector string and its reference — and its callers make a plain function call. In one measured application (an image-processing tool driven from Objective-C, built with `-O`, on Apple silicon), making 68 Swift members direct gave:
 
-The asymmetry has a practical edge for anyone maintaining a mixed-language target.
+| | `@objc` | `@objcDirect` |
+|---|---|---|
+| Call from Objective-C to a trivial instance method, receiver known non-`nil` | 1.96 ns | 1.12 ns |
+| Property setter called from Objective-C | 2.25 ns | 0.84 ns |
+| Per-pixel image kernels called from Objective-C | | 43–65% faster |
+| Size of the linked binary | | −4.3 KB net, about 63 bytes per member |
 
-**Migration is penalized.** Rewriting a `direct` Objective-C method in Swift silently converts it back to message dispatch, restoring the metadata and the indirection that the Objective-C version was deliberately written to avoid. A change that ought to be behaviour-preserving is a regression, and the author has no way to say otherwise short of leaving the method in Objective-C.
+A plain C call measured 0.84 ns on the same machine. Class methods are the exception; see *Implications on adoption*.
 
-**The alternative is a hand-written shim.** Failing that, the way to get a non-message-dispatched call from Objective-C into Swift today is to expose a free function with a C entry point and call that instead. It works, but it is a parallel surface maintained by hand, unattached to the class the method belongs to, and it forfeits the bridging the `@objc` thunk would have done for free.
+The saving is largest for members that stay inside their own image, which is the common case and the one this proposal recommends. A member called across a library boundary needs an exported symbol, and a symbol name is longer than the selector it replaces.
 
-**Exposure and dispatch cannot be decided separately.** `@objc` settles both at once. An author who wants a method reachable from the Objective-C code next to it, and nothing more, cannot say so, and pays for a runtime entry point nothing ever looks up. The same coupling runs one level down, into which symbols get exported; *Controlling export* takes that up.
+## Background: the direct-method ABI
 
-### Binary size
+**2019 — `objc_direct` lands in Clang.** `__attribute__((objc_direct))` and `objc_direct_members` removed a method's Objective-C metadata and turned its call sites into plain C calls. To stay compatible with `objc_msgSend` semantics, the *callee* did three things: it nil-checked `self`, it realized the class first (`[self self]`) if it was a class method, and it kept `_cmd` in its signature, with the caller leaving it undefined. Every direct method also had enforced hidden visibility, so no other image — and no other compiler — had a name to bind to.
 
-A direct method stops paying for its Objective-C metadata: the method-list entry, and the selector string that names it.
+**2023 — the [first pitch][pitch1] for `@objcDirect`.** It stalled on the callee-side design: with the `nil` check inside the callee, SILGen would have had to emit it, including unwrapping an `Optional` receiver before calling the Swift implementation.
 
-Where the symbol does not need to be exported, that is the whole story — the metadata is simply gone. That covers an `internal` method, and equally a `public` one whose callers all live in the same image, since the unused export can be stripped at link time.
-
-Where the symbol does need to be exported, there will be a small size regression, that's the same for ObjC or Swift. The selector string goes away, but a symbol name arrives in its place, and the symbol name is the longer of the two: it carries the class name and the direct-ABI decoration on top of the same selector. A selector is also shared by every caller within an image, whereas an imported symbol is paid for by each image that calls it.
-
-Overall, the shape is a clear win for methods that stay inside their own image, which is the common case and the one this proposal recommends, and a loss for methods called across a library boundary.
-
-## Background: how the ABI got here
-
-**2019 — `objc_direct` lands in clang.** Pierre Habouzit implemented `__attribute__((objc_direct))` and `__attribute__((objc_direct_members))`, first released in clang 10. The attribute removed a method's Objective-C metadata and turned its call sites into plain C calls. To stay compatible with `objc_msgSend` semantics it took three precautions, all of them on the callee side:
-
-* the implementation nil-checks `self`, which on arm64 is typically a single `cbz`;
-* a class method first emits `[self self]`, because the class may not yet be realized;
-* `self` and `_cmd` both stay in the signature, with the caller leaving `_cmd` undefined and the callee loading the selector only if the body refers to it.
-
-It also gave every direct method **enforced hidden visibility**, with the consequence, in the original commit's words, that "such direct calls are hence unreachable cross image. An explicit C function must be made if so desired to wrap them."
-
-Three of those decisions still govern this proposal. The callee-side nil check is what stalled the Swift attribute in 2023. The hidden-visibility rule is the subject of *Controlling export*. And Habouzit recorded the class-realization cost as unfinished at the time — "long term we might want to emit something better that the optimizer can reason about. When inlining kicks in, these calls aren't optimized away" — which is the cost this proposal still pays for class methods. Reducing it further is a code-generation problem rather than a language one, so it is out of scope here.
-
-**2023 — the [first pitch][pitch1] for @objcDirect in Swift**. It was blocked by a tech debt: with the nil check inside the callee, SILGen would have had to emit the check itself, including unwrapping an `Optional`-typed receiver before calling the underlying Swift function. That is real complexity in a part of the compiler where it is not welcome, for a feature whose entire justification is that it should be cheap.
-
-**2026 — the ABI is rework.** Rather than work around the callee-side design, we moved the precondition to a thunk between caller and callee ([LLVM RFC][llvm-rfc]). The implementation is now emitted bare:
+**2026 — the ABI is reworked.** The preconditions moved from the callee into a thunk emitted by each caller ([LLVM RFC][llvm-rfc]):
 
 | | 2019 design | 2026 ABI |
 |---|---|---|
 | Symbol | `\01-[Class sel]`, enforced hidden | `-[Class sel]D` |
-| `nil` check | in the callee, unconditionally | in `-[Class sel]D_thunk`, and only where the caller cannot prove the receiver non-`nil` |
-| Class realization | `[self self]` in the callee, unconditionally | in the same thunk, and only where the class may still be unrealized |
-| `_cmd` | in the signature, left undefined by the caller | not in the signature at all |
+| `nil` check | in the callee, unconditionally | in the caller's `-[Class sel]D_thunk`, only where the receiver may be `nil` |
+| Class realization | in the callee, unconditionally | in the same thunk, only where the class may be unrealized |
+| `_cmd` | in the signature, undefined | not in the signature |
 
-The thunk is `linkonce_odr` and hidden, so it is emitted by each caller rather than by the definition — every translation unit that needs one gets an identical copy, and the linker folds them.
+The thunk is `linkonce_odr` and hidden; each translation unit that needs one emits an identical copy, and the linker folds them. [`-fobjc-direct-precondition-thunk`][pr16] and the [thunk generation][pr18] are in LLVM 23.
 
-The [`-fobjc-direct-precondition-thunk` flag][pr16] and the [thunk generation][pr18] have landed in LLVM 23. This means turned direct methods ABI from a clang-internal code-generation trick into something two compilers can meet on.
-
-**The symbol is not referencable.** Under the 2019 design a direct method had enforced hidden visibility, so no other translation unit had a name to link against — the sanctioned way to cross that boundary was to hand-write a C wrapper. A Swift-defined direct method was therefore not merely unimplemented but structurally impossible: whatever Swift emitted, a clang caller elsewhere had nothing to bind to. The 2026 ABI gives the implementation a stable, agreed spelling, `-[Class sel]D`, and that is what lets the two languages meet at all.
-
-**The preconditions acquired an owner.** The 2019 design never stated, as a contract, who was responsible for the `nil` check and the realization — it simply happened to be whoever emitted the body. A Swift implementation would have had to reproduce that behaviour in SILGen and keep it in step with clang's indefinitely. Under the new ABI the preconditions belong to the caller, and the caller of a Swift direct method is always clang, since being callable from Objective-C is the whole point. The entire precondition story therefore stays on the clang side, and this proposal has to specify only *callee* generation: a bare function, under the agreed ABI.
-
-What is left for Swift is the callee, and little else: the existing `@objc` thunk, reused almost unchanged, given external linkage and the agreed name. That is the whole of the code generation described below, and the ABI it targets was designed with this use in mind.
+Two things follow for Swift. The implementation now has a stable, agreed spelling, `-[Class sel]D`, that a Clang caller in another translation unit can reference. And the preconditions belong to the caller — which, for a Swift direct member, is always Objective-C code compiled by Clang. Swift only has to emit the callee: a bare function under the agreed name.
 
 [pitch1]: https://forums.swift.org/t/pitch-introduce-objc-direct-attribute/65138
 [llvm-rfc]: https://discourse.llvm.org/t/rfc-optimizing-code-size-of-objc-direct-by-exposing-function-symbols-and-moving-nil-checks-to-thunks/88866
@@ -84,272 +66,227 @@ What is left for Swift is the callee, and little else: the existing `@objc` thun
 
 ## Proposed solution
 
-We propose a new attribute `@objcDirect`. It can be applied to a method, initializer, property or subscript of a class exposed to Objective-C. In a nut shell, a method with bare `@objc` and `@objCDirect` would look like the following during codegen:
+Add an attribute, `@objcDirect`, that can be written on a method, initializer, property or subscript of a class exposed to Objective-C:
 
 ```swift
-@objc public class Cache: NSObject {
-  @objcDirect public final func lookup() -> Int { 42 }
-  @objc       public       func refresh() {}
+@objc public final class Cache: NSObject {
+  @objcDirect public init(capacity: Int) { … }
+  @objcDirect public var capacity: Int
+  @objcDirect public func lookup(_ key: String) -> NSObject? { … }
+  @objcDirect public subscript(index: Int) -> NSObject? { … }
+  @objc public func refresh() { … }
 }
 ```
 
+The generated header declares the direct members as direct, so Objective-C callers keep writing ordinary Objective-C:
+
 ```objc
-// Cache-Swift.h
 @interface Cache : NSObject
-- (NSInteger)lookup SWIFT_WARN_UNUSED_RESULT SWIFT_OBJC_DIRECT;
+- (nonnull instancetype)initWithCapacity:(NSInteger)capacity OBJC_DESIGNATED_INITIALIZER SWIFT_OBJC_DIRECT;
+@property (SWIFT_OBJC_DIRECT_PROPERTY nonatomic) NSInteger capacity;
+- (NSObject * _Nullable)lookup:(NSString * _Nonnull)key SWIFT_WARN_UNUSED_RESULT SWIFT_OBJC_DIRECT;
+- (NSObject * _Nullable)objectAtIndexedSubscript:(NSInteger)index SWIFT_WARN_UNUSED_RESULT SWIFT_OBJC_DIRECT;
 - (void)refresh;
 @end
 ```
 
-```llvm
-; the direct method: a plain function taking only self
-define i64 @"-[Cache lookup]D"(ptr %0)
+`[cache lookup:key]`, `cache.capacity = 8` and `cache[0]` compile to static calls. The Swift module defines one symbol per direct entry point, under Clang's spelling for the direct ABI, and none of them takes `_cmd`:
 
-; the @objc method: a selector-dispatched thunk, taking self and _cmd
-define internal void @"$s…7refreshyyFTo"(ptr %0, ptr %1)
-@"\01L_selector_data(refresh)"
+```llvm
+define ptr  @"-[Cache initWithCapacity:]D"(ptr %0, i64 %1)
+define i64  @"-[Cache capacity]D"(ptr %0)
+define void @"-[Cache setCapacity:]D"(ptr %0, i64 %1)
+define ptr  @"-[Cache lookup:]D"(ptr %0, ptr %1)
+define ptr  @"-[Cache objectAtIndexedSubscript:]D"(ptr %0, i64 %1)
 ```
 
-Objective-C callers write `[cache lookup]` exactly as they would for any other method. The difference is what the compiler does with it: a static call instead of an `objc_msgSend`, no `refresh`-style selector, and no entry in the class's method list. The `D` suffix is clang's marker for the direct ABI, so the name matches what a clang caller emits for the same declaration.
+`refresh` keeps its selector, its method-list entry and its `objc_msgSend` call sites; the direct members have none of them.
 
-What the caller actually branches to depends on what it can prove. Where the receiver might be `nil` it calls `-[Cache lookup]D_thunk` — a `linkonce_odr` thunk the *calling* translation unit emits for itself, which performs the `nil` check and tail-calls the implementation. Where the receiver is provably non-`nil`, it calls `-[Cache lookup]D` directly and no thunk is emitted. Either way the Swift module defines exactly one symbol, `-[Cache lookup]D`; see *Background* for why the preconditions live on the caller's side.
+Two rules govern everything else:
 
-**`@objcDirect` implies `@objc`.** Writing it on a method that is not already exposed adds the exposure.
-
-**`@objcDirect` implies static dispatch.** Anything that reaches a method through the runtime (`#selector`, `AnyObject` dynamic lookup, `@objc` protocol conformance, key-value coding and observing, `perform(_:)`, `respondsToSelector:`, etc.) is thus forbidden. The compiler rejects the cases it can see. The ones it cannot will trigger runtime errors.
+* **`@objcDirect` implies `@objc`.** Writing it on a member that is not already exposed adds the exposure, and the ordinary `@objc` checks apply.
+* **`@objcDirect` implies static dispatch.** Anything that reaches a member through the Objective-C runtime — `#selector`, `#keyPath`, key-value coding and observing, `AnyObject` lookup, `@objc` protocol conformance, `perform(_:)`, `respondsToSelector:` — cannot reach a direct member. The compiler rejects the uses it can see; the rest fail at run time.
 
 ## Detailed design
 
-Three phases of the compiler are involved, and the design reads most easily in that order: what Sema accepts, what is emitted for it, and what the linker is left holding. Serialization is taken last, since it concerns the module as a whole rather than any one phase.
+### Where the attribute can be written
 
-### Sema
+`@objcDirect` can be written on a method (instance, `static` or `class`), initializer, property or subscript of a class exposed to Objective-C. It cannot be written on an individual accessor — an accessor is direct exactly when its storage is — or on a `deinit`.
 
-#### What is allowed
-
-**`@objcDirect` may be written on a method, initializer, property or subscript of a non-generic class exposed to Objective-C, provided the declaration is statically dispatched and Objective-C can name it.**
-
-Writing `@objc` alongside is optional, since `@objcDirect` implies it. If the method is not `@objc` applicable, by extension its not `@objcDirect` applicale. Sema will reuse `@objc`'s typechecking and error out.
-
-The following are working example:
+A direct member is statically dispatched, but it does not have to be `final`. It simply cannot be overridden: an override of a direct member is an error, in the same module or another one.
 
 ```swift
-@objc(CustomName) public class Widget: NSObject {
-  @objcDirect public final func instanceMethod() {}
-  @objcDirect public static func typeMethod() {}
-  @objc(renamedSelector) @objcDirect public final func originalName() {}
-  @objcDirect public final func mayFail(cond: Int) throws -> Widget { self }
+class Base: NSObject {
+  @objcDirect func greet() {}
 }
-
-extension Widget {
-  @objcDirect public final func inExtension() {}
-}
-
-class NotFinal: NSObject {
-  @objcDirect public func stillFine() {}   // never overridden, so never dispatched
+class Sub: Base {
+  override func greet() {}
+  // error: cannot override instance method declared '@objcDirect'; a direct
+  //        declaration has no method-list entry, so an Objective-C caller
+  //        would reach the superclass implementation
 }
 ```
 
-A `static` method mangles with `+` rather than `-`, matching clang; a `class` method qualifies so long as no subclass overrides it. A method-level `@objc(name)` renames the selector segment of the symbol and the header entry together, and a class-level `@objc(Name)` supplies the class segment. A `throws` method bridges the usual way, with a trailing `NSError **`.
+The member is rejected when Objective-C could not name it. Its symbol embeds the printed `@interface` name and is global, so the class has to be printed into the generated header under a name of its own. That excludes members of:
 
-#### What is rejected
+* anything but a class — a global function, or a member of a struct, enum or protocol;
+* a class that is not exposed to Objective-C — a generic class, a class with generic ancestry, or a Swift class that does not derive from an Objective-C one;
+* a local class, or a nested class, unless the nested class has an explicit `@objc(Name)` and every enclosing type is an explicitly `@objc` class (only those are printed, and only an explicit name keeps two nested classes apart);
+* a `private` or `fileprivate` class. Nor can the member itself be `private` or `fileprivate`.
 
-**It must be statically dispatched.** A direct method has no entry in its class's method list, so nothing may reach it through the runtime. The attribute is rejected on a declaration that:
+The member is rejected when Objective-C could not express it: beyond the ordinary `@objc` rules, an `async` member (there is no direct calling convention for asynchronous methods) and a subscript with more than one index.
 
-* is an `override`;
-* is `open`, which promises clients an override the attribute never allows;
-* is `dynamic`. This is tested semantically rather than as a written attribute, so it also covers `@NSManaged`. (`-enable-implicit-dynamic`, which makes every eligible declaration dynamic for development-time replacement, leaves direct members alone instead: they are simply not replaceable);
-* is a `required init`, which must be inherited;
-* is `@IBAction` or `@IBSegueAction` — wired up by selector from a nib or storyboard, which the compiler never sees;
-* is an `@IBOutlet`, `@IBInspectable` or `@GKInspectable` property, whose value is set by key through key-value coding;
-* has a member in any subclass that overrides it (the override is diagnosed);
-* has an Objective-C selector that is a requirement of a protocol the class adopts, under a different Swift name — `@objc(hash) @objcDirect func myHash()`, say, since `NSObjectProtocol` requires `hash`. Clang rejects a direct method that implements a protocol requirement, so the generated header would not compile. (A member that witnesses the requirement under its own name is handled as a witness, below.)
+The member is rejected when something would have to reach it dynamically:
 
-The same property rules out three *uses* of an otherwise-valid direct method, diagnosed at the use site rather than on the declaration:
+* `override` (above), and `open`, which promises clients an override that can never be written;
+* `dynamic`, written or implied by `@NSManaged`. (`-enable-implicit-dynamic`, which makes eligible declarations `dynamic` for development-time replacement, skips direct members instead; they are simply not replaceable.)
+* a `required` initializer, which must be inherited;
+* `@IBAction` and `@IBSegueAction` methods, which a nib or storyboard calls by selector, and `@IBOutlet`, `@IBInspectable` and `@GKInspectable` properties, which are set by key;
+* an Objective-C selector that implements a requirement of a protocol the class adopts, under a different Swift name. Clang rejects a direct method that implements a protocol requirement, so the generated header would not compile:
 
-* `#selector` naming it, a direct method is not in the ObjC method list, thus can't get a meaningful selector;
-* `#keyPath` naming a direct property, and key-value coding through Swift key paths: a key path through a direct property carries no key-value coding string. Passing a literal one to `observe(_:options:changeHandler:)`, `publisher(for:)`, `willChangeValue(for:)`/`didChangeValue(for:)`, `NSSortDescriptor(keyPath:ascending:)` or `NSExpression(forKeyPath:)` is an error, since each of them traps without the string; a key path held in a variable still traps at run time;
-* `AnyObject` dynamic lookup. Direct methods are excluded from the candidate set rather than diagnosed, so this surfaces as an ordinary "no member" error — matching how the compiler already treats `objc_direct` methods imported from Objective-C;
-* witnessing an `@objc` protocol requirement. Here the declaration is accepted and the *conformance* is invalidated, because that is where the problem is: a call through the protocol is a message send.
+  ```swift
+  class Item: NSObject {
+    @objc(hash) @objcDirect func myHash() -> Int { 0 }
+    // error: instance method 'myHash()' cannot be '@objcDirect': its Objective-C
+    //        selector 'hash' is a requirement of protocol 'NSObjectProtocol', and
+    //        a method that implements a protocol requirement cannot be direct
+  }
+  ```
 
-**Objective-C must be able to name it.** The symbol embeds the printed `@interface` name, so the declaration has to belong to a class that gets printed — and printed under a name of its own, since the symbol is global. Rejected if it:
+### Uses that need dynamic dispatch
 
-* is not a member of a class — a global function, or a member of a struct or enum, has no `@interface` name to mangle against;
-* is a member of a class that is not exposed to Objective-C: a generic class, a class with generic ancestry, or a Swift class that does not derive from an Objective-C one;
-* is a member of a local class, or of a nested class, unless the nested class has an explicit `@objc(Name)` and every enclosing type is an explicitly `@objc` class — only those are printed, and only an explicit name keeps two nested classes apart;
-* is a protocol requirement;
-* is `private` or `fileprivate`, or a member of a `private` or `fileprivate` class; neither reaches the header.
+Some otherwise valid uses of a direct member need the dynamic dispatch it does not have. They are diagnosed at the use:
 
-**Objective-C must be able to express it.** Beyond the ordinary `@objc` representability rules, `async` is rejected — there is no direct calling convention for an asynchronous method — and so is a subscript with more than one index, which Objective-C cannot spell.
+* **`#selector`** naming a direct member is an error: no selector for it is registered.
+* **`#keyPath`** naming a direct property is an error, and a Swift key path through a direct property carries no key-value coding string. Passing such a key path literal to an API that converts it to a string — `observe(_:options:changeHandler:)`, `publisher(for:)`, `willChangeValue(for:)` and `didChangeValue(for:)`, `NSSortDescriptor(keyPath:ascending:)`, `NSExpression(forKeyPath:)` — is an error, because each of them traps without the string. A key path that is not a literal at the call still traps at run time.
+* **`AnyObject` lookup** does not find direct members, matching how `objc_direct` members imported from Objective-C are already treated.
+* **Witnessing an `@objc` protocol requirement** is an error, since a call through the protocol is a message send. Witnessing a Swift protocol requirement is fine: the witness calls the member statically.
 
-#### Properties and subscripts
+For members imported from Objective-C as `objc_direct`, the `#selector` and `#keyPath` checks apply only when the feature is enabled; see *Source compatibility*.
 
-A property or subscript is direct as a whole: the attribute is written on the storage declaration, never on an accessor, and each accessor becomes a direct method named for its selector.
+### Properties and subscripts
 
-```swift
-@objc class Store: NSObject {
-  @objcDirect var count: Int = 0                    // -[Store count]D, -[Store setCount:]D
-  @objcDirect static var shared: Store { Store() }  // +[Store shared]D
-  @objcDirect subscript(i: Int) -> String { "" }    // -[Store objectAtIndexedSubscript:]D
-}
-```
+A property or subscript is direct as a whole. Each accessor becomes a direct entry point named for its selector — `-[Cache capacity]D` and `-[Cache setCapacity:]D`, `-[Cache objectAtIndexedSubscript:]D`, `-[Store objectForKeyedSubscript:]D` — and an accessor with narrower access, such as the setter of a `public private(set) var`, gets the narrower visibility. The accessors of a `static` or `class` property are class methods: `+[Cache shared]D`.
+
+A property attribute cannot be spelled with `__attribute__`, so the generated header marks a direct property with `SWIFT_OBJC_DIRECT_PROPERTY`, which expands to `direct,` where Clang supports it. A class property's accessors are also declared, with `SWIFT_OBJC_DIRECT`, and a subscript is printed as its accessor methods:
 
 ```objc
-@property (SWIFT_OBJC_DIRECT_PROPERTY nonatomic) NSInteger count;
-- (NSString *)objectAtIndexedSubscript:(NSInteger)i SWIFT_OBJC_DIRECT;
+@property (SWIFT_OBJC_DIRECT_PROPERTY nonatomic, readonly) NSInteger hits;
+SWIFT_CLASS_PROPERTY(@property (SWIFT_OBJC_DIRECT_PROPERTY nonatomic, class, readonly, strong) Cache * _Nonnull shared;)
++ (Cache * _Nonnull)shared SWIFT_WARN_UNUSED_RESULT SWIFT_OBJC_DIRECT;
 ```
 
-A property attribute cannot be spelled with `__attribute__`, so the generated header marks a property with `SWIFT_OBJC_DIRECT_PROPERTY`, which expands to `direct` where Clang supports it; a class property also gets `SWIFT_OBJC_DIRECT` on its accessor declarations, and a subscript is printed as its accessor methods. A direct property keeps its instance variable, emitted with an empty type encoding (see *Key-value coding and observing*).
+A direct stored property keeps its instance variable, with an empty type encoding; see *Key-value coding and observing*.
 
-#### Initializers
+### Initializers
 
-A direct initializer is emitted like any other direct method — `-[Inits initWithValue:]D`, called statically. A subclass can neither override it nor hide it: Clang forbids redeclaring a direct method in a subclass's `@interface`, even as unavailable. So Objective-C could run a direct *designated* initializer on an instance of a subclass, directly or through a convenience initializer that delegates to it, and leave the subclass's own stored properties uninitialized. Hence:
+A direct initializer is emitted like any other direct member, under its selector (`-[Cache initWithCapacity:]D`), and is called statically. That interacts with subclassing. A subclass can neither override a direct initializer nor hide it: Clang forbids redeclaring a direct method in a subclass's `@interface`, even as unavailable. So if a class with a direct *designated* initializer could be subclassed, Objective-C could run that initializer on an instance of the subclass — directly, or through a convenience initializer that delegates to it — and the subclass's stored properties would never be initialized. The rules close that off for Swift classes:
 
-* **A direct designated initializer requires a `final` class.** The error offers a fix-it adding `final` (none for an `open` class), and a note gives the alternative for a class that must stay subclassable: make the direct initializer a convenience initializer that delegates to a designated initializer that is not direct. Direct convenience initializers are allowed in any class. Members of an `@objc @implementation` class are exempt, since that class follows Objective-C's rules.
-* **A direct initializer is never inherited**, and a subclass of a class with a direct designated initializer inherits none of its convenience initializers either, since they would reach it statically and skip the subclass's initialization. With the feature enabled, the same applies to a designated initializer imported from Objective-C as `objc_direct`; without it, imported initializers behave as before.
-* **`self.init` delegation to a direct initializer is a static call**: to the native initializing entry point of a Swift one, and — with the feature enabled — to the foreign entry point of an imported one, through Clang's thunk.
-* What remains cannot be closed: Objective-C can still initialize a Swift subclass of an Objective-C-declared class (or of an `@objc @implementation` one) through a superclass's direct designated initializer, and Swift can reach the same state through a `Self`-returning factory. The compiler warns, in the `ObjCDirectInitialization` diagnostic group, when such a subclass adds stored properties.
+* **A direct designated initializer requires a `final` class.** Direct convenience initializers are allowed in any class. The error comes with a fix-it that adds `final` (except on an `open` class, which cannot be final) and with a note describing the alternative for a class that must stay subclassable:
 
-#### Key-value coding and observing
+  ```swift
+  class Base: NSObject {
+    @objcDirect init(value: Int) { super.init() }
+    // error: an '@objcDirect' designated initializer requires class 'Base' to be 'final'
+    // note: a subclass can neither override nor hide a direct initializer, so
+    //       Objective-C could call it on a subclass instance without initializing
+    //       the subclass's stored properties
+    // note: to keep 'Base' subclassable, make this a convenience initializer that
+    //       delegates to a designated initializer that is not '@objcDirect'
+  }
+  ```
 
-A direct property's accessors are not in the class's method list, so key-value coding cannot find them; and its instance variable is emitted with an empty type encoding, so key-value coding does not fall back to it either. `value(forKey:)` and `setValue(_:forKey:)` raise `NSUnknownKeyException`. Falling back to the instance variable would write the storage behind the property's back — skipping `willSet`/`didSet`, and storing an object without retaining it, since a Swift class publishes no instance-variable layout.
+  Members of an `@objc @implementation` class are exempt: such a class is declared in Objective-C and follows its rules.
 
-Adopters should expect:
+* **Direct initializers are not inherited.** A subclass inherits neither a superclass's direct initializer nor, when the superclass has a direct designated initializer, any of its convenience initializers, since they would reach the direct one statically and skip the subclass's initialization. With the feature enabled, the same holds for a designated initializer imported from Objective-C as `objc_direct`. If a class is left with no initializers this way, the error says why:
 
-* string-keyed APIs — `NSPredicate`, `NSSortDescriptor(key:)`, bindings, `setValuesForKeys(_:)` — to raise for a direct property;
-* key-value observing never to notify for a direct setter, and registering with `.initial`, or a manual `willChangeValue(forKey:)` while an observer requests values, to raise;
-* a difference from Objective-C, where a `@property (direct)` keeps answering key-value coding through its `_ivar`: moving such a property to Swift turns working string-keyed access into a run-time exception.
+  ```
+  error: class 'Sub' has no initializers
+  note: initializer 'init(seed:)' of 'Base' is direct, so it is not inherited
+  ```
 
-#### `@objc @implementation`
+* **`self.init` delegation to a direct initializer is a static call** — to the Swift initializing entry point of a Swift initializer, or, with the feature enabled, to the entry point of an imported one, through Clang's thunk.
 
-[SE-0436][se0436] lists `objc_direct` methods among the declarations `@implementation` cannot express. They can now: a member of an `@objc @implementation` extension may be `@objcDirect`, provided it matches a header declaration that is `objc_direct`.
+A Swift subclass of an Objective-C-declared class — plain Objective-C, or `@objc @implementation` — can still be initialized from Objective-C through the superclass's direct designated initializer, and nothing in a header can prevent it. Swift code can reach the same state through a superclass class method that constructs `Self` with that initializer. The compiler warns when such a subclass adds stored properties:
+
+```
+warning: Objective-C can initialize 'Sub' with direct initializer 'initWithSeed:' of 'Base',
+         which skips the stored properties 'Sub' adds; it cannot be overridden or marked
+         unavailable in 'Sub'
+```
+
+The warning belongs to the `ObjCDirectInitialization` diagnostic group, so a project built with `-warnings-as-errors` can keep it a warning with `-Wwarning ObjCDirectInitialization`.
+
+### Key-value coding and observing
+
+A direct property's accessors are not in the class's method list, so key-value coding cannot find them. Key-value coding would then fall back to the instance variable — writing the storage behind the property's back, skipping `willSet` and `didSet`, and storing an object without retaining it, because a Swift class publishes no instance-variable layout. To prevent that, the instance variable of a direct property is emitted with an empty type encoding, as Swift storage that is not `@objc` already is, and key-value coding raises `NSUnknownKeyException` instead.
+
+In practice:
+
+* `value(forKey:)` and `setValue(_:forKey:)` raise for a direct property, as do string-keyed APIs built on them: `NSPredicate`, `NSSortDescriptor(key:)`, bindings, `setValuesForKeys(_:)`.
+* Key-value observing never notifies for a direct setter, which never goes through the KVO machinery. Registering an observer with `.initial`, or a manual `willChangeValue(forKey:)` while an observer asks for values, raises.
+* This differs from Objective-C, where a `@property (direct)` keeps answering key-value coding through its `_ivar`. Moving such a property to Swift turns string-keyed access to it into a run-time exception, so it should be audited for first.
+
+### `@objc @implementation`
+
+A member of an `@objc @implementation` extension may be `@objcDirect`, and must be exactly when the header declaration it implements is `objc_direct`:
 
 ```objc
 @interface Widget : NSObject
 - (int)plainMethod;
 - (int)directMethod __attribute__((objc_direct));
+@property (direct, readonly, getter=isDirty) BOOL dirty;
 @end
 ```
 
 ```swift
 @objc @implementation extension Widget {
-  @objcDirect func directMethod() -> Int32 { 1 }
   func plainMethod() -> Int32 { 2 }
+  @objcDirect func directMethod() -> Int32 { 1 }
+  @objc(dirty) @objcDirect var isDirty: Bool { @objc(isDirty) get { false } }
 }
 ```
 
-Directness must agree between the two sides, and a mismatch is diagnosed in either direction with a fix-it to add or remove the attribute. It has to agree because the header is what Objective-C callers compile against: if the header says `objc_direct` and the implementation does not, callers reference a direct symbol nothing defines; if the implementation says it and the header does not, callers message-send a selector that was never registered.
+A mismatch is diagnosed in either direction, with a fix-it to add or remove the attribute: if the header says `objc_direct` and the implementation does not, callers reference a direct symbol nothing defines; if the implementation says it and the header does not, callers message a selector that was never registered. A direct property's accessors are reached through symbols spelled with their selectors, so renamed accessors (`getter=`, `setter=`) must be matched too, and a mismatch is diagnosed with the selector to add. A stored property cannot rename its accessors, so it has to become a computed property over separate storage.
 
-Three things had to change for this to work, all of them consequences of a direct method being statically dispatched. One is dropping the `final` requirement, which a member of an `@implementation` extension cannot satisfy. The attribute now also suppresses the implicit `dynamic` that `@objc` extension members otherwise acquire, and takes no Swift vtable entry. A class whose Objective-C layout is fixed cannot grow vtable slots, so without the latter the member is rejected as an overridable Swift-only method.
+The directness check applies only with the feature enabled; without it, a header's `objc_direct` member is implemented as an ordinary `@objc` member, as before.
 
-A direct property's accessors are reached through symbols spelled with their selectors, so an implementation of a header property whose accessors are renamed has to rename its accessors to match:
+### Code generation
+
+A member exposed to Objective-C already has a foreign entry point — the `@objc` thunk that bridges arguments and results — and `@objcDirect` reuses it. Only the symbol and the signature change: the thunk is emitted under the direct name, without `_cmd`, and is left out of the class's Objective-C metadata. There is no new lowering and no second entry point. Swift callers of a direct member keep calling the native Swift entry point.
+
+The symbol is `-[Class selector]D` for an instance member and `+[Class selector]D` for a class member, where `Class` is the **printed `@interface` name** — the class's `@objc(Name)` if it has one, otherwise its Swift name — and never the mangled runtime name, which no Objective-C caller sees. A method-level `@objc(name)` renames the selector segment; a `throws` member takes the usual trailing `NSError **`:
+
+```llvm
+define void @"-[PlainClass renamedSelector]D"(ptr %0)                  ; @objc(renamedSelector)
+define void @"-[CustomName ping]D"(ptr %0)                              ; @objc(CustomName) class
+define ptr  @"-[Throwing throwableWithCond:error:]D"(ptr %0, i64 %1, ptr %2)
+```
+
+The generated header marks direct members with macros that its preamble guards on `__has_attribute(objc_direct)`, so it stays usable with a compiler that does not know the attribute:
 
 ```objc
-@property (direct, readonly, getter=isDirty) BOOL dirty;
-```
-
-```swift
-@objc(dirty) @objcDirect var isDirty: Bool { @objc(isDirty) get { … } }
-```
-
-A mismatch is diagnosed with the selector to add. A stored property cannot rename its accessors, so it has to become a computed property over separate storage.
-
-The directness check applies only with the feature enabled. Without it, implementing a header's `objc_direct` member is accepted as before, as a plain `@objc` method that an Objective-C caller will fail to link against.
-
-Code generation needs no change: the member is emitted under the direct symbol exactly as it would be outside an `@implementation` extension.
-
-#### What is not covered
-
-The attribute is **not accepted on an individual accessor**, which is direct exactly when its storage is, **nor on a `deinit`**. Both are diagnosed specifically rather than falling through to a generic "cannot be applied here."
-
-### CodeGen
-
-#### Reuse @objc thunk in SILGen
-
-A method exposed to Objective-C already has a foreign entry point — the `@objc` thunk that bridges arguments and results and adapts the calling convention — and `@objcDirect` reuses it. What changes is the symbol that thunk is emitted under and its signature: the `D`-suffixed direct name in place of the mangled Swift one, and no `_cmd` parameter. The body is lowered identically.
-
-That is worth stating plainly, because it is the difference between this proposal and the 2023 one. The earlier attempt required SILGen to emit the `nil` check itself, including unwrapping an `Optional`-typed receiver before the call; moving the preconditions to the caller removed that requirement entirely rather than relocating it.
-
-The rest of the implementation follows from reusing the thunk. On the SIL side only symbol naming and symbol enumeration move — `SILDeclRef` for the name, `SILSymbolVisitor` for what is recorded in a TBD file. IRGen selects the direct signature, sets linkage and visibility, and drops the method from the class's Objective-C metadata. There is no new lowering and no second entry point: the method has exactly one foreign symbol either way, differently named and differently shaped.
-
-#### Symbol name and calling convention
-
-A direct method is emitted under the Objective-C method name clang uses to reference it, so that a clang caller and the Swift definition agree byte for byte. The implementation does not take `_cmd`.
-
-```swift
-@objc class Foo: NSObject {
-  @objcDirect final  func bar() {}
-  @objcDirect static func classMethod() {}
-  @objcDirect final  func aPlusB(int: Int, b: Int) -> Int { int + b }
-
-  @objc       final  func normalMethod() {}   // for contrast
-}
-```
-
-```llvm
-define hidden void @"-[Foo bar]D"(ptr %0)
-define hidden void @"+[Foo classMethod]D"(ptr %0)
-define hidden i64  @"-[Foo aPlusBWithInt:b:]D"(ptr %0, i64 %1, i64 %2)
-
-; the non-direct @objc method keeps its selector thunk, and that one takes _cmd:
-define internal void @"$s…12normalMethodyyFTo"(ptr %0, ptr %1)
-```
-
-The class-name segment is the **printed `@interface` name** — the `@objc(Name)` custom name if there is one, otherwise the Swift class name. It is deliberately *not* the Objective-C runtime name, which is the mangled `_TtC…` form: an Objective-C caller builds its reference from the name in the header, so emitting the runtime name would produce a symbol nothing can link against. This is the single design decision most likely to be got wrong in a reimplementation.
-
-```swift
-@objc public class PlainClass: NSObject {
-  @objc(renamedSelector) @objcDirect public final func originalName() {}
-}
-@objc(CustomName) public class Renamed: NSObject {
-  @objcDirect public final func ping() {}
-}
-```
-
-```llvm
-define void @"-[PlainClass renamedSelector]D"(ptr %0)   ; method-level rename
-define void @"-[CustomName ping]D"(ptr %0)              ; class-level rename
-```
-
-Overloaded initializers mangle apart by selector, and a `throws` method picks up the usual trailing `NSError **` — still with no `_cmd`:
-
-```llvm
-define hidden ptr @"-[Inits initWithValue:]D"(ptr %0, i64 %1)
-define hidden ptr @"-[Inits initWithName:]D"(ptr %0, ptr %1)
-define hidden ptr @"-[Inits initWithX:y:]D"(ptr %0, i64 %1, i64 %2)
-
-define        ptr @"-[Throwing throwableWithCond:error:]D"(ptr %0, i64 %1, ptr %2)
-```
-
-#### The generated Objective-C header
-
-The header annotates only the direct methods, through a macro the preamble guards on `__has_attribute`, so the generated header remains usable with a compiler that does not know `objc_direct`:
-
-```objc
+#if !defined(SWIFT_OBJC_DIRECT)
 # if __has_attribute(objc_direct)
 #  define SWIFT_OBJC_DIRECT __attribute__((objc_direct))
 # else
 #  define SWIFT_OBJC_DIRECT
 # endif
-
-@interface DirectMethodClass
-- (NSInteger)directMethod SWIFT_WARN_UNUSED_RESULT SWIFT_OBJC_DIRECT;
-- (void)normalMethod;
-@end
+#endif
+#if !defined(SWIFT_OBJC_DIRECT_PROPERTY)
+# if __has_attribute(objc_direct)
+#  define SWIFT_OBJC_DIRECT_PROPERTY direct,
+# else
+#  define SWIFT_OBJC_DIRECT_PROPERTY
+# endif
+#endif
 ```
 
-### Linking
+With the feature enabled, Swift code that calls an Objective-C `objc_direct` member calls it through Clang's precondition thunk, exactly as an Objective-C caller would; enabling the feature turns on the corresponding Clang option for the Swift compiler's own Clang instance.
 
-#### Visibility
+### Linking and visibility
 
-Visibility follows Swift's access level, capped by context: a method whose *effective* access is public gets default visibility; anything else is hidden and remains eligible for dead-code elimination.
-
-```swift
-@objc public class Visibility: NSObject {
-  @objcDirect public  final func publicDirect()   {}
-  @objcDirect         final func internalDirect() {}
-  @objcDirect package final func packageDirect()  {}
-}
-```
+**Visibility follows access.** A direct entry point whose *effective* access is public gets default visibility and is exported; anything else is hidden. Nothing takes the address of a hidden entry point, so the linker can strip it if nothing calls it, which is where most of the size saving for internal members comes from. A public entry point, like every public Swift symbol, is kept.
 
 ```llvm
 define        void @"-[Visibility publicDirect]D"(ptr %0)
@@ -357,116 +294,100 @@ define hidden void @"-[Visibility internalDirect]D"(ptr %0)
 define hidden void @"-[Visibility packageDirect]D"(ptr %0)
 ```
 
-At `-O` nothing takes the address of the two hidden symbols, so the linker can strip them if nothing calls them. That is load-bearing for the size result: pinning them in `llvm.used` would quietly forfeit the saving.
+**Same-image Objective-C callers.** The recommended configuration — a member called only from Objective-C inside its own image — is expressed by declaring it `internal`. The generated header for a module that is not externally consumed, such as an app target, is emitted at `internal` access, so Objective-C code sees the declaration and links against a hidden symbol. A framework emits a public-only header by default; to give Objective-C code inside the framework its internal direct members, it needs a header generated with `-emit-clang-header-min-access internal`, kept out of the public headers.
 
-A non-public direct method is nevertheless still printed into the generated Objective-C header when the module is not externally consumed, because the header for such a module is generated at `internal` rather than `public` access. That is what makes the recommended case — a direct method called only from Objective-C inside the same dynamic library — reachable at all: the Objective-C caller sees the declaration, and the symbol it resolves to is hidden and therefore carries no export cost.
+**Unique class names.** The symbol carries only the printed class name, so two classes printed under the same name — internal classes with the same name in two modules linked into one image, say — would define the same symbol and fail to link. A class with direct members should have a unique Objective-C name, as Objective-C convention already expects.
 
-A framework, or any other externally consumed module, emits a public-only header by default. Objective-C code inside such a framework that calls its internal direct members needs a header generated with `-emit-clang-header-min-access internal`, kept separate from the public one.
+**Flag agreement.** The `D` suffix only appears under the precondition-thunk ABI, so every Objective-C translation unit that imports the generated header must be built with `-fobjc-direct-precondition-thunk`. One built without it references the old, unsuffixed name, and the link fails. That is the intended failure: it is loud, it happens at build time, and it names the symbol, whereas agreeing on a name while disagreeing about `_cmd` would be a silent calling-convention mismatch.
 
-A public direct method is exported and, like every public Swift symbol, kept by the linker; for public methods the saving is the metadata, not the code.
+### Module interfaces and serialization
 
-Because the class segment of the symbol is only the printed name, two classes printed under the same name — internal classes of the same name in two modules linked into one image, say — would define the same symbol and fail to link. Give a class with direct members a unique Objective-C name, as Objective-C convention already requires.
-
-#### Flag agreement across translation units
-
-A direct method's symbol carries a suffix that only appears when the precondition-thunk ABI is enabled, so the two sides of a call have to agree. An Objective-C translation unit that imports the generated header but is built without the flag emits a reference to the old, unsuffixed name, and the link fails with an undefined symbol.
-
-That is the intended failure. It is loud, it happens at build time, and it names the symbol that disagreed. The alternative — two translation units agreeing on a name while disagreeing about whether `_cmd` is in the signature — would be a silent calling-convention mismatch, and far worse.
-
-#### Controlling export
-
-A direct call across an image boundary needs an exported symbol, and that export is what makes the cross-library case a regression rather than a saving. Hidden visibility was not incidental to the 2019 Objective-C design; it was a stated rule, with an explicit C wrapper as the sanctioned way to cross an image. So the question of who decides whether a direct method is exported has to be answered, not inherited.
-
-**Export follows the access level.** A method whose effective access is public is exported; anything else is hidden and stays eligible for dead-code elimination. This is the same rule Swift already uses for every other declaration, so it needs no new spelling and introduces no second notion of visibility.
-
-It also makes the case worth having reachable today. The configuration the measurements favour — a direct method called from Objective-C inside the same image — is expressed by declaring it `internal`. The symbol is hidden, and, because the generated header for a module that is not externally consumed is emitted at `internal` access, the Objective-C caller still sees the declaration. The saving is available without new syntax; the adopter writes `internal` instead of `public`, which is what they meant.
-
-The alternative is to **put the export decision in the attribute**, so that directness and visibility are independent as they are in Objective-C, and a `public` method could be direct without being exported. We did not adopt it, for three reasons.
-
-1. It duplicates access control. Swift already has one answer to "is this visible outside the module," and a per-attribute knob is a second one that can disagree with the first. Two mechanisms governing one property is a cost paid by every reader of the code, not just by adopters of this attribute.
-2. It would be the only attribute in Swift that overrides access-derived linkage. That is a large precedent to set from a narrow interop feature, and it would invite the same knob on everything else that emits a symbol.
-3. The residual gap is smaller than it first looks. Because `internal` already covers the recommended case, what is left is specifically a method that must be `public` for Swift clients while its *Objective-C* symbol is only ever called in-image. That is a real situation, but it reads more like a missing access level — "visible to Objective-C within this image" — than like a parameter on this attribute, and designing an access level is not something this proposal should do on the side.
-
-We would rather be argued out of this than guess. If there is a spelling that gives the residual case what it needs without creating a second visibility mechanism, we would adopt it; this is the part of the design we hold most loosely.
-
-### Serialization and module interfaces
-
-`@objcDirect` is serialized in binary `.swiftmodule` files and printed into textual `.swiftinterface` files.
-
-Printing it into an interface requires care. The attribute is only legal when the feature is enabled, so an interface that carries `@objcDirect` must also record that fact, or rebuilding the module from its own interface fails. Because `-enable-experimental-feature` is recorded in `swift-module-flags`, the interface is self-describing and rebuilds correctly.
+`@objcDirect` is serialized in binary modules and printed in textual interfaces. A module interface records the feature in its `swift-module-flags`, so it rebuilds without extra options, and declarations that use the attribute are guarded by `$ObjCDirect`, as for other experimental features:
 
 ```swift
-// Mod.swift
-@objc public class Cache: NSObject {
-  @objcDirect public final func lookup() {}
+// swift-module-flags: -target arm64-apple-macosx14.0 -enable-experimental-feature ObjCDirect -module-name Mod …
+@objc final public class Cache : ObjectiveC::NSObject {
+  #if compiler(>=5.3) && $ObjCDirect
+  @objcDirect @objc final public func lookup(_ key: Swift::String) -> ObjectiveC::NSObject?
+  #endif
 }
 ```
 
-```swift
-// Mod.swiftinterface
-// swift-module-flags: -module-name Mod … -enable-experimental-feature ObjCDirect
-@objc public class Cache : ObjectiveC.NSObject {
-  @objcDirect public final func lookup()
-}
-```
-
-The flag in the header is what legalizes the attribute in the body, so rebuilding the module from this interface needs nothing on the command line. Note what is *absent*: the clang option is not recorded, because enabling the Swift feature re-derives it.
-
-Excluding the attribute from interfaces would also make them rebuildable, but `-emit-objc-header` run against a module rebuilt from such an interface would drop `SWIFT_OBJC_DIRECT`, and an Objective-C caller would then send a message to a selector the method deliberately does not have — an unrecognized selector at runtime, replacing a link error. Printing the attribute *and* recording the flag that legalizes it is the coherent pair.
+The Clang option is not recorded; enabling the feature implies it. Dropping the attribute from interfaces instead would also make them rebuildable, but a header generated from a module rebuilt that way would lose `SWIFT_OBJC_DIRECT`, and Objective-C callers would message a selector the member does not have.
 
 ## Source compatibility
 
-Writing `@objcDirect` requires the experimental feature flag, so no existing spelling changes meaning by acquiring the attribute.
+Writing `@objcDirect` requires the experimental feature, so nothing changes for code that does not write it — with the exceptions below, which concern members imported from Objective-C as `objc_direct`.
 
-One new check is **not** gated on that flag, and can therefore affect existing code. It asks whether a declaration is direct-dispatched, which is also true of an Objective-C `objc_direct` method imported into Swift. So, with the feature disabled and in code that never writes the attribute: an imported direct method witnessing an `@objc` protocol requirement now invalidates the conformance. It was previously accepted, and every call made through the protocol failed at runtime — so this converts a guaranteed crash into a build error, and the rejected conformance never worked. Objective-C already forbids the same shape, in `err_objc_direct_protocol_conformance`.
-
-The `#selector` check would break existing code the same way, but without the same justification. A generated header declares a direct property, and a Swift caller writes `NSStringFromSelector(#selector(getter: …))` to obtain a runtime key. It is therefore gated on the feature instead. Those names do need removing: that one resolves today only because key-value coding falls back to the instance variable, which `direct` leaves in place. Gating gives adopters the trial period to clear them before the feature becomes the default.
-
-Enabling the feature changes two more things in code that never writes the attribute, both about initializers imported as `objc_direct` (see *Initializers*): a Swift subclass no longer inherits such a designated initializer, nor the superclass's convenience initializers, and `self.init` delegation to such an initializer becomes a static call. Without the feature, delegation remains a message send, which fails with an unrecognized selector when `self` is an instance of the class itself.
+* **Not gated on the feature:** an imported direct method that witnesses an `@objc` protocol requirement is now an error. It was previously accepted, and every call made through the protocol failed at run time with an unrecognized selector; Objective-C forbids the same shape (`err_objc_direct_protocol_conformance`).
+* **Gated on the feature:** `#selector` and `#keyPath` naming an imported direct member. These would break existing code — a Swift caller writing `NSStringFromSelector(#selector(getter: …))` for a direct property declared in a header, for instance, which works today only because key-value coding falls back to the Objective-C instance variable. Gating gives adopters time to remove them.
+* **Gated on the feature:** a designated initializer imported as `objc_direct` is no longer inherited by Swift subclasses, nor are the superclass's convenience initializers, and `self.init` delegation to it becomes a static call. Without the feature, delegation stays a message send, which fails with an unrecognized selector when `self` is an instance of the class itself, and a Swift subclass's generated header still redeclares the initializer, which Clang rejects.
 
 ## ABI compatibility
 
-Adding or removing `@objcDirect` on a method **changes that method's Objective-C ABI**. The symbol name changes, the method leaves or rejoins the class method list, and the calling convention changes from message send to direct call. Objective-C callers must be recompiled.
+Adding or removing `@objcDirect` **changes the member's Objective-C ABI**: the symbol changes, the member leaves or rejoins the method list, and calls change from message sends to direct calls. Objective-C callers must be recompiled, so the attribute is ABI-breaking to add and to remove on a member that Objective-C code outside the module calls.
 
-The attribute is therefore ABI-breaking to add and to remove on a method that Objective-C code outside the module calls.
+For the Swift ABI, a direct member is statically dispatched and takes no vtable entry, so the attribute has the same effect as `final`. On a member that is already `final`, or of a `final` class, nothing changes: the native entry point is the same, and Swift callers keep using it. On a non-final public member of a class built with library evolution, adding the attribute removes the member's dispatch thunk and method descriptor, and removing it adds them back, so either direction breaks Swift clients compiled against the other — exactly as adding or removing `final` would. The compiler's API and ABI checks treat the attribute as breaking to add and to remove.
 
-For the Swift ABI, a direct member is statically dispatched and takes no vtable entry, so the attribute has the same effect as `final`. On a member that is already `final`, or of a `final` class, nothing changes: the native entry point is the same, and Swift callers keep using it. On a non-final public member of a resilient class, adding the attribute removes the member's dispatch thunk and method descriptor, and removing it adds them back, so either direction breaks Swift clients compiled against the other — exactly as adding or removing `final` would. The compiler's API and ABI checks treat the attribute as breaking to add and to remove. A class with a direct designated initializer is `final`, so making it subclassable later also means dropping the attribute from that initializer.
-
-The proposal does not change code generation for any declaration that does not carry the attribute.
+The proposal does not change code generation for any declaration that does not carry the attribute, except for the imported-initializer behavior under the feature described above.
 
 ## Implications on adoption
 
-**This feature requires a toolchain whose clang supports the direct-method precondition thunk ABI** (`-fobjc-direct-precondition-thunk`). The flag itself exists in clang 22, but the thunk generation that gives it meaning landed for clang 23, so clang 23 is the real floor — on 22 the flag parses and changes the symbol name without producing the caller-side thunk. The Swift attribute is gated on the feature as a whole. This is also why the implementation is based on `rebranch` rather than `main`: `main` currently pairs with an LLVM that predates the ABI.
+**The feature requires Clang's precondition-thunk ABI**, `-fobjc-direct-precondition-thunk`. The flag exists in Clang 22, but the thunk generation that gives it meaning is in Clang 23, so Clang 23 is the real floor. That is why the implementation is based on `rebranch`.
 
-**Every Objective-C translation unit that imports the generated header must be built with the same flag**, for the reason given under *Flag agreement across translation units*. In practice that makes it a build-system-wide setting rather than a per-target one.
+**Every Objective-C translation unit that imports the generated header must use the same flag**, which makes it a build-wide setting. The flag is in production use in large applications, and Clang's driver records the intent to make it the default; once it is, this constraint disappears and `@objcDirect` could be enabled by default in Swift as well.
 
-That flag has been running in production in large applications for some time, and clang's own driver records the intent for it to become the default. Once it is, this constraint disappears and `@objcDirect` could be enabled by default in Swift as well.
+**`@objcDirect` is a contract** that the member will not be reached dynamically. The compiler enforces what it can see; it cannot see:
 
-**`@objcDirect` is a contract.** The developer is asserting that the method will not be dispatched dynamically. The compiler enforces what it can see; four things it cannot:
+* **`respondsToSelector:`**, which returns `NO` for a direct member. This is the one failure that is silent in both directions — a feature-detection branch simply takes the other path — and the first thing to audit for.
+* **Selectors and keys built at run time** — `NSSelectorFromString`, `perform(_:)`, string-keyed key-value coding (which raises; see above), key paths that are not literals.
+* **Protocol-qualified Objective-C receivers.** Clang does not diagnose a call to a direct method through an `id<Protocol>` receiver; it becomes an unrecognized selector at run time.
+* **Test doubles that stub by selector**, which stop intercepting — a failure in test runs rather than in production.
 
-* **`respondsToSelector:`** returns `false` for a direct method. This is the only failure mode in the set that is silent in both directions — a feature-detection branch simply takes the other path. It is worth auditing for before adopting.
-* **Runtime-constructed selectors** — `NSSelectorFromString`, `perform(_:)`, string-keyed key-value coding (which raises; see *Key-value coding and observing*). Inherently undecidable statically.
-* **Protocol-qualified Objective-C receivers**, per *Dispatch that cannot work*: clang does not currently diagnose these, and the call becomes an unrecognized selector at runtime.
-* **Test doubles that stub by selector** will stop intercepting. This fails in test runs rather than in production, which is the good outcome.
+**Initializers need a plan.** A class with a direct designated initializer is `final`; a class that must stay subclassable keeps a designated initializer that is not direct and makes the direct ones convenience initializers.
 
-**Availability needs care.** Clang links a call to a direct method strongly, even when the declaration is marked available only on an OS newer than the caller's deployment target, so a back-deployed caller fails to launch against an older library rather than weak-linking. Until Clang emits weak references for such calls, availability-gated public API should not be made direct.
+**Availability needs care.** Clang links a call to a direct method strongly, even when the declaration is available only on an OS newer than the caller's deployment target, so a back-deployed caller fails to launch against an older library instead of weak-linking. Until Clang emits weak references for such calls, availability-gated public API should not be direct.
 
-**Direct class methods save metadata, not time.** As the 2019 design anticipated, the caller still makes sure the class is realized before the call, and today that is a message send on every call, which can make a direct class method slower than an ordinary one. Instance methods do not pay this, so they are the better candidates on hot paths.
+**Direct class methods save metadata, not time.** The caller still makes sure the class is realized before calling, and today that costs a message send on every call, which can make a direct class method slower than an ordinary one (2.25 ns against 1.68 ns in the measurement above). Instance members do not pay it.
 
-**Development builds keep working.** `-enable-implicit-dynamic` does not make direct members dynamic; they are simply not replaceable.
+**Development builds keep working.** `-enable-implicit-dynamic` leaves direct members non-replaceable rather than rejecting them.
 
-**Adoption is reversible in source**, but reversing it is an Objective-C ABI change as described above, and for a non-final public member of a resilient class a Swift ABI change too.
+**Adoption is reversible in source**, but reversing it is an Objective-C ABI change, and for a non-final public member of a resilient class a Swift ABI change too.
 
 ## Future directions
 
-### Safer subclassing of Objective-C-declared classes
-
-A Swift subclass of an Objective-C-declared class with a direct designated initializer can still be initialized from Objective-C without running its own initialization, through that initializer or a convenience initializer that reaches it. The direct paths cannot be closed, but the convenience ones could: the compiler could synthesize, in the subclass, unavailable stubs that trap for the superclass's non-direct convenience initializers, as it already does for designated initializers a subclass does not inherit. Inheritance could also be decided per initializer rather than all or nothing, so that convenience initializers that provably do not reach a direct one stay inherited.
-
 ### An attribute for all members of a class
 
-Objective-C has `objc_direct_members`, and the 2023 pitch proposed a Swift analogue alongside the per-method attribute. A class-level spelling would avoid repeating the attribute on every member and would compose naturally with `@objcMembers`.
+Objective-C has `objc_direct_members`, and a class-level spelling would avoid repeating the attribute and compose with `@objcMembers`. It raises questions the per-member form does not — mainly how it interacts with the applicability rules, since a class typically has members that cannot be direct — and is better designed on top of settled per-member semantics.
 
-This proposal deliberately covers only the per-method attribute. Methods are where the measured benefit is concentrated, and a class-level attribute raises questions the per-method form does not — in particular how it would interact with the applicability rules above, since a class will typically contain members that cannot be direct. Settling the per-method semantics first gives that design something concrete to build on.
+### Safer subclassing of Objective-C-declared classes
+
+The remaining initialization hole concerns Swift subclasses of Objective-C-declared classes with direct designated initializers. The direct routes cannot be closed, but the convenience ones could: the compiler could synthesize, in the subclass, trapping stubs marked unavailable for the superclass's non-direct convenience initializers, as it already does for designated initializers a subclass does not inherit. Inheritance could also be decided per initializer, so that convenience initializers that provably do not reach a direct one stay inherited.
+
+### Code generation in Clang
+
+Two costs above are Clang's to remove: realizing the class for a direct class method without a message send, and weak-linking direct calls to availability-gated methods. Neither needs a language change.
+
+## Alternatives considered
+
+### Putting the export decision in the attribute
+
+Directness and visibility are independent in Objective-C, and the attribute could carry an export choice, so that a `public` member could be direct without being exported. We did not adopt it: it would duplicate access control with a second mechanism that can disagree with the first, it would be the only attribute in Swift that overrides access-derived linkage, and `internal` already covers the recommended same-image case. What remains — a member that must be `public` for Swift clients while its Objective-C symbol is only called within its image — reads more like a missing access level than like a parameter on this attribute. This is the part of the design we hold most loosely.
+
+### Requiring `final`
+
+The first pitch required direct members to be `final`. That is stronger than necessary — a non-final member that is never overridden is dispatched statically all the same — and a member of an `@objc @implementation` extension cannot be `final`. The proposal instead diagnoses overrides, and requires `final` only of a class with a direct designated initializer, where subclassing itself is the problem.
+
+### A run-time check for direct designated initializers
+
+Instead of requiring a `final` class, the direct designated initializer's entry point could trap unless `self` is exactly its class. That would keep open classes with direct designated initializers, but it catches only the direct call: a non-direct convenience initializer that delegates to the direct one, sent by Objective-C to a subclass, reaches it without passing through the checked entry point. It would also turn a build error into a run-time crash.
+
+### Keeping the key-value coding fallback
+
+Objective-C keeps key-value coding working for a direct property through its instance variable, and Swift could have done the same by keeping the type encoding. For a Swift class that fallback is unsafe — it skips observers and stores objects without retaining them — so the proposal makes key-value coding raise, consistent with `#keyPath` being rejected and Swift key paths carrying no string.
+
+### Keeping a dispatch thunk for resilience
+
+For a non-final public member of a resilient class, the compiler could keep emitting a dispatch thunk and method descriptor so that adding `@objcDirect` would not break Swift clients. They would advertise a vtable entry that can never be overridden. The proposal treats the attribute as ABI-breaking instead, as `final` is.
 
 [se0436]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0436-objc-implementation.md
