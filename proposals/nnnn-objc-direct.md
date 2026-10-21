@@ -138,7 +138,7 @@ The member is rejected when Objective-C could not express it: beyond the ordinar
 
 The member is rejected when something would have to reach it dynamically:
 
-* `override` (above), and `open`, which promises clients an override that can never be written;
+* `override`: callers of the overridden member dispatch to it dynamically, so a direct member can no more override another member than be overridden (above). Nor can it be `open`, which promises clients an override that can never be written;
 * `dynamic`, written or implied by `@NSManaged`. (`-enable-implicit-dynamic`, which makes eligible declarations `dynamic` for development-time replacement, skips direct members instead; they are simply not replaceable.)
 * a `required` initializer, which must be inherited;
 * `@IBAction` and `@IBSegueAction` methods, which a nib or storyboard calls by selector, and `@IBOutlet`, `@IBInspectable` and `@GKInspectable` properties, which are set by key;
