@@ -1,9 +1,9 @@
 # Add `bidiClass` to `Unicode.Scalar.Properties`
 
-* Proposal: [SE-NNNN](NNNN-unicode-bidi-class.md)
+* Proposal: [SE-0559](0559-unicode-bidi-class.md)
 * Authors: [Chris Chapman](https://github.com/cjchapman), [Michael Ilseman](https://github.com/milseman)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (October 21...November 4, 2026)**
 * Implementation: [swiftlang/swift#91404](https://github.com/swiftlang/swift/pull/91404)
 * Review: ([pitch](https://forums.swift.org/t/pitch-add-bidiclass-to-unicode-scalar-properties/89097))
 
