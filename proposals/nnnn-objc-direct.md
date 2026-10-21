@@ -309,11 +309,12 @@ define hidden void @"-[Visibility packageDirect]D"(ptr %0)
 `@objcDirect` is serialized in binary modules and printed in textual interfaces. A module interface records the feature in its `swift-module-flags`, so it rebuilds without extra options, and declarations that use the attribute are guarded by `$ObjCDirect`, as for other experimental features:
 
 ```swift
-// swift-module-flags: -target arm64-apple-macosx14.0 -enable-experimental-feature ObjCDirect -module-name Mod …
-@objc final public class Cache : ObjectiveC::NSObject {
+// swift-module-flags: -target arm64-apple-macosx14.0 -enable-experimental-feature ObjCDirect -enable-library-evolution -language-mode 5 -module-name Mod
+@_inheritsConvenienceInitializers @objc final public class Cache : ObjectiveC::NSObject {
   #if compiler(>=5.3) && $ObjCDirect
   @objcDirect @objc final public func lookup(_ key: Swift::String) -> ObjectiveC::NSObject?
   #endif
+  …
 }
 ```
 
