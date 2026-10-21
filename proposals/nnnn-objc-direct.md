@@ -131,7 +131,7 @@ The member is rejected when Objective-C could not name it. Its symbol embeds the
 
 * anything but a class — a global function, or a member of a struct, enum or protocol;
 * a class that is not exposed to Objective-C — a generic class, a class with generic ancestry, or a Swift class that does not derive from an Objective-C one;
-* a local class, or a nested class, unless the nested class has an explicit `@objc(Name)` and every enclosing type is an explicitly `@objc` class (only those are printed, and only an explicit name keeps two nested classes apart);
+* a local class, or a nested class, unless the nested class has an explicit `@objc(Name)` and every enclosing type is a class exposed to Objective-C, or an extension of one, that is explicitly `@objc` if it is nested too (only those are printed, and only an explicit name keeps two nested classes apart);
 * a `private` or `fileprivate` class. Nor can the member itself be `private` or `fileprivate`.
 
 The member is rejected when Objective-C could not express it: beyond the ordinary `@objc` rules, an `async` member (there is no direct calling convention for asynchronous methods) and a subscript that does not take exactly one index.
