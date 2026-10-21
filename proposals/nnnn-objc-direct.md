@@ -134,7 +134,7 @@ The member is rejected when Objective-C could not name it. Its symbol embeds the
 * a local class, or a nested class, unless the nested class has an explicit `@objc(Name)` and every enclosing type is an explicitly `@objc` class (only those are printed, and only an explicit name keeps two nested classes apart);
 * a `private` or `fileprivate` class. Nor can the member itself be `private` or `fileprivate`.
 
-The member is rejected when Objective-C could not express it: beyond the ordinary `@objc` rules, an `async` member (there is no direct calling convention for asynchronous methods) and a subscript with more than one index.
+The member is rejected when Objective-C could not express it: beyond the ordinary `@objc` rules, an `async` member (there is no direct calling convention for asynchronous methods) and a subscript that does not take exactly one index.
 
 The member is rejected when something would have to reach it dynamically:
 
