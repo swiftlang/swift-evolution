@@ -265,7 +265,7 @@ define ptr  @"-[Throwing throwableWithCond:error:]D"(ptr %0, i64 %1, ptr %2)
 
 A member declared in an extension of the class is handled the same way. Its symbol carries no category name, as in Clang's spelling; the generated header declares it in the extension's category; and an extension whose `@objc` members are all direct registers no category at run time.
 
-The generated header marks direct members with macros that its preamble guards on `__has_attribute(objc_direct)`, so it stays usable with a compiler that does not know the attribute:
+The generated header marks direct members with macros that its preamble guards on `__has_attribute(objc_direct)`:
 
 ```objc
 #if !defined(SWIFT_OBJC_DIRECT)
@@ -283,6 +283,8 @@ The generated header marks direct members with macros that its preamble guards o
 # endif
 #endif
 ```
+
+A compiler that does not know the attribute still parses the header, but it compiles a call to a direct member as a message send, which fails at run time with an unrecognized selector.
 
 With the feature enabled, Swift code that calls an Objective-C `objc_direct` member calls it through Clang's precondition thunk, exactly as an Objective-C caller would; enabling the feature turns on the corresponding Clang option for the Swift compiler's own Clang instance.
 
