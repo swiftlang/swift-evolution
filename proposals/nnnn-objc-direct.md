@@ -158,11 +158,11 @@ The member is rejected when something would have to reach it dynamically:
 Some otherwise valid uses of a direct member need the dynamic dispatch it does not have. They are diagnosed at the use:
 
 * **`#selector`** naming a direct member is an error: no selector for it is registered.
-* **`#keyPath`** naming a direct property is an error, and a Swift key path through a direct property carries no key-value coding string. Passing such a key path literal to an API that converts it to a string — `observe(_:options:changeHandler:)`, `publisher(for:)`, `willChangeValue(for:)` and `didChangeValue(for:)`, `NSSortDescriptor(keyPath:ascending:)`, `NSExpression(forKeyPath:)` — is an error, because each of them traps without the string. A key path that is not a literal at the call still traps at run time.
+* **`#keyPath`** naming a direct property is an error, and a Swift key path through a direct property carries no key-value coding string. Passing a key path literal with a direct property anywhere in its path, even in parentheses or under an `as` coercion, to an API that converts it to a string is an error, because each of them traps without the string. Those APIs are Foundation's key-value observing methods — `observe(_:options:changeHandler:)`, `publisher(for:options:)`, and the `willChangeValue(for:)` and `didChangeValue(for:)` family, including the forms with a set mutation or an index set — and the initializers `NSSortDescriptor(keyPath:ascending:)`, with or without a comparator, and `NSExpression(forKeyPath:)`. A key path held in a variable, or passed to any other API, such as Foundation's Swift `SortDescriptor`, is not diagnosed and traps at run time.
 * **`AnyObject` lookup** does not find direct members, matching how `objc_direct` members imported from Objective-C are already treated.
-* **Witnessing an `@objc` protocol requirement** is an error, since a call through the protocol is a message send. Witnessing a Swift protocol requirement is fine: the witness calls the member statically.
+* **Witnessing an `@objc` protocol requirement**, required or optional, is an error, since a call through the protocol is a message send. Witnessing a Swift protocol requirement is fine: the witness calls the member statically.
 
-For members imported from Objective-C as `objc_direct`, the `#selector` and `#keyPath` checks apply only when the feature is enabled; see *Source compatibility*.
+For a Swift direct member these rules hold in every module, including one that does not enable the feature. For a member imported from Objective-C as `objc_direct`, `AnyObject` lookup has always skipped it and a witness for a required requirement is rejected regardless, but the other checks, and the omission of the key-value coding string, apply only when the feature is enabled; see *Source compatibility*.
 
 ### Properties and subscripts
 
