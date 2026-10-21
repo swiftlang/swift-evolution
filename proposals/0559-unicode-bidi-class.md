@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active review (October 21...November 4, 2026)**
 * Implementation: [swiftlang/swift#91404](https://github.com/swiftlang/swift/pull/91404)
-* Review: ([pitch](https://forums.swift.org/t/pitch-add-bidiclass-to-unicode-scalar-properties/89097))
+* Review: ([pitch](https://forums.swift.org/t/pitch-add-bidiclass-to-unicode-scalar-properties/89097)) ([review](https://forums.swift.org/t/se-0559-add-bidiclass-to-unicode-scalar-properties/90186))
 
 ## Summary of changes
 
