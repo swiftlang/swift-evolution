@@ -198,7 +198,7 @@ A direct initializer is emitted like any other direct member, under its selector
 
   Members of an `@objc @implementation` class are exempt: such a class is declared in Objective-C and follows its rules.
 
-* **Direct initializers are not inherited.** A subclass inherits neither a superclass's direct initializer nor, when the superclass has a direct designated initializer, any of its convenience initializers, since they would reach the direct one statically and skip the subclass's initialization. With the feature enabled, the same holds for a designated initializer imported from Objective-C as `objc_direct`. If a class is left with no initializers this way, the error says why:
+* **Direct designated initializers are not inherited.** A subclass inherits neither a superclass's direct designated initializer nor, when the superclass has one, any of its convenience initializers, since they would reach the direct one statically and skip the subclass's initialization. With the feature enabled, the same holds for a designated initializer imported from Objective-C as `objc_direct`. A direct *convenience* initializer, by contrast, is inherited by the usual rules: it delegates to a designated initializer dynamically, so it reaches the subclass's own. If a class is left with no initializers, the error says why:
 
   ```
   error: class 'Sub' has no initializers
