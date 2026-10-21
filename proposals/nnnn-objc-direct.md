@@ -302,7 +302,7 @@ define hidden void @"-[Visibility packageDirect]D"(ptr %0)
 
 **Unique class names.** The symbol carries only the printed class name, so two classes printed under the same name — internal classes with the same name in two modules linked into one image, say — would define the same symbol and fail to link. A class with direct members should have a unique Objective-C name, as Objective-C convention already expects.
 
-**Flag agreement.** The `D` suffix only appears under the precondition-thunk ABI, so every Objective-C translation unit that imports the generated header must be built with `-fobjc-direct-precondition-thunk`. One built without it references the old, unsuffixed name, and the link fails. That is the intended failure: it is loud, it happens at build time, and it names the symbol, whereas agreeing on a name while disagreeing about `_cmd` would be a silent calling-convention mismatch.
+**Flag agreement.** The `D` suffix only appears under the precondition-thunk ABI, so every Objective-C translation unit that imports the generated header must be built with `-fobjc-direct-precondition-thunk`. One built without it references the old, unsuffixed name, and the link fails. The same holds in the other direction: with the feature enabled, Swift calls an `objc_direct` method declared in a header by its suffixed name, so the translation unit that defines the method must be built with the flag as well. That is the intended failure: it is loud, it happens at build time, and it names the symbol, whereas agreeing on a name while disagreeing about `_cmd` would be a silent calling-convention mismatch.
 
 ### Module interfaces and serialization
 
@@ -340,7 +340,7 @@ The proposal does not change code generation for any declaration that does not c
 
 **The feature requires Clang's precondition-thunk ABI**, `-fobjc-direct-precondition-thunk`. The flag exists in Clang 22, but the thunk generation that gives it meaning is in Clang 23, so Clang 23 is the real floor. That is why the implementation is based on `rebranch`.
 
-**Every Objective-C translation unit that imports the generated header must use the same flag**, which makes it a build-wide setting. The flag is in production use in large applications, and Clang's driver records the intent to make it the default; once it is, this constraint disappears and `@objcDirect` could be enabled by default in Swift as well.
+**Every Objective-C translation unit that imports the generated header, or defines an `objc_direct` method that Swift calls, must use the same flag**, which makes it a build-wide setting. The flag is in production use in large applications, and Clang's driver records the intent to make it the default; once it is, this constraint disappears and `@objcDirect` could be enabled by default in Swift as well.
 
 **`@objcDirect` is a contract** that the member will not be reached dynamically. The compiler enforces what it can see; it cannot see:
 
