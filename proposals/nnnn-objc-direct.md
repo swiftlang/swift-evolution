@@ -111,7 +111,7 @@ Two rules govern everything else:
 
 ### Where the attribute can be written
 
-`@objcDirect` can be written on a method (instance, `static` or `class`), initializer, property or subscript of a class exposed to Objective-C. It cannot be written on an individual accessor — an accessor is direct exactly when its storage is — or on a `deinit`.
+`@objcDirect` can be written on a method (instance, `static` or `class`), initializer, property or subscript of a class exposed to Objective-C, in the class or in an extension of it. It cannot be written on an individual accessor — an accessor is direct exactly when its storage is — or on a `deinit`.
 
 A direct member is statically dispatched, but it does not have to be `final`. It simply cannot be overridden: an override of a direct member is an error, in the same module or another one.
 
@@ -262,6 +262,8 @@ define void @"-[PlainClass renamedSelector]D"(ptr %0)                  ; @objc(r
 define void @"-[CustomName ping]D"(ptr %0)                              ; @objc(CustomName) class
 define ptr  @"-[Throwing throwableWithCond:error:]D"(ptr %0, i64 %1, ptr %2)
 ```
+
+A member declared in an extension of the class is handled the same way. Its symbol carries no category name, as in Clang's spelling; the generated header declares it in the extension's category; and an extension whose `@objc` members are all direct registers no category at run time.
 
 The generated header marks direct members with macros that its preamble guards on `__has_attribute(objc_direct)`, so it stays usable with a compiler that does not know the attribute:
 
