@@ -290,7 +290,7 @@ With the feature enabled, Swift code that calls an Objective-C `objc_direct` mem
 
 ### Linking and visibility
 
-**Visibility follows access.** A direct entry point whose *effective* access is public gets default visibility and is exported; anything else is hidden. Nothing takes the address of a hidden entry point, so the linker can strip it if nothing calls it, which is where most of the size saving for internal members comes from. A public entry point, like every public Swift symbol, is kept.
+**Visibility follows access.** A direct entry point whose *effective* access is public gets default visibility and is exported; anything else is hidden. In an optimized build nothing takes the address of a hidden entry point, so the linker can strip it if nothing calls it, which is where most of the size saving for internal members comes from; a whole-module build still emits it, although nothing in Swift calls it. At `-Onone` it is kept for the debugger, like every other function. A public entry point, like every public Swift symbol, is kept.
 
 ```llvm
 define        void @"-[Visibility publicDirect]D"(ptr %0)
