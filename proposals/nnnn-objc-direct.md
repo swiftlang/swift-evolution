@@ -207,12 +207,12 @@ A direct initializer is emitted like any other direct member, under its selector
 
 * **`self.init` delegation to a direct initializer is a static call** — to the Swift initializing entry point of a Swift initializer, or, with the feature enabled, to the entry point of an imported one, through Clang's thunk.
 
-A Swift subclass of an Objective-C-declared class — plain Objective-C, or `@objc @implementation` — can still be initialized from Objective-C through the superclass's direct designated initializer, and nothing in a header can prevent it. Swift code can reach the same state through a superclass class method that constructs `Self` with that initializer. The compiler warns when such a subclass adds stored properties:
+A Swift subclass of an Objective-C-declared class — plain Objective-C, or `@objc @implementation` — can still be initialized from Objective-C through the superclass's direct designated initializer, and nothing in a header can prevent it. Swift code can reach the same state through a superclass class method that constructs `Self` with that initializer. With the feature enabled, the compiler warns when such a subclass, at any depth below the class that declares the initializer, adds stored properties:
 
 ```
 warning: Objective-C can initialize 'Sub' with direct initializer 'initWithSeed:' of 'Base',
          which skips the stored properties 'Sub' adds; it cannot be overridden or marked
-         unavailable in 'Sub'
+         unavailable in 'Sub' [#ObjCDirectInitialization]
 ```
 
 The warning belongs to the `ObjCDirectInitialization` diagnostic group, so a project built with `-warnings-as-errors` can keep it a warning with `-Wwarning ObjCDirectInitialization`.
