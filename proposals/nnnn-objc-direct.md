@@ -334,7 +334,7 @@ Adding or removing `@objcDirect` **changes the member's Objective-C ABI**: the s
 
 For the Swift ABI, a direct member is statically dispatched and takes no vtable entry, so the attribute has the same effect as `final`. On a member that is already `final`, or of a `final` class, nothing changes: the native entry point is the same, and Swift callers keep using it. On a non-final public member of a class built with library evolution, adding the attribute removes the member's dispatch thunk and method descriptor, and removing it adds them back, so either direction breaks Swift clients compiled against the other — exactly as adding or removing `final` would. The compiler records the attribute as ABI-breaking to add and to remove, and as API-breaking to add but not to remove: adding it rules out overrides, `#selector` and `#keyPath` references and `AnyObject` lookup, while removing it only lifts restrictions.
 
-The proposal does not change code generation for any declaration that does not carry the attribute, except for the imported-initializer behavior under the feature described above.
+The proposal does not change code generation for any declaration that does not carry the attribute, except, with the feature enabled, for uses of members imported from Objective-C as `objc_direct`: calls to them go through Clang's precondition thunk to the `D`-suffixed symbol, `self.init` delegation to an imported direct initializer is a static call, and a key path through an imported direct property carries no key-value coding string.
 
 ## Implications on adoption
 
