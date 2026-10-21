@@ -249,7 +249,7 @@ A member of an `@objc @implementation` extension may be `@objcDirect`, and must 
 
 A mismatch is diagnosed in either direction, with a fix-it to add or remove the attribute: if the header says `objc_direct` and the implementation does not, callers reference a direct symbol nothing defines; if the implementation says it and the header does not, callers message a selector that was never registered. A direct property's accessors are reached through symbols spelled with their selectors, so renamed accessors (`getter=`, `setter=`) must be matched too, and a mismatch is diagnosed with the selector to add. A stored property cannot rename its accessors, so it has to become a computed property over separate storage.
 
-The directness check applies only with the feature enabled; without it, a header's `objc_direct` member is implemented as an ordinary `@objc` member, as before.
+The directness check applies only with the feature enabled; without it, a header's `objc_direct` member is implemented as an ordinary `@objc` member, as before, and an Objective-C caller of that member fails to link.
 
 ### Code generation
 
