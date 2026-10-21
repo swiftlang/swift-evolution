@@ -50,7 +50,7 @@ The saving is largest for members that stay inside their own image, which is the
 
 | | 2019 design | 2026 ABI |
 |---|---|---|
-| Symbol | `\01-[Class sel]`, enforced hidden | `-[Class sel]D` |
+| Symbol | `\01-[Class sel]`, enforced hidden | `-[Class sel]D`, hidden unless the declaration has a visibility attribute |
 | `nil` check | in the callee, unconditionally | in the caller's `-[Class sel]D_thunk`, only where the receiver may be `nil` |
 | Class realization | in the callee, unconditionally | in the same thunk, only where the class may be unrealized |
 | `_cmd` | in the signature, undefined | not in the signature |
