@@ -384,7 +384,7 @@ Directness and visibility are independent in Objective-C, and the attribute coul
 
 ### Requiring `final`
 
-The first pitch required direct members to be `final`. That is stronger than necessary — a non-final member that is never overridden is dispatched statically all the same — and a member of an `@objc @implementation` extension cannot be `final`. The proposal instead diagnoses overrides, and requires `final` only of a class with a direct designated initializer, where subclassing itself is the problem.
+The first pitch required direct members to be `final`. That is stronger than necessary — a non-final member that is never overridden is dispatched statically all the same — and [SE-0436][se0436] requires a member implementation in an `@objc @implementation` extension to be non-`final`. The proposal instead diagnoses overrides, and requires `final` only of a class with a direct designated initializer, where subclassing itself is the problem.
 
 ### A run-time check for direct designated initializers
 
