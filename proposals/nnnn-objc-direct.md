@@ -33,8 +33,8 @@ A direct member stops paying for its Objective-C metadata — the method-list en
 |---|---|---|
 | Call from Objective-C to a trivial instance method, receiver known non-`nil` | 1.96 ns | 1.12 ns |
 | Property setter called from Objective-C | 2.25 ns | 0.84 ns |
-| Per-pixel image kernels called from Objective-C | | 43–65% faster |
-| Size of the linked binary | | −4.3 KB net, about 63 bytes per member |
+| Per-pixel image kernels called from Objective-C | | 43–65% less time |
+| Objective-C metadata and code in the linked binary | | −4.3 KB net, about 63 bytes per member |
 
 A plain C call measured 0.84 ns on the same machine. Class methods are the exception; see *Implications on adoption*.
 
