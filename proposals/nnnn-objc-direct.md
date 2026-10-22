@@ -14,22 +14,58 @@ Adds `@objcDirect`, which exposes a Swift method, initializer, property or subsc
 
 ## Motivation
 
-### Exposure and dispatch are welded together
-
 Swift can describe almost everything about how a declaration is exposed to Objective-C: its selector, nullability, error convention, availability, and whether it is a class or an instance member. It cannot describe how that declaration is *dispatched*. Marking a member `@objc` always produces the same thing: an entry in the class's method list, a selector, and call sites that go through `objc_msgSend`. There is no way to say that a member should be callable from Objective-C without also being reachable by selector at runtime.
 
-Objective-C has had that ability since 2019. `__attribute__((objc_direct))` and `@property (direct)` expose a member to callers while omitting its metadata and calling it as a plain function. So the two languages disagree about what "exposed to Objective-C" means, and the disagreement has practical costs in a mixed-language target:
+Objective-C has had that ability since 2019. `__attribute__((objc_direct))` and `@property (direct)` expose a member to callers while omitting its metadata and calling it as a plain function. So the two languages disagree about what "exposed to Objective-C" means: an Objective-C method may opt out of dynamic dispatch, and the Swift method declared beside it — doing the same job, called from the same place — may not. That costs binary size, ergonomics and cross-language completeness.
 
-* **Migration is penalized.** Rewriting a `direct` Objective-C method in Swift silently turns it back into a message-dispatched one, restoring the metadata and the indirection the Objective-C version was written to avoid. The only alternative is to leave the method in Objective-C.
-* **The workaround is a hand-written shim.** To get a non-message-dispatched call from Objective-C into Swift today, one exposes a free function with a C entry point (`@_cdecl`) and calls that instead: a parallel surface maintained by hand, detached from the class, without the bridging the `@objc` thunk would have done.
-* **Every exposed member pays for runtime reachability.** A member that only the Objective-C code beside it ever calls still gets a selector, a method-list entry and message-send call sites that nothing needs.
-* **`@objc @implementation` cannot implement direct members.** [SE-0436][se0436] lists `objc_direct` methods among the declarations an `@implementation` extension cannot express, so a header-first class with direct members cannot move to Swift.
+### Binary size
 
-### What direct dispatch buys
+A direct member stops paying for its Objective-C metadata: the method-list entry, the method type encoding, the selector reference, and the selector string unless something else in the image uses it. Without `@objcDirect`, an author who wants a member reachable only from the Objective-C code next to it pays for a runtime entry point nothing ever looks up.
 
-A direct member stops paying for its Objective-C metadata — the method-list entry, the method type encoding, the selector string and its reference. In one measured application (an image-processing tool driven from Objective-C, built with `-O`, on Apple silicon), making 68 Swift members direct reduced the Objective-C metadata and code in the linked binary by 4.3 KB net, about 63 bytes per member.
+In one measured application (an image-processing tool driven from Objective-C, built with `-O` and linked with `-dead_strip`, on Apple silicon), making 68 Swift members direct changed the linked binary as follows:
 
-The saving is largest for members that stay inside their own image, which is the common case and the one this proposal recommends. A member called across a library boundary needs an exported symbol, and a symbol name is longer than the selector it replaces.
+| Section (bytes) | `@objc` | `@objcDirect` | Change |
+|---|---|---|---|
+| `__objc_methname` | 2,469 | 821 | −1,648 |
+| `__objc_methtype` | 673 | 47 | −626 |
+| `__objc_methlist` | 1,172 | 248 | −924 |
+| `__objc_stubs` | 1,216 | 448 | −768 |
+| `__objc_selrefs` | 808 | 216 | −592 |
+| `__objc_const` | 1,360 | 1,016 | −344 |
+| `__text` | 36,576 | 37,204 | +628 |
+| Net | | | −4,274, about 63 per member |
+
+The method lists went from 89 entries to 15, and the property lists from 21 to 2. `__text` grows by the `nil` checks at call sites whose receiver may be `nil`.
+
+Where the symbol does not need to be exported, that is the whole story. That covers an `internal` member called from Objective-C in its own image, and in an optimized build the linker can strip one that nothing calls: an unused `internal` direct member was removed by `-dead_strip`, while its `@objc` counterpart was kept. A `public` member's symbol is exported and kept, like every public Swift symbol. Its selector string goes away, but a symbol name arrives in its place, and the symbol name is the longer of the two: it carries the class name and the direct-ABI decoration on top of the same selector. A selector is also shared by every caller within an image, whereas an imported symbol is paid for by each image that calls it.
+
+<!-- author: the net size effect for a member called across a library boundary has not been measured; give your expectation or leave it out -->
+
+### Ergonomics
+
+Today, the way to get a call from Objective-C into Swift that is not a message send is to expose a free function with a C entry point (`@c`, formerly `@_cdecl`; [SE-0495][se0495]) and call that instead. It works, but it is a parallel surface maintained by hand, unattached to the class the member belongs to, and it forfeits the bridging the `@objc` thunk would have done for free.
+
+`@objc` also settles exposure and dispatch at once: an author who wants a member reachable from the Objective-C code next to it, and nothing more, cannot say so. The same coupling runs one level down, into which symbols get exported; *Linking and visibility* takes that up.
+
+With `@objcDirect`, misuse that the compiler can see is reported when the code is built rather than when it runs (*Implications on adoption* lists what it cannot see):
+
+* at compile time, with a note or fix-it where one applies: naming a direct member in `#selector` or `#keyPath`, passing a key path literal through a direct property to a key-value observing or coding API, witnessing an `@objc` protocol requirement with a direct member, overriding one or making it `open`, a direct designated initializer in a class that is not `final`, and an `@objc @implementation` member whose directness or accessor selectors differ from the header's;
+* at link time, naming the missing symbol: an Objective-C file built without `-fobjc-direct-precondition-thunk`, or an `@objc @implementation` of a direct member compiled without the feature.
+
+An imported `objc_direct` method that witnesses a required `@objc` protocol requirement, which compiled before and then failed with an unrecognized selector on every call through the protocol, is now a compile-time error as well.
+
+<!-- author: what "agentic ergonomics" means for this feature, and which of the properties above it relies on -->
+
+### Cross-language completeness
+
+The disagreement is a gap in the interoperability surface rather than an optimization in search of a justification. Swift's Objective-C interop exists so the two languages can meet as equals within one target, and on this one axis they do not:
+
+* **Migration is penalized.** Rewriting a `direct` Objective-C method in Swift silently turns it back into a message-dispatched one, restoring the metadata the Objective-C version was written to avoid. The only alternative is to leave the method in Objective-C.
+* **`@objc @implementation` cannot implement direct members.** [SE-0436][se0436] lists `objc_direct` methods and `@property (direct)` properties among the declarations an `@implementation` extension cannot express, so a header-first class with direct members cannot move to Swift.
+
+Swift can already call an `objc_direct` method declared in a header, but it cannot define one. With `@objcDirect` it can, under the symbol a Clang caller references, including as the `@objc @implementation` of a header declaration; and, with the feature enabled, Swift calls a direct method defined in Objective-C through Clang's own precondition thunk.
+
+The gap was not straightforwardly closable until recently, which is why it has stayed open. Objective-C's direct methods were a Clang-internal code-generation technique: no stable symbol another compiler could bind to, and no stated contract about which side emitted the runtime preconditions. Both were fixed in LLVM 23, Objective-C-first and upstream. That work is described under *Background*, and it is the reason the Swift change proposed here is a small one.
 
 ## Background: the direct-method ABI
 
@@ -393,3 +429,4 @@ Objective-C keeps key-value coding working for a direct property through its ins
 For a public member of a resilient class that is not otherwise `final`, the compiler could keep emitting a dispatch thunk and method descriptor so that adding `@objcDirect` would not break Swift clients. They would advertise a vtable entry that can never be overridden. The proposal treats the attribute as ABI-breaking instead, as `final` is.
 
 [se0436]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0436-objc-implementation.md
+[se0495]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0495-cdecl.md
