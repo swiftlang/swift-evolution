@@ -336,7 +336,7 @@ Writing `@objcDirect` requires the experimental feature, so nothing changes for 
 
 Adding or removing `@objcDirect` **changes the member's Objective-C ABI**: the symbol changes, the member leaves or rejoins the method list, and calls change from message sends to direct calls. Objective-C callers must be recompiled, so the attribute is ABI-breaking to add and to remove on a member that Objective-C code outside the module calls.
 
-For the Swift ABI, a direct member is statically dispatched and takes no vtable entry, so the attribute has the same effect as `final`. On a member that is already `final`, or of a `final` class, nothing changes: the native entry point is the same, and Swift callers keep using it. On a non-final public member of a class built with library evolution, adding the attribute removes the member's dispatch thunk and method descriptor, and removing it adds them back, so either direction breaks Swift clients compiled against the other — exactly as adding or removing `final` would. The compiler records the attribute as ABI-breaking to add and to remove, and as API-breaking to add but not to remove: adding it rules out overrides, `#selector` and `#keyPath` references and `AnyObject` lookup, while removing it only lifts restrictions.
+For the Swift ABI, the attribute makes a method, property or subscript `final`, and no direct member takes a vtable entry. On a member that is already `final`, or of a `final` class, nothing changes: the native entry point is the same, and Swift callers keep using it. On a public member of a class built with library evolution that is not otherwise `final`, adding the attribute removes the member's dispatch thunk and method descriptor, and removing it adds them back, so either direction breaks Swift clients compiled against the other — exactly as adding or removing `final` would. The compiler records the attribute as ABI-breaking to add and to remove, and as API-breaking to add but not to remove: adding it rules out overrides, `#selector` and `#keyPath` references and `AnyObject` lookup, while removing it only lifts restrictions.
 
 The proposal does not change code generation for any declaration that does not carry the attribute, except, with the feature enabled, for uses of members imported from Objective-C as `objc_direct`: calls to them go through Clang's precondition thunk to the `D`-suffixed symbol, `self.init` delegation to an imported direct initializer is a static call, and a key path through an imported direct property carries no key-value coding string.
 
@@ -361,7 +361,7 @@ The proposal does not change code generation for any declaration that does not c
 
 **Development builds keep working.** `-enable-implicit-dynamic` leaves direct members non-replaceable rather than rejecting them.
 
-**Adoption is reversible in source**, but reversing it is an Objective-C ABI change, and for a non-final public member of a resilient class a Swift ABI change too.
+**Adoption is reversible in source**, but reversing it is an Objective-C ABI change, and, for a public member of a resilient class that is not otherwise `final`, a Swift ABI change too.
 
 ## Future directions
 
@@ -397,6 +397,6 @@ Objective-C keeps key-value coding working for a direct property through its ins
 
 ### Keeping a dispatch thunk for resilience
 
-For a non-final public member of a resilient class, the compiler could keep emitting a dispatch thunk and method descriptor so that adding `@objcDirect` would not break Swift clients. They would advertise a vtable entry that can never be overridden. The proposal treats the attribute as ABI-breaking instead, as `final` is.
+For a public member of a resilient class that is not otherwise `final`, the compiler could keep emitting a dispatch thunk and method descriptor so that adding `@objcDirect` would not break Swift clients. They would advertise a vtable entry that can never be overridden. The proposal treats the attribute as ABI-breaking instead, as `final` is.
 
 [se0436]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0436-objc-implementation.md
