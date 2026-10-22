@@ -113,19 +113,20 @@ Two rules govern everything else:
 
 `@objcDirect` can be written on a method (instance, `static` or `class`), initializer, property or subscript of a class exposed to Objective-C, in the class or in an extension of it. It cannot be written on an individual accessor — an accessor is direct exactly when its storage is — or on a `deinit`.
 
-A direct member is statically dispatched, but it does not have to be `final`. It simply cannot be overridden: an override of a direct member is an error, in the same module or another one.
+A direct method, property or subscript is implicitly `final`, as a `static` member is. Overriding one is therefore an error, in the same module or another one, with a note that says where the `final` comes from:
 
 ```swift
 class Base: NSObject {
   @objcDirect func greet() {}
+  // note: instance method 'greet()' is implicitly 'final' because it is '@objcDirect'
 }
 class Sub: Base {
   override func greet() {}
-  // error: cannot override instance method declared '@objcDirect'; a direct
-  //        declaration has no method-list entry, so an Objective-C caller
-  //        would reach the superclass implementation
+  // error: instance method overrides a 'final' instance method
 }
 ```
+
+For the same reason `open` is an error, with a fix-it that replaces it with `public`: "'@objcDirect' declarations are implicitly 'final'; use 'public' instead of 'open'". Initializers cannot be `final`, and have their own rules (see *Initializers*). Nor is a member of an `@objc @implementation` extension made `final`: there `final` would turn it into a Swift-only helper instead of the implementation of the header's declaration, which is already `final`, as every member imported from Objective-C as `objc_direct` is.
 
 The member is rejected when Objective-C could not name it. Its symbol embeds the printed `@interface` name and is global, so the class has to be printed into the generated header under a name of its own. That excludes members of:
 
@@ -138,7 +139,7 @@ The member is rejected when Objective-C could not express it: beyond the ordinar
 
 The member is rejected when something would have to reach it dynamically:
 
-* `override`: callers of the overridden member dispatch to it dynamically, so a direct member can no more override another member than be overridden (above). Nor can it be `open`, which promises clients an override that can never be written;
+* `override`: callers of the overridden member dispatch to it dynamically, so a direct member cannot override another member, any more than it can be overridden (above);
 * `dynamic`, written or implied by `@NSManaged`. (`-enable-implicit-dynamic`, which makes eligible declarations `dynamic` for development-time replacement, skips direct members instead; they are simply not replaceable.)
 * a `required` initializer, which must be inherited;
 * `@IBAction` and `@IBSegueAction` methods, which a nib or storyboard calls by selector, and `@IBOutlet`, `@IBInspectable` and `@GKInspectable` properties, which are set by key;
