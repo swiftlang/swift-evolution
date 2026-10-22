@@ -385,7 +385,9 @@ Directness and visibility are independent in Objective-C, and the attribute coul
 
 ### Requiring `final`
 
-The first pitch required direct members to be `final`. That is stronger than necessary — a non-final member that is never overridden is dispatched statically all the same — and [SE-0436][se0436] requires a member implementation in an `@objc @implementation` extension to be non-`final`. The proposal instead diagnoses overrides, and requires `final` only of a class with a direct designated initializer, where subclassing itself is the problem.
+The first pitch required direct members to be written `final`. This proposal implies `final` instead, as `static` does; members imported from Objective-C as `objc_direct` are already implicitly `final` in the same way. Two kinds of member are exempt. Initializers cannot be `final`; instead, a Swift class with a direct designated initializer has to be. Member implementations in an `@objc @implementation` extension must be non-`final` under [SE-0436][se0436], where a `final` member is a Swift-only helper; the header declarations they implement are already `final`.
+
+<!-- author: why implying `final` is preferable to requiring it to be written -->
 
 ### A run-time check for direct designated initializers
 
