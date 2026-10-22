@@ -20,7 +20,7 @@ Objective-C has had that ability since 2019. `__attribute__((objc_direct))` and 
 
 ### Cross-language completeness
 
-That is a gap in the interoperability surface rather than an optimization in search of a justification. Swift's Objective-C interop exists so the two languages can meet as equals within one target, and on this one axis they do not. Some things cannot be done at all today:
+The disagreement is a gap in the interoperability surface rather than an optimization in search of a justification. Swift's Objective-C interop exists so the two languages can meet as equals within one target, and on this one axis they do not. Some things cannot be done at all today:
 
 * **Swift cannot define a direct method.** It can call an `objc_direct` method declared in a header, but nothing written in Swift is emitted as one.
 * **`@objc @implementation` cannot implement direct members**, so a header-first class whose `@interface` declares `objc_direct` methods or `direct` properties cannot move to Swift. [SE-0436][se0436-future] records this among its future directions, under "Extending `@objc` capabilities to extend `@objc @implementation` capabilities": an `@implementation` extension cannot implement `@interface` members that `@objc` cannot create, including `__attribute__((objc_direct))` methods and `@property (direct)` properties. This proposal provides that capability for direct members.
