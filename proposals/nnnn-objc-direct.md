@@ -254,7 +254,7 @@ The directness check applies only with the feature enabled; without it, a header
 
 ### Code generation
 
-A member exposed to Objective-C already has a foreign entry point — the `@objc` thunk that bridges arguments and results — and `@objcDirect` reuses it. Only the symbol and the signature change: the thunk is emitted under the direct name, without `_cmd`, and is left out of the class's Objective-C metadata. There is no new lowering and no second entry point. Swift callers of a direct member keep calling the native Swift entry point, statically, even when the member is not `final`, through `super`, or from a protocol witness.
+A member exposed to Objective-C already has a foreign entry point — the `@objc` thunk that bridges arguments and results — and `@objcDirect` reuses it. Only the symbol and the signature change: the thunk is emitted under the direct name, without `_cmd`, and is left out of the class's Objective-C metadata. There is no new lowering and no second entry point. Swift callers of a direct member keep calling the native Swift entry point, statically, including through `super` and from a protocol witness.
 
 The symbol is `-[Class selector]D` for an instance member and `+[Class selector]D` for a class member, where `Class` is the **printed `@interface` name** — the class's `@objc(Name)` if it has one, otherwise its Swift name — and never the mangled runtime name, which no Objective-C caller sees. A method-level `@objc(name)` renames the selector segment; a `throws` member takes the usual trailing `NSError **`:
 
