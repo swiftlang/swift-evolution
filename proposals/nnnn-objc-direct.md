@@ -27,16 +27,7 @@ Objective-C has had that ability since 2019. `__attribute__((objc_direct))` and 
 
 ### What direct dispatch buys
 
-A direct member stops paying for its Objective-C metadata — the method-list entry, the method type encoding, the selector string and its reference — and its callers make a plain function call. In one measured application (an image-processing tool driven from Objective-C, built with `-O`, on Apple silicon), making 68 Swift members direct gave:
-
-| | `@objc` | `@objcDirect` |
-|---|---|---|
-| Call from Objective-C to a trivial instance method, receiver known non-`nil` | 1.96 ns | 1.12 ns |
-| Property setter called from Objective-C | 2.25 ns | 0.84 ns |
-| Per-pixel image kernels called from Objective-C | | 43–65% less time |
-| Objective-C metadata and code in the linked binary | | −4.3 KB net, about 63 bytes per member |
-
-A plain C call measured 0.84 ns on the same machine. Class methods are the exception; see *Implications on adoption*.
+A direct member stops paying for its Objective-C metadata — the method-list entry, the method type encoding, the selector string and its reference. In one measured application (an image-processing tool driven from Objective-C, built with `-O`, on Apple silicon), making 68 Swift members direct reduced the Objective-C metadata and code in the linked binary by 4.3 KB net, about 63 bytes per member.
 
 The saving is largest for members that stay inside their own image, which is the common case and the one this proposal recommends. A member called across a library boundary needs an exported symbol, and a symbol name is longer than the selector it replaces.
 
@@ -357,7 +348,7 @@ The proposal does not change code generation for any declaration that does not c
 
 **Availability needs care.** Clang links a call to a direct method strongly, even when the declaration is available only on an OS newer than the caller's deployment target, so a back-deployed caller fails to launch against an older library instead of weak-linking. Until Clang emits weak references for such calls, availability-gated public API should not be direct.
 
-**Direct class methods save metadata, not time.** The caller still makes sure the class is realized before calling, and today that costs a message send on every call, which can make a direct class method slower than an ordinary one (2.25 ns against 1.68 ns in the measurement above). Instance members do not pay it.
+**Direct class methods still send a message.** The caller makes sure the class is realized before calling, and Clang does that today with a message send on every call, so a direct class method saves its metadata but not that message send. Instance members do not pay it.
 
 **Development builds keep working.** `-enable-implicit-dynamic` leaves direct members non-replaceable rather than rejecting them.
 
