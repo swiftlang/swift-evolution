@@ -36,7 +36,7 @@ What can be done today also comes with unnecessary overhead. For starters, migra
 
 **The only alternative is hand-written thunks.** The way to get a non-message-dispatched call from Objective-C into Swift today is to expose a free function with a C entry point (`@c`, formerly `@_cdecl`; [SE-0495][se0495]) and call that instead. It works, but it is a parallel surface maintained by hand, unattached to the class the method belongs to, and it forfeits the bridging the `@objc` thunk would have done for free.
 
-<!-- author: what "agentic ergonomics" means for this feature, and which of the properties above it relies on -->
+These are developer ergonomics, and since most code is now written by AI agents, the same overhead applies to them.
 
 ### Optimization
 
