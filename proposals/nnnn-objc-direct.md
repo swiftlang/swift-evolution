@@ -104,7 +104,7 @@ define ptr  @"-[Cache objectAtIndexedSubscript:]D"(ptr %0, i64 %1)
 
 Two rules govern everything else:
 
-* **`@objcDirect` implies `@objc`.** Writing it on a member that is not already exposed adds the exposure, and the ordinary `@objc` checks apply.
+* **`@objcDirect` implies `@objc` and `final`.** Writing it on a member that is not already exposed adds the exposure, and the ordinary `@objc` checks apply. A direct method, property or subscript is also implicitly `final`, as a `static` member is; initializers and members of `@objc @implementation` extensions are the exceptions, described below.
 * **`@objcDirect` implies static dispatch.** Anything that reaches a member through the Objective-C runtime — `#selector`, `#keyPath`, key-value coding and observing, `AnyObject` lookup, `@objc` protocol conformance, `perform(_:)`, `respondsToSelector:` — cannot reach a direct member. The compiler rejects the uses it can see; the rest fail at run time.
 
 ## Detailed design
