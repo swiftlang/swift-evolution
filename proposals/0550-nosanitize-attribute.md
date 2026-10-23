@@ -3,9 +3,9 @@
 * Proposal: [SE-0550](0550-nosanitize-attribute.md)
 * Authors: [Andrew Haberlandt](https://github.com/ndrewh)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Active review (September 16–30, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#91137](https://github.com/swiftlang/swift/pull/91137)
-* Review: ([pitch](https://forums.swift.org/t/pitch-nosanitize-attribute-for-functions/88972)) ([review](https://forums.swift.org/t/se-0550-nosanitize-attribute-for-functions/89593))
+* Review: ([pitch](https://forums.swift.org/t/pitch-nosanitize-attribute-for-functions/88972)) ([review](https://forums.swift.org/t/se-0550-nosanitize-attribute-for-functions/89593)) ([acceptance](https://forums.swift.org/t/accepted-se-0550-instrumentation-attribute-for-functions-was-nosanitize-attribute-for-functions/90225))
 
 ## Summary of changes
 
