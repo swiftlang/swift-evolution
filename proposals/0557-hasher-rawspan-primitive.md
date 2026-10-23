@@ -3,9 +3,9 @@
 * Proposal: [SE-0557](0557-hasher-rawspan-primitive.md)
 * Author: [Jeremy Schonfeld](https://github.com/jmschonfeld)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (October 12...20, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#93187](https://github.com/swiftlang/swift/pull/93187)
-* Review: ([pitch](https://forums.swift.org/t/pitch-add-rawspan-primitive-to-hasher/89583)) ([review](https://forums.swift.org/t/se-0557-add-rawspan-primitive-to-hasher/90025))
+* Review: ([pitch](https://forums.swift.org/t/pitch-add-rawspan-primitive-to-hasher/89583)) ([review](https://forums.swift.org/t/se-0557-add-rawspan-primitive-to-hasher/90025)) ([acceptance](https://forums.swift.org/t/accepted-se-0557-add-rawspan-primitive-to-hasher/90219))
 
 ## Summary of changes
 
