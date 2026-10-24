@@ -11,7 +11,7 @@
     - [SE-0417: Task Executor Preference][SE-0417]
     - [SE-0462: Task Priority Escalation APIs][SE-0462]
     - [SE-0528: `Continuation` - Safe and Performant Async Continuations][SE-0528]
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-split-continuation/90096))
 
 ## Summary of changes
 
@@ -25,6 +25,11 @@ Additionally, this proposal adds new `resumeSynchronously` methods to
 `Continuation`, `UnsafeContinuation` and `CheckedContinuation` that allow an
 executor to offer its current execution context to the resumed task. If the task
 resumes on the same executor, it runs inline instead of being enqueued.
+
+Lastly, this proposal amends [SE-0462] so that priority escalation handlers are
+always called once with the task's current priority when they are installed.
+This closes a race where an escalation that happens before the handler is
+installed is never reported.
 
 ## Motivation
 
@@ -126,7 +131,7 @@ A new `withContinuation` method passes both halves of a continuation to an
 func read(into buffer: ReadBuffer) async throws(IOError) -> Int {
     try await withContinuation(of: Int.self, throwing: IOError.self) { continuation, waiter in
         let id = eventLoop.register(.read(fd, buffer), continuation)
-        return try await waiter.wait(onCancel: { eventLoop.cancel(id) })
+        return try await waiter.wait(onCancel: { _ in eventLoop.cancel(id) })
     }
 }
 ```
@@ -237,24 +242,32 @@ public struct ContinuationWaiter<Success: ~Copyable, Failure: Error>: ~Copyable,
     /// If the current task is already cancelled, `onCancel` runs before this
     /// function suspends.
     ///
+    /// `onPriorityEscalated` is always called once when `wait` is called, with
+    /// the task's current priority as both arguments, so that an escalation that
+    /// happened before the handler was installed is not missed.
+    ///
     /// - Parameters:
-    ///   - onCancel: Run when the task is cancelled while suspended
-    ///     here. It may run concurrently with the resumption, and on any thread.
-    ///   - onEscalate: Run with the new priority when the task's priority is
-    ///     escalated while suspended here.
+    ///   - onCancel: Run with the reason the task was cancelled with when it is
+    ///     cancelled while suspended here. It may run concurrently with the
+    ///     resumption, and on any thread.
+    ///   - onPriorityEscalated: Run once when `wait` is called, and then when the
+    ///     task's priority is escalated while suspended here. The first argument
+    ///     is the old priority (before escalation), and the second argument is
+    ///     the new escalated priority. It may run concurrently with the
+    ///     resumption, and on any thread.
     public nonisolated(nonsending) consuming func wait(
-        onCancel handleCancellation: sending () -> Void,
-        onEscalate handleEscalation: sending (TaskPriority) -> Void
+        onCancel handleCancellation: sending (CancellationError.Reason) -> Void,
+        onPriorityEscalated handlePriorityEscalation: @Sendable (TaskPriority, TaskPriority) -> Void
     ) async throws(Failure) -> sending Success
 
     /// Similar to the above, but only installs a cancellation handler.
     public nonisolated(nonsending) consuming func wait(
-        onCancel handleCancellation: sending () -> Void
+        onCancel handleCancellation: sending (CancellationError.Reason) -> Void
     ) async throws(Failure) -> sending Success
 
     /// Similar to the above, but only installs a priority-escalation handler.
     public nonisolated(nonsending) consuming func wait(
-        onEscalate handleEscalation: sending (TaskPriority) -> Void
+        onPriorityEscalated handlePriorityEscalation: @Sendable (TaskPriority, TaskPriority) -> Void
     ) async throws(Failure) -> sending Success
 
     /// Similar to the above, but doesn't install any handlers.
@@ -271,16 +284,74 @@ with the task allocator and is deallocated once `withContinuation` returns.
 Hence, must not escape the body, but it can be passed to other functions
 including functions with different isolation.
 
-The rules for the handlers in `wait` are the same as their standalone versions:
+The handlers follow the same rules as `withTaskCancellationHandler` and
+`withTaskPriorityEscalationHandler`. The latter is amended by this proposal, as
+described in the next section.
 
 - The handlers are installed when `wait` is called and removed again before
   `wait` returns. Cancelling or escalating the task after `wait` returned
   doesn't run them.
 - If the task is already cancelled when `wait` is called, `onCancel` runs inline
   before the task suspends.
-- `onCancel` runs at most once.
+- `onCancel` runs at most once, and receives the reason that the task was
+  cancelled with, like the handler of `withTaskCancellationHandler`.
+- `onPriorityEscalated` runs once inline when `wait` is called, and then once
+  for every escalation while the task is suspended. Calls to it are never
+  concurrent with each other.
 - Both handlers can run concurrently to resuming the continuation and on any
   thread.
+
+### Calling escalation handlers when they are installed
+
+Code that wants to propagate priority escalation reads the current priority,
+hands the work to some other system at that priority, and then installs an
+escalation handler:
+
+```swift
+let priority = Task.currentPriority
+let job = queue.enqueue(request, priority: priority, resuming: continuation)
+return try await waiter.wait(onPriorityEscalated: { _, newPriority in
+    queue.escalate(job, to: newPriority)
+})
+```
+
+If the task is escalated after `Task.currentPriority` is read but before the
+handler is installed, the handler is never told about it and the work stays at
+the old priority. Cancellation doesn't have this problem since `onCancel` runs
+inline if the task is already cancelled. There is no equivalent for escalation,
+since the runtime can't know which priority the caller last observed. To close
+this gap, an escalation handler is always called once with the task's current
+priority as both arguments when it is installed.
+
+The handler can be called with a priority that the work already runs at. It
+should compare against the priority that the work was enqueued with and only act
+if the new priority is higher:
+
+```swift
+let priority = Task.currentPriority
+let job = queue.enqueue(request, priority: priority, resuming: continuation)
+return try await waiter.wait(onPriorityEscalated: { _, newPriority in
+    guard newPriority > priority else { return }
+    queue.escalate(job, to: newPriority)
+})
+```
+
+#### Amendment to SE-0462
+
+The same race exists for `withTaskPriorityEscalationHandler`. Therefore, this
+proposal changes it to also call its handler once with the task's current
+priority when the handler is installed, before `operation` runs:
+
+```swift
+let priority = Task.currentPriority
+let job = queue.enqueue(request, priority: priority)
+return try await withTaskPriorityEscalationHandler {
+    try await job.value
+} onPriorityEscalated: { _, newPriority in
+    guard newPriority > priority else { return }
+    queue.escalate(job, to: newPriority)
+}
+```
 
 ### Resuming on executors
 
@@ -290,8 +361,13 @@ extension Continuation where Success: ~Copyable {
     /// value, offering the current execution context to run the resumed task.
     ///
     /// The offered execution context is used only if it belongs to the executors
-    /// the awaiting task resumes on. If the context doesn't match the task is
-    /// enqueued on its expected execution context.
+    /// the awaiting task resumes on. If the context doesn't match, the task is
+    /// enqueued on its expected execution context instead.
+    ///
+    /// If the offer is taken, the resumed task runs synchronously, nested inside
+    /// this call. This method must therefore only be called from the context of
+    /// the offered executors, at a point where they could run one of their own
+    /// jobs.
     ///
     /// - Parameters:
     ///   - value: The value to return from the continuation.
@@ -307,8 +383,13 @@ extension Continuation where Success: ~Copyable {
     /// error, offering the current execution context to run the resumed task.
     ///
     /// The offered execution context is used only if it belongs to the executors
-    /// the awaiting task resumes on. If the context doesn't match the task is
-    /// enqueued on its expected execution context.
+    /// the awaiting task resumes on. If the context doesn't match, the task is
+    /// enqueued on its expected execution context instead.
+    ///
+    /// If the offer is taken, the resumed task runs synchronously, nested inside
+    /// this call. This method must therefore only be called from the context of
+    /// the offered executors, at a point where they could run one of their own
+    /// jobs.
     ///
     /// - Parameters:
     ///   - error: The error to throw from the continuation.
@@ -325,8 +406,13 @@ extension Continuation where Success: ~Copyable {
     /// to run the resumed task.
     ///
     /// The offered execution context is used only if it belongs to the executors
-    /// the awaiting task resumes on. If the context doesn't match the task is
-    /// enqueued on its expected execution context.
+    /// the awaiting task resumes on. If the context doesn't match, the task is
+    /// enqueued on its expected execution context instead.
+    ///
+    /// If the offer is taken, the resumed task runs synchronously, nested inside
+    /// this call. This method must therefore only be called from the context of
+    /// the offered executors, at a point where they could run one of their own
+    /// jobs.
     ///
     /// - Parameters:
     ///   - result: A value to either return or throw from the continuation.
@@ -393,10 +479,18 @@ decided when the task awaits the continuation. The resumer, however, gets the
 continuation earlier and can't know in advance whether its executor will match.
 For example, the task might change its isolation or take a task executor
 preference between handing out the continuation and awaiting it. In these cases,
-the offer simply isn't taken and the task is enqueued instead. Since the resumed
-task runs nested inside of the `resumeSynchronously` call, the resumer must only
-offer an executor from a point where that executor could run one of its own
-jobs.
+the offer simply isn't taken and the task is enqueued instead.
+
+Since the resumed task runs nested inside of the `resumeSynchronously` call,
+these methods must only be called from the context of the offered executors, at
+a point where they could run one of their own jobs. Typically, this is from
+within the implementation of an executor, between running jobs, just like
+`ExecutorJob.runSynchronously`. It is not valid to offer an executor that the
+calling code merely happens to be isolated to, such as
+`#isolation.unownedSerialExecutor` inside of an actor method. Running the
+resumed task from there re-enters the actor outside of a suspension point, which
+breaks the guarantee that actors are only re-entered at suspension points. It
+can also cause new exclusivity violations.
 
 These methods work for every `Continuation`, independent of whether it was
 created by the existing `withContinuation` or by the new split form. The same
@@ -434,7 +528,13 @@ extension CheckedContinuation {
 
 ## Source compatibility
 
-This proposal is purely additive and doesn't affect source compatibility.
+The new APIs are purely additive and don't affect source compatibility.
+
+The amendment to [SE-0462] doesn't change any API, but it changes the behavior
+of `withTaskPriorityEscalationHandler`. Its handler is now called once when it
+is installed. Handlers already had to cope with being called at any time while
+the operation runs, and calling them with the current priority doesn't change
+the priority of the task.
 
 ## ABI compatibility
 
@@ -448,6 +548,10 @@ functions for resuming a continuation keep working. This means that code that
 was compiled before split continuations existed can resume a `Continuation` that
 was created by the new `withContinuation`.
 
+The amendment to [SE-0462] is implemented in the existing runtime entry points
+for adding escalation handlers and escalating tasks, and doesn't add any new
+ones. Existing binaries get the new behavior when they run on a new runtime.
+
 ## Implications on adoption
 
 The additions described in this proposal require a new version of the Swift
@@ -455,17 +559,21 @@ standard library and runtime. Libraries that want to adopt split continuations
 while supporting older platforms have to keep their current implementation with
 the handlers around `withContinuation` for those platforms.
 
+On older runtimes, `withTaskPriorityEscalationHandler` doesn't call its handler
+when it is installed. Code that compares against the priority that it observed,
+as shown above, works the same on both.
+
 ## Alternatives considered
 
 ### Add handler parameters to the existing `withContinuation`
 
-Instead of splitting the continuation, we could add `onCancel` and `onEscalate`
-parameters to the existing `withContinuation` method and install the handlers
-after the body returned. This solves the race with the handlers, but it is less
-flexible. The body still has to be synchronous so it can't await anything before
-the task suspends, e.g. registering the continuation with an actor. The split
-form allows to do any async work between creating and awaiting the continuation
-and composes with other scoped methods.
+Instead of splitting the continuation, we could add `onCancel` and
+`onPriorityEscalated` parameters to the existing `withContinuation` method and
+install the handlers after the body returned. This solves the race with the
+handlers, but it is less flexible. The body still has to be synchronous so it
+can't await anything before the task suspends, e.g. registering the continuation
+with an actor. The split form allows to do any async work between creating and
+awaiting the continuation and composes with other scoped methods.
 
 ### Return both halves instead of using a scope
 
@@ -474,6 +582,33 @@ storage of the continuation is allocated with the task allocator, which requires
 that it is deallocated in a stack discipline. The scope of `withContinuation`
 defines the lifetime of the storage and the waiter being `~Escapable` ensures
 that it can't outlive it.
+
+### Only calling the escalation handler if the priority changed
+
+Instead of always calling the escalation handler when it is installed, the
+runtime could take a snapshot of the priority when the waiter is created and
+only call the handler from `wait` if the priority has changed since then. A
+variant of this would be to pass a snapshot of the priority to `wait`
+explicitly.
+
+However, the snapshot that matters is the priority at which the work was
+handed off, and only the caller knows when that happens. The body might hand
+the continuation through several layers, await, or change isolation before it
+enqueues the work. A snapshot taken by the runtime is either too early, which
+leads to spurious calls, or requires another parameter that users have to know
+how to fill in. The handler has to compare against its own snapshot in either
+case, so always calling it keeps the rules simple and the same for
+`withTaskPriorityEscalationHandler`.
+
+### Requiring explicit handlers
+
+The `wait` overloads without an `onCancel` handler make it easy to ignore
+cancellation. We considered requiring both handlers, so that ignoring them is
+an explicit choice, e.g. by passing an empty closure, or naming the overloads
+less invitingly, e.g. `waitWithoutHandlingTaskCancellation()`. Optional closure
+parameters don't work since they are always `@escaping`. Requiring the closures
+has a cost since installing a handler isn't free, and an empty closure can't be
+detected to skip installing it.
 
 ### Naming the wait half `ContinuationAwaiter`
 
