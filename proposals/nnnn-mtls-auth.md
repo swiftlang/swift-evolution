@@ -3,8 +3,8 @@
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Author: [Gabe Braden](https://github.com/thePianoKid)
 * Review Manager: TBD
-* Status: Awaiting review
-* Implementation: https://github.com/swiftlang/swift-package-manager/pull/10578
+* Status: **Awaiting review**
+* Implementation: [swiftlang/swift-package-manager#10578](https://github.com/swiftlang/swift-package-manager/pull/10578)
 * Review: [pitch](https://forums.swift.org/t/pitch-mtls-support-in-swiftpm/89733)
 
 ## Introduction
