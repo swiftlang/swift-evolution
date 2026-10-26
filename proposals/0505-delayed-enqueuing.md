@@ -339,42 +339,57 @@ This relies on split continuations, that is, on the `Continuation` type and
 `withContinuation(of:throwing:_:)`, which are proposed separately and which
 this proposal therefore depends on.
 
-```swift
-extension Continuation where Success == Void {
-  /// Convert the continuation into an `UnsafeContinuation`, so that it can be
-  /// both scheduled as a job and resumed by hand.
-  public consuming func asUnsafeContinuation() -> UnsafeContinuation<Void, Failure>
+Clients that want the same thing are given a safe interface to it, which
+takes the continuation itself rather than exposing the job:
 
-  /// Convert the continuation into a job that resumes it when it is run.
-  public consuming func asJob() -> ExecutorJob
+```swift
+extension SchedulingExecutor {
+  /// Resume `continuation` at the given time.
+  public func schedule<C: Clock, E: Error>(
+    _ continuation: consuming Continuation<Void, E>,
+    at: SchedulingExecutorFireTime<C>, tolerance: C.Duration?, clock: C
+  ) -> ScheduledContinuation<E>
+  // ... and a variant with no tolerance.
 }
 
-extension UnsafeContinuation where T == Void {
-  /// The job that resumes the continuation when it is run.  Only available for
-  /// a continuation that came from a `Continuation`.
-  public func asJob() -> ExecutorJob
+extension SchedulingClock {
+  public func schedule<E: Error>(
+    _ continuation: consuming Continuation<Void, E>,
+    at: SchedulingExecutorFireTime<Self>, tolerance: Duration?
+  ) -> ScheduledContinuation<E>
+}
+
+public struct ScheduledContinuation<Failure: Error>: ~Copyable, Sendable {
+  /// Cancel the timer.  If that stops the timer resuming the continuation, it
+  /// resumes it by throwing `error` and returns `true`; if it returns `false`
+  /// the timer has fired (or is firing) and resumes it normally.
+  @discardableResult
+  public borrowing func cancel(throwing error: Failure) -> Bool
 }
 ```
 
-A caller that wants to schedule the job but may need to resume the task itself,
-for example with an error if it manages to take the job back from the
-scheduler, converts the continuation to an `UnsafeContinuation` first and uses
-both: it resumes the `UnsafeContinuation` if it gets the job back, or lets the
-job run, and never does both.
+The continuation is consumed, and is `~Copyable`, so nothing else can resume it
+or schedule a second job for it: exactly one of the timer and
+`ScheduledContinuation` resumes it.  Dropping the `ScheduledContinuation` is
+fine; the timer then resumes the continuation when its time comes.  The job
+that stands for the continuation is never exposed.  It lives in the
+continuation's own storage, so handing out a job (for example from an
+`UnsafeContinuation`, which can be copied) would let it be enqueued twice, or
+used after the continuation was resumed and its storage freed.
 
-Because it is just a job, it works with every `SchedulingExecutor` and every
-`Clock`, and an executor needs nothing special to support it.  (An executor
-that wants to can recognise the job's kind and resume the continuation itself
-rather than running the job.)  It is only meaningful for a continuation whose
-result is `Void`, since a job has no way to supply a value.
+Because the continuation is scheduled as a job, this works with every
+`SchedulingExecutor` and every `Clock`, and an executor needs nothing special to
+support it.  (An executor that wants to can recognise the job's kind and resume
+the continuation itself rather than running the job.)  It is only available for
+a continuation whose result is `Void`, since a job has no way to supply a value.
 
-`Task.sleep()` uses the token as follows: if the task is cancelled while
-it is sleeping, it asks the executor for the job back.  If it gets the job,
-the timer can never fire, so it resumes the task by throwing
-`CancellationError`, and the timer is gone from the executor immediately
-instead of lingering until its deadline; there is nothing to destroy, because
-the job is part of the continuation's storage.  If it does not get the job, the
-timer has fired and the task will resume normally.  A task that is already
+`Task.sleep()` uses `ScheduledContinuation` as follows: if the task is cancelled
+while it is sleeping, it calls `cancel(throwing: CancellationError())`.  If that
+returns `true`, the executor gave the job back, so the timer can never fire, and
+the task has been resumed with the error; the timer is gone from the executor
+immediately instead of lingering until its deadline, and there is nothing to
+destroy because the job is part of the continuation's storage.  If it returns
+`false`, the timer has fired and the task will resume normally.  A task that is already
 cancelled when it calls `Task.sleep()` throws immediately without scheduling
 anything.
 
@@ -590,8 +605,8 @@ cannot be overridden.  If this proposal is accepted it becomes a requirement of
 Everything that this proposal adds as API is SPI in the current
 implementation (under `ExperimentalScheduling`), and will become API if the
 proposal is approved.  That includes `SchedulingExecutor`, `JobCanceller`,
-`JobCancellationToken`, `SchedulingExecutorFireTime`, `SchedulingClock` and the
-new `Continuation` and `UnsafeContinuation` methods above.  In addition, one
+`JobCancellationToken`, `SchedulingExecutorFireTime`, `SchedulingClock` and
+`ScheduledContinuation`.  In addition, one
 piece is staged differently from how it is described here, for the reason given
 where it is described: `asSchedulingExecutor` is an internal member, not an
 `Executor` requirement.
@@ -602,8 +617,8 @@ There is no delayed enqueuing on Embedded Swift (or with the task-to-thread
 concurrency model) at present.  Embedded Swift does not allow protocols to
 contain generic functions, so the `schedule` requirement and the `Clock`-based
 APIs cannot be supported there, and `SchedulingExecutor` is declared, with no
-requirements, only so that source that mentions it still compiles; the token and
-fire-time types do not exist.
+requirements, only so that source that mentions it still compiles; the token,
+fire-time and `ScheduledContinuation` types do not exist.
 
 ## Source compatibility
 
@@ -779,8 +794,9 @@ as a side effect of cancelling.
 An earlier revision of the token had a separate `jobID: UInt64` alongside
 `opaqueData`.  In practice we found that `opaqueData` was sufficient: an
 executor that wants to use a job ID can still do so, by putting it in the opaque
-data (the cooperative executor does exactly that, encoding a never-reused ID in
-the two words), and one that does not need one (for instance one that holds the
+data (the cooperative executor does exactly that, encoding in the two words an ID
+that can't be mistaken for a later job's, so that it can find its entry for the
+job without searching), and one that does not need one (for instance one that holds the
 address of its own bookkeeping, as the Dispatch executor does) no longer has to
 fill in a field that means nothing to it.
 
@@ -796,6 +812,22 @@ from `cancel()` is simpler and strictly more flexible, since the code that
 cancels knows what it wants to do with the job, and it makes the
 exactly-once guarantee a matter of ownership rather than extra state.
 
+### Exposing the job for a continuation
+
+An earlier revision made `asJob()` public on `Continuation` and
+`UnsafeContinuation`, so that a client could give a continuation to an executor
+as a job and keep a copy to resume it by hand if it got the job back.  That is
+easy to get wrong.  The copy can be resumed while the job is still scheduled; the
+`UnsafeContinuation` can be copied, so more than one job can be made for the same
+continuation; and the job lives in the continuation's own storage, which is freed
+as soon as the continuation has been resumed and awaited, so a job that is still
+held by anyone at that point is a dangling pointer.  Nothing in the type of an
+`UnsafeContinuation` says whether it supports `asJob()` (only a continuation
+that began as a split continuation does).  `schedule(_:at:…)` taking a
+`Continuation` and returning a `ScheduledContinuation` provides what clients
+need without any of that: the continuation is consumed, so there is nothing else
+to resume it, and the job is never visible.
+
 ### A separate continuation-based scheduling API
 
 An earlier revision gave `SchedulingExecutor` a second pair of requirements
@@ -806,7 +838,10 @@ was to let executors resume the task directly.  It doubled the API surface,
 needed conversions whenever a token issued for one form was cancelled as the
 other, and still allocated a stand-in job for any executor that did not
 implement it natively.  Making the continuation itself a job gives executors
-the same ability (they can look at the job's kind) with none of that.
+the same ability (they can look at the job's kind) with none of that.  Clients
+that want to schedule a continuation are served by `schedule(_:at:…)` on
+`SchedulingExecutor` and `SchedulingClock`, which are conveniences over the
+job-based requirement, so executors still implement only one method.
 
 ### Adding the delayed-enqueuing methods to `Executor` directly
 
