@@ -211,7 +211,7 @@ extension S3 {
 
 ## Source compatibility
 
-This proposal has no source compatibility impact. The new rules will take effect in a future language mode, and in Swift 6, the compiler emits warnings at the affected code sites.
+This proposal has no source compatibility impact. The new rules will take effect in a future language mode. In the Swift 6 language mode, and in the Swift 5 language mode with complete concurrency checking, the compiler emits warnings at the affected code sites.
 
 In the future language mode, this proposal changes the isolation of witnesses that are currently inferred to be `nonisolated` from an explicitly `nonisolated` requirement. Such a witness gets the isolation of its surrounding context, so existing code can stop compiling:
 
@@ -235,10 +235,10 @@ nonisolated func test(_ s: S) {
 }
 ```
 
-In the Swift 6 language mode, the compiler warns at each witness whose isolation will change, that is, a witness that infers `nonisolated` from an explicitly `nonisolated` requirement, while its context is isolated:
+In the Swift 6 language mode, and in the Swift 5 language mode with complete concurrency checking, the compiler warns at each witness whose isolation will change, that is, a witness that infers `nonisolated` from an explicitly `nonisolated` requirement, while its context is isolated:
 
 ```swift
-// language-version=6
+// language-version=6, or language-version=5 with -strict-concurrency=complete
 
 protocol P {
   nonisolated func f()
@@ -255,7 +255,7 @@ nonisolated func test(_ s: S) {
 }
 ```
 
-The warning is resolved by spelling out the witness's isolation. To keep the current behavior, the programmer marks the witness `nonisolated`, which has the same meaning in Swift 6 and in the future language mode:
+The warning is resolved by spelling out the witness's isolation. To keep the current behavior, the programmer marks the witness `nonisolated`, which has the same meaning in every language mode:
 
 ```swift
 @MainActor
