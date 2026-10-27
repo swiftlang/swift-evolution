@@ -172,11 +172,11 @@ public struct JobCancellationToken: ~Copyable, Sendable {
   /// this token.
   ///
   /// If the job had not started, the executor takes it off the timer and
-  /// enqueues it to run now, and this returns `true`.  Returns `false` if
-  /// the job has started or finished, has already been cancelled, or the
-  /// executor cannot run it early, in which case it runs (or has run) when
-  /// its timer fires.  Either way the job runs exactly once.  This does not
-  /// consume the token, and may be called more than once; only the first
+  /// runs it (or enqueues it to run) now, and this returns `true`.  Returns
+  /// `false` if the job has started or finished, has already been cancelled,
+  /// or the executor cannot run it early, in which case it runs (or has run)
+  /// when its timer fires.  Either way the job runs exactly once.  This does
+  /// not consume the token, and may be called more than once; only the first
   /// call can return `true`.
   @discardableResult
   public borrowing func cancel() -> Bool
@@ -458,7 +458,7 @@ the cancellation handler and the timer's later firing is ignored.
 Executors are free to decline to cancel a timer, in which case a cancelled
 `Task.sleep()` throws when its timer fires instead of at once.  In
 particular, the Dispatch executor does not create a timer at all for a
-deadline that has already passed: it runs the job straight away, and the
+deadline that has already passed: it enqueues the job straight away, and the
 token it returns cancels as "already started".  A sleep that is already due
 therefore cannot be cancelled, but a task that was already cancelled when it
 called `Task.sleep()` still throws, because `Task.sleep()` checks for
@@ -718,8 +718,10 @@ concurrency model) at present.  Embedded Swift does not allow protocols to
 contain generic functions, so the `schedule` requirement and the
 `Clock`-based APIs cannot be supported there, and `SchedulingExecutor` is
 declared, with no requirements, only so that source that mentions it still
-compiles; the token, fire-time and `ScheduledContinuation` types do not
-exist.
+compiles; `JobCanceller`, `JobCancellationToken`, `SchedulingExecutorFireTime`,
+`SchedulingClock` and `ScheduledContinuation` do not exist, and nor do
+`wait(for:)` on `ContinuationWaiter` or `isResumption` on `ExecutorJob` and
+`UnownedJob`.
 
 ## Source compatibility
 
