@@ -10,55 +10,53 @@
 
 ## Summary of changes
 
-Adds `@objcDirect`, which makes methods, initializers, properties and subscripts of ObjC-exposed classes direct: ObjC calls them as if they were `objc_direct`, with no selector or method-list entry, so the runtime cannot reach them. Swift gains a capability ObjC has; misuse is diagnosed at build time, and binaries carry less metadata.
+Adds `@objcDirect` for methods, initializers, properties and subscripts of ObjC-exposed classes. ObjC calls them like `objc_direct` members, with no selector or method- or property-list entry. `@objc @implementation` can implement `objc_direct` members a header declares, the compiler diagnoses misuse it can see, and non-public direct members usually shrink the binary.
 
 ## Motivation
 
-In Swift, marking a member `@objc` always produces the same things: an entry in the class's method list, a selector, and dynamic dispatch through `objc_msgSend` at every ObjC call site. **There is no good way to say that a member should be callable from ObjC using static dispatch.**
+In Swift, marking a member `@objc` always produces the same things: an entry in the class's method or property list, a selector, and dynamic dispatch through `objc_msgSend` at every ObjC call site. **There is no good way to say that a member should be callable from ObjC using static dispatch.**
 
-ObjC, on the other hand, has let developers choose direct dispatch since 2019. With `__attribute__((objc_direct))` or `@property (direct)`, Clang emits no ObjC metadata for the member and turns each call into a plain C call. This disparity between the languages leaves Swift's interoperability incomplete, hurts ergonomics for developers, and adds metadata to the binary that nothing looks up.
+ObjC, on the other hand, has allowed developers to choose direct dispatch since 2019. With `__attribute__((objc_direct))` or `@property (direct)`, Clang emits no ObjC metadata for the member and turns each call into a plain C call. This disparity between the languages leaves Swift's interoperability incomplete, hurts ergonomics for developers, and makes the binary carry metadata that nothing looks up.
 
 ### Cross-language completeness
 
-**Today, Swift can neither define a direct method nor diagnose code that misuses one.** Swift can call an `objc_direct` method declared in a header, but it never emits one, so every ObjC call to a Swift method is dynamically dispatched. This limitation also blocks `@objc @implementation`: the "Future directions" of [SE-0436][se0436-future] list `objc_direct` methods and `direct` properties among the members `@objc @implementation` cannot implement, so a header-first class that declares them cannot be implemented in Swift.
+**Today, Swift can neither define a direct method nor diagnose code that misuses one.** Swift can call an `objc_direct` method declared in a header, but it never emits one, so every ObjC call to a Swift method is dynamically dispatched. This limitation also blocks `@objc @implementation`: the "Future directions" of [SE-0436][se0436-future] list `objc_direct` methods and `direct` properties among the members it cannot implement, so a header-first class that declares them cannot be implemented in Swift.
 
-Furthermore, misusing a direct method compiles and fails only at run time: code that needs dynamic dispatch can compile against a member that cannot provide it. Without this proposal, for example, an imported `objc_direct` method can witness a required `@objc` protocol requirement: the conformance compiles, and every call through the protocol fails with an unrecognized selector. With `@objcDirect`, the compiler reports any misuse it can see at build time. *Detailed design* lists what it rejects, and *Implications on adoption* lists the cases it cannot catch.
+Furthermore, **code that misuses a direct method compiles and fails only at run time**. Without this proposal, for example, an imported `objc_direct` method can witness a required `@objc` protocol requirement: the conformance compiles, and every call through the protocol fails with an unrecognized selector, or silently runs a superclass's method with the same selector. With `@objcDirect` enabled, the compiler reports any misuse it can see at build time. *Detailed design* lists what it rejects, and *Implications on adoption* lists the cases it cannot catch.
 
 ### Ergonomics
 
-Even what developers can do today comes with overhead. For starters, **migration is penalized: a `direct` ObjC method rewritten in Swift silently reverts to message dispatch.** This restores the metadata that the ObjC version was deliberately written to avoid. A rewrite that ought to preserve behavior becomes a size regression, and the developer can do little to prevent it.
+Even what developers can do today comes with an overhead. For starters, **migration is penalized: a `direct` ObjC method rewritten in a Swift class silently reverts to message dispatch.** This restores the metadata that the ObjC version was deliberately written to avoid. A rewrite that ought to preserve behavior becomes a size regression, and the developer can do little to prevent it: even keeping the header and implementing the class with `@objc @implementation` doesn't work.
 
-**The alternative is hand-written thunks.** Today, a developer can get a direct call from ObjC into Swift only by using `@c` (formerly `@_cdecl`; [SE-0495][se0495]) to expose a free function with a C entry point. However, that function lives outside the method's class, so the developer maintains a parallel surface by hand and loses the bridging that the `@objc` thunk would have provided for free.
+**The alternative is hand-written thunks.** A developer can get a direct call from ObjC into Swift only by using `@c` (formerly `@_cdecl`; [SE-0495][se0495]) to expose a free function with a C entry point. However, that function lives outside the method's class, adding maintaince pressure and losing the bridging that the `@objc` thunk would have provided for free.
 
 ### Optimization
 
-`@objc` settles exposure and dispatch at once, so a member called only by ObjC code in the same image still pays for a runtime entry point that nothing ever looks up. **A direct member has no method-list entry, no method type encoding, and no selector reference.** With `@objcDirect`, an `internal` direct member that nothing calls can be dead-stripped in an optimized build.
+`@objc` settles exposure and dispatch at once, so a member called only by ObjC code in the same image still pays for runtime metadata that nothing ever looks up. **A direct member has no method-list or property-list entry, no method type encoding, and no selector reference.** A `public` direct member is still exported, and in a stripped build its export entries outweigh the metadata it saves, so it is there for completeness, not size. Hidden members are where the savings are (see *Implications on adoption*): if nothing calls an `internal` direct member, an optimized build linked with `-dead_strip` removes its code too.
 
 ## Background: the direct-method ABI
 
-The 2026 rework of Clang's direct-me7thod ABI removed the obstacle that stalled the 2023 pitch: the caller now owns the preconditions, so Swift only has to emit the callee.
+The 2026 rework of Clang's direct-method ABI removed the obstacle that stalled the 2023 pitch: the caller now owns the preconditions, so Swift only has to emit the callee.
 
-**2019 — `objc_direct` lands in Clang 9.** `__attribute__((objc_direct))` and `objc_direct_members` removed a method's ObjC metadata and turned its call sites into plain C calls. To stay compatible with `objc_msgSend` semantics, the *callee* did three things (and still does, unless the new ABI is enabled): it nil-checked `self`, it realized the class first (`[self self]`) if it was a class method, and it kept `_cmd` in its signature, with the caller leaving it undefined. Every direct method also had enforced hidden visibility, so nothing outside the image could bind to it, and no other compiler could implement one.
+**2019 — `objc_direct` lands in Clang 10.** `__attribute__((objc_direct))` and `objc_direct_members` removed a method's ObjC metadata and turned its call sites into plain C calls. To stay compatible with `objc_msgSend` semantics, the *callee* did three things: it nil-checked `self`, it realized the class first (`[self self]`) if it was a class method, and it kept `_cmd` in its signature, with the caller leaving it undefined. Clang 16 removed `_cmd` from the signature; the callee still does the other two unless the precondition-thunk ABI is enabled. Every direct method also had enforced hidden visibility, so nothing outside the image could bind to it. And because the callee made the checks, another compiler could implement one only by repeating them.
 
-**2023 — the [first pitch][pitch1] for `@objcDirect`.** It stalled on the callee-side design: with the `nil` check inside the callee, SILGen would have had to emit that check on `self` before ObjC can call the Swift implementation.
+**2023 — the [first pitch][pitch1] for `@objcDirect`.** It stalled on the callee-side design: with the `nil` check inside the callee, SILGen would have had to emit that check on `self` before ObjC could call the Swift implementation.
 
 **2026 — the ABI is reworked and shipped in Clang 23.** The preconditions moved from the callee into a thunk emitted by each caller ([LLVM RFC][llvm-rfc]):
 
-| | Clang 9 | Clang 23 |
+| | Default ABI | Precondition-thunk ABI (Clang 23, opt-in) |
 |---|---|---|
 | Symbol | `\01-[Class sel]`, enforced hidden | `-[Class sel]D`, hidden unless the declaration has a visibility attribute |
 | `nil` check | in the callee, unconditionally | in the caller's `-[Class sel]D_thunk`, only where the receiver may be `nil` |
-| Class realization | in the callee, unconditionally | in the same thunk, only where the class may be unrealized |
-| `_cmd` | in the signature, undefined | not in the signature |
+| Class realization | in the callee, unconditionally | in the same thunk |
 
-The precondition thunk is `linkonce_odr` and hidden; each translation unit that needs one emits an identical copy, and the linker folds them. In Clang 23, the new ABI is opt-in through the [`-fobjc-direct-precondition-thunk`][pr16] flag.
+The precondition thunk is `linkonce_odr` and hidden; each translation unit that needs one emits an identical copy, and the linker folds them. In Clang 23, the precondition-thunk ABI is opt-in through the [`-fobjc-direct-precondition-thunk`][pr16] flag.
 
-With precondition thunks, a direct method's implementation now has a stable, agreed ABI: the symbol `-[Class sel]D`, which a Clang caller in another translation unit can reference. Because the caller always owns the preconditions, the precondition thunk for a Swift direct member is ObjC code that Clang compiles. Swift only has to emit the callee: the language bridging thunk under the agreed ABI and the bare implementation.
+With precondition thunks, a direct method's implementation now has an agreed ABI: the symbol `-[Class sel]D`, which a Clang caller in another translation unit can reference. The [RFC][llvm-rfc] and PRs [#170616][pr16] and [#170618][pr18] specify this ABI. The precondition thunk for a Swift direct member is also emitted by clang since the caller is always on the ObjC side. Swift only has to emit the callee: the `@objc` thunk under that ABI and the bare implementation.
 
 [pitch1]: https://forums.swift.org/t/pitch-introduce-objc-direct-attribute/65138
 [llvm-rfc]: https://discourse.llvm.org/t/rfc-optimizing-code-size-of-objc-direct-by-exposing-function-symbols-and-moving-nil-checks-to-thunks/88866
 [pr16]: https://github.com/llvm/llvm-project/pull/170616
-[pr18]: https://github.com/llvm/llvm-project/pull/170618
 
 ## Proposed solution
 
