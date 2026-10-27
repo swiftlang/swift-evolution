@@ -9,8 +9,6 @@
 - Vision:
   [Improving the approachability of data-race safety](https://github.com/swiftlang/swift-evolution/blob/main/visions/approachable-concurrency.md)
 - Implementation:
-  [swiftlang/swift#92193](https://github.com/swiftlang/swift/pull/92193),
-  [swiftlang/swift#93599](https://github.com/swiftlang/swift/pull/93599)
 - Upcoming Feature Flag: `MyFeatureName`
 - Review: ([pitch](https://forums.swift.org/...))
 
