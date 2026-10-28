@@ -112,6 +112,12 @@ optional.
   always zero out, so a non-null invariant is unrepresentable), and per the
   rule above the whole struct is rejected. A `const`-qualified `__weak`
   field is publicly read-only.
+- Fixed-size arrays of `__strong` object pointers use the standard C-array
+  projection for the active language mode, whether a tuple or `InlineArray`.
+- Arrays whose base element is directly `__weak` are rejected: Swift `weak` is
+  a declaration storage modifier, not a first-class element type with value
+  witnesses. Neither tuples nor `InlineArray` can represent weak element
+  storage.
 
 ```c
 struct WeaksInAStructArc {
@@ -165,16 +171,17 @@ weak-reference representation. A `__weak NSString *` field therefore stays
 
 The memberwise initializer takes all fields in order, using the bridged
 types where bridging applies. A default `init()` is synthesized under the
-existing rules, which in practice means it exists only when
-zero-initialization is sound for every field (structs with `_Nonnull
-__strong` fields get only the memberwise initializer).
+existing rules only when zero-initialization is recursively sound for every
+field; `_Nonnull __strong` fields, including those within fixed-size arrays or
+nested records, suppress `init()`.
 
 ### Value semantics and calling convention
 
 Copies retain each `__strong` field and copy each weak registration;
 destruction releases the strong fields and destroys the weak slots; weak
 fields zero when their object deallocates. These are exactly the semantics
-of the same struct in ARC C and Objective-C.
+of the same struct in ARC C and Objective-C. Copies and destruction of
+strong-pointer arrays retain and release each element, respectively.
 
 Layout is exactly the C layout. Strong-only structs are loadable values;
 structs containing `__weak` fields are address-only (the ObjC runtime tracks
