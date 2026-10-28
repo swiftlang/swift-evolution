@@ -1,12 +1,12 @@
 # Build configuration conditionals for target dependencies
 
-* Proposal: [SE-NNNN](NNNN-swiftpm-build-configuration-conditional-target-dependencies.md)
+* Proposal: [SE-0560](0560-swiftpm-build-configuration-conditional-target-dependencies.md)
 * Authors: [Dmytro Hutsuliak](https://github.com/dmhts)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Franz Busch](https://github.com/FranzBusch)
+* Status: **Active review (October 28...November 11, 2026)**
 * Previous Proposal: [SE-0273](0273-swiftpm-conditional-target-dependencies.md)
 * Implementation: [swiftlang/swift-package-manager#10529](https://github.com/swiftlang/swift-package-manager/pull/10529), [swiftlang/swift-build#1427](https://github.com/swiftlang/swift-build/pull/1427)
-* Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-build-configuration-conditionals-for-target-dependencies/88981))
+* Review: ([pitch](https://forums.swift.org/t/pitch-swiftpm-build-configuration-conditionals-for-target-dependencies/88981)) ([review](https://forums.swift.org/t/review-build-configuration-conditionals-for-target-dependencies/90315))
 
 ## Introduction
 
