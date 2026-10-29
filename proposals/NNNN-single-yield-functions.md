@@ -6,7 +6,7 @@
 * Status: **Awaiting implementation**
 * Implementation: TBD
 * Experimental Feature Flag: TBD
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: https://forums.swift.org/t/pitch-single-yield-functions/90319
 
 ## Introduction
 
@@ -293,6 +293,25 @@ coroutine. The coroutine is resumed as the error propagates out of the
 coroutine scope and runs the code after the `yield` to completion, exactly
 as it would on the normal path. 
 
+### `defer` statements
+
+As with yielding accessors, a `defer` statement in a single-yield function
+runs when control leaves its enclosing scope. A `defer` specified before the
+`yield` runs on resumption:
+
+```swift
+final class Counter {
+  private let lock = NSLock()
+  private var value = 0
+
+  func lockedValue() -> yield inout Int {
+    lock.lock()
+    defer { lock.unlock() }   // runs after the caller's access ends
+    yield &value
+  }
+}
+```
+
 ### Lifetime dependence of yielded values
 
 If the yielded type is non-'Escapable', the yielded value may depend on
@@ -453,6 +472,43 @@ generators would let a function yield a sequence of values. They are a
 substantially larger design and are left to a future proposal.
 
 ## Alternatives considered
+
+### Closure-based APIs
+
+Scoped access can be provided today by a function that takes a closure and
+calls it with a value:
+
+```swift
+extension StrawmanBuffer {
+  func withMappedRange<R: ~Copyable, E: Error>(
+    _ offset: Int, _ size: Int,
+    _ body: (inout MutableSpan<UInt8>) throws(E) -> R
+  ) throws(E) -> R {
+    precondition(isValidRange(offset, size))
+
+    var ms = _contents.mutableSpan
+    var range = ms.extracting(offset ..< offset + size)
+    return try body(&range)
+  }
+}
+```
+
+With closure-based APIs, each scoped value adds a level of nesting. Single-yield functions simplify this:
+
+```swift
+// Closure-based
+input.withMappedRange(0, n) { src in
+  output.withMappedRange(0, n) { dst in
+    for i in 0 ..< n { dst[i] = src[i] }
+  }
+}
+
+// Single-yield
+let src = input.getMappedRange(0, n)
+var dst = output.getMappedRange(0, n)
+for i in 0 ..< n { dst[i] = src[i] }
+// Both coroutines resume after the last uses of `src` and `dst`.
+```
 
 ### A `yielding func` modifier
 
