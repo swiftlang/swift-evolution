@@ -86,26 +86,21 @@ destination.updateElements(startingAt: &index, copying: checksum)
 precondition(index == destination.count)
 ```
 
-The overload used above accepts any `Iterable`, including one whose iteration can throw. The `startingAt` index is taken as an `inout` parameter because a thrown error must not leave the state of the destination unknown to the caller. When the function returns, either normally or by throwing, `index` is updated to the index after the last element updated.
+The overload used above accepts any `Iterable`, including one whose iteration can throw. The index is taken as an `inout` parameter because a thrown error must not leave the state of the destination unknown to the caller. When the function returns, either normally or by throwing, `index` is updated to the index after the last element updated.
 
-When using an `Iterable` whose `Failure` is `Never`, a convenience overload of `updateElements` is available. It returns the index after the last element updated:
+Copying stops as soon as the source has provided all its elements, or the end of the destination span is reached, whichever comes first. The function returns the iterator it used to read from the source, positioned after the last element copied.
 
-```swift
-var end = destination.updateElements(startingAt: 0, copying: header)
-end = destination.updateElements(startingAt: end, copying: payload)
-```
+If reading from the `Iterable` source throws an error, no iterator is returned, but `index` still reports the progress made.
 
-The overloads that take a generic `Iterable` argument copy their source completely, and trap if the span cannot contain every element from the source. The source can be shorter than the remaining space.
-
-A third overload mutates a [`BorrowingIteratorProtocol`][SE-0516] source, and stops as soon as either the iterator has provided all its elements or the end of the destination span is reached, whichever comes first. When the function returns normally, the iterator is positioned after the last element it provided to the destination.
+A second overload mutates a [`BorrowingIteratorProtocol`][SE-0516] source, to continue using an iterator returned by the first overload.
 
 ```swift
-var iterator = source.makeBorrowingIterator()
 var index = 0
-first.updateElements(startingAt: &index, copying: &iterator)
-if index == first.count {
+var iterator = destination1.updateElements(startingAt: &index, copying: source)
+if index == destination1.count {
   var index2 = 0
-  second.updateElements(startingAt: &index2, copying: &iterator)
+  destination2.updateElements(startingAt: &index2, copying: &iterator)
+  // ...
 }
 ```
 
@@ -227,10 +222,10 @@ extension MutableSpan where Element: ~Copyable {
 
 extension MutableSpan {
   /// Overwrites elements of this span, starting at an index, by copying
-  /// every element of the source.
+  /// elements from the source.
   ///
-  /// This span must have enough space from `index` to its end
-  /// (`index..<count`) for every element provided by `source`.
+  /// Copying stops as soon as `source` has provided all its elements,
+  /// or the end of this span is reached, whichever comes first.
   ///
   /// If reading from `source` throws an error, the elements copied before
   /// the error occurred remain in this span, and `index` is updated to
@@ -241,29 +236,14 @@ extension MutableSpan {
   ///      index of this span, or equal to its `count`. On return, it is
   ///      updated to the index after the last element updated.
   ///   - source: The elements to copy into this span.
+  /// - Returns: An iterator over `source`, positioned after the last
+  ///     element copied.
   /// - Throws: Any error thrown while reading from `source`.
   mutating func updateElements<
     I: Iterable & ~Escapable & ~Copyable
   >(
     startingAt index: inout Index, copying source: borrowing I
-  ) throws(I.Failure) where I.Element == Element
-
-  /// Overwrites elements of this span, starting at an index, by copying
-  /// every element of the source.
-  ///
-  /// This span must have enough space from `index` to its end
-  /// (`index..<count`) for every element provided by `source`.
-  ///
-  /// - Parameters:
-  ///   - index: The index at which to start copying. It must be a valid
-  ///      index of this span, or equal to its `count`.
-  ///   - source: The elements to copy into this span.
-  /// - Returns: The index after the last element updated.
-  mutating func updateElements<
-    I: Iterable & ~Escapable & ~Copyable
-  >(
-    startingAt index: Index, copying source: borrowing I
-  ) -> Index where I.Element == Element, I.Failure == Never
+  ) throws(I.Failure) -> I.BorrowingIterator where I.Element == Element
 
   /// Overwrites elements of this span, starting at an index, by copying
   /// elements from an iterator.
@@ -382,10 +362,10 @@ extension MutableRawSpan {
 
 extension MutableRawSpan {
   /// Overwrites bytes of this span, starting at a byte offset, by copying
-  /// every byte of the source.
+  /// bytes from the source.
   ///
-  /// This span must have enough space from `byteOffset` to its end
-  /// (`byteOffset..<byteCount`) for every byte provided by `source`.
+  /// Copying stops as soon as `source` has provided all its elements,
+  /// or the end of this span is reached, whichever comes first.
   ///
   /// If reading from `source` throws an error, the bytes copied before
   /// the error occurred remain in this span, and `byteOffset` is updated to
@@ -396,29 +376,14 @@ extension MutableRawSpan {
   ///      offset into this span, or equal to its `byteCount`. On return, it
   ///      is updated to the offset after the last byte updated.
   ///   - source: The bytes to copy into this span.
+  /// - Returns: An iterator over `source`, positioned after the last
+  ///     byte copied.
   /// - Throws: Any error thrown while reading from `source`.
   mutating func updateElements<
     I: Iterable & ~Escapable & ~Copyable
   >(
     startingAt byteOffset: inout Int, copying source: borrowing I
-  ) throws(I.Failure) where I.Element == UInt8
-
-  /// Overwrites bytes of this span, starting at a byte offset, by copying
-  /// every byte of the source.
-  ///
-  /// This span must have enough space from `byteOffset` to its end
-  /// (`byteOffset..<byteCount`) for every byte provided by `source`.
-  ///
-  /// - Parameters:
-  ///   - byteOffset: The offset at which to start copying. It must be a valid
-  ///      offset into this span, or equal to its `byteCount`.
-  ///   - source: The bytes to copy into this span.
-  /// - Returns: The offset after the last byte updated.
-  mutating func updateElements<
-    I: Iterable & ~Escapable & ~Copyable
-  >(
-    startingAt byteOffset: Int, copying source: borrowing I
-  ) -> Int where I.Element == UInt8, I.Failure == Never
+  ) throws(I.Failure) -> I.BorrowingIterator where I.Element == UInt8
 
   /// Overwrites bytes of this span, starting at a byte offset, by copying
   /// bytes from an iterator.
@@ -481,6 +446,10 @@ We need a generalization of the `Collection` family of protocols for noncopyable
 
 It is possible to construct a `BorrowingIteratorAdapter` from an `IteratorProtocol` instance, and use it with the matching overload of `updateElements`. [SE-0516][SE-0516] deferred conforming existing `Sequence` types to `Iterable`. Once they conform, they will work directly with `updateElements(startingAt:copying:)`.
 
+#### Returning an index and an iterator together
+
+Once tuples can contain nonescapable types, we could add a convenience overload of `updateElements(startingAt:copying:)` for sources where `Failure` is `Never`. It would take the index by value and, like `UnsafeMutableBufferPointer.update(from:)`, would return a tuple of the iterator with the index after the last element updated.
+
 ## Alternatives considered
 
 #### Using only `update` as the base name
@@ -503,18 +472,25 @@ We do not propose an overload of `updateSubrange(_:moving:)` that takes an `Unsa
 
 The `updateElements(startingAt:copying:)` methods take a generic `Iterable` or `BorrowingIteratorProtocol` argument because these are the only span-friendly protocols in the standard library. Later, when newer container protocols are added, `updateSubrange(_:copying:)` and `updateSubrange(_:moving:)` could gain generic overloads that admit arguments such as `UniqueArray`. This proposal defines the fundamental forms for `updateSubrange` and `updateAll`, which can be used to build protocol default implementations in the future.
 
-#### Returning an iterator from `updateElements(startingAt:copying:)`
+#### Returning a tuple from `updateElements(startingAt:copying:)`
 
-`UnsafeMutableBufferPointer.update(from:)` ([SE-0370][SE-0370]) is a close counterpart to `updateElements(startingAt:copying:)`. The return type of the older method is a tuple of an iterator and an index. Returning state in this way is viable in non-throwing situations, but iteration over an `Iterable` can throw, and the state would be lost when an error is thrown. When the thrown type is `Never`, we would like to return the iterator in addition to the index, but we cannot do so at this time because tuples cannot contain nonescapable types. We provide an overload that takes an `inout` source conforming to `BorrowingIteratorProtocol` as a replacement for a tuple-returning function.
+`UnsafeMutableBufferPointer.update(from:)` ([SE-0370][SE-0370]) is a close counterpart to `updateElements(startingAt:copying:)`. The return type of the older method is a tuple of an iterator and an index. Iteration over an `Iterable` can throw, and the index would be lost when an error is thrown. As a result, `updateElements` must take the index as an `inout` argument.
 
-#### Using `from` as the label for the starting index for `updateElements`
+#### Trapping when the destination is too small for the source
 
-An earlier version of this proposal used `from` as the label of the index at which `updateElements` starts updating, as in `updateElements(from:copying:)`. The preposition describes the starting position well, but `UnsafeMutableBufferPointer.update(from:)` ([SE-0370][SE-0370]) uses the same word to denote the source of the copied elements. The label `startingAt` sidesteps any ambiguity. It describes the role of the index precisely, and would also suit a future method that returns spans from a piecewise-contiguous container, such as `nextSpan(startingAt: &index, maxCount: Int)`.
+An earlier version of this proposal copied the whole source in the `Iterable` overload of `updateElements`, and trapped if the destination could not hold every element. Trapping is undesirable when the size of the source is not known ahead of time. Stopping when the destination is full and returning the iterator leaves the caller in control.
+
+That version also had a convenience overload for sources where `Failure` is `Never`. It took the index by value and returned the index after the last element updated. We removed it because it can't simultaneously return the index and the iterator, due to limitations in the current language.
+
+#### Using `from` as the label for the starting index of `updateElements`
+
+An earlier version of this proposal used `from` as the label of the index at which `updateElements` starts updating, as in `updateElements(from:copying:)`. The preposition describes the starting position well, but `UnsafeMutableBufferPointer.update(from:)` ([SE-0370][SE-0370]) uses the same word to denote the source of the copied elements. The label `startingAt` better describes the role of the index. It would also suit a future method that returns spans from a piecewise-contiguous container, such as `nextSpan(startingAt: &index, maxCount: Int)`.
 
 ## Revision history
 
 * Changes in review:
-  * Renamed the `from` label of the `updateElements` functions of `MutableSpan` and `MutableRawSpan` to `startingAt`. The previous label is described in the Alternatives considered section.
+  * Renamed the `from` label of the `updateElements` functions of `MutableSpan` and `MutableRawSpan` to `startingAt`.
+  * The `Iterable` overload of `updateElements` no longer traps when the destination cannot hold the whole source: it stops when the destination is full and returns the iterator.
 
 ## Acknowledgements
 
