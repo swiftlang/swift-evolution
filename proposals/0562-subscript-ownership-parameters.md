@@ -1,9 +1,9 @@
 # Ownership for Subscript Parameters
 
-* Proposal: [SE-NNNN](NNNN-subscript-ownership-parameters.md)
+* Proposal: [SE-0562](0562-subscript-ownership-parameters.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Steve Canon](https://github.com/stephentyrone)
+* Status: **Active Review (November 3...17, 2026)**
 * Implementation: [swiftlang/swift#91992](https://github.com/swiftlang/swift/pull/91992)
 * Experimental Feature Flag: `SubscriptParametersWithOwnership`
 * Review: ([pitch](https://forums.swift.org/...))
