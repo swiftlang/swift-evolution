@@ -6,7 +6,7 @@
 * Status: **Active Review (November 3...17, 2026)**
 * Implementation: [swiftlang/swift#91992](https://github.com/swiftlang/swift/pull/91992)
 * Experimental Feature Flag: `SubscriptParametersWithOwnership`
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/...))([review](https://forums.swift.org/t/se-0562-ownership-for-subscript-parameters/90429))
 
 ## Summary of changes
 
