@@ -1,7 +1,9 @@
 # Improve Interaction Between `@main` and Top-Level Code
 
-* Proposal: [SE-NNNN](NNNN-improve-top-level-code-inference.md)
+* Proposal: [SE-0563](NNNN-improve-top-level-code-inference.md)
 * Authors: [Owen Voorhees](https://github.com/owenv)
+* Review Manager: [Holly Borla](https://github.com/hborla)
+* Status: **Active Review (November 3 - November 17, 2026)**
 * Implementation: [PR-91761](https://github.com/swiftlang/swift/pull/91761)
 * Review: ([pitch](https://forums.swift.org/t/pitch-improve-interaction-between-main-and-top-level-code/89259))
 
