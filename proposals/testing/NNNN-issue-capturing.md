@@ -1,6 +1,6 @@
-# Issue Capturing, Issue Observation & the TestingUtilities module
+# Issue Capturing & the TestingUtilities module
 
-* Proposal: [ST-NNNN](NNNN-issue-capturing-and-observation.md)
+* Proposal: [ST-NNNN](NNNN-issue-capturing.md)
 * Authors: [Rachel Brindle](https://github.com/younata)
 * Review Manager: TBD
 * Status: **Awaiting Review**
@@ -63,72 +63,27 @@ these APIs intended solely for test utility authors.
 
 ## Proposed solution
 
-This proposal introduces two entirely new APIs to observe and capture issues
+This proposal introduces an entirely new APIs to observe and capture issues
 before they are reported to the rest of the testing library:
-`withIssueObservation(_:)` and `withIssueCapturing(_:)`. These are
-tool-author-only APIs which return any issues recorded during the execution of
-the `body` closures parameters. They differ in that `withIssueObservation(_:)`
-will also pass the issue along to be reported to the rest of the testing
-library, while `withIssueCapturing(_:)` will prevent the issue from being
-reported to the rest of the testing library.
+`withIssueCapturing(_:)` and `withIssueCapturing(_:matching:)`. Additionally,
+this proposal introduces a new instance method on Issue which re-emits any
+captured issues: `Issue.record()`.
 
-Both `withIssueObservation(_:)` and `withIssueCapturing(_:)` will be made
-available as the first public APIs in the new `TestingUtilities` module within
-the testing library package. `TestingUtilities` exists to define tooling
-specifically to help test utility authors write and verify their libraries.
+These APIs will be made available as the first public APIs in the new
+`TestingUtilities` module within the testing library package. `TestingUtilities`
+exists to define tooling specifically to help test utility authors write and
+verify their libraries.
 
 ## Detailed design
 
 ### New TestingUtilities module
 
 We will introduce a new module within the testing library, to provide the new
-`withIssueCapturing`, and `withIssueObservation` APIs.
-
-### New functions for observing issues
-
-We will introduce 2 functions for observing issues, to be made available in
-the new TestingUtilities module:
-
-```swift
-/// Invoke a function, and return any issues recorded during its execution.
-/// Issues recorded will still be sent to the rest of the testing library.
-///
-/// - Parameters:
-///   - body: The function to invoke.
-///
-/// Library authors use this function to capture and analyze any issues for
-/// later analysis. This is particularly useful for verifying that test helpers
-/// correctly record issues.
-/// Test authors should consider using
-/// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
-public func withIssueObservation(
-  _ body: () throws -> Void
-) -> [Issue]
-
-/// Invoke a function, and return any issues recorded during its execution.
-/// Issues recorded will still be sent to the rest of the testing library.
-///
-/// - Parameters:
-///   - body: The function to invoke.
-///
-/// Library authors use this function to capture and analyze any issues for
-/// later analysis. This is particularly useful for verifying that test helpers
-/// correctly record issues.
-/// Test authors should consider using
-/// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
-func withIssueObservation(
-  _ body: sending @isolated(any) () async throws -> Void
-) async -> [Issue]
-```
-
-`withIssueObservation(_:)` works to observe and record any issues which pass 
-through it, at the point in the call stack where `withIssueObservation` is
-added, passing the issue along to the rest of the testing library without making
-any changes to it.
+`withIssueCapturing`, and `Issue.record` APIs.
 
 ### New functions for capturing issues
 
-We will introduce 2 functions for capturing issues, to be made available in
+We will introduce 4 functions for capturing issues, to be made available in
 the new TestingUtilities module:
 
 ```swift
@@ -163,26 +118,81 @@ func withIssueCapturing(
 func withIssueCapturing(
   _ body: sending @isolated(any) () async throws -> Void
 ) async -> [Issue]
+
+/// Invoke a function, capture and return any issues recorded during its
+/// execution. Issues captured will not be sent to the rest of the testing
+/// library.
+///
+/// - Parameters:
+///   - body: The function to invoke.
+///   - issueMatcher: A function to invoke when an issue occurs that is used to
+///     determine if the issue should be captured. By default, all issues match.
+///
+/// Library authors use this function to capture and analyze any issues for
+/// later analysis. This is particularly useful for verifying that test helpers
+/// correctly record issues.
+/// Test authors should consider using
+/// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
+func withIssueCapturing(
+  _ body: () throws -> Void
+  matching issueMatcher: @escaping @Sendable (Issue) -> Bool
+) -> [Issue]
+
+/// Invoke a function, capture and return any issues recorded during its
+/// execution. Issues captured will not be sent to the rest of the testing
+/// library.
+///
+/// - Parameters:
+///   - body: The function to invoke.
+///   - issueMatcher: A function to invoke when an issue occurs that is used to
+///     determine if the issue should be captured. By default, all issues match.
+///
+/// Library authors use this function to capture and analyze any issues for
+/// later analysis. This is particularly useful for verifying that test helpers
+/// correctly record issues.
+/// Test authors should consider using
+/// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
+func withIssueCapturing(
+  _ body: sending @isolated(any) () async throws -> Void
+  matching issueMatcher: @escaping @Sendable (Issue) -> Bool
+) async -> [Issue]
 ```
 
-Like `withIssueObservation`, `withIssueCapturing` observes and records any
-issues which pass through it, at the point in the call stack where
-`withIssueCapturing` is added. However, `withIssueCapturing` differs in that it
-does not pass issues along to the rest of the testing library.
+`withIssueCapturing` records any matching issues which pass through it, at the
+point in the call stack where `withIssueCapturing` is added. Additionally,
+`withIssueCapturing` does not pass issues along to the rest of the testing
+library.
+
+### Public API for re-emitting recording issues
+
+We will introduce a new instance method on `Issue` specifically for re-emitting
+captured issues:
+
+```swift
+extension Issue {
+  /// Record this issue to the testing Library.
+  ///
+  /// - Returns: The issue that was recorded (`self` or a modified copy of it.)
+  @discardableResult
+  func record() -> Self
+}
+```
+
+The `Issue.record` instance method will be a part of the TestingUtilities module
+specifically because it is intended to be used only with `withIssueCapturing`.
 
 ## Source compatibility
 
-This changes how the existing `withKnownIssue` API is implemented. There is no
-change in behavior of `withKnownIssue`. The additive changes to the public API
-should not affect source compatibility of existing test code.
+This is an additive change to the public API and should not affect source
+compatibility of existing test code.
 
 ## Integration with supporting tools
 
-Testing utilities can and should make use of `withIssueCapturing` and
-`withIssueObservation` to both verify that test utilities record issues, as well
-as to enable new tools to make use of and expand on the DSL provided by the
-testing library. Otherwise, this proposal will not have any effect on existing
-tools.
+Testing utilities can and should make use of `withIssueCapturing` to both verify
+that test utilities record issues, as well as to enable new tools to make use of
+and expand on the DSL provided by the testing library. Otherwise, this proposal
+will not have any effect on existing tools which make use of the ABI of the
+Testing Library.
 
 ## Future directions
 
@@ -194,7 +204,7 @@ investigated as part of this proposal. Such APIs should be considered on their
 own merits as part of separate proposals in order to prevent scope creep of
 proposals.
 
-### Allow general modification and analysis of Issues before they are recorded
+### General modification and analysis of Issues before they are recorded
 
 In addition to capturing and observing issues, we could also allow for more
 general modification and analysis of issues prior to recording. This would allow
@@ -216,9 +226,17 @@ would invalidate several assumptions made about traits in the testing library.
 
 In the future, Issue Capturing & Issue Observation could be implemented using
 local traits. For the time being, they aren't. Even with a local trait system
-in place, there is value in separate `withIssueCapturing(_:)` and
-`withIssueObservation(_:)` APIs to wrap the Traits which ultimately implement
-these: Providing the "returning recorded issues" behavior.
+in place, there is value in separate `withIssueCapturing` APIs to wrap the
+Traits which ultimately implement these, by returning the captured issues.
+
+### Event Capturing
+
+Issues are only one part of the Event subsystem of the Testing Library. In
+addition to capturing Issues specifically, we could also add APIs to capture
+Events generically. This is not included here because the Event type is not
+currently a stable API. Additionally, capturing other events would be a large
+expansion of scope, but even with that, capturing issues is useful enough that
+it should have a dedicated API for specifically gathering issues.
 
 ## Alternatives considered
 
@@ -266,88 +284,51 @@ utilities.
 
 Other names considered while developing this proposal include
 
-- `captureIssues`/`observeIssues`
+- `captureIssues`
 - `withExpectedIssue`
 
-`captureIssues` and `observeIssues` were initially used in the early drafts of
-this proposal, but were dropped in favor of the more idiomatic
-`withIssueCapturing` and `withIssueObservation`.
+`captureIssues` was initially used in the early drafts of this proposal, but
+was dropped in favor of the more idiomatic `withIssueCapturing`.
 
 `withExpectedIssue` was a suggestion from one of the testing workgroup members,
 and was not used because of potential confusion with XCTest's
 [`XCTExpectFailure(_:enabled:strict:issuematcher:)`](https://developer.apple.com/documentation/xctest/xctexpectfailure(_:enabled:strict:issuematcher:))
 API. Additionally, `withExpectedIssue` implies that a separate issue should be
 recorded if no issue was received, which is not a desired behavior of
-`withIssueCapturing` and `withIssueObservation`. Neither `withIssueCapturing`
-nor `withIssueObservation` should record an issue if no issue was received
-during the execution of their respective `body` closures: they will instead
-return an empty array.
+`withIssueCapturing`. `withIssueCapturing` should not record an issue if no
+issue was received during the execution of their respective `body` closures:
+they will instead return an empty array.
 
-### Remove `withIssueObservation`, make `Issue.record` instance method public
+### Make the `Issue.record` instance method part of the Testing Library
 
-The testing workgroup discussed the idea of excluding `withIssueObservation`,
-and instead making the `Issue.record()` instance method public. Some members
-had concerns that `withIssueObservation` would not be used enough to justify
-the ongoing maintenance burden of that function. Instead, for the rare case
-where the `withIssueObservation` behavior was desired, test utility authors
-could instead re-record any issues returned by `withIssueCapturing`. That is,
-test utility authors could write:
+This proposal adds a public `Issue.record()` instance method to the
+TestingUtilities module. This method could instead be a part of the Testing
+Library. The reason that the `Issue.record()` instance method is part of the
+TestingUtilities module is because the only way to get an `Issue` instance is
+via `withIssueCapturing`. It doesn't make sense to add a method to the Testing
+Library that can only be used if you use an API provided in the TestingUtilities
+library.
+
+### Include API for automatically re-emiting captured issues
+
+An earlier revision of this proposal specified a `withIssueObservation` API
+which automatically re-emited captured issues. Some members of the testing
+workgroup had concerns that this observation API would not be used enough to
+justify the ongoing maintenance burden of that API. Those concerns, combined
+with the fact that `withIssueObservation` can be implemented by client authors
+by combining the `withIssueCapturing` API with the `Issue.record()` instance
+method, are why `withIssueObservation` was removed from consideration.
 
 ```swift
-let issues = withIssueCapturing {
-    // ...
+func withIssueObservation(_ body: () throws -> Void) -> [Issue] {
+  withIssueCapturing(body).map { $0.record() }
 }
-// process the issues
-issues.forEach { $0.record() }
 ```
 
-I do not think this is the correct approach, because while I do think that
-`withIssueCapturing` will be used more often than `withIssueObservation`,
-`withIssueObservation` has its place in test helpers that provide additional
-context with the failed issues. For example, a test helper that records an
-additional issue to provide context around why a series of issues were recorded.
-
-Furthermore, making a public `Issue.record()` instance method requires further
-consideration: Should there also be a public initializer for `Issue`? If not,
-then a public `Issue.record()` would only exist for the purpose of re-recording
-captured issues. Which should be answered as part of making a public
-`Issue.record()` instance method.
-
-### Combine `withIssueCapturing` and `withIssueObservation` into a single API
-
-Semantically, `withIssueCapturing` and `withIssueObservation` both observe
-recorded issues. As such, and especially with Nimble's prior art, it makes sense
-for these to be the same function, with a parameter for whether observed issues
-are also reported to the rest of the issue recording system.
-
-However, the behavior of preventing issues from being reported to the rest of
-the issue recording system is different enough to warrant separate functions.
-
-Semantically, `withIssueObservation` only observes recorded issues and then
-passes them along the issue recording chain. After being observed, issues
-recorded are passed along the chain for other inspectors in to handle.
-
-On the other hand, `withIssueCapturing` not only observes recorded issues, but
-it does not pass them along the issue recording chain. Once an issue is captured
-by a `withIssueCapturing` scope, it essentially ceases to exist.
-
-These semantics are different enough that not only do they warrant separate
-functions, but these also warranted entirely rethinking how the issue recording
-system worked.
-
-### Add a `matching` parameter to `withIssueCapturing` & `withIssueObservation`
-
-Instead of returning all issues which pass through them, `withIssueCapturing`
-and `withIssueObservation` should include a parameter to filter issues as they
-come in. This matches the existing behavior of `withKnownIssue`, and
-particularly for `withIssueCapturing`, allows unmatched issues to be sent to the
-rest of the Testing Library.
-
-No `matching` parameter is included with `withIssueCapturing` and
-`withIssueObservation` specifically because they are intended to be used with in
-test utilities and to validate test utilities. Two areas where authors want to
-specifically operate on and, in the case of `withIssueCapturing`, block issues
-from being recorded.
+There are instances for this `withIssueObservation` API, such as test helpers
+which records additional issues providing context around why a series of issues
+were recorded. As such, `withIssueObservation` may be considered in a future,
+separate proposal.
 
 ## Acknowledgments
 
