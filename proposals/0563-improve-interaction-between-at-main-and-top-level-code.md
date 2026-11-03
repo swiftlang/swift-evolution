@@ -1,6 +1,6 @@
 # Improve Interaction Between `@main` and Top-Level Code
 
-* Proposal: [SE-0563](NNNN-improve-top-level-code-inference.md)
+* Proposal: [SE-0563](0563-improve-top-level-code-inference.md)
 * Authors: [Owen Voorhees](https://github.com/owenv)
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (November 3 - November 17, 2026)**
