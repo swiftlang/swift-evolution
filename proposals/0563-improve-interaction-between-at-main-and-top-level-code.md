@@ -1,6 +1,6 @@
 # Improve Interaction Between `@main` and Top-Level Code
 
-* Proposal: [SE-0563](0563-improve-top-level-code-inference.md)
+* Proposal: [SE-0563](0563-improve-interaction-between-at-main-and-top-level-code.md)
 * Authors: [Owen Voorhees](https://github.com/owenv)
 * Review Manager: [Holly Borla](https://github.com/hborla)
 * Status: **Active Review (November 3 - November 17, 2026)**
@@ -38,7 +38,7 @@ The conditions which cause a file to be parsed in top-level code mode are comple
 - Otherwise, if the module contains a file named "main.swift", that file is compiled in top-level code mode
 - Otherwise, none of the module's sources are compiled in top-level code mode
 
-![A diagram of the decision tree described above](NNNN-top-level-code-mode.png)
+![A diagram of the decision tree described above](0563-top-level-code-mode.png)
 
 Notably, when a module contains a file which is parsed in top-level code mode, the top-level code in that file is used to synthesize a program entrypoint. Therefore, that module can't also use `@main` to declare an entrypoint, even if the module doesn't actually contain a top-level statement or expression. The resulting behavior can be very unintuitive. Consider the following single file program:
 
@@ -115,7 +115,7 @@ The conditions which determine how a file is parsed remain the same, except for 
 
 The new decision tree looks like this:
 
-![A diagram of the new decision tree described above](NNNN-top-level-code-mode-proposed.png)
+![A diagram of the new decision tree described above](0563-top-level-code-mode-proposed.png)
 
 While the new rules add another condition, it only applies in cases which fail to compile today. The goal is to more accurately match users' intuition without changing the meaning of existing code. With these revised rules, both examples from the 'Motivation' section successfully compile.
 
