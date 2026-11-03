@@ -111,20 +111,32 @@ var file = FileHandle()
 f(&a[file], &file) // error: exclusivity conflict because "file" is borrowed by the subscript, mutated by the inout
 ```
 
-### Consuming subscript parameters are incompatible with get/set accessors
+### Consuming subscript parameters require single-call access paths
 
-When the subscript argument is `consuming`, the subscript cannot define both a `get` and `set` accessor. An `inout` access to such a subscript would first call the `get`, which would consume the argument. Then, there would be no argument that remains when the subscript access has completed and the `set` needs to get called.
+When the subscript argument is `consuming`, any permissible access pattern (read, write, `inout`) must be implementable with a single accessor call. For example, if the subscript has `borrow` and `mutate` accessors, the `borrow` accessor can be used for reading while the `mutate` accessor can be used for writing a value or passing it `inout`. On the other hand, if a subscript has only `get` and `set` accessors, the only way to provide `inout` access is to call `get` into a temporary value, pass the address of the temporary as `inout`, and then call `set` with the updated temporary value. However, when the subscript argument is `consuming`, there is a problem: the call to `get` consumes the argument, so there is no argument for the paired call to `set`. Therefore, this combination is prohibited: 
 
 ```swift
 struct C1 {
-  subscript(c: consuming FileHandle) -> Int { // error: 'consuming' may not be used on the parameter of a subscript whose read and write go through separate accessors
+  subscript(c: consuming FileHandle) -> Int { // error: 'consuming' may not be used on the parameter of a subscript with only 'get' and 'set' accessors
     get { ... }
     set { ... }
   }
 }
 ```
 
-`get`-only subscript accessors may have `consuming` parameters, as can the coroutine accessors (`borrow` or `mutate`, whether `yielding` or not), because in such cases there is only a single accessor call. For example:
+The easiest fix here is to also introduce a `yielding mutate` operation, which can be provided [in addition to `get` and `set`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0474-yielding-accessors.md#yielding-mutate-1). It will be used for `inout` access, while `set` will be used when writing the whole value:
+
+```swift
+struct C1Fixed {
+  subscript(c: consuming FileHandle) -> Int {
+    get { ... }
+    set { ... }
+    yielding mutate { ... }
+  }
+}
+```
+
+`get`-only subscript accessors may have `consuming` parameters, as can the coroutine accessors (`borrow` or `mutate`, whether `yielding` or not), because in such cases there is only a single accessor call for any access pattern. For example:
 
 ```swift
 struct C2 {
@@ -148,18 +160,18 @@ struct C4 {
 }
 ```
 
-Here are the potential combinations for `consuming` accessors:
+Here are the potential combinations accessors when at least one of the subscript arguments is `consuming`:
 
-| Read-only accessor    | Read-write accessor   | Can parameter be `consuming`? |
-| --------------------- | --------------------- | ----------------------------- |
-| `get`                 | (none)                | ✅                             |
-| `get`                 | `set`                 | ❌                             |
-| `get`                 | (`yielding`) `mutate` | ✅                             |
-| (`yielding`) `borrow` | (none)                | ✅                             |
-| (`yielding`) `borrow` | (yielding) `mutate`   | ✅                             |
-| (`yielding`) `borrow` | `set`                 | ❌                             |
-
-
+| Readaccessor          | Write accessor | inout accessor        | Can parameter be `consuming`? |
+| --------------------- | -------------- | --------------------- | ----------------------------- |
+| `get`                 |                |                       | ✅                             |
+| `get`                 | `set`          |                       | ❌                             |
+| `get`                 | `set`          | `yielding mutate`     | ✅                             |
+| `get`                 |                | (`yielding`) `mutate` | ✅                             |
+| (`yielding`) `borrow` |                |                       | ✅                             |
+| (`yielding`) `borrow` |                | (`yielding`) `mutate` | ✅                             |
+| (`yielding`) `borrow` | `set`          |                       | ❌                             |
+| (`yielding`) `borrow` | `set`          | (`yielding`) `mutate` | ✅                             |
 
 ## Source compatibility
 
