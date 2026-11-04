@@ -55,7 +55,7 @@ There is an additional limitation on conformances for back-deployed types. Speci
 This means that if `UniqueArray` is back-deployed, one can make it conform to your own protocol, or a protocol from a non-resilient library (e.g., anything built from a Swift package or as part of the program). However, one could not make it retroactively conform to another type from the standard library without given the conformance new-enough availability:
 
 ```swift
-// error: conformance of back-deployed type 'Point' to protocol 'CustomStringConvertible' must not be
+// error: conformance of back-deployed type 'UniqueArray' to protocol 'CustomStringConvertible' must not be
 // available before <version where UniqueArray was introduced>
 extension UniqueArray: @retroactive CustomStringConvertible { ... }
 ```
