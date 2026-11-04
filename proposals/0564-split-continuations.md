@@ -1,9 +1,9 @@
 # Split continuations
 
-* Proposal: [SE-NNNN](NNNN-split-continuations.md)
+* Proposal: [SE-0564](0564-split-continuations.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Active review (Nov 4...18, 2026)**
 * Implementation: [swiftlang/swift#91981](https://github.com/swiftlang/swift/pull/91981)
 * Related Proposals:
     - [SE-0300: Continuations for interfacing async tasks with synchronous code][SE-0300]
