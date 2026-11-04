@@ -6,7 +6,7 @@
 * Status: **Awaiting review**
 * Implementation: <https://github.com/swiftlang/swift/pull/93430>
 * Experimental Feature Flag: `BackDeployFrozenValueTypes`
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-back-deployment-for-fixed-layout-value-types-3571/90446))
 
 ## Summary of changes
 
