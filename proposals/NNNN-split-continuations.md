@@ -26,10 +26,10 @@ Additionally, this proposal adds new `resumeSynchronously` methods to
 executor to offer its current execution context to the resumed task. If the task
 resumes on the same executor, it runs inline instead of being enqueued.
 
-Lastly, this proposal amends [SE-0462] so that priority escalation handlers are
-always called once with the task's current priority when they are installed.
-This closes a race where an escalation that happens before the handler is
-installed is never reported.
+Lastly, this proposal updates the behavior of `withTaskPriorityEscalationHandler` (introduced in [SE-0462]),
+to provide a consistent handler triggering behavior for priority escalation.
+Priority escalation handlers will now always be called once with the task's current priority when they are installed.
+This closes a race where an escalation that happens before the handler is installed is never reported.
 
 ## Motivation
 
@@ -336,7 +336,7 @@ return try await waiter.wait(onPriorityEscalated: { _, newPriority in
 })
 ```
 
-#### Amendment to SE-0462
+#### Update to withTaskPriorityEscalationHandler behavior
 
 The same race exists for `withTaskPriorityEscalationHandler`. Therefore, this
 proposal changes it to also call its handler once with the task's current
@@ -530,9 +530,9 @@ extension CheckedContinuation {
 
 The new APIs are purely additive and don't affect source compatibility.
 
-The amendment to [SE-0462] doesn't change any API, but it changes the behavior
-of `withTaskPriorityEscalationHandler`. Its handler is now called once when it
-is installed. Handlers already had to cope with being called at any time while
+The update to `withTaskPriorityEscalationHandler`'s handler invocation behavior is source compatible. 
+Its handler is now called once immediately when it is installed installed, which doesn't change
+the inherent contract of the handler which already had to cope with being being called at any time while
 the operation runs, and calling them with the current priority doesn't change
 the priority of the task.
 
@@ -547,10 +547,6 @@ The storage of a split continuation is laid out such that the existing runtime
 functions for resuming a continuation keep working. This means that code that
 was compiled before split continuations existed can resume a `Continuation` that
 was created by the new `withContinuation`.
-
-The amendment to [SE-0462] is implemented in the existing runtime entry points
-for adding escalation handlers and escalating tasks, and doesn't add any new
-ones. Existing binaries get the new behavior when they run on a new runtime.
 
 ## Implications on adoption
 
