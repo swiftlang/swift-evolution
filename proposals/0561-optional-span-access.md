@@ -5,7 +5,7 @@
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Active review (November 2 - November 13, 2026)**
 * Implementation: [swiftlang/swift#88153](https://github.com/swiftlang/swift/pull/88153)
-* Review: ([pitch](https://forums.swift.org/t/89580))
+* Review: ([pitch](https://forums.swift.org/t/89580))([review](https://forums.swift.org/t/se-0561-span-based-access-to-optional-s-storage/90398))
 
 [SE-0456]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0456-stdlib-span-properties.md
 [SE-0467]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0467-MutableSpan.md
