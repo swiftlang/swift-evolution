@@ -9,8 +9,7 @@
 
 SPM has support for both local (per-project) and global (per-user) mirror configuration. However, any global configuration is ignored when a local configuration is present. With this proposal, the configuration is instead merged, so that both local and global configuration can be used for the same project.
 
-Swift-evolution thread: [Discussion thread topic for that
-proposal](https://forums.swift.org/)
+Swift-evolution thread: [[Pitch] Merge local and global mirror configuration](https://forums.swift.org/t/pitch-merge-local-and-global-mirror-configuration/90154)
 
 ## Motivation
 
