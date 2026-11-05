@@ -36,6 +36,7 @@ This proposal extends `@backDeployed(before:)` to a very limited set of types: `
   - `ConstCell`
   - `Volatile`
 - `UInt128` and `Int128`
+- `Duration`
 - Unique (non-copyable) types
   - `UniqueArray`
   - `UniqueBox`
