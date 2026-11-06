@@ -297,7 +297,7 @@ A `async let` that was declared but never awaited on *explicitly*, as the scope 
 To showcase these semantics, let us have a look at this function which spawns two child tasks, `fast` and `slow`, but does not await on any of them:
 
 ```swift
-func go() async { 
+func go() async -> String { 
   async let f = fast() // 300ms
   async let s = slow() // 3seconds
   return "nevermind..."
@@ -315,7 +315,7 @@ As we return from the `go()` function without ever having awaited on the `f` or 
 If we instead awaited on one of the values, e.g. the fast one (`f`), the emitted code would not need to implicitly cancel or await it, as this was already taken care of explicitly:
 
 ```swift
-func go2() async {
+func go2() async -> String {
   async let f = fast()
   async let s = slow()
   _ = await f

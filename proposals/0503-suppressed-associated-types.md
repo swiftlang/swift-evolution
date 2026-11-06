@@ -652,7 +652,7 @@ associated type is still not allowed:
 ```swift
 protocol Goose: ~Copyable { associatedtype Quack: ~Copyable }
 struct Pond<G: Goose>: ~Copyable {}
-extension QueueHolder: Copyable where G.Quack: Copyable {}  // error
+extension Pond: Copyable where G.Quack: Copyable {}  // error
 ```
 This restriction is for runtime implementation limitations.
 
@@ -702,8 +702,8 @@ assumption is no longer true.
 
 The ABI of existing code is not affected by this proposal.
 
-On the other hand, changing an associated type declaration in an library
-to suppress conformance is can be an ABI-breaking change. For example, an
+On the other hand, changing an associated type declaration in a library
+to suppress conformance can be an ABI-breaking change. For example, an
 extension of a protocol providing a default implementation could have its symbol
 name change, as these two implementations of `greet` must have distinct names:
 
