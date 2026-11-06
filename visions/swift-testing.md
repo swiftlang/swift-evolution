@@ -1,5 +1,7 @@
 # A New Direction for Testing in Swift
 
+* Vision: [SV-0006](swift-testing.md)
+
 ## Introduction
 
 A key requirement for the success of any developer platform is a way to use
