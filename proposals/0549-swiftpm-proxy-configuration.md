@@ -10,21 +10,21 @@
 
 ## Introduction
 
-This proposal adds HTTP and HTTPS proxy support for all network operations performed by Swift Package Manager that use its built-in HTTP client. Today, SPM ignores standard proxy environment variables (`http_proxy`, `https_proxy`, `no_proxy`) for these operations, making it impossible to use SPM behind corporate firewalls or in environments that require proxy routing. This proposal introduces a configuration file–based approach that works cross-platform and across invocation contexts (CLI, Xcode, CI).
+This proposal adds HTTP and HTTPS proxy support for all network operations performed by Swift Package Manager that use its built-in HTTP client. Today, these operations do not consistently honor standard proxy environment variables (`http_proxy`, `https_proxy`, `no_proxy`), preventing them from working in environments that require proxy routing. This proposal supports those environment variables and introduces persistent SwiftPM configuration that does not depend on the invoking process providing them.
 
 ## Motivation
 
 Many developers work in environments where all HTTP traffic must pass through a proxy server — corporate networks, government systems, university campuses, and CI infrastructure behind firewalls. The standard Unix convention is to set environment variables like `http_proxy` and `https_proxy`, and virtually all command-line tools respect these.
 
-Swift Package Manager has a split personality regarding proxy support:
+Swift Package Manager has inconsistent proxy support across its network operations:
 
 - **Git operations work.** When SPM shells out to `git` for cloning and fetching source packages, the git subprocess inherits the process environment and natively respects `http_proxy`/`https_proxy`. These operations work behind a proxy today.
 
-- **All other HTTP operations are broken.** SPM uses Foundation's `URLSession` for downloading binary artifacts, fetching from package registries, downloading package collections, performing OCSP checks for signing validation, and installing Swift SDKs. The `URLSession` is created with `URLSessionConfiguration.default` and no proxy settings are applied. On macOS, system-level proxy settings (from System Preferences) may be picked up, but environment variables are not. On Linux, there is no system proxy at all, so these operations have zero proxy support.
+- **SwiftPM-managed HTTP operations can fail.** Binary artifact downloads, package registry requests, package collection fetches, OCSP checks for signing validation, and Swift SDK downloads use SwiftPM's built-in HTTP client rather than `git`. Their proxy behavior currently depends on the platform and networking backend, and standard proxy environment variables are not consistently honored. For example, on macOS the networking stack may use system proxy settings while ignoring proxy variables from the SwiftPM process environment.
 
 This means a developer behind a proxy can `swift package resolve` a source dependency but cannot download a binary target artifact from the same server. This is the issue reported in [#7470](https://github.com/swiftlang/swift-package-manager/issues/7470).
 
-Additionally, environment variables are problematic for GUI-based workflows on macOS. When Xcode invokes SPM, it does not inherit shell environment variables — it launches from `launchd` with a minimal environment. Users cannot easily configure `http_proxy` for Xcode-initiated SPM operations without resorting to non-ergonomic workarounds like `launchctl setenv`.
+Process environment is also not available in every SwiftPM invocation context. GUI and embedded clients may invoke SwiftPM without the user's shell environment. Xcode is one concrete example that motivates persistent configuration, but this proposal does not specify any Xcode integration or behavior. The proposed SwiftPM capability is the ability to obtain proxy settings independently of how the invoking process supplies environment variables.
 
 It is worth noting that SPM's existing [dependency mirror configuration](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0219-package-manager-dependency-mirroring.md) (SE-0219) can partially work around this problem — by mirroring external URLs to internal hosts that don't require a proxy, users can bypass the issue for specific dependencies. However, mirrors are not a general solution:
 
@@ -33,18 +33,20 @@ It is worth noting that SPM's existing [dependency mirror configuration](https:/
 - Organizations with a blanket "all external traffic goes through a proxy" policy need transport-level proxy support, not per-URL rewrites.
 - Mirrors are designed for availability and caching use cases, not for network routing. Using them as a proxy workaround is a misuse of the abstraction.
 
-A file-based configuration approach solves both problems: it works regardless of how SPM is invoked (terminal, Xcode, CI) and is portable across platforms.
+A file-based configuration complements environment variables by providing persistent, platform-portable settings that do not depend on the invocation context.
 
 ## Proposed solution
 
-We introduce proxy configuration through two complementary mechanisms: a JSON configuration file (`proxy.json`) and standard proxy environment variables (`http_proxy`, `https_proxy`, `no_proxy`). The configuration file is stored in SPM's existing configuration directory hierarchy and provides reliable configuration across all invocation contexts. Environment variables provide a natural integration with CI systems and existing Unix workflows.
+We introduce proxy configuration through two complementary mechanisms: a JSON configuration file (`proxy.json`) and standard proxy environment variables (`http_proxy`, `https_proxy`, `no_proxy`). The configuration file is stored in SPM's existing configuration directory hierarchy and provides persistent configuration when environment variables are unavailable. Environment variables provide a natural integration with CI systems and existing command-line workflows.
 
 ### Configuration file
 
 A new file `proxy.json` is recognized in SPM's configuration directories:
 
-- **User-level (shared):** `~/.swiftpm/configuration/proxy.json`
+- **User-level (shared):** `<SwiftPM shared configuration directory>/proxy.json`
 - **Project-level (local):** `<project>/.swiftpm/configuration/proxy.json`
+
+The shared configuration directory is the same platform-specific directory SwiftPM already uses for files such as `mirrors.json` and `registries.json`. Its concrete path follows SwiftPM's existing platform conventions rather than being universally fixed at `~/.swiftpm/configuration`.
 
 Example:
 
@@ -75,7 +77,7 @@ swift package config unset-proxy [--global] [--http] [--https] [--no-proxy]
 
 `unset-proxy` with flags removes specific settings. With no flags, it removes all proxy configuration.
 
-The `--global` flag targets the user-level configuration (`~/.swiftpm/configuration/proxy.json`) and can be run from any directory — it does not require a `Package.swift` in the current directory. Without `--global`, commands operate on the project-level configuration. This is consistent with [SE-0535](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0535-swiftpm-global-mirrors-cli.md)'s `--global` flag for mirror commands.
+The `--global` flag targets the user-level file in SwiftPM's shared configuration directory and can be run from any directory — it does not require a `Package.swift` in the current directory. Without `--global`, commands operate on the project-level configuration. This is consistent with [SE-0535](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0535-global-mirrors-configuration-cli.md)'s `--global` flag for mirror commands.
 
 Examples:
 
@@ -114,15 +116,15 @@ When determining proxy configuration, SPM uses the first source that provides a 
 
 1. **Environment variables** (`http_proxy`/`HTTP_PROXY`, `https_proxy`/`HTTPS_PROXY`, `no_proxy`/`NO_PROXY`) — highest priority
 2. **Local project config** (`<project>/.swiftpm/configuration/proxy.json`)
-3. **User-level (global) config** (`~/.swiftpm/configuration/proxy.json`)
-4. **macOS system proxy** (from System Settings → Network → Proxies; macOS only)
+3. **User-level (global) config** (`<SwiftPM shared configuration directory>/proxy.json`)
+4. **Platform-native proxy configuration**, where supported by the active networking implementation
 5. **No proxy** (direct connection) — default behavior
 
 For environment variables, lowercase variants take precedence over uppercase (consistent with curl behavior). Environment variables are the highest priority source because this is the standard convention for CLI tools — it allows the caller to unambiguously force proxy settings regardless of other configuration.
 
-On macOS, `URLSession` automatically inherits the system-level proxy configuration. This means SPM will route traffic through a system proxy even without environment variables or a `proxy.json` — no action is required from the user if their system proxy is already configured.
+When neither environment variables nor a `proxy.json` field supplies a setting, SwiftPM preserves the native proxy behavior of its active networking implementation. On macOS, for example, this allows system proxy settings to continue to apply. An implementation may delegate environment-variable or native proxy handling to its networking backend when that backend already provides the required behavior.
 
-On Linux, there is no system proxy layer. Environment variables and the `proxy.json` file are the available configuration mechanisms.
+On platforms without native system proxy integration, environment variables and `proxy.json` provide the explicit configuration mechanisms.
 
 Each field is resolved independently. For example, a user-level config could set `http` while the system proxy provides the HTTPS proxy — they do not need to come from the same source.
 
@@ -137,7 +139,9 @@ Proxy configuration applies to all HTTP operations performed by SPM's built-in H
 - Swift SDK downloads
 - Prebuilt binary downloads
 
-It does **not** affect git operations, which continue to use git's own proxy configuration (`http.proxy` in gitconfig, or environment variables passed to the git subprocess).
+It does **not** change how git operations resolve proxy settings. Git continues to use its own proxy configuration (`http.proxy` in gitconfig, or environment variables passed to the git subprocess).
+
+Environment variables are therefore the common configuration mechanism for users who want one setting to apply to both Git and SwiftPM's built-in HTTP client. `proxy.json` serves a separate purpose: persistent SwiftPM configuration for built-in HTTP operations when process environment variables are unavailable. For example, a project may successfully resolve its Git dependencies while failing to download a binary target through SwiftPM's HTTP client; `proxy.json` addresses that missing SwiftPM configuration path without replacing Git's existing configuration.
 
 ## Detailed design
 
@@ -197,23 +201,23 @@ Supported schemes:
 - `https` — HTTPS connection to the proxy itself
 - `socks5` — SOCKS5 proxy
 
-### Integration point
+### HTTP client integration
 
-Proxy configuration is applied at the `URLSessionHTTPClient` layer, which is the single concrete networking implementation used by all of SPM's HTTP client abstractions (`HTTPClient` and `LegacyHTTPClient`).
+SwiftPM resolves the effective proxy configuration before performing operations through its built-in HTTP client. All built-in HTTP operations listed under [Scope](#scope) use that effective configuration.
 
-When a `URLSessionHTTPClient` is created, it:
-1. Reads proxy configuration (local config → shared config)
-2. If proxy settings are found, sets `connectionProxyDictionary` on the `URLSessionConfiguration` before creating the `URLSession` instances
-
-This means all existing consumers of `HTTPClient` and `LegacyHTTPClient` automatically gain proxy support without any changes to their code.
+This proposal does not require a particular networking library or configuration API. An implementation may use Foundation networking, NIO, or another backend, provided it preserves the configuration sources, precedence, matching rules, and native fallback behavior described by this proposal.
 
 ### Cross-platform considerations
 
-On macOS, `URLSessionConfiguration.connectionProxyDictionary` uses CoreFoundation constants:
-- `kCFNetworkProxiesHTTPEnable`, `kCFNetworkProxiesHTTPProxy`, `kCFNetworkProxiesHTTPPort`
-- `kCFStreamPropertyHTTPSProxyHost`, `kCFStreamPropertyHTTPSProxyPort`
+The observable behavior defined by this proposal is consistent across platforms even when the underlying networking implementations differ. SwiftPM may rely on a backend's existing support for environment variables and native settings or translate the effective configuration into backend-specific options where necessary. In the absence of explicit environment or file configuration, SwiftPM leaves the backend's native proxy behavior intact.
 
-On Linux (`FoundationNetworking`), the same property exists but may use string-based keys. The implementation uses conditional compilation to handle platform differences.
+### Interaction with git operations
+
+SwiftPM shells out to `git` when resolving source-control dependencies, and this proposal does not replace Git's mature proxy configuration. Git continues to honor proxy environment variables and its own configuration, including URL-specific settings.
+
+When proxy environment variables are present, both the Git subprocess and SwiftPM's built-in HTTP client use them, giving command-line and CI users a single configuration mechanism. When environment variables are unavailable, users may combine Git's persistent configuration with SwiftPM's `proxy.json`, with each tool retaining responsibility for its own network operations.
+
+Keeping these configurations separate avoids silently overriding Git's own proxy rules while filling the configuration gap for HTTP operations performed directly by SwiftPM.
 
 ### Interaction with dependency mirrors
 
@@ -236,22 +240,22 @@ This is the natural and expected behavior — the proxy layer should not need to
 - Requires at least one of `--http`, `--https`, or `--no-proxy`
 - Additive: only updates the fields specified, preserving existing settings
 - Writes to the **project-level** `proxy.json` by default
-- The `--global` flag writes to the user-level configuration (`~/.swiftpm/configuration/proxy.json`) and does not require a `Package.swift` in the current directory
+- The `--global` flag writes to the user-level file in SwiftPM's shared configuration directory and does not require a `Package.swift` in the current directory
 - Validates that proxy URLs are well-formed before writing
 
 `swift package config get-proxy`:
 - Displays the effective proxy configuration after resolving precedence
-- Shows which source each value came from (project config, user config, system, or none)
-- On macOS, queries the system proxy configuration and displays it when active
-- On Linux, only file-based configuration is shown
+- Shows which source each value came from (environment, project config, user config, system, or none)
+- Displays platform-native proxy configuration when SwiftPM can query it
+- On platforms where native settings cannot be queried, displays environment and file-based configuration
 
 Example output when both file and system proxy are in effect:
 
 ```
 $ swift package config get-proxy
-HTTP proxy:  http://proxy:8080 (user: ~/.swiftpm/configuration/proxy.json)
+HTTP proxy:  http://proxy:8080 (user: <SwiftPM shared configuration directory>/proxy.json)
 HTTPS proxy: http://corpproxy:3128 (system)
-No proxy:    localhost, .internal.corp (user: ~/.swiftpm/configuration/proxy.json)
+No proxy:    localhost, .internal.corp (user: <SwiftPM shared configuration directory>/proxy.json)
 ```
 
 Example output when only system proxy is configured (no `proxy.json`):
@@ -340,7 +344,7 @@ If SPM gains additional network-level configuration needs in the future (custom 
 
 ### Environment variables only (no config file)
 
-This was the simplest approach but fails the Xcode use case entirely. Environment variables are not available when Xcode invokes SPM, and requiring `launchctl setenv` is a poor user experience. A config file is necessary for GUI workflows. However, environment variables remain the most natural configuration mechanism for CI systems and command-line usage, which is why the proposal supports both — the config file for reliability across all contexts, and environment variables as a fallback for the common case.
+This is the simplest approach and remains the most natural mechanism for CI systems and command-line usage. However, environment variables are scoped to the invoking process and are not reliably available when SwiftPM is launched by GUI or embedded clients. Xcode is one motivating example of such an invocation context, though this proposal does not specify Xcode behavior. The configuration file provides a persistent SwiftPM-owned source that is independent of the process environment, while environment variables retain the highest precedence when present.
 
 ### Config file as the highest-priority override
 
@@ -354,15 +358,15 @@ Adding a `proxy` key to the existing `registries.json` was considered. However, 
 
 The mirror configuration (SE-0219) is another existing configuration file that deals with network access patterns. We considered placing proxy settings there. However, mirrors and proxies solve fundamentally different problems: mirrors rewrite *where* a request goes (URL translation), while proxies control *how* the request is routed at the transport layer. A mirror changes the destination; a proxy changes the path to get there. Conflating the two concepts in one file would be confusing and architecturally unsound. Furthermore, proxy configuration applies uniformly to all HTTP traffic regardless of whether a dependency is mirrored.
 
-### macOS System Proxy as the sole mechanism
+### Platform-native proxy configuration as the sole mechanism
 
-On macOS, `URLSessionConfiguration.default` already reads system-level proxy settings from System Settings. We considered relying on this exclusively. However:
-- This doesn't help Linux users at all
+Some platform networking stacks can obtain proxy settings from the operating system. We considered relying on this exclusively. However:
+- Native proxy integration is not consistent across all SwiftPM-supported platforms and networking backends
 - It doesn't provide a way to configure proxy specifically for SPM without affecting all apps
 - It doesn't allow project-level proxy overrides
 - The behavior is implicit and hard to debug
 
-Instead, we treat the macOS system proxy as the lowest-priority layer that `proxy.json` can override. This gives macOS users a zero-configuration experience when their system proxy is sufficient, while still providing explicit, portable configuration for cases where it isn't.
+Instead, platform-native proxy behavior remains the lowest-priority layer that explicit environment or file configuration can override. This preserves a zero-configuration experience where native settings are sufficient while providing portable SwiftPM configuration where they are not.
 
 ### Reading git's `http.proxy` config
 
@@ -371,6 +375,10 @@ Since git operations already work with proxy, we considered reading `git config 
 - It requires shelling out to `git` just to read proxy settings
 - Git's per-URL proxy rules (`http.<url>.proxy`) would be complex to replicate
 - Users may not want the same proxy for git and for binary artifact downloads
+
+### Apply `proxy.json` to git subprocesses
+
+We also considered translating `proxy.json` into settings for Git subprocesses. This was rejected because Git already has a mature proxy configuration model, including URL-specific rules and authentication behavior that are outside the scope of this proposal. Injecting SwiftPM configuration could unexpectedly override or conflict with those rules. Standard proxy environment variables remain the intentional common mechanism when users want the same proxy to apply to both Git and SwiftPM's built-in HTTP client.
 
 ### A general `network.json` configuration file
 
