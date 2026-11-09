@@ -11,7 +11,7 @@
     - [SE-0417: Task Executor Preference][SE-0417]
     - [SE-0462: Task Priority Escalation APIs][SE-0462]
     - [SE-0528: `Continuation` - Safe and Performant Async Continuations][SE-0528]
-* Review: ([pitch](https://forums.swift.org/t/pitch-split-continuation/90096))
+* Review: ([pitch](https://forums.swift.org/t/pitch-split-continuation/90096)) ([review](https://forums.swift.org/t/se-0564-split-continuations/90467))
 
 ## Summary of changes
 
