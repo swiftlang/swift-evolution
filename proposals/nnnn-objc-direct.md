@@ -64,48 +64,82 @@ Add an attribute, `@objcDirect`, that can be written on a method, initializer, p
 
 ```swift
 @objc public final class Cache: NSObject {
-  @objcDirect public init(capacity: Int) { … }
-  @objcDirect public var capacity: Int
-  @objcDirect public func lookup(_ key: String) -> NSObject? { … }
-  @objcDirect public subscript(index: Int) -> NSObject? { … }
-  @objc public func refresh() { … }
+  @objcDirect var capacity: Int
+
+  @objcDirect init(capacity: Int) { … }
+
+  @objcDirect subscript(index: Int) -> NSObject? { … }
+
+  @objcDirect func lookup(_ key: String) -> NSObject? { … }
+  @objc       func refresh() { … }
 }
 ```
 
-The generated header declares the direct members as direct, so ObjC callers keep writing ordinary ObjC:
+Semantically, `@objcDirect` implies the following (see [*Semantics*](#semantics)):
+
+1. **`@objcDirect` implies `@objc`.** Writing it on a member that is not already exposed adds the exposure, and the ordinary `@objc` checks apply.
+2. **`@objcDirect` implies static dispatch.** Every call, from Swift or ObjC, is bound at compile time to the member's one implementation, so nothing chooses one at run time:
+   - **(a) No override.** An override runs only through dynamic dispatch, and a direct member has neither a vtable entry nor a method-list entry. So nothing can override a direct member, in any module, and it can't override anything. A direct method, property or subscript is therefore implicitly `final`, as a `static` member is. An initializer can't be spelled `final`, so the override check enforces the same rule for it, and an `@objc @implementation` member gets it from the header's `objc_direct` declaration, which the importer already makes `final`.
+   - **(b) No runtime lookup.** With no selector reference, method-list entry or property-list entry, nothing that goes through the ObjC runtime can reach a direct member: `#selector`, `#keyPath`, key-value coding and observing, `AnyObject` lookup, `@objc` protocol conformance, `perform(_:)`, `respondsToSelector:`, swizzling, runtime introspection. The compiler rejects the uses it can see when the feature is on; the rest fail at run time or quietly behave as if the member were absent.
+   - **(c) No forwarding.** A direct call runs the member's implementation on whatever receiver it is given, so a call on a receiver of the wrong class, such as a proxy, is undefined behavior.
+
+This means the generated header declares the direct members as direct:
 
 ```objc
 @interface Cache : NSObject
+@property (nonatomic, SWIFT_OBJC_DIRECT_PROPERTY) NSInteger capacity;
+
 - (nonnull instancetype)initWithCapacity:(NSInteger)capacity OBJC_DESIGNATED_INITIALIZER SWIFT_OBJC_DIRECT;
-@property (SWIFT_OBJC_DIRECT_PROPERTY nonatomic) NSInteger capacity;
-- (NSObject * _Nullable)lookup:(NSString * _Nonnull)key SWIFT_WARN_UNUSED_RESULT SWIFT_OBJC_DIRECT;
+
 - (NSObject * _Nullable)objectAtIndexedSubscript:(NSInteger)index SWIFT_WARN_UNUSED_RESULT SWIFT_OBJC_DIRECT;
+
+- (NSObject * _Nullable)lookup:(NSString * _Nonnull)key SWIFT_WARN_UNUSED_RESULT SWIFT_OBJC_DIRECT;
 - (void)refresh;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
 ```
 
-`[cache lookup:key]`, `cache.capacity = 8` and `cache[0]` compile to static calls. The Swift module defines one symbol per direct entry point, under Clang's spelling for the direct ABI, and none of them takes `_cmd`:
+ObjC calls compile to static calls, and the Swift module defines one symbol per direct entry point, none of which takes `_cmd` (see [*Code generation*](#code-generation)):
 
 ```llvm
-define ptr  @"-[Cache initWithCapacity:]D"(ptr %0, i64 %1)
-define i64  @"-[Cache capacity]D"(ptr %0)
-define void @"-[Cache setCapacity:]D"(ptr %0, i64 %1)
-define ptr  @"-[Cache lookup:]D"(ptr %0, ptr %1)
-define ptr  @"-[Cache objectAtIndexedSubscript:]D"(ptr %0, i64 %1)
+define hidden i64  @"-[Cache capacity]D"(ptr %0)
+define hidden void @"-[Cache setCapacity:]D"(ptr %0, i64 %1)
+
+define hidden ptr  @"-[Cache initWithCapacity:]D"(ptr %0, i64 %1)
+
+define hidden ptr  @"-[Cache objectAtIndexedSubscript:]D"(ptr %0, i64 %1)
+
+define hidden ptr  @"-[Cache lookup:]D"(ptr %0, ptr %1)
 ```
 
-`refresh` keeps its selector, its method-list entry and its `objc_msgSend` call sites; the direct members have none of them.
+For comparison, `refresh` is a normal `@objc` method and it keeps its selector, method-list entry, and `objc_msgSend` call sites. `capacity` has no property-list entry either:
 
-Two rules govern everything else:
+```llvm
+; Swift module: refresh, and the trapping stub for the uninherited init()
+@_INSTANCE_METHODS__TtC3App5Cache = internal constant { i32 24, i32 2, [
+    { @"\01L_selector_data(refresh)", @".str.7.v16@0:8", @"$s3App5CacheC7refreshyyFTo" },
+    { @"\01L_selector_data(init)",    @".str.7.@16@0:8", @"$s3App5CacheCACycfcTo" }] }
+@_DATA__TtC3App5Cache = internal constant { …, ptr null }   ; no property list
 
-* **`@objcDirect` implies `@objc` and `final`.** Writing it on a member that is not already exposed adds the exposure, and the ordinary `@objc` checks apply. A direct method, property or subscript is also implicitly `final`, as a `static` member is; initializers and members of `@objc @implementation` extensions are the exceptions, described below.
-* **`@objcDirect` implies static dispatch.** Anything that reaches a member through the ObjC runtime — `#selector`, `#keyPath`, key-value coding and observing, `AnyObject` lookup, `@objc` protocol conformance, `perform(_:)`, `respondsToSelector:` — cannot reach a direct member. The compiler rejects the uses it can see; the rest fail at run time.
+; ObjC caller, at -O0
+call void @"objc_msgSend$refresh"(ptr %0, ptr undef)   ; [cache refresh]
+call ptr  @"-[Cache lookup:]D_thunk"(ptr %1, ptr %2)   ; [cache lookup:key]
+```
+
+A direct entry point is called by name, and has an external symbol, exported only for a `public` member. `Cache`'s direct members are `internal`, so their symbols are hidden: ObjC code in the same image can call them, but code in another image can't link against them. The symbol isn't qualified by its module, so classes with direct members need unique ObjC names. The ObjC callers must be compiled with `-fobjc-direct-precondition-thunk` to call them (see [*Linking and visibility*](#linking-and-visibility)).
+
+A module interface prints a direct member with `@objcDirect` and the `final` it implies. While `ObjCDirect` is experimental, the interface also enables it in its flags, so a client sees the attribute whether or not it enables the feature itself, and guards the declarations that use it with `$ObjCDirect`. A client without the feature still can't override a direct member, but the uses that rule 2b rejects get only off-by-default warnings there (see [*Module interfaces and serialization*](#module-interfaces-and-serialization)).
 
 ## Detailed design
 
-### Where the attribute can be written
+### Semantics
 
-`@objcDirect` can be written on a method (instance, `static` or `class`), initializer, property or subscript of a class exposed to ObjC, in the class or in an extension of it. It cannot be written on an individual accessor, apply `@objcDirect` on the storage instead. It also cannot be applied on a `deinit` because its always an override of the superclass' `deinit`.
+This section expands the rules sketched *Proposed solution* and cites them as (1), (2a), (2b) and (2c).
+
+#### Exposure to ObjC (1)
+
+A direct member can be a method (instance, `static` or `class`), initializer, property or subscript of a class exposed to ObjC, in the class or in an extension of it. It cannot be written on an individual accessor, apply `@objcDirect` on the storage instead. It also cannot be applied on a `deinit` because its always an override of the superclass' `deinit`.
 
 A direct method, property or subscript is implicitly `final`, as a `static` member is. Overriding one is therefore an error, in the same module or another one, with a note that says where the `final` comes from:
 
