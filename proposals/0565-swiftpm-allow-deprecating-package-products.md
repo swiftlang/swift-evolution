@@ -1,6 +1,6 @@
 # SE-0565: Allow Deprecating Package Products
 
-* Proposal: [SE-0565](0565-swiftpm-product-deprecation.md)
+* Proposal: [SE-0565](0565-swiftpm-allow-deprecating-package-products.md)
 * Authors: Sam Khouri ([GitHub](https://github.com/bkhouri)) ([Swift Forums](https://forums.swift.org/u/bkhouri/))
 * Review Manager: Tim Condon
 * Status: **Active review (November 11...November 25, 2026)**
