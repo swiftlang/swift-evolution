@@ -208,12 +208,6 @@ This proposal simply enables new callsite syntax for existing result builder dec
 
 This proposal simply enables new callsite syntax for existing declarations and has no adoption implications.
 
-## Future directions
-
-### Add an `@ArrayBuilder` to the standard library
-
-We could eventually add an `@ArrayBuilder` (or similar) to the standard library, or a core package like swift-collections. In the meantime, these ergonomic improvements will be valuable for community-defined generic result builders.
-
 ## Alternatives considered
 
 The primary alternative would be to do nothing and preserve the status-quo. However, these ergonomic improvements provide value for codebases using generic result builders, so seem to carry their weight.
