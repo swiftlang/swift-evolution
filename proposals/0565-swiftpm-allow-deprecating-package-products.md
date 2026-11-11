@@ -1,11 +1,11 @@
-# SE-NNNN: Allow Deprecating Package Products
+# SE-0565: Allow Deprecating Package Products
 
-* Proposal: [SE-NNNN](NNNN-swiftpm-product-deprecation.md)
+* Proposal: [SE-0565](0565-swiftpm-product-deprecation.md)
 * Authors: Sam Khouri ([GitHub](https://github.com/bkhouri)) ([Swift Forums](https://forums.swift.org/u/bkhouri/))
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: Tim Condon
+* Status: **Active review (November 11...November 25, 2026)**
 * Implementation: [swiftlang/swift-package-manager#10437](https://github.com/swiftlang/swift-package-manager/pull/10437) [swiftlang/swift-package-manager#10438](https://github.com/swiftlang/swift-package-manager/pull/10438)
-* Review: ([pitch](https://forums.swift.org/t/pitch-deprecating-package-products-in-the-package-manifest/88468))
+* Review: ([pitch](https://forums.swift.org/t/pitch-deprecating-package-products-in-the-package-manifest/88468)) ([review](https://forums.swift.org/t/se-0565-allow-deprecating-package-products/90664))
 
 > **Note on version numbers.** References to Swift tools version `6.5` and `_PackageDescription` availability `6.5` throughout this proposal are illustrative placeholders. The actual version in which the API becomes available depends on when this proposal is accepted and when the implementation lands in a released Swift toolchain. The final version will be substituted before this document is merged and again at implementation time.
 
