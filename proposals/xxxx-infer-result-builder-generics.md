@@ -9,7 +9,7 @@
 
 ## Introduction
 
-We should enable generic result builders to be used as attributes without needing to explicitly specify generic arguments, instead allowing them to be inferred from the return type of the attached declaration.
+We should enable generic result builders to be used as attributes without needing to explicitly specify generic arguments, instead allowing them to be inferred.
 
 ## Motivation
 
@@ -59,19 +59,17 @@ In all of these cases, specifying the generic arguments of the `ArrayBuilder` ad
 
 ## Proposed solution
 
-We should improve the ergonomics of generic result builders by allowing generic arguments to be inferred from the return type of the attached declaration.
+We should improve the ergonomics of generic result builders by allowing generic arguments to be inferred.
 
 This allows us to omit the generic arguments in all of these examples, simplifying the code:
 
 ```swift
-// Inferred to be `@ArrayBuilder<String>`
 struct SwiftFormatInvocation {
     @ArrayBuilder let arguments: [String]
 }
 ```
 
 ```swift
-// Inferred to be `@ArrayBuilder<String>`
 @ArrayBuilder
 var arguments: [String] {
     "format"
@@ -84,7 +82,6 @@ var arguments: [String] {
 ```
 
 ```swift
-// Inferred to be `@ArrayBuilder<Element>`
 extension Array {
     init(@ArrayBuilder _ build: () -> Self) {
         self = build()
@@ -94,11 +91,71 @@ extension Array {
 
 ## Detailed design
 
-When not specified explicitly, the generic arguments for a generic result builder attribute will be inferred from the return type of the attached declaration.
+Result builder attributes will be allowed to omit some or all of a generic result builder's generic arguments, either by leaving them out entirely (`@ArrayBuilder`) or by using placeholder types (e.g. `@DictionaryBuilder<String, _>`). The missing generic arguments are then inferred by the existing result builder transform, as part of type-checking the transformed body.
 
-We can infer that the return type of the attached declaration should be equal to one of the potential result types of the result builder. The potential result types of the result builder are defined by the types returned from the `buildFinalResult`, `buildPartialBlock`, and `buildBlock` methods.
+Take this result builder call:
 
-For example, take this result builder:
+```swift
+@ArrayBuilder<String>
+var arguments: [String] {
+    "format"
+    "--in-place"
+}
+```
+
+Today, its result builder transform approximately expands to:
+
+```swift
+var arguments: [String] {
+    let v0 = "format"
+    let v1 = "--in-place"
+    return ArrayBuilder<String>.buildBlock(v0, v1)
+}
+```
+
+When omitting the generic type arguments:
+
+```swift
+@ArrayBuilder
+var arguments: [String] {
+    "format"
+    "--in-place"
+}
+```
+
+the result builder transform simply uses the type as written in the result builder attribute:
+
+```swift
+var arguments: [String] {
+    let v0 = "format"
+    let v1 = "--in-place"
+    return ArrayBuilder.buildBlock(v0, v1)
+}
+```
+
+The compiler will then type-check the resulting transformed code as usual, and will resolve the implicit generic arguments following standard type inference. This simple approach naturally scales to all result builder capabilities, including `buildBlock`, `buildPartialBlock`, and `buildFinalResult` use cases, as well as complex scenarios that require overload resolution.
+
+Inferred generic arguments will be supported in all result builder use cases, including function parameters, computed properties, function results, and struct properties:
+
+```swift
+init(@ArrayBuilder arguments: () -> [String]) { ... }
+
+@ArrayBuilder
+var arguments: [String] { ... }
+
+@ArrayBuilder
+func arguments() -> [String] { ... }
+
+struct SwiftFormatInvocation {
+    @ArrayBuilder let arguments: [String]
+}
+```
+
+In cases with no attached body (function parameters, struct properties), the result builder type is specialized for each individual call site, each of which has its own separate result builder transform.
+
+### More Examples
+
+Multiple potential result types:
 
 ```swift
 @resultBuilder
@@ -115,11 +172,9 @@ enum CollectionBuilder<Element> {
         Set(component)
     }
 }
-```
 
-with these call sites:
+// Valid use cases include:
 
-```swift
 @CollectionBuilder
 var array: [String] {
     "a"
@@ -133,9 +188,7 @@ var set: Set<String> {
 }
 ```
 
-The valid result types of `CollectionBuilder` are `[Element]` and `Set<Element>`. This gives us simple constraints (`[Element] == [String]`, `Set<Element> == Set<String>`) which are trivial to solve: `Element` is inferred to be `String`.
-
-This design supports arbitrarily long lists of generic parameters and arbitrarily complex result types, as long as the generic arguments are unambiguously solvable. In this more complex example, the generic result builder is inferred to be `@DictionaryBuilder<String, Int>`, since that solves `[Key: [Value]] == [String: [Int]]`:
+More complex generic parameters:
 
 ```swift
 @resultBuilder
@@ -145,6 +198,8 @@ enum DictionaryBuilder<Key: Hashable, Value> {
     }
 }
 
+// Valid use cases include:
+
 @DictionaryBuilder
 var dictionary: [String: [Int]] {
     (key: "a", value: 42)
@@ -152,7 +207,7 @@ var dictionary: [String: [Int]] {
 }
 ```
 
-Type inference is also supported for non-generic result builders namespaced within generic types. In this example, the result builder is inferred to be `@Array<String>.Builder`:
+Non-generic result builders nested in generic types:
 
 ```swift
 extension Array {
@@ -164,6 +219,8 @@ extension Array {
     }
 }
 
+// Valid use cases include:
+
 @Array.Builder
 var array: [String] {
     "a"
@@ -171,7 +228,7 @@ var array: [String] {
 }
 ```
 
-Placeholder types are also supported, like in other generic contexts, allowing you to only specify a subset of the generic arguments and have the rest be inferred automatically:
+Placeholder types:
 
 ```swift
 @DictionaryBuilder<String, _>
@@ -180,25 +237,9 @@ var dictionary: [String: (a: Int, b: Int, c: Int)] {
 }
 ```
 
-This will be supported in all valid result builder use cases, including function parameters, computed properties, functions results, and struct properties:
-
-```swift
-init(@ArrayBuilder arguments: () -> [String]) { ... }
-
-@ArrayBuilder
-var arguments: [String] { ... }
-
-@ArrayBuilder
-func arguments() -> [String] { ... }
-
-struct SwiftFormatInvocation {
-    @ArrayBuilder let arguments: [String]
-}
-```
-
 ## Source compatibility
 
-Inferring result builder generic parameters has no source compatibility impact, since this simply allows code that was previously rejected with an error.
+Inferring result builder generic arguments has no source compatibility impact, since this simply allows code that was previously rejected with an error.
 
 ## ABI compatibility
 
@@ -206,7 +247,7 @@ This proposal simply enables new callsite syntax for existing result builder dec
 
 ## Implications on adoption
 
-This proposal simply enables new callsite syntax for existing declarations and has no adoption implications.
+Since the generic arguments of a result builder attribute are inferred when the result builder transform is applied, they aren't part of the declaration itself. `.swiftinterface` files for libraries using inferred generic result builders will contain the attribute as written, with its generic arguments omitted. Consumers of these libraries would need to be using a compiler version that supports this feature.
 
 ## Alternatives considered
 
