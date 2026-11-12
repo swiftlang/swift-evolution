@@ -5,6 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [swiftlang/swift-package-manager#10806](https://github.com/swiftlang/swift-package-manager/pull/10806)
+* Review: ([pitch](https://forums.swift.org/t/pitch-auditing-package-dependencies-for-known-vulnerabilities/90686))
 
 ## Introduction
 
@@ -16,9 +17,6 @@ OSV-compatible database (by default [osv.dev], which aggregates the
 [GitHub Advisory Database][GHSA]) for source control dependencies, and from the
 package registry for registry dependencies, through a new optional endpoint of
 the [package registry API][SE-0292].
-
-Swift-evolution thread: [Pitch: Auditing Package Dependencies for Known
-Vulnerabilities](https://forums.swift.org/)
 
 ## Motivation
 
