@@ -371,6 +371,22 @@ unchanged.
 
 With `--dry-run`, nothing is written and the planned changes are printed.
 
+Moving a package to a newer version, even within its current requirements, can
+change the transitive dependency graph: the new version may declare
+dependencies that the pinned one did not, or drop some. As with
+`swift package update`, such packages are added to or removed from
+`Package.resolved`. `audit fix` lists every package it adds or removes, not
+only the ones it updates, and with `--dry-run` it does so before anything is
+written:
+
+```console
+$ swift package audit fix --dry-run
+Would update https://github.com/example/RegEx 1.4.2 -> 1.5.0 (Package.resolved)
+Would add https://github.com/example/Unicode 1.0.0 (Package.resolved)
+```
+
+Packages added this way are covered by the audit that runs after the fix.
+
 ## Security
 
 This feature exists to improve the security of Swift packages, but it has
@@ -386,10 +402,16 @@ several implications of its own.
   registry that already serves the package, with its configured credentials.
 * **Trust in advisory data.** A malicious or compromised advisory source can
   cause false negatives (hiding a vulnerability) or false positives. The
-  sources are queried over HTTPS only (except `file` URLs). `audit fix` can
-  only change versions within the requirements already declared, unless the
-  user explicitly passes `--allow-manifest-changes`, and it never adds new
-  dependencies.
+  sources are queried over HTTPS only (except `file` URLs). Advisory data
+  decides which packages `audit fix` updates and, with
+  `--allow-manifest-changes`, the lower bound of a changed requirement; it
+  never names the version that is installed, which the resolver chooses from
+  the declared requirements as `swift package update` would. Without
+  `--allow-manifest-changes`, `audit fix` only changes versions within the
+  requirements already declared, and it never adds a dependency to a manifest.
+  A newer version can still bring in new transitive dependencies, so every
+  package that `audit fix` adds to or removes from `Package.resolved` is listed,
+  including with `--dry-run`.
 * **False sense of security.** A clean audit means only that no *known*
   advisory matched. The output reports *unchecked* packages instead of
   omitting them, so users can tell which packages were not covered.
