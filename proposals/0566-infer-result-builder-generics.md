@@ -5,7 +5,7 @@
 * Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Awaiting review**
 * Implementation: [#86209](https://github.com/swiftlang/swift/pull/86209)
-* Pitch: ([pitch](https://forums.swift.org/t/pitch-infer-generic-arguments-of-result-builder-attributes/85272))
+* Review: ([pitch](https://forums.swift.org/t/pitch-infer-generic-arguments-of-result-builder-attributes/85272))
 
 ## Summary of changes
 
