@@ -1,13 +1,13 @@
 # Infer generic arguments of result builder attributes
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0566](0566-infer-result-builder-generics.md)
 * Authors: [Cal Stephens](https://github.com/calda)
-* Review Manager: TBD
+* Review Manager: [Tony Allevato](https://github.com/allevato)
 * Status: **Awaiting review**
 * Implementation: [#86209](https://github.com/swiftlang/swift/pull/86209)
-* Pitch: [1](https://forums.swift.org/t/pitch-infer-generic-arguments-of-result-builder-attributes/85272)
+* Pitch: ([pitch](https://forums.swift.org/t/pitch-infer-generic-arguments-of-result-builder-attributes/85272))
 
-## Introduction
+## Summary of changes
 
 We should enable generic result builders to be used as attributes without needing to explicitly specify generic arguments, instead allowing them to be inferred.
 
