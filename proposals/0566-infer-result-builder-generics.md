@@ -3,9 +3,9 @@
 * Proposal: [SE-0566](0566-infer-result-builder-generics.md)
 * Authors: [Cal Stephens](https://github.com/calda)
 * Review Manager: [Tony Allevato](https://github.com/allevato)
-* Status: **Awaiting review**
+* Status: **Active review (November 12–26, 2026)**
 * Implementation: [#86209](https://github.com/swiftlang/swift/pull/86209)
-* Review: ([pitch](https://forums.swift.org/t/pitch-infer-generic-arguments-of-result-builder-attributes/85272))
+* Review: ([pitch](https://forums.swift.org/t/pitch-infer-generic-arguments-of-result-builder-attributes/85272)) ([review](https://forums.swift.org/t/se-0566-infer-generic-arguments-of-result-builder-attributes/90702))
 
 ## Summary of changes
 
