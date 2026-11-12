@@ -153,6 +153,8 @@ struct SwiftFormatInvocation {
 
 In cases with no attached body (function parameters, struct properties), the result builder type is specialized for each individual call site, each of which has its own separate result builder transform.
 
+On potential impacts to type checking performance: Within the result builder transform output, all instances of the result builder type's unresolved generic arguments share the same type variables. Specifically, the result builder transform emits a single `$__builderSelf` variable whose type is solved once and then used in every call to the result builder. In addition to keeping the extra type checking work small and independent of the number of result builder calls, this prevents the result builder type from potentially resolving to different generic arguments within the same result builder transform.
+
 ### More Examples
 
 Multiple potential result types:
