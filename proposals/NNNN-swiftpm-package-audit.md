@@ -132,6 +132,17 @@ same way the GitHub Advisory Database names Swift packages: the scheme, any
 user information, and a trailing `.git` are removed (for example,
 `https://github.com/apple/swift-nio.git` becomes `github.com/apple/swift-nio`).
 
+Records in public databases do not use this name consistently: some
+GHSA-derived `SwiftURL` records name the package by its bare repository name
+(for example `swift-nio-http2` rather than `github.com/apple/swift-nio-http2`).
+To find those records, SwiftPM also queries the bare repository name for each
+version-pinned dependency. Because that name is not unique across hosts and
+owners, a record found this way is only reported when one of its `references`
+points into the dependency's repository (for example
+`https://github.com/apple/swift-nio-http2/security/advisories/...`); otherwise
+it is assumed to describe a different package with the same name. Commit
+queries match by commit and do not need the bare name.
+
 The default database is `https://api.osv.dev`. It can be changed with
 `--advisory-database <url>`, which accepts:
 
