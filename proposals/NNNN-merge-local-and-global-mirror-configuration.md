@@ -4,6 +4,7 @@
 * Authors: [Samuel Murray](https://github.com/samuelmurray)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
+* Implementation: [swiftlang/swift-package-manager#10826](https://github.com/swiftlang/swift-package-manager/pull/10826)
 
 ## Introduction
 
