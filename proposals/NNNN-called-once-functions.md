@@ -7,7 +7,7 @@
 * Bug: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/issues/NNNNN)
 * Experimental Feature Flag: `OnceFunctions`
 * Previous Proposal: Revives [SE-0073](0073-noescape-once.md)
-* Review: ([pitch](https://forums.swift.org/t/pitch-introduce-a-way-to-annotate-functions-that-are-called-at-most-once/89088))
+* Review: ([first pitch](https://forums.swift.org/t/89088)) ([second pitch](https://forums.swift.org/t/90515))
 
 ## Introduction
 
@@ -172,7 +172,7 @@ The guarantee also depends on whether the value is escaping. A non-escaping `@on
 
 ### Parameter conventions
 
-Parameters with noncopyable types typically must be explicitly declared either `consuming` or `borrowing`. Since calling a `@once` or `@callable(once)` function always consumes it, parameters with these function types are implicitly `consuming`:
+Parameters with noncopyable types typically must be explicitly declared `consuming`, `borrowing`, or `inout`. Since calling a `@once` or `@callable(once)` function always consumes it, parameters with these function types are implicitly `consuming`:
 
 ```swift
 func callOnce(_ c: /*consuming*/ @once () -> Void) {
@@ -180,16 +180,54 @@ func callOnce(_ c: /*consuming*/ @once () -> Void) {
 }
 ```
 
-Since a borrowed function value cannot be called, explicitly declaring these parameters `borrowing` is an error:
+These parameters may instead be explicitly declared `borrowing`. As with other `borrowing` parameters of noncopyable types, the callee does not own the value and cannot consume it, so it cannot call the value, store it, or pass it to a `consuming` parameter. The callee may still use the value in ways that do not consume it, such as reading the `isolation` property of an `@isolated(any)` function or passing the value to another `borrowing` parameter:
 
 ```swift
-func borrowOnce(_ c: borrowing @once () -> Void) { } // error: '@once' cannot be used together with 'borrowing'
-func borrowAtMostOnce(_ c: borrowing @callable(once) () -> Void) { } // error: '@callable(once)' cannot be used together with 'borrowing'
+func isolation(of job: borrowing @once @isolated(any) () async -> Void) -> (any Actor)? {
+  job.isolation // ok, reading 'isolation' does not consume 'job'
+}
 ```
 
-This restriction could be lifted in the future if borrowing these function values becomes useful, such as to pass them to generic functions that inspect them without consuming them.
+A borrowed `@callable(once)` value may be passed to a `borrowing` parameter of a generic type that suppresses `Copyable`, but a borrowed `@once` value may not, since generic parameters are implicitly required to be `Deinitable`.
 
-Like ordinary function types in parameter positions, `@once` and `@callable(once)` types are not escaping unless the `@escaping` attribute is specified.
+Attempting to call a borrowed `@once` or `@callable(once)` value is diagnosed:
+
+```swift
+func callBorrowed(_ job: borrowing @once () -> Void) {
+  job() // error: 'job' is borrowed and cannot be called
+}
+```
+
+Since a borrowing callee does not own a `@once` value, it is not obligated to call it. That obligation stays with the caller, which still owns the value after the callee returns and must consume it on every path.
+
+Parameters with these function types may also be declared `inout`, and they follow the same rules as `inout` parameters of other noncopyable types. The callee may call the parameter, but if it does, it must reinitialize the parameter before it returns or throws:
+
+```swift
+func callAndReplace(_ f: inout @once () -> Void) {
+  f()
+  f = { ... } // ok, reinitializes 'f'
+}
+
+func callWithoutReplacing(_ f: inout @once () -> Void) { // error: missing reinitialization of inout parameter 'f' after consume
+  f()
+}
+```
+
+Since assigning to a variable destroys its previous value, the callee may not assign to an `inout` `@once` parameter that it has not consumed. A `@callable(once)` parameter may be reassigned without being called:
+
+```swift
+func replaceOnce(_ f: inout @once () -> Void) {
+  f = { ... } // error: 'f' is reassigned without being first consumed
+}
+
+func replaceAtMostOnce(_ f: inout @callable(once) () -> Void) {
+  f = { ... } // ok, the previous value of 'f' is destroyed without being called
+}
+```
+
+The callee is not obligated to call an `inout` `@once` parameter. Whether or not the callee calls it, the caller owns the parameter's value after the callee returns, so the caller remains obligated to consume it.
+
+Like ordinary function types in parameter positions, `@once` and `@callable(once)` types are not escaping unless the `@escaping` attribute is specified. As with ordinary function types, the types of `inout` parameters are always escaping.
 
 ### Implicit `self` capture
 
@@ -283,7 +321,17 @@ Inference allows callers of non-escaping APIs that adopt `@once` or `@callable(o
 
 In type theory, `@callable(once)` functions are examples of "affine" types because their values can either be consumed once or destroyed without being consumed. Swift models affine types using noncopyability and therefore `@callable(once)` function types are noncopyable. `@once` function types are noncopyable too, but they are also Swift's first instances of "linear" types. A value of a linear type must be consumed exactly once and cannot be implicitly destroyed.
 
-A new invertible marker protocol named `Deinitable` models types in Swift that may be implicitly destroyed. All types in Swift except for `@once` function types implicitly conform to `Deinitable`. Linear types, such as `@once` function types, must suppress `Deinitable` and cannot have a `deinit`, since it would never be called. A nondeinitable value must be consumed exactly once on every path.
+A new invertible marker protocol named `Deinitable` models types in Swift whose values may be implicitly destroyed. All types in Swift except for `@once` function types implicitly conform to `Deinitable`. Linear types, such as `@once` function types, must suppress both `Copyable` and `Deinitable`, and they cannot have a `deinit`, since it would never be called. A value of a linear type must be consumed exactly once on every path.
+
+`Deinitable` is declared in the standard library alongside the existing invertible protocols, `Copyable` and `Escapable`:
+
+```swift
+@_marker public protocol Copyable: Deinitable {}
+@_marker public protocol Escapable {}
+@_marker public protocol Deinitable {}
+```
+
+`Copyable` now refines `Deinitable`, so every copyable type is deinitable. This refinement limits the cost of introducing a third invertible protocol. Since a `Copyable` requirement implies a `Deinitable` requirement, the generic signatures of declarations that do not suppress `Copyable` are unchanged. Only generic parameters that suppress `Copyable` gain a separate implicit `Deinitable` requirement. The refinement is not essential to the model, and it could be removed in the future without affecting ABI or source compatibility.
 
 This proposal does not allow developers to interact with the `Deinitable` protocol directly. Written references to `Deinitable` are always rejected, so creating arbitrary `~Deinitable` types or writing generic code in terms of `Deinitable` is not possible. These restrictions could be lifted in the future if Swift gains support for user-defined linear types.
 
@@ -347,33 +395,65 @@ class Derived: Base {
 
 #### Function overloading
 
-Overloads may differ in whether a function-typed parameter is ordinary or has a `@once` or `@callable(once)` attribute. An existing API that takes an ordinary function can therefore gain an overload that accepts either a `@once` or a `@callable(once)` parameter.
+Like `@escaping`, the `@once` and `@callable(once)` attributes are ignored when determining whether two declarations are valid overloads or invalid redeclarations. However, `@once` and `@callable(once)` parameters are implicitly `consuming`, and overloads may already differ in the ownership conventions of their parameters. As a result, an overload with a `@once` or `@callable(once)` parameter may coexist with an overload that has an ordinary function-typed parameter with the default convention. An existing API that takes an ordinary function can therefore gain an overload that accepts either a `@once` or a `@callable(once)` parameter.
 
-When more than one overload is applicable, overload resolution prefers the most specific match. An overload with an ordinary parameter is more specific than an overload with a `@once` or `@callable(once)` parameter, because an ordinary function is convertible to either. A closure literal or an ordinary function value therefore resolves to the ordinary overload, and only a `@once` function value resolves to the `@once` overload:
+When more than one overload is applicable, overload resolution prefers the most specific match. An ordinary function is convertible to a `@callable(once)` function, and either one is convertible to a `@once` function. An overload with an ordinary parameter is therefore more specific than an overload with a `@callable(once)` parameter, which is in turn more specific than an overload with a `@once` parameter. The same applies to `@autoclosure` parameters. A closure literal or an ordinary function value resolves to the ordinary overload, and only a `@callable(once)` or `@once` function value resolves to the `@once` overload:
 
 ```swift
 func apply(_ f: () -> Void) { ... }
 func apply(_ f: @once () -> Void) { ... }
 
 func produceCallable() -> () -> Void { ... }
+func produceAtMostOnce() -> @callable(once) () -> Void { ... }
 func produceOnce() -> @once () -> Void { ... }
 
-apply { ... }            // calls apply(_: () -> Void)
-apply(produceCallable()) // calls apply(_: () -> Void)
-apply(produceOnce())     // calls apply(_: @once () -> Void)
+apply { ... }              // calls apply(_: () -> Void)
+apply(produceCallable())   // calls apply(_: () -> Void)
+apply(produceAtMostOnce()) // calls apply(_: @once () -> Void)
+apply(produceOnce())       // calls apply(_: @once () -> Void)
 ```
 
 As a result, introducing a `@once` or `@callable(once)` overload alongside an existing API does not change the overload that existing calls resolve to.
 
-Overloads may not differ only in whether a parameter is `@once` or `@callable(once)`, or only in the `@once` and `@callable(once)` attributes of their results:
+This is true even when the body of a closure literal requires at-most-once semantics, such as when it consumes a noncopyable capture or declares a `sending` capture. Unless the closure is explicitly marked `@once` or `@callable(once)`, it resolves to the ordinary overload and the call is rejected. See [Implications on adoption](#implications-on-adoption) for ways that a library can offer a new overload that closure literals resolve to.
+
+Overloads can also differ in other ways, such as whether they are `async`. Execution semantics only make one overload more specific than another when the overloads are otherwise comparable. If execution semantics are the only reason that neither overload is more specific than the other, the overloads are compared as though their parameters had the same execution semantics:
+
+```swift
+func withValue(_ operation: @once () -> Void) { ... }
+func withValue(_ operation: () async -> Void) async { ... }
+
+func test() async {
+  withValue { ... } // calls withValue(_: @once () -> Void)
+}
+```
+
+A `@once` function is not convertible to an ordinary `async` function, and an `async` function is not convertible to a synchronous one, so without this rule neither overload would be more specific. When both overloads take ordinary functions, the synchronous overload is more specific. Ignoring execution semantics in this case means that adopting `@once` or `@callable(once)` in one overload of an API does not make existing calls ambiguous.
+
+Overloads whose parameters differ only in execution semantics, and not in ownership conventions, are invalid redeclarations. This includes overloads that differ only in whether a parameter is `@once` or `@callable(once)` when both parameters have the same ownership convention. It also includes an overload with a `@once` or `@callable(once)` parameter and an overload with an ordinary escaping function-typed parameter that is explicitly `consuming`:
 
 ```swift
 func apply(_ f: @once () -> Void) { ... }
 func apply(_ f: @callable(once) () -> Void) { ... } // error: invalid redeclaration
 
+func run(_ f: consuming @escaping () -> Void) { ... }
+func run(_ f: @escaping @once () -> Void) { ... } // error: invalid redeclaration
+```
+
+Overloads also may not differ only in the execution semantics of their results. This is true even when one of the results is an ordinary function type, and it applies anywhere within the result type, such as in the wrapped type of an optional result:
+
+```swift
 func produce() -> () -> Void { ... }
 func produce() -> @once () -> Void { ... } // error: invalid redeclaration
+
+func produceHandler() -> @callable(once) () -> Void { ... }
+func produceHandler() -> @once () -> Void { ... } // error: invalid redeclaration
+
+func produceOptional() -> (() -> Void)? { ... }
+func produceOptional() -> (@callable(once) () -> Void)? { ... } // error: invalid redeclaration
 ```
+
+Subscripts follow the same rules as functions.
 
 #### Unapplied references to `consuming` methods
 
@@ -417,6 +497,19 @@ func withoutActuallyDeiniting<ClosureType, ResultType, Failure: Error>(
 ```
 
 Like `withoutActuallyEscaping(_:do:)`, the relationship between the types of the `closure` and `deinitableClosure` parameters of `withoutActuallyDeiniting(_:do:)` cannot be expressed in the type system, so the compiler type checks calls to it specially. The type of `closure` must be a `@once` function type, and the type of `deinitableClosure` is the same function type with `@once` replaced by `@callable(once)`. Passing a function that is not `@once` is an error.
+
+Also like `withoutActuallyEscaping(_:do:)`, `withoutActuallyDeiniting(_:do:)` accepts `async` functions. `closure` may be an `async` function and `body` may be an `async` closure, and when `body` is `async`, the call must be marked with `await`:
+
+```swift
+func runAfterSetUp(_ work: @once () async -> Void) async {
+  await withoutActuallyDeiniting(work) { deinitableWork in
+    await setUp()
+    await deinitableWork()
+  }
+}
+```
+
+The isolation of `body` is inferred like that of any other non-escaping closure, so a call to `withoutActuallyDeiniting(_:do:)` never changes the executor that `body` runs on. In an actor-isolated context, `body` has the same isolation as its context, unless the closure states a different isolation explicitly. In a `nonisolated(nonsending)` function, including a `nonisolated` `async` function when the `NonisolatedNonsendingByDefault` upcoming feature is enabled, an `async` `body` is `nonisolated(nonsending)`.
 
 `withoutActuallyDeiniting(_:do:)` consumes `closure` and passes a `@callable(once)` wrapper of it to `body`. The wrapper may be used like any other `@callable(once)` value. The wrapper enforces the exactly-once requirement dynamically: if it is destroyed without being called, the program traps.
 
@@ -555,13 +648,13 @@ Adopting `@once` or `@callable(once)` in an API that already calls its closure a
 
 ### Callers of adopting APIs
 
-Narrowing the execution semantics of a function-typed parameter by making it `@once` or `@callable(once)` is source-compatible for callers. An ordinary function value is always convertible to either a `@once` or `@callable(once)` parameter type, so existing call sites that pass an ordinary closure continue to be accepted without modifications. Widening the execution semantics of a parameter by removing `@once` or `@callable(once)` is source-breaking for callers, on the other hand, since fewer types of functions would be compatible with the new parameter type.
+Narrowing the execution semantics of a function-typed parameter, such as by making an ordinary parameter `@callable(once)` or a `@callable(once)` parameter `@once`, is source-compatible for callers, since a function is convertible to any function type with narrower execution semantics. Widening the execution semantics of a parameter is source-breaking for callers, on the other hand, since fewer types of functions would be compatible with the new parameter type.
 
-Introducing a `@once` or `@callable(once)` overload alongside an existing API does not change the overload that existing calls resolve to either (see [Function overloading](#function-overloading)).
+Introducing a `@once` or `@callable(once)` overload alongside an existing API does not change the overload that existing calls resolve to either. Neither does adopting the attributes in one overload of an API that has other overloads (see [Function overloading](#function-overloading)).
 
 ### Implementations of adopting APIs
 
-In the implementation of the function that takes a function type parameter, the effects of narrowing and widening execution semantics are reversed. Adding `@once` or `@callable(once)` to a function parameter adds new restrictions to the uses of the parameter and therefore is not source-compatible. For example, if the existing function body calls the parameter more than once, attempts to copy it, or passes it to another function that expects an ordinary closure, then that existing body would be rejected.
+In the implementation of the function that takes a function type parameter, the effects of narrowing and widening execution semantics are reversed. Narrowing the execution semantics of a function parameter adds new restrictions to the uses of the parameter and therefore is not source-compatible. For example, if the existing function body calls the parameter more than once, attempts to copy it, or passes it to another function that expects an ordinary closure, then that existing body would be rejected. Likewise, changing a `@callable(once)` parameter to `@once` would reject a body that does not consume the parameter on every path.
 
 ### Capture inference
 
@@ -574,11 +667,11 @@ In the implementation of the function that takes a function type parameter, the 
 
 ### Imported `called_once` parameters
 
-Importing `called_once` parameters as `@once` is source-compatible for callers, but not for existing Swift overrides of imported methods or for existing witnesses of imported protocol requirements. Those declarations are diagnosed with a warning instead of an error when they omit `@once` (see [Importing `called_once` parameters](#importing-called_once-parameters)).
+Importing `called_once` parameters as `@once` is source-compatible for callers for the same reasons that adopting the attribute on an existing function parameter is source-compatible. For existing Swift overrides of imported methods or for existing witnesses of imported protocol requirements, the mismatch is diagnosed with a warning instead of an error when they omit `@once` (see [Importing `called_once` parameters](#importing-called_once-parameters)).
 
 ## ABI compatibility
 
-While adding `@once` or `@callable(once)` to an ordinary closure parameter of an existing public API is a source-compatible change, it is **not** an ABI-compatible one. Narrowing the execution semantics of a parameter changes the calling convention used to pass the argument from `borrowing` to `consuming`. When introducing `@once` or `@callable(once)` alternatives to existing APIs, libraries built with library evolution must preserve the existing entry points that take ordinary closures.
+While adding `@once` or `@callable(once)` to an ordinary closure parameter of an existing public API is a source-compatible change, it is **not** an ABI-compatible one. Narrowing the execution semantics of a parameter changes the calling convention used to pass the argument from `borrowing` to `consuming`. See [Implications on adoption](#implications-on-adoption) for how libraries built with library evolution can adopt the attributes while preserving their existing entry points.
 
 Switching a parameter or result between `@once` and `@callable(once)` is not ABI-compatible either, in any position. The compiler may assume that a `@once` closure is never destroyed without being called, so it would be unsafe for an existing client to pass a `@once` closure to a library that changed the parameter to `@callable(once)`. The two attributes are distinguished in the mangling of function types, so changing one to the other changes the symbol names of the declarations that use the type.
 
@@ -589,6 +682,18 @@ The execution semantics of a function type are recorded in its type metadata, an
 Adopting `@once` and `@callable(once)` does not require a new runtime, since code deployed to earlier runtimes avoids runtime demangling of these function types (see [ABI compatibility](#abi-compatibility)).
 
 Code that is built without library evolution can freely adopt `@once` and `@callable(once)` for any existing API whose closure parameters already have the corresponding execution semantics. Libraries that are built with library evolution, on the other hand, must introduce new APIs in order to adopt the attributes, since modifying an existing API would break ABI compatibility. If the new APIs can be back deployed using `@backDeployed` or `@export(implementation)`, then those new APIs can subsume the existing ones for callers. The subsumed API only needs to be preserved as an ABI compatibility stub for existing clients, which can be done with a `@usableFromInline internal` copy that is renamed and preserves its symbol name with `@abi`. When back deploying replacement APIs is not possible, they must be introduced alongside the existing APIs instead, either as overloads or with entirely new names.
+
+When a replacement is introduced as an overload, the existing overload is [more specific](#function-overloading), so a closure literal resolves to it even where the replacement is available. To make the replacement the only choice wherever it can be used, the existing API can be marked as obsoleted in the release that introduces the replacement:
+
+```swift
+@available(macOS, obsoleted: 27)
+public func apply(_ f: () -> Void) { ... }
+
+@available(macOS 27, *)
+public func apply(_ f: @once () -> Void) { ... }
+```
+
+Calls in contexts where the replacement is unavailable continue to resolve to the existing API. Calls in contexts where the replacement is available resolve to it, including calls within an `if #available(macOS 27, *)` check. Since an ordinary function is convertible to a `@once` function, existing calls and references that resolve to the replacement continue to be accepted.
 
 ## Prior art
 
@@ -614,7 +719,7 @@ Kotlin's [contracts](https://kotlinlang.org/docs/whatsnew13.html#contracts) allo
 
 ### Only offer `@callable(once)` without `@once`
 
-Allowing closure-taking APIs to capture noncopyable and non-`Sendable` values is the primary immediate benefit of introducing execution semantics for function types in Swift. That benefit could be achieved just as well by only offering `@callable(once)` function types, which would simplify the language. However, in the future Swift may offer user-defined nondeinitable (linear) types and only closures with `@once` semantics would be able to capture values of those types, introducing a similar usability gap all over again. While we could wait to introduce `@once` function types until that time, we anticipate that updating APIs throughout the Swift ecosystem to adopt execution semantics will take significant effort to complete and it would be better to only have to perform this migration once. Empirical evidence gathered by reviewing Apple's iOS 27 SDK suggests that `@once` semantics are significantly more common in APIs than `@callable(once)` semantics are, so the magnitude of a second migration to add exactly-once semantics later would be considerable.
+Allowing closure-taking APIs to capture noncopyable and non-`Sendable` values is the primary immediate benefit of introducing execution semantics for function types in Swift. That benefit could be achieved just as well by only offering `@callable(once)` function types, which would simplify the language. However, in the future Swift may offer user-defined linear types and only closures with `@once` semantics would be able to capture values of those types, introducing a similar usability gap all over again. While we could wait to introduce `@once` function types until that time, we anticipate that updating APIs throughout the Swift ecosystem to adopt execution semantics will take significant effort to complete and it would be better to only have to perform this migration once. Empirical evidence gathered by reviewing Apple's iOS 27 SDK suggests that `@once` semantics are significantly more common in APIs than `@callable(once)` semantics are, so the magnitude of a second migration to add exactly-once semantics later would be considerable.
 
 Additionally, there are several smaller benefits to `@once` function types:
 
@@ -625,17 +730,17 @@ Additionally, there are several smaller benefits to `@once` function types:
 
 ### Only offer `@once` without `@callable(once)`
 
-Since `@once` semantics are most common, Swift could only offer `@once` functions without also offering `@callable(once)`. However, this would forfeit the ability to improve noncopyable and non-`Sendable` type ergonomics for many widely used APIs.
+Since `@once` semantics are most common, Swift could only offer `@once` functions without also offering `@callable(once)`. However, this would forfeit the ability to improve noncopyable and non-`Sendable` type ergonomics for many widely used APIs that call a closure at most once, such as `Optional.map(_:)` and the `@autoclosure` right-hand operand of `&&`.
 
 ### Alternative attribute spellings
 
 A few alternatives to `@once` and `@callable(once)` were considered:
 
-- **`@called(exactlyOnce)` and `@called(atMostOnce)`:** These spellings clearly communicate execution semantics and also benefit from the symmetry of sharing a base `@called` attribute. The `@called(exactlyOnce)` spelling is significantly more verbose than `@once`, though, which is undesirable for such a common attribute.
-- **`@once(exactly)` and `@once(atMost)`:** Variations of this spelling, such as `@once(must)` and `@once(may)`, share a base attribute like the `@called` spellings do while remaining shorter. A bare `@once` could also be reserved as shorthand for whichever variant turns out to be more common. However, the argument of these spellings can only describe how many times the function is called, so the family could not be extended with other execution semantics such as [`@callable(sequentially)`](#function-types-with-exclusive-captures). These spellings also read awkwardly, since they reverse the natural order of the words in phrases like "called at most once."
+- **`@called(exactlyOnce)` and `@called(atMostOnce)`:** These spellings clearly communicate execution semantics and also benefit from the symmetry of sharing a base `@called` attribute. This symmetry comes at the cost of the simplest, most obvious spelling for exactly-once execution semantics, which is `@once`.
+- **`@once(exactly)` and `@once(atMost)`:** Variations of this spelling, such as `@once(must)` and `@once(may)`, share a base attribute like the `@called` spellings do while remaining shorter. A bare `@once` could also be reserved as shorthand for whichever variant turns out to be more common. These spellings read awkwardly, though, since they reverse the natural order of the words in phrases like "called at most once."
 - **`@noncopyable` and `@nondeinitable`:** An alternative way to view execution semantics is that they are an emergent property of the function type's ownership constraints. Function types could therefore spell out those ownership constraints directly, either with attributes (`@noncopyable` for at-most-once and `@noncopyable @nondeinitable` for exactly-once) or even with conformance suppression syntax (`~Copyable` and `~Copyable & ~Deinitable`). This approach requires the reader to infer what the ownership of the type implies about the behavior of the function, though, which is less clear than describing the execution semantics directly.
 
-Given the prevalence of APIs that take closures which are called exactly once, the attribute for those semantics deserves the most concise spelling, `@once`. The `callable` base name of `@callable(once)` describes a permission rather than an obligation: the function may be called once, but it need not be. The spelling also remains relatively concise. Finally, a parameterized `@callable` attribute can be extended to support other execution semantics in the future, such as `@callable(sequentially)`.
+Given the prevalence of APIs that take closures which are called exactly once, the attribute for those semantics deserves the most concise and obvious spelling, `@once`. The `callable` base name of `@callable(once)` describes a permission rather than an obligation: the function may be called once, but it need not be. The spelling also remains relatively concise. Finally, a parameterized `@callable` attribute can be extended to support other execution semantics in the future, such as [`@callable(sequentially)`](#function-types-with-exclusive-captures).
 
 ### Alternative names for `Deinitable`
 
@@ -668,11 +773,17 @@ Swift could ban overloads that differ in whether a parameter is an ordinary func
 
 ### Allow overloading on `@once` compared with `@callable(once)`
 
-Swift could allow overloads that differ only in whether a parameter is `@once` or `@callable(once)`, which [Function overloading](#function-overloading) prohibits. There isn't a clear use case for allowing this, though, since APIs are generally either obligated to call their arguments or not.
+Swift could allow overloads that differ only in whether a parameter is `@once` or `@callable(once)`, which [Function overloading](#function-overloading) prohibits when the parameters have the same ownership convention. There isn't a clear use case for allowing this, though, since APIs are generally either obligated to call their arguments or not.
 
 ### Import completion handlers as `@once` by convention
 
 Many C and Objective-C APIs take completion handler blocks that are called exactly once by convention, even though their parameters are not annotated with `called_once`. The Clang importer could infer `called_once` for these parameters, for example by using the heuristics that [SE-0297](0297-concurrency-objc.md) uses to identify completion handler parameters when importing methods as `async`. Existing APIs could then benefit from `@once` without any changes to their headers. However, the APIs that these heuristics identify are the same APIs that are imported with `async` alternatives, and typical Swift code is expected to call those alternatives instead, so improving the ergonomics of the completion-handler-based variants is of little value.
+
+### Import nullable `called_once` parameters as optional `@callable(once)` function types
+
+Since optional `@once` function types cannot be formed, nullable `called_once` parameters are [imported](#importing-called_once-parameters) as ordinary optional function types. They could instead be imported as optional `@callable(once)` function types, which would preserve the guarantee that the function is not called more than once and allow callers to pass closures that consume noncopyable captures or form `sending` captures.
+
+However, Swift overrides and witnesses of these imported declarations would then need `@callable(once)` in their signatures, and those declarations are `@objc`. `@callable(once)` is [not allowed](#exposing-swift-declarations-to-c-and-objective-c) in `@objc` declarations because Clang has no attribute that specifies at-most-once semantics. Lifting that restriction would force the generated header to either annotate the parameter with `called_once`, promising stronger semantics than the Swift declaration guarantees, or omit the attribute, losing the semantics when the header is imported back into Swift. Nullable `called_once` parameters are uncommon, so the benefit does not justify this asymmetry. If `Optional` is generalized to allow a `~Deinitable` wrapped type, these parameters could be imported as optional `@once` function types instead (see [User-defined linear types](#user-defined-linear-types)).
 
 ### Model execution semantics with a library type or macro
 
