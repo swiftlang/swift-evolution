@@ -47,29 +47,9 @@ This proposal extends `@backDeployed(before:)` to a very limited set of types: `
   - `Continuation`
   - `TaskID`
 
-There is an additional limitation on conformances for back-deployed types. Specifically, a conformance for a back-deployed type must meet one of the following constraints:
-
-* the conformance has availability at or after when the type was introduced, or
-* the protocol is not a resilient protocol, or
-* the protocol is in the same module as the type.
-
-This means that if `UniqueArray` is back-deployed, one can make it conform to your own protocol, or a protocol from a non-resilient library (e.g., anything built from a Swift package or as part of the program). However, one could not make it retroactively conform to another type from the standard library without given the conformance new-enough availability:
-
-```swift
-// error: conformance of back-deployed type 'UniqueArray' to protocol 'CustomStringConvertible' must not be
-// available before <version where UniqueArray was introduced>
-extension UniqueArray: @retroactive CustomStringConvertible { ... }
-```
-
 ## Source compatibility
 
-This proposal is a pure extension of an existing attribute, so it has no source-compatibility impact on existing code. 
-
-For the handful of types in the standard library that were back-deployed via the `libswiftCompatibilitySpan.dylib` approach (i.e., `(Mutable)(Raw)Span` and `Output(Raw)Span`), adopting this attribute could end up rejecting some previously-accepted code due to the rules of protocol conformances. The following protocol conformance would previously have been accepted, but will be rejected with this proposal and it's adoption for `Span`:
-
-```swift
-extension Span: @retroactive CustomStringConvertible { ... }
-```
+This proposal is a pure extension of an existing attribute, so it has no source-compatibility impact on existing code. Any types in the standard library that are back-deployed using this feature will now be available in prior releases, which will have no effect on existing code.
 
 ## ABI compatibility
 
