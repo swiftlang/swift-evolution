@@ -1,8 +1,8 @@
 # SE-0565: Allow Deprecating Package Products
 
 * Proposal: [SE-0565](0565-swiftpm-allow-deprecating-package-products.md)
-* Authors: Sam Khouri ([GitHub](https://github.com/bkhouri)) ([Swift Forums](https://forums.swift.org/u/bkhouri/))
-* Review Manager: Tim Condon
+* Authors: [Sam Khouri](https://github.com/bkhouri)
+* Review Manager: [Tim Condon](https://github.com/0xTim)
 * Status: **Active review (November 11...November 25, 2026)**
 * Implementation: [swiftlang/swift-package-manager#10437](https://github.com/swiftlang/swift-package-manager/pull/10437) [swiftlang/swift-package-manager#10438](https://github.com/swiftlang/swift-package-manager/pull/10438)
 * Review: ([pitch](https://forums.swift.org/t/pitch-deprecating-package-products-in-the-package-manifest/88468)) ([review](https://forums.swift.org/t/se-0565-allow-deprecating-package-products/90664))
