@@ -475,7 +475,7 @@ actor Status {
   var valid: Bool
 
   // an isolated method
-  func exchange(with new: Bool) { 
+  func exchange(with new: Bool) -> Bool { 
     let old = valid
     valid = new
     return old

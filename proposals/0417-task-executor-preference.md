@@ -194,7 +194,7 @@ Task(executorPreference: preferredExecutor) {
 In order to fulfil the requirement that we'd like default actors to run on a task executor, if it was set, we need to introduce a new kind of executor.
 
 This stems from the fact that `SerialExecutor` and how a default actor effectively acts as an executor "for itself" in Swift.
-A default actor (so an actor which does not use a custom executor), has a "default" serial executor that is created by the Swift runtime and uses the actor is the executor's identity.
+A default actor (so an actor which does not use a custom executor), has a "default" serial executor that is created by the Swift runtime and uses the actor as the executor's identity.
 This means that the runtime executor tracking necessarily needs to track that some code is executing on a specific serial executor in order for things like `assumeIsolated` or the built-in runtime thread-safety checks can utilize them.
 
 The new protocol mirrors `Executor` and `SerialExecutor` in API, however it provides different semantics, and is tracked using a different mechanism at runtime -- by obtaining it from a task's executor preference record.
