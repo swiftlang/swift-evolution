@@ -146,7 +146,7 @@ There are rules that limit which declarations may have a `@backDeployed` attribu
 
 ### Requirements for the bodies of back deployed functions
 
-The restrictions on the bodies of back deployed functions are the same as `@inlinable` functions. The body may only reference declarations that are accessible to the client, such as `public` and `@usableFromInline` declarations. Similarly, those referenced declarations must also be at least as available the back deployed function, or `if #available` must be used to handle potential unavailability. Type checking in `@backDeployed` function bodies must ignore the library's deployment target since the body will be copied into clients with unknown deployment targets.
+The restrictions on the bodies of back deployed functions are the same as `@inlinable` functions. The body may only reference declarations that are accessible to the client, such as `public` and `@usableFromInline` declarations. Similarly, those referenced declarations must also be at least as available as the back deployed function, or `if #available` must be used to handle potential unavailability. Type checking in `@backDeployed` function bodies must ignore the library's deployment target since the body will be copied into clients with unknown deployment targets.
 
 ## Source compatibility
 

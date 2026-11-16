@@ -399,7 +399,7 @@ print(InlineArray<Int>.self)
 And here, we exercise that a module with its own `InlineArray`, like `MyLib`, will
 always prefer its own definition within the module, but even for dependents
 who import `MyLib` it will prefer `MyLib.InlineArray`. For files that don't
-explicitly `MyLib`, it will prefer `Swift.InlineArray`.
+explicitly import `MyLib`, it will prefer `Swift.InlineArray`.
 
 ## ABI compatibility
 
