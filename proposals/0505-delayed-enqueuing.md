@@ -566,6 +566,60 @@ runtime's global enqueue functions when it has to fall back to them (see
 above), and any others in future, without executors having to know about each
 one.
 
+#### Storage for the scheduler
+
+A job has two words of executor-private data, which is all that the job header
+has room for, and it isn't enough for a timer: a lock-free executor that keeps
+its timers in a heap behind an inbox needs two links and a heap index, a timer
+wheel needs more, and every executor needs somewhere to keep the deadline.  An
+executor that has nowhere to put these has to allocate, for every timer, which
+`Task.sleep()` would otherwise not have to do.  The header can't be made
+bigger: its layout is known to libdispatch (which reads the priority and
+writes the queue at fixed offsets), to the compiler, to the debugger and to
+back-deployed code, and every task starts with it.
+
+The continuation that a sleeping task waits on is allocated by the runtime,
+though, and is not a task, so it can be bigger.  `ExecutorJob` (and
+`UnownedJob`) provide access to storage that it carries for the scheduler:
+
+```swift
+extension ExecutorJob {
+  /// Execute a closure, passing it the scheduler's own storage for a job that
+  /// has been scheduled, if it has any.
+  ///
+  /// A job that the runtime scheduled itself, as `Task.sleep()` does with the
+  /// continuation that it is waiting on, has eight words of storage, zeroed
+  /// when the job is created, for the scheduler that it was given to.  Any
+  /// other job has none, and the closure is passed `nil`.
+  public func withUnsafeScheduledPrivateData<R, E>(
+    body: (UnsafeMutableRawBufferPointer?) throws(E) -> R
+  ) throws(E) -> R
+}
+```
+
+The storage belongs to the scheduler from when it is given the job until it
+runs the job, or until a cancellation that it was asked for has run it, so it
+can use the words for whatever it likes in that time: links for an inbox, a
+position in a heap, the deadline.  It can be used from `cancel` too, which can
+rely on the job being there (see "Deciding between the timer and `cancel`"),
+and which is how an executor can put the address of the job in its token and
+keep everything else in the job.  The storage is not valid once the job has
+run, since running it can free it, and, as with the executor private data, the
+scheduler has to clean up anything that it refers to before it runs the job.
+
+Eight words is enough for the executors that we have looked at: an inbox with
+an array-based heap needs three, a timer wheel four, an intrusive tree five,
+and an `io_uring` timeout four with its `timespec`; the rest of the room is
+for the deadline and for whatever else an executor turns out to need.  The
+size is part of the contract, so it can't be changed once it has shipped.
+
+Jobs without this storage (a job that a client gave to `schedule(_:at:…)`, or
+the nullary continuation that `Task.sleep()` uses if it has to fall back to the
+runtime's global enqueue functions) get `nil`, and the scheduler has to keep
+what it needs somewhere else, which for most executors means allocating.  Such
+an executor can use the storage where it is available and allocate where it
+isn't.
+
 ### Scheduling clocks
 
 An executor only knows how to schedule work against the clocks that it
@@ -762,7 +816,8 @@ implementation (under `ExperimentalScheduling`), and will become API if the
 proposal is approved.  That includes `SchedulingExecutor`, `JobCanceller`,
 `JobCancellationToken`, `SchedulingExecutorFireTime`, `SchedulingClock`,
 `ScheduledContinuation`, the `wait(for:)` method on `ContinuationWaiter`, and
-`isResumption` and `claimForTimer()` on `ExecutorJob` and `UnownedJob`. In addition, one piece is
+`isResumption`, `claimForTimer()` and `withUnsafeScheduledPrivateData(body:)` on
+`ExecutorJob` and `UnownedJob`. In addition, one piece is
 staged differently from how it is described here, for the reason given where
 it is described: `asSchedulingExecutor` is an internal member, not an
 `Executor` requirement.
@@ -776,8 +831,8 @@ contain generic functions, so the `schedule` requirement and the
 declared, with no requirements, only so that source that mentions it still
 compiles; `JobCanceller`, `JobCancellationToken`, `SchedulingExecutorFireTime`,
 `SchedulingClock` and `ScheduledContinuation` do not exist, and nor do
-`wait(for:)` on `ContinuationWaiter` or `isResumption` and `claimForTimer()` on
-`ExecutorJob` and `UnownedJob`.
+`wait(for:)` on `ContinuationWaiter` or `isResumption`, `claimForTimer()` and
+`withUnsafeScheduledPrivateData(body:)` on `ExecutorJob` and `UnownedJob`.
 
 ## Source compatibility
 
@@ -947,11 +1002,14 @@ destroyed and never as a side effect of cancelling.
 An earlier revision of the token had a separate `jobID: UInt64` alongside
 `opaqueData`.  In practice we found that `opaqueData` was sufficient: an
 executor that wants to use a job ID can still do so, by putting it in the
-opaque data (the cooperative executor does exactly that, encoding in the two
-words an ID that can't be mistaken for a later job's, so that it can find its
-entry for the job without searching), and one that does not need one (for
-instance one that holds the address of its own bookkeeping, as the Dispatch
-executor does) no longer has to fill in a field that means nothing to it.
+opaque data (the cooperative executor does exactly that for a job that has no
+storage of its own, encoding in the two words an ID that can't be mistaken for
+a later job's, so that it can find its entry for the job without searching),
+and one that does not need one (for instance one that holds the address of its
+own bookkeeping, as the Dispatch executor does, or one that keeps it in the
+job's own storage and puts the address of the job in the token, as the
+cooperative executor does for a sleeping task's continuation) no longer has to
+fill in a field that means nothing to it.
 
 ### A `CancellationBehavior` option on `enqueue()`
 
