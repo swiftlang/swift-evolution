@@ -3,7 +3,7 @@
 * Proposal: [SE-0540](0540-default-target-settings.md)
 * Authors: [Matt Massicotte](https://github.com/mattmassicotte)
 * Review Manager: [Mikaela Caron](https://github.com/mikaelacaron)
-* Status: **Accepted with modifications**
+* Status: **Implemented (Swift 6.5)**
 * Implementation: [swiftlang/swift-package-manager#10033](https://github.com/swiftlang/swift-package-manager/pull/10033)
 * Review: ([pitch](https://forums.swift.org/t/default-package-swift-settings/71872)) ([review](https://forums.swift.org/t/se-0540-default-package-settings/88748)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0540-default-package-settings/89398))
 
