@@ -5,7 +5,7 @@
 * Review Manager: [Maarten Engels](https://github.com/maartene)
 * Status: **Active Review (November 17...November 29, 2026)**
 * Implementation: [swiftlang/swift-testing#1845](https://github.com/swiftlang/swift-testing/pull/1845)
-* Review: ([pitch](https://forums.swift.org/t/pitch-attachments-in-the-swift-testing-json-event-stream/89956))
+* Review: ([pitch](https://forums.swift.org/t/pitch-attachments-in-the-swift-testing-json-event-stream/89956)) ([review](https://forums.swift.org/t/st-0030-attachments-in-the-swift-testing-json-event-stream-tooling-enablement/90815))
 
 ## Introduction
 
