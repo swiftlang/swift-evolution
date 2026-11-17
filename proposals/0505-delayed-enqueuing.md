@@ -1238,6 +1238,36 @@ each.  And making a kind public fixes its value as ABI, where the kinds of
 these jobs are at present in the range reserved to the implementation.
 `isResumption` lets the runtime decide which jobs qualify.
 
+### Asynchronous requirements for `sleep` and `withDeadline`
+
+An alternative to a job-based primitive is for `SchedulingExecutor` to require
+`sleep` and `withDeadline` themselves, as `async` methods, with the runtime's
+entry points doing no more than finding the executor and calling it.  The state
+of a timer then lives in the frame of the sleeping task, so there is nothing for
+the executor to allocate or to fit into a fixed-size area of a job.  An executor
+can see the task that is waiting, rather than an anonymous job; it can resume the
+task directly when its timer fires on its own thread; and it chooses its own
+synchronisation, with no atomic or cancellation handler from the runtime for an
+executor that does not need them.  Prototypes of both approaches on the same
+executor performed about the same.
+
+We did not do this, for these reasons:
+
+* Each executor would have to implement the race between a timer, a
+  cancellation and the scope's exit for each operation, and for each one that is
+  added later, where a primitive has to get it right once, and the generic
+  implementations built on it are shared.  `withDeadline` also has behaviour that
+  is tied into the runtime (cancellation scopes), which each executor would have
+  to be trusted with.
+* It serves tasks, and only the operations that have entry points.  Jobs that are
+  not the continuation of a sleeping task, and the C entry points that this
+  proposal has to keep working, need a job-based way to schedule in any case, so
+  this would be a second API alongside the first, not instead of it.
+* What it offers that the job-based requirements do not (resuming inline,
+  customising how an operation synchronises) can be added later as overrides of
+  the generic implementations, for the executors that want them: see "Future
+  directions".
+
 ### Scheduling against only the system clocks
 
 An executor can only wait on what its platform can wait on, so it has been
