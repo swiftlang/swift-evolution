@@ -3,9 +3,9 @@
 * Proposal: [SE-0567](0567-relaxed-floating-point-operators.md)
 * Authors: [Steve Canon](https://github.com/stephentyrone)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (November 17...31, 2026)
+* Status: **Active Review (November 17...31, 2026)**
 * Implementation: [swiftlang/swift#92991](https://github.com/swiftlang/swift/pull/92991)
-* Review: ([pitch](https://forums.swift.org/t/relaxed-floating-point-operators/90050))
+* Review: ([pitch](https://forums.swift.org/t/relaxed-floating-point-operators/90050)) ([review](https://forums.swift.org/t/se-0567-relaxed-floating-point-operators/90842))
 
 ## Summary of changes
 Define operators on floating-point types that permit the compiler to apply "normal" algebraic transformations that make it easier for users to explicitly trade-off bitwise reproducibility for improved performance.
