@@ -1,9 +1,9 @@
 # Attachments in the Swift Testing JSON event stream
 
-* Proposal: [ST-NNNN](NNNN-attachments-in-swift-testing-json.md)
+* Proposal: [ST-0030](0030-attachments-in-swift-testing-json.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Maarten Engels](https://github.com/maartene)
+* Status: **Active Review (November 17...November 29, 2026)**
 * Implementation: [swiftlang/swift-testing#1845](https://github.com/swiftlang/swift-testing/pull/1845)
 * Review: ([pitch](https://forums.swift.org/t/pitch-attachments-in-the-swift-testing-json-event-stream/89956))
 
