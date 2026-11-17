@@ -176,15 +176,18 @@ public struct JobCancellationToken: ~Copyable, Sendable {
   /// A convenience method that calls ``canceller.cancel(jobWithToken:)`` with
   /// this token.
   ///
-  /// If the job had not started, the executor takes it off the timer and
-  /// runs it (or enqueues it to run) now, perhaps by way of another thread, and
-  /// this returns `true`.  Returns `false` if the job has started or finished,
-  /// or has already been cancelled, in which case there is nothing to run
-  /// early.  Either way the job runs exactly once.  This does not consume the
-  /// token, and may be called more than once; only the first call can return
-  /// `true`.
-  @discardableResult
-  public borrowing func cancel() -> Bool
+  /// If the job had not started, the executor either gives it back, in which
+  /// case this returns it, for the caller to run or dispose of, or takes it off
+  /// the timer and runs it (or enqueues it to run) now, perhaps by way of
+  /// another thread, and this returns `.cancelled`.  This also returns
+  /// `.cancelled` if the job has started or finished, or has already been
+  /// cancelled, in which case there is nothing to run early.  Either way the job
+  /// runs exactly once.  This does not consume the token, and may be called more
+  /// than once; only the first call can return the job.
+  ///
+  /// The result is not to be ignored: if it has the job, nothing else will run
+  /// it.
+  public borrowing func cancel() -> JobCancellationResult
 }
 ```
 
@@ -207,7 +210,7 @@ holds the token in a closure can cancel with it.  A cancellation handler, for
 example, can only borrow what it captures, and a token that could only be
 cancelled by consuming it would have to be put in a heap-allocated box first.
 The price is that the same token can be used to cancel more than once, which
-an executor has to cope with, by doing nothing and returning `false` after
+an executor has to cope with, by doing nothing and returning `.cancelled` after
 the first.
 
 The reason the `JobCancellationToken` must contain a reference to the
@@ -220,52 +223,60 @@ protocol that both `SchedulingExecutor` and such a `Clock` can conform to.
 
 Next, to _actually_ cancel the job, `JobCanceller` (which
 `SchedulingExecutor` refines) exposes the following API, which borrows the
-`JobCancellationToken`:
+`JobCancellationToken`, and which returns a `JobCancellationResult`:
 
 ```swift
+enum JobCancellationResult: ~Copyable {
+  /// The scheduler took the job off its timer and has given it back.  The
+  /// caller owns it, and has to run it, enqueue it, or (if it made it, and has
+  /// no use for it) dispose of it.
+  case removed(ExecutorJob)
+
+  /// The scheduler is running the job early, or will promptly, or it has
+  /// already started, or finished, or been cancelled.  The caller has nothing
+  /// to do for it, other than wait for it if it needs it to be gone.
+  case cancelled
+}
+
 protocol JobCanceller: AnyObject, Sendable {
   ...
 
   /// Cancel a scheduled job.
   ///
-  /// Every job must be run exactly once, so cancelling a job means running
-  /// it early: if the job identified by the token has not yet started,
-  /// take it off the timer, enqueue it to run now, where it would have run
-  /// had the timer fired, and return `true`.  If the job's `isResumption`
-  /// is `true`, run it here instead of enqueuing it.  The job, not the
-  /// executor, deals with having been cancelled.
+  /// Every job must be run exactly once, so cancelling a job means either
+  /// giving it back, so that the caller can deal with it, or running it early,
+  /// where it would have run had the timer fired.  Which of the two is up to
+  /// the scheduler, and it can always choose to run it.  The job, not the
+  /// scheduler, deals with having been cancelled.
   ///
-  /// Return `true` when the executor has taken responsibility for running the
-  /// job now.  That need not happen before `cancel` returns: an executor
-  /// whose timers belong to another thread may pass the request to that
-  /// thread (through an inbox, say) and return `true`, provided that the job
-  /// then runs promptly, without waiting for its deadline, and nothing is
-  /// left in the executor's timer structures for it once it has.
+  /// Return `.removed(job)` if you can take the job off the timer and give it
+  /// to the caller there and then.  The caller owns it from then on, so you
+  /// must be finished with it.  What you return must be the job that you were
+  /// given to schedule, and not something that you scheduled on its behalf (a
+  /// trampoline, say): if you scheduled something else, run that early and
+  /// return `.cancelled`.
   ///
-  /// Return `false` only if there is nothing to run early: the job has
-  /// already started running or has finished, has already been cancelled, or
-  /// is due to run now in any case.  `false` does not mean "I cannot
-  /// cancel"; an executor has to be able to run a pending job early.
+  /// Otherwise, return `.cancelled`.  That means that the job is yours to run,
+  /// and you will run it promptly, without waiting for its deadline (which
+  /// doesn't have to happen before `cancel` returns: you can pass the request
+  /// to the thread that owns your timers, say), or that there was nothing to
+  /// run early: it has already started running or has finished, has already
+  /// been cancelled, or is due to run now in any case.  If the job's
+  /// `isResumption` is `true`, run it here instead of enqueuing it.
   ///
   /// This may be called from any thread, unless the executor says that it is
   /// for use from one thread only.  A token for a job that has already run or
-  /// been cancelled must do nothing and return `false`, and a token must
+  /// been cancelled must do nothing and return `.cancelled`, and a token must
   /// never match a different job.
   ///
   /// Cancelling a `Task.sleep()` calls this from the task's cancellation
-  /// handler, so an implementation must return promptly, must enqueue the
-  /// job rather than run it (unless it is a resumption), and must not wait
-  /// for a lock that may be held while jobs are run.
+  /// handler, so an implementation must return promptly, must enqueue the job
+  /// rather than run it (unless it is a resumption), and must not wait for a
+  /// lock that may be held while jobs are run.
   ///
   /// An implementation can rely only on the tokens that it issued.
-  ///
-  /// - Parameters:
-  ///   - jobWithToken:  The scheduled job to cancel.
-  ///
-  /// - Returns: `true` if the job had not started, and has been run, or
-  ///            enqueued to run now; otherwise `false`.
-  ///
-  func cancel(jobWithToken: borrowing JobCancellationToken) -> Bool
+  func cancel(jobWithToken: borrowing JobCancellationToken)
+    -> JobCancellationResult
 
   /// Called exactly once when a token that this canceller issued is destroyed,
   /// whether or not the job was cancelled (and, for a cancelled one, after
@@ -294,16 +305,17 @@ The restrictions on `cancel` come from where it is called.  Cancelling a
 runtime runs cancellation handlers synchronously, on whichever thread called
 `task.cancel()`, while it holds the task's status record lock.  The sleeping
 task can't get past that lock (to remove its cancellation handler when it is
-resumed, for example) until `cancel` returns.  So `cancel` must enqueue the
-cancelled job, not run it, since an arbitrary job can do anything, including
-running a task, which needs the status record lock; the exception is a
-resumption job (below), which only enqueues the task that it resumes, and
-which `cancel` should run directly.  And `cancel` must not wait for anything
-that another thread can hold while it runs a job.  The case to worry about is
-an executor that holds a single lock while it runs jobs, such as an event
-loop that runs them under its lock: if the resumed task runs inline on that
-thread and needs the status record lock, which `cancel` holds, while `cancel`
-is waiting for the loop's lock, nothing can proceed.
+resumed, for example) until `cancel` returns.  So an executor that runs the
+cancelled job must enqueue it, not run it, since an arbitrary job can do
+anything, including running a task, which needs the status record lock; the
+exception is a resumption job (below), which only enqueues the task that it
+resumes, and which `cancel` should run directly.  Giving the job back runs
+nothing, which is part of the attraction of it.  And `cancel` must not wait for
+anything that another thread can hold while it runs a job.  The case to worry
+about is an executor that holds a single lock while it runs jobs, such as an
+event loop that runs them under its lock: if the resumed task runs inline on
+that thread and needs the status record lock, which `cancel` holds, while
+`cancel` is waiting for the loop's lock, nothing can proceed.
 
 For an implementer, that means one of the following.
 
@@ -314,49 +326,45 @@ For an implementer, that means one of the following.
   time that it takes to do the bookkeeping.
 * Don't take the lock in `cancel` at all.  An atomic claim, such as an
   exchange of the pointer to the job, decides whether `cancel` or the timer
-  gets it, and `cancel` can enqueue the job, or return `false` because the
-  timer got there first, without waiting for anything. This is how the
+  gets it, and `cancel` can give the job back, or return `.cancelled` because
+  the timer got there first, without waiting for anything. This is how the
   Dispatch executor works.
 * As a last resort, try to take the lock, and if you can't, pass the request
   to whatever owns the lock or your timers (an inbox that the thread running
-  them empties, say) and return `true`.  The job still has to run promptly,
-  and without waiting for its deadline.
+  them empties, say) and return `.cancelled`.  The job still has to run
+  promptly, and without waiting for its deadline.
 
 An executor that is for use from a single thread, like the cooperative
 executor, need not do any of this, but must say so, and `cancel` must then be
-called from that thread.
+called from that thread.  It can always give the job back.
 
 Cancellation is racy; the job may already have started executing, or may
 already have completed.  Jobs must always be run, never simply dropped, so
-whatever happens the executor runs the job exactly once, and cancelling it
-only changes *when*: now, rather than when its timer fires.  The executor
-never hands the job back, so it never has to find the `ExecutorJob` and give
-it up synchronously, and the exactly-once guarantee is the executor's
-ordinary obligation to run each job that it is given, with no hand-over
-between it and the caller to get wrong.
+whatever happens the job runs exactly once, and cancelling it only changes
+*when*: now, rather than when its timer fires, and by whom, since a job that is
+given back is run by the caller.
 
 Cancelling does have to *work*, though.  A cancelled `Task.sleep()` returns
 when its job runs, so an executor that waited for the deadline would keep the
 sleeper, and its timer, around until then; a server that restarts an idle
 timeout on every read would pile up cancelled timers for as long as the
-timeout.  That is why `false` is for jobs with nothing to run early, and not
-for ones that the executor would rather not run early.
+timeout.  That is why `.cancelled` is for a job that the executor will run
+promptly or that has nothing to run early, and not for one that the executor
+would rather not run early.
 
 Because the job runs either way, it is the job that deals with having been
 cancelled, and anything that it needs to know about that has to be arranged
 before cancelling.  The job that resumes a scheduled continuation, for
 example, is told to resume by throwing before the executor is asked to run it
-early (see below).  The result of `cancel` therefore matters only for
-promptness: `true` says that the job will run now, and `false` that there was
-nothing to run early.
+early (see below).
 
-A `false` result deliberately does not say why: the job may have started, it
-may have finished, it may have been cancelled already, or it may be due to
+A `.cancelled` result deliberately does not say why: the job may have started,
+it may have finished, it may have been cancelled already, or it may be due to
 run now anyway.  In every case the job will run (or has run), and so there is
-nothing different for the caller to do; a richer result would only give
-executors a distinction to get wrong, since some cannot tell "has already
-run" from "was never there" and, for a job that is due immediately,
-"dispatched" from "nothing to do".
+nothing different for the caller to do, other than wait for it if it needs it
+gone; a richer result would only give executors a distinction to get wrong,
+since some cannot tell "has already run" from "was never there" and, for a job
+that is due immediately, "dispatched" from "nothing to do".
 
 #### Deciding between the timer and `cancel`
 
@@ -376,7 +384,7 @@ extension ExecutorJob {
   /// will not ask the executor to cancel it.  Returns `false` if the job
   /// was cancelled first, in which case the executor must leave it alone:
   /// `cancel(jobWithToken:)` has been, or is about to be, called, and must
-  /// run it.
+  /// give it back or run it.
   ///
   /// Always returns `true` for a job that the runtime did not schedule.
   public borrowing func claimForTimer() -> Bool
@@ -386,9 +394,9 @@ extension ExecutorJob {
 For such a job, exactly one of "the claim succeeded" and "the executor is
 asked to cancel" happens, and until one has, nothing runs, frees or
 invalidates the job.  So an executor can call `claimForTimer()` and do
-nothing if it fails, and `cancel` can rely on the job being there, and run it
-whether or not the timer has already taken it out of the executor's timer
-structures.  An executor that handles its timers and cancellations on one
+nothing if it fails, and `cancel` can rely on the job being there, and give it
+back or run it whether or not the timer has already taken it out of the
+executor's timer structures.  An executor that handles its timers and cancellations on one
 thread (an event loop, whose `cancel` puts a request in an inbox) needs no
 atomic of its own to decide between them, and can put the address of the job
 in the token.  This is what lets such an executor schedule a `Task.sleep()`
@@ -423,7 +431,7 @@ For any other job, `claimForTimer()` returns `true` and it is up to the
 executor to see that the job isn't run twice.  Calling it more than once is
 harmless.  Executors that never call it keep working: the timer runs the job,
 which finds that it has been cancelled and throws, and `cancel` finds that the
-executor has already let go of it, and returns `false`.
+executor has already let go of it, and returns `.cancelled`.
 
 ### Sleeping tasks
 
@@ -604,7 +612,11 @@ back-deployed code, and every task starts with it.
 
 The continuation that a sleeping task waits on is allocated by the runtime,
 though, and is not a task, so it can be bigger.  `ExecutorJob` (and
-`UnownedJob`) provide access to storage that it carries for the scheduler:
+`UnownedJob`) provide access to storage that it carries for the scheduler.  Only
+a continuation with no result (`Continuation<Void, _>`) can be scheduled, so
+only such a continuation has it; one with a result, which is most of them, is
+no bigger than it would have been, and there is no new type of continuation for
+the purpose:
 
 ```swift
 extension ExecutorJob {
@@ -614,7 +626,8 @@ extension ExecutorJob {
   /// A job that the runtime scheduled itself, as `Task.sleep()` does with the
   /// continuation that it is waiting on, has eight words of storage, zeroed
   /// when the job is created, for the scheduler that it was given to.  Any
-  /// other job has none, and the closure is passed `nil`.
+  /// other job has none, and the closure is passed `nil`.  (Only a continuation
+  /// with no result can be scheduled, and only one has the storage.)
   public func withUnsafeScheduledPrivateData<R, E>(
     body: (UnsafeMutableRawBufferPointer?) throws(E) -> R
   ) throws(E) -> R
@@ -627,9 +640,10 @@ can use the words for whatever it likes in that time: links for an inbox, a
 position in a heap, the deadline.  It can be used from `cancel` too, which can
 rely on the job being there (see "Deciding between the timer and `cancel`"),
 and which is how an executor can put the address of the job in its token (see
-above for why that is enough) and keep everything else in the job.  The storage is not valid once the job has
-run, since running it can free it, and, as with the executor private data, the
-scheduler has to clean up anything that it refers to before it runs the job.
+above for why that is enough) and keep everything else in the job.  The
+storage is not valid once the job has run, since running it can free it, and, as
+with the executor private data, the scheduler has to clean up anything that it
+refers to before it runs the job.
 
 Eight words is enough for the executors that we have looked at: an inbox with
 an array-based heap needs three, a timer wheel four, an intrusive tree five,
@@ -841,7 +855,8 @@ extension supplying the default.
 Everything that this proposal adds as API is SPI in the current
 implementation (under `ExperimentalScheduling`), and will become API if the
 proposal is approved.  That includes `SchedulingExecutor`, `JobCanceller`,
-`JobCancellationToken`, `SchedulingExecutorFireTime`, `SchedulingClock`,
+`JobCancellationToken`, `JobCancellationResult`, `SchedulingExecutorFireTime`,
+`SchedulingClock`,
 `ScheduledContinuation`, the `wait(for:)` method on `ContinuationWaiter`, and
 `isResumption`, `claimForTimer()` and `withUnsafeScheduledPrivateData(body:)` on
 `ExecutorJob` and `UnownedJob`. In addition, one piece is
@@ -896,12 +911,12 @@ for jobs that were tasks.
 
 A split continuation now begins with a job header and has a job kind of its
 own, in the range of kinds that are private to the implementation, but that
-does not change any existing layout or kind.  Its storage also has eight more
-words after its existing fields, for the scheduler (see "Storage for the
-scheduler"); nothing outside the runtime looks past the job header and the
-resume context, whose offset does not change, and the size of the job header
-itself, which libdispatch, the compiler and the debugger depend on, does not
-change either.  The runtime gains two entry points, `swift_job_claimForTimer`
+does not change any existing layout or kind.  If the continuation has no
+result, its allocation also has eight more words after its context, for the
+scheduler (see "Storage for the scheduler"); nothing outside the runtime looks
+past the job header and the resume context, whose offset does not change, and
+the size of the job header itself, which libdispatch, the compiler and the
+debugger depend on, does not change either.  The runtime gains two entry points, `swift_job_claimForTimer`
 and `swift_job_getScheduledPrivateData`, which the Swift API described above
 uses.
 
@@ -925,19 +940,23 @@ room for them.
 `withDeadline` needs a job that cancels a scope when a deadline passes, and it
 must not return while that job might still run, since the job refers to the
 scope.  The scheduling API here is what it needs: `schedule` takes any job, and
-the contract for `cancel` is that, when it returns `true`, the job runs
-promptly and without waiting for its deadline, and that it returns `false` only
-when the job has already started or finished, so a deadline can always wait for
-its job, with a continuation, if cancelling does not remove it.  (The deadline
+when `cancel` returns `.removed`, the job is the caller's, and `withDeadline`
+can return at once, without suspending, which is the common case when the
+operation finishes before the deadline and the executor is on the right thread
+to give the job back.  When it returns `.cancelled`, the job runs promptly (or
+has run, or is running), and a job on the stack has to be waited for, with a
+continuation, before the scope can be left; a job on the heap need not be, and
+a job that the runtime creates for the purpose can be either.  (The deadline
 job is not a continuation that the runtime scheduled, so `claimForTimer()`
 always returns `true` for it, and the executor has to decide between the timer
 and `cancel` itself, as for any other job.)  Whether the job is allocated on
 the stack, and `withDeadline` occasionally suspends on its way out, or on the
 heap, so that it never does, is a choice that does not depend on anything in
-this proposal, and is left to the proposal for `withDeadline`.  A job that the
-runtime creates for the purpose could carry storage for the scheduler, in the
-way that the continuation of a sleeping task does, so that a deadline need not
-allocate either.
+this proposal, and is left to the proposal for `withDeadline`.  The job that the
+runtime creates for the purpose can carry storage for the scheduler, in the way
+that the continuation of a sleeping task does, so that a deadline need not
+allocate either; nothing in the API stops it, since the accessor returns `nil`
+only for a job that was not given the storage.
 
 ### High-level customisation points
 
@@ -1088,7 +1107,7 @@ in a heap-allocated box that the handler could take it out of.  Making
 `cancel` borrow the token removes the box (about one allocation less for each
 `Task.sleep()`), at the cost of a token being usable to cancel more than
 once, which executors already have to handle: the second attempt finds that
-the job is gone and returns `false`.  It also makes the token's lifetime
+the job is gone and returns `.cancelled`.  It also makes the token's lifetime
 simpler, since `release(token:)` is then always called when the token is
 destroyed and never as a side effect of cancelling.
 
@@ -1117,30 +1136,36 @@ must be run, if only to free it, and the job that resumes a task must run for
 the task to continue), so "executed immediately" is the only behaviour that
 works in general, and the option has no reason to exist.
 
-### Returning the job from `cancel`
+### Always running the job when it is cancelled
 
-We explored having `cancel` return the job, as an `ExecutorJob?`, if it
-had not started, handing it back to the caller to run, enqueue or discard.
-That made the exactly-once guarantee a matter of ownership, and let a
-cancelled continuation be resumed directly by the code that cancelled it.  It
-was objected that for many executors (and clocks) outside the standard
-library, locating the original `ExecutorJob` and giving it back synchronously
-is expensive or impossible: a platform timer may hold the job in a closure,
-or report cancellation through a callback, or the timer may belong to an
-event loop on another thread, which `cancel` can ask to drop the timer but
-can't wait for.
+An earlier revision had `cancel` always run the job early, and return only a
+`Bool` that said whether it had taken the job.  That asked little of an
+executor: it never had to give the job up, and could act on the cancellation
+asynchronously.  The cost was that, for a
+job that no one is waiting for the result of but whose scope has to be left (a
+deadline's job, which cancels a scope), cancelling meant waiting for the job to
+run, which is a suspension on every exit from `withDeadline` that is not made
+by the timer.
 
-Running the job early instead asks for much less.  The executor keeps the job
-throughout, so it never has to give it up, and it can act on the cancellation
-asynchronously, provided that it runs the job promptly.  The
-costs are that a job can't be discarded, so a job that needs to know it was
-cancelled has to be told before it runs (which the job that resumes a
-scheduled continuation is), and that, for jobs in general, cancelling takes
-one more hop: the executor enqueues the job, which then does whatever it
-does, where previously the code that cancelled could act at once.  For the
-job that resumes a sleeping task, the executor can run it
-directly (see "Resumption jobs"), so there is no extra hop, and in the
-implementation cancelling a sleeping task costs the same as before.
+The result is now a `JobCancellationResult`, which is either that the job has
+been given back, or `.cancelled`, which is what that revision's `true` and
+`false` come to (that the executor will run it, or that there was nothing to
+run), so an executor that can't give jobs back (a platform timer that
+holds the job in a closure, or an event loop on another thread that `cancel`
+can ask to drop the timer but can't wait for) returns `.cancelled`, as before,
+and nothing is asked of it that wasn't.  An executor that can give the job back
+(the cooperative executor, an executor that keeps its timers under a lock, or
+the Dispatch executor, which owns the job when it wins its claim) returns it, and
+the caller does what it likes with it: a sleeping task's continuation is run,
+which only makes the task runnable, and a deadline's job is simply dropped, and
+`withDeadline` doesn't suspend.
+
+The costs are a larger contract, with the question of who owns the job, and,
+for the job that resumes a sleeping task, two ways for it to be cancelled: the
+runtime still has to record that the job is to throw before it asks the
+executor to cancel it, since it can't know which it will get.  A job that is
+given back, if the caller is the runtime in a cancellation handler, can only be
+run if it is a resumption job, which the job that was scheduled for a sleep is.
 
 ### `cancel(throwing:)` on `ScheduledContinuation`
 
