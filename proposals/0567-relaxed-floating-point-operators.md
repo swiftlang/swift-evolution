@@ -3,7 +3,7 @@
 * Proposal: [SE-0567](0567-relaxed-floating-point-operators.md)
 * Authors: [Steve Canon](https://github.com/stephentyrone)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (November 17...31, 2026)**
+* Status: **Active Review (November 17...December 1, 2026)**
 * Implementation: [swiftlang/swift#92991](https://github.com/swiftlang/swift/pull/92991)
 * Review: ([pitch](https://forums.swift.org/t/relaxed-floating-point-operators/90050)) ([review](https://forums.swift.org/t/se-0567-relaxed-floating-point-operators/90842))
 
