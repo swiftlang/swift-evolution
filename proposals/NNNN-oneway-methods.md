@@ -478,9 +478,9 @@ The explicit `send` keyword also makes it simple for linters to prevent its use.
 
 By default, every method declaration that fulfills the requirements discussed above, can be called with `send` instead of `await`. 
 
-The caller may decide to invoke the method one way or another, depending on their use-case. This is similar to today's situation where callers can any piece of code with `await target.wait()` or, create an unstructured task to make the same call: `Task { await target.wait() }`.
+The caller may decide to invoke the method one way or another, depending on their use-case. This is similar to today's situation where callers can call any piece of code with `await target.wait()`, or create an unstructured task to make the same call: `Task { await target.wait() }`.
 
-Previously, there was no way to for API authors communicate if calling a method without waiting for its result would be intended and supported behavior, or if it would be a very bad idea. From a source code perspective, we cannot easily tell apart an `await target.wait()` called "without waiting for it" because this depends where this call is made from, i.e. was it called from an ad-hoc created task that's purpose is to ignore the result or not?
+Previously, there was no way for API authors to communicate if calling a method without waiting for its result would be intended and supported behavior, or if it would be a very bad idea. From a source code perspective, we cannot easily tell apart an `await target.wait()` called "without waiting for it" because this depends on where this call is made from, i.e. was it called from an ad-hoc task created for the purpose of ignoring the result or not?
 
 By introducing a well defined spelling for these oneway calls, we can detect and offer guidance about the intended use of APIs. To express this, we introduce the optional `@oneway` attribute:
 
@@ -491,7 +491,7 @@ actor Test {
 }
 ```
 
-The `@oneway` attribute is **optional**, allows API authors to express their intent that such API is expected to be called without waiting for it complete, and does not expect to be part of a structurec concurrency call hierarchy. 
+The `@oneway` attribute is **optional**, allows API authors to express their intent that such API is expected to be called without waiting for it to complete, and does not expect to be part of a structured concurrency call hierarchy. 
 
 > The `@oneway` attribute does NOT introduce a new "function color". 
 > It is purely an informational mechanism, issuing warnings when such method is used without `send`.
@@ -759,7 +759,7 @@ This is because a `send` of a distributed method must forward a remote invocatio
 
 Since the actor system does not enforce a specific actor isolation, executing multiple `send` jobs on it would result in executing them potentially concurrently, and could lead to unexpected enqueue order violations which we intend to preserve when using `@oneway` calls.
 
-When the compiler encounters an `@oneway distributed` method, it emits an additional, synchronous (!), distributed thunk that handles which a `send` calls directly, without creating a light-weight task at the call site. This allows distributed functions to exhibit the exact same behavior when the target instance is local, and efficiently call into the distributed actor system if the target is remote. The emitted distributed thunk handles calls as follows:
+When the compiler encounters an `@oneway distributed` method, it emits an additional, synchronous (!), distributed thunk that handles `send` calls directly, without creating a light-weight task at the call site. This allows distributed functions to exhibit the exact same behavior when the target instance is local, and efficiently call into the distributed actor system if the target is remote. The emitted distributed thunk handles calls as follows:
 
 - When the target is a **local** distributed actor:
   - the thunk performs a `send` call on the underlying local actor method.
@@ -811,7 +811,7 @@ While it may seem surprising at first, oneway calls on distributed methods retai
 
 The semantic meaning is quite clear: a distributed thunk may throw also on the local-side of the call, while serializing the arguments, or attempting to establish or use a connection. While remote oneway calls express the intent to not wait for the _remote_ side's reply, the local side of the call is still interesting, and it is beneficial to be able to expose e.g. a potential encoding problem to the caller.
 
-> `DistributedOnewayActorSystem` implementations can decide for themselves if and how they make use of this throwing capability. Some systems may not be able to leverage this "throw early" capability, byt in general it is an useful semantic capability we can offer to potentially remote oneway calls.
+> `DistributedOnewayActorSystem` implementations can decide for themselves if and how they make use of this throwing capability. Some systems may not be able to leverage this "throw early" capability, but in general it is a useful semantic capability we can offer to potentially remote oneway calls.
 
 So, even though the target method of a remote oneway call itself cannot throw, the caller's side of a remote may still fail and therefore oneway remote calls must be marked with `try send` as follows:
 
