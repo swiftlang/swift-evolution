@@ -62,6 +62,11 @@ protocol SchedulingExecutor: Executor {
 }
 ```
 
+(The obvious alternative, adding requirements to `Executor` with defaults that
+hop through the default executor, is discussed in "Alternatives considered";
+the runtime provides that hop for an executor that doesn't schedule itself in
+any case.)
+
 This new protocol will have a method that can be used to schedule a job
 at a specific time or after a specified delay:
 
@@ -168,7 +173,7 @@ public struct JobCancellationToken: ~Copyable, Sendable {
     canceller.release(token: self)
   }
 
-  /// A convenience method that calls ``canceller.cancel()`` with
+  /// A convenience method that calls ``canceller.cancel(jobWithToken:)`` with
   /// this token.
   ///
   /// If the job had not started, the executor takes it off the timer and
@@ -389,6 +394,25 @@ atomic of its own to decide between them, and can put the address of the job
 in the token.  This is what lets such an executor schedule a `Task.sleep()`
 without allocating anything of its own to track cancellation.
 
+A token is not usually proof against being used after its job has gone: it
+must do nothing, and match no other job, whenever it is used.  A token that is
+only the address of a job cannot do that, since the memory of a job that has
+gone is reused, and looking at it to find out whether it has gone is looking at
+memory that may be free.  So for a job that the runtime scheduled itself, the
+contract is different, and the runtime keeps it: it calls `cancel` for such a
+job at most once, and only while the job has not run.  The job is there when
+`cancel` is called, and `cancel` may look at it and identify it by its address.
+The token for such a job is held inside the `ScheduledContinuation` that
+`schedule` returns, which is only cancelled by `wait(for:)`, and that asks the
+continuation first (the claim that decides between the timer and a
+cancellation) and does not call `cancel` for a job that has run.
+
+What this asks of a scheduler, or a clock, that is given such a job to schedule
+is to hand back the token, and not to keep it, copy what is in it, or use it to
+cancel the job itself: once it has been given the job, nothing but the runtime
+knows when the job has gone.  Tokens for any other job have no such
+restriction, and must be safe to use at any time.
+
 The claim has to be made while nothing else can run the job.  An executor
 whose timer can fire on one thread while `cancel` runs the job on another
 (the Dispatch executor's can) cannot use it in place of a claim of its own,
@@ -602,8 +626,8 @@ runs the job, or until a cancellation that it was asked for has run it, so it
 can use the words for whatever it likes in that time: links for an inbox, a
 position in a heap, the deadline.  It can be used from `cancel` too, which can
 rely on the job being there (see "Deciding between the timer and `cancel`"),
-and which is how an executor can put the address of the job in its token and
-keep everything else in the job.  The storage is not valid once the job has
+and which is how an executor can put the address of the job in its token (see
+above for why that is enough) and keep everything else in the job.  The storage is not valid once the job has
 run, since running it can free it, and, as with the executor private data, the
 scheduler has to clean up anything that it refers to before it runs the job.
 
@@ -618,7 +642,10 @@ the nullary continuation that `Task.sleep()` uses if it has to fall back to the
 runtime's global enqueue functions) get `nil`, and the scheduler has to keep
 what it needs somewhere else, which for most executors means allocating.  Such
 an executor can use the storage where it is available and allocate where it
-isn't.
+isn't.  A job that has storage can also be given to the `enqueue` of an
+executor that did not schedule it (a clock that hops through a trampoline does
+that with the job that it was given); that executor has no claim on the storage,
+which belongs to whoever was asked to schedule the job.
 
 ### Scheduling clocks
 
@@ -825,8 +852,9 @@ it is described: `asSchedulingExecutor` is an internal member, not an
 ### Embedded Swift
 
 There is no delayed enqueuing on Embedded Swift (or with the task-to-thread
-concurrency model) at present.  Embedded Swift does not allow protocols to
-contain generic functions, so the `schedule` requirement and the
+concurrency model) at present.  Embedded Swift does not allow a generic method
+of a protocol to be called through an existential, which is how the runtime
+has to call the `schedule` requirement, so that requirement and the
 `Clock`-based APIs cannot be supported there, and `SchedulingExecutor` is
 declared, with no requirements, only so that source that mentions it still
 compiles; `JobCanceller`, `JobCancellationToken`, `SchedulingExecutorFireTime`,
@@ -868,7 +896,14 @@ for jobs that were tasks.
 
 A split continuation now begins with a job header and has a job kind of its
 own, in the range of kinds that are private to the implementation, but that
-does not change any existing layout or kind.
+does not change any existing layout or kind.  Its storage also has eight more
+words after its existing fields, for the scheduler (see "Storage for the
+scheduler"); nothing outside the runtime looks past the job header and the
+resume context, whose offset does not change, and the size of the job header
+itself, which libdispatch, the compiler and the debugger depend on, does not
+change either.  The runtime gains two entry points, `swift_job_claimForTimer`
+and `swift_job_getScheduledPrivateData`, which the Swift API described above
+uses.
 
 ## Implications on adoption
 
@@ -881,7 +916,67 @@ ships it, rather than being back-deployed.
 
 ## Future directions
 
-This is a prerequisite for the custom main and global executors work.
+This is a prerequisite for the custom main and global executors work.  The
+following are not part of this proposal, but the design is intended to leave
+room for them.
+
+### Deadlines
+
+`withDeadline` needs a job that cancels a scope when a deadline passes, and it
+must not return while that job might still run, since the job refers to the
+scope.  The scheduling API here is what it needs: `schedule` takes any job, and
+the contract for `cancel` is that, when it returns `true`, the job runs
+promptly and without waiting for its deadline, and that it returns `false` only
+when the job has already started or finished, so a deadline can always wait for
+its job, with a continuation, if cancelling does not remove it.  (The deadline
+job is not a continuation that the runtime scheduled, so `claimForTimer()`
+always returns `true` for it, and the executor has to decide between the timer
+and `cancel` itself, as for any other job.)  Whether the job is allocated on
+the stack, and `withDeadline` occasionally suspends on its way out, or on the
+heap, so that it never does, is a choice that does not depend on anything in
+this proposal, and is left to the proposal for `withDeadline`.  A job that the
+runtime creates for the purpose could carry storage for the scheduler, in the
+way that the continuation of a sleeping task does, so that a deadline need not
+allocate either.
+
+### High-level customisation points
+
+Executors may in future be able to override operations such as `sleep` or
+`withDeadline` outright, for the sake of an executor that can do better than
+the generic implementation that is built on `schedule` and `cancel`.  The
+low-level requirements here do not stand in the way of that: the generic
+implementations are the default and an override is a specialisation.
+
+### Resuming inline
+
+When a timer fires on the executor that the sleeping task will resume on, the
+task could take over the thread, instead of being enqueued.  The runtime
+already has the means (`swift_continuation_resumeOnExecutors`, which offers the
+resuming thread to the task), but the job that resumes a continuation calls
+the plain `swift_continuation_resume`, so a timer always enqueues the task.
+Cancelling has to enqueue it in any case, since that runs under the task's
+status record lock.  Offering
+the thread from the timer path only is a change to the runtime, with no change
+to the API, since an executor that calls `claimForTimer()` has already said
+that it is on the timer path.
+
+### Embedded Swift
+
+`ContinuousClock` and `SuspendingClock` are not available on Embedded Swift,
+and what a platform has is whatever its hardware provides, so the executor side
+of this proposal, which is organised around the standard clocks, does not fit,
+and is not intended to.  The clock side does: a clock that schedules work itself
+(`SchedulingClock`) needs no help from the executor but `enqueue`, and a clock
+over a platform's hardware timer, with the job held by the clock and enqueued
+by the timer's interrupt, is exactly the case that the design has for a clock
+that keeps jobs itself.  Nothing in that needs a generic method to be called
+through an existential, which is what Embedded Swift rejects: the requirement
+of `SchedulingClock` that takes a job mentions only `Self`, and the token's
+`any JobCanceller` is a class-bound existential.  The `on executor:` requirement
+of `SchedulingClock` is generic over the executor and would have to take `any
+Executor` there, or be an extension method, and `Task.sleep()` would have to
+choose the scheduling clock by an overload instead of the cast that it uses
+elsewhere.  Making these available on Embedded Swift is future work.
 
 ## Alternatives considered
 
@@ -1143,16 +1238,69 @@ each.  And making a kind public fixes its value as ABI, where the kinds of
 these jobs are at present in the range reserved to the implementation.
 `isResumption` lets the runtime decide which jobs qualify.
 
+### Scheduling against only the system clocks
+
+An executor can only wait on what its platform can wait on, so it has been
+suggested that `SchedulingExecutor` should deal only in the system clocks, with
+requirements that are not generic over the clock (one for each clock, say, or
+one that takes a `SystemClockID` and a time), and leave any other clock to the
+clock.
+
+The design agrees with the premise: an executor handles the system clocks that
+it says it does (`supportsScheduling(on:)`), and anything else goes to the
+clock.  What it keeps is the generic spelling of the requirement, for these
+reasons:
+
+* The set of system clocks is not the same everywhere, and a requirement for
+  each of them in the protocol builds in the set that we happen to know about.
+  `SystemClockID` can grow, but each case that it gains would be a new
+  requirement, or a new case for every executor to decide about; the generic
+  requirement and `supportsScheduling(on:)` need neither.  A platform with
+  another clock that an executor can wait on, or without one of the two that we
+  have, is handled by the answer that an executor gives, not by the shape of the
+  protocol.  A clock that is not a system clock is a `SchedulingClock`, and
+  needs nothing from the executor.
+* The generic requirement hands the executor the clock's own `Instant` and
+  `Duration`.  A requirement that took a time in some common unit would have the
+  runtime convert between them, and decide what happens to a tolerance, and a
+  clock with a different notion of time does not convert cleanly (see "Adding
+  conversion functions and traits for `Clock`s").
+* The cost is Embedded Swift, which does not allow the requirement to be called
+  through an existential; but the standard clocks do not exist there, and the
+  clock-driven alternative described under "Future directions" is the better fit
+  in any case.
+
 ### Adding the delayed-enqueuing methods to `Executor` directly
 
-Using a separate protocol allows us to test whether a given executor supports
-scheduling of future jobs; some existing executor implementations do not, and
-in that case code will need to fall back to some other strategy.
+The alternative to a separate protocol is to add `schedule` and `cancel` to
+`Executor`, with default implementations that hop: they schedule a timer on the
+default executor, which enqueues the job on the executor in question when it
+fires.  Callers would then never have to ask whether an executor schedules
+for itself; they would just ask.  We did not do that, for these reasons:
 
-If we were to add these methods to `Executor`, we would additionally need to
-add a `Bool` property to let us test whether or not the executor supported
-scheduling of future work.  Using a separate protocol seems more idiomatic in
-Swift.
+* `Executor` is public, and has conformances that we do not control.  A new
+  requirement needs a default for those to keep working, a default of a public
+  requirement can't be hidden, and requirements can't be added as SPI with
+  defaults, so the whole API surface would be committed to before it had been
+  used.  A protocol that is new can be introduced as SPI, and changed.
+* The question that the runtime has to answer is not "can this executor
+  schedule?" but "which executor in the chain should do the scheduling?":
+  the one the task is running on, then the preferred task executor, then the
+  default.  If every executor claims to schedule, because it has a default, the
+  first one always does, and a timer hops through the default executor even when
+  the task executor that the task prefers has timers of its own (a default on
+  `Executor` does not know what else is in the chain).  Telling
+  executors that schedule for themselves from those that do not is what lets the
+  runtime choose the best, and avoids a hop (an extra job, and for a
+  cancellable one an allocation of its own) when it can.
+* A separate protocol does not lose the fallback.  An executor that returns
+  `false` from `supportsScheduling(on:)` gets the hop, from the runtime, for
+  the standard clocks, and any other clock schedules itself, so an executor that
+  only wants to run jobs does nothing, as it would with a default.
+
+What is different is that the capability is part of the type, and that
+discovering it takes a protocol check, for which `asSchedulingExecutor`
+provides a cheap alternative to a cast.
 
 ## Acknowledgements
 
