@@ -3,7 +3,7 @@
 * Proposal: [SE-0564](0564-split-continuations.md)
 * Authors: [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (November 4...18, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#91981](https://github.com/swiftlang/swift/pull/91981)
 * Related Proposals:
     - [SE-0300: Continuations for interfacing async tasks with synchronous code][SE-0300]
@@ -11,7 +11,7 @@
     - [SE-0417: Task Executor Preference][SE-0417]
     - [SE-0462: Task Priority Escalation APIs][SE-0462]
     - [SE-0528: `Continuation` - Safe and Performant Async Continuations][SE-0528]
-* Review: ([pitch](https://forums.swift.org/t/pitch-split-continuation/90096)) ([review](https://forums.swift.org/t/se-0564-split-continuations/90467))
+* Review: ([pitch](https://forums.swift.org/t/pitch-split-continuation/90096)) ([review](https://forums.swift.org/t/se-0564-split-continuations/90467)) ([acceptance](https://forums.swift.org/t/accepted-se-0564-split-continuations/90846))
 
 ## Summary of changes
 
