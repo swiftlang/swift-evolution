@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Ready for review**
 * Implementation: [swiftlang/swift-package-manager#10789](https://github.com/swiftlang/swift-package-manager/pull/10789)
-* Decision Notes: [Related Pitch](https://forums.swift.org/t/pitch-extending-build-tool-plugins-for-customizing-targets/90061)
+* Decision Notes: [Pitch](https://forums.swift.org/t/pitch-swiftpm-plugin-support-for-multi-language-code-generation/90869), [Related Pitch](https://forums.swift.org/t/pitch-extending-build-tool-plugins-for-customizing-targets/90061)
 
 ## Introduction
 
@@ -71,8 +71,8 @@ so that the Swift binding can reuse those names and call into those
 interface functions wrapping and unwrapping the OpaquePointers.
 
 The example assumes that the SDL library source is accessible to the
-the swift-sdl package using a git submodule. The SDL library is
-built using CMake using an external process into a build-* 
+swift-sdl package using a git submodule. The SDL library is
+built using CMake using an external process into a `build-*`
 directory for each platform swift-sdl supports. These libraries are
 made accessible with a new library search path setting on the
 SwiftSDL target.
