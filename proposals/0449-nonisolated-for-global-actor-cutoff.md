@@ -252,11 +252,11 @@ struct F {
 }
 ```
 
-In the above code, the value type `S` is implicitly `Sendable` and its protocol requirement stored property `x` is of `Sendable` type `Int`. While the protocol `P` requires `x` to be globally isolated,
-under this proposal, the witness `x` is treated as non-isolated within the module.
-When `Sendable` value types are passed between isolation domains, each isolation domain has an independent copy of the value. Accessing properties stored on a value type from across isolation domains is safe as long as the stored property type is also `Sendable`. Even if the stored property is a `var`, assigning to the property will not risk a data race, because the assignment cannot have effects on copies in other isolation domains. Therefore, synchronous access of `x` is okay.
+In the above code, the value type `S` is implicitly `Sendable` and its protocol requirement stored property `y` is of `Sendable` type `Int`. While the protocol `P` requires `y` to be globally isolated,
+under this proposal, the witness `y` is treated as non-isolated within the module.
+When `Sendable` value types are passed between isolation domains, each isolation domain has an independent copy of the value. Accessing properties stored on a value type from across isolation domains is safe as long as the stored property type is also `Sendable`. Even if the stored property is a `var`, assigning to the property will not risk a data race, because the assignment cannot have effects on copies in other isolation domains. Therefore, synchronous access of `y` is okay.
 
-Additionally, [SE-0434](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md) allows explicitly annotating globally-isolated value types' properties such as `x` in the previous example with `nonisolated` for enabling synchronous access from outside the module. This proposal extends this rule to **all** `Sendable` value types:
+Additionally, [SE-0434](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0434-global-actor-isolated-types-usability.md) allows explicitly annotating globally-isolated value types' properties such as `y` in the previous example with `nonisolated` for enabling synchronous access from outside the module. This proposal extends this rule to **all** `Sendable` value types:
 
 ```swift
 // In Module A
