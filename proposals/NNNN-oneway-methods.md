@@ -1,7 +1,7 @@
 # `send` and `@oneway` method calls
 
 * Proposal: [SE-NNNN](NNNN-oneway-methods.md)
-* Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
+* Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Payas Rajan](https://github.com/PayasR)
 * Review Manager: TODO
 * Status: **Awaiting review**
 * Implementation: https://github.com/swiftlang/swift/pull/91316
