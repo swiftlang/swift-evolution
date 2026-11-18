@@ -396,11 +396,11 @@ asked to cancel" happens, and until one has, nothing runs, frees or
 invalidates the job.  So an executor can call `claimForTimer()` and do
 nothing if it fails, and `cancel` can rely on the job being there, and give it
 back or run it whether or not the timer has already taken it out of the
-executor's timer structures.  An executor that handles its timers and cancellations on one
-thread (an event loop, whose `cancel` puts a request in an inbox) needs no
-atomic of its own to decide between them, and can put the address of the job
-in the token.  This is what lets such an executor schedule a `Task.sleep()`
-without allocating anything of its own to track cancellation.
+executor's timer structures.  An executor that handles its timers and
+cancellations on one thread (an event loop, whose `cancel` puts a request in
+an inbox) needs no atomic of its own to decide between them, and can put the
+address of the job in the token.  This is what lets such an executor schedule
+a `Task.sleep()` without allocating anything of its own to track cancellation.
 
 A token is not usually proof against being used after its job has gone: it
 must do nothing, and match no other job, whenever it is used.  A token that is
