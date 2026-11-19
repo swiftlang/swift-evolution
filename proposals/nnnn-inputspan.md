@@ -10,16 +10,17 @@
 
 [SE-0485]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0485-outputspan.md
 [SE-0516]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0516-borrowing-sequence.md
+[SE-0525]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0525-rawspan-safe-loading-api.md
 [SE-0527]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0527-rigidarray-uniquearray.md
 [SE-0558]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0558-mutablespan-bulk-updates.md
 
 ## Summary of changes
 
-Adds `InputSpan`, a dual of `OutputSpan` that represents a region of memory where contiguous initialized elements follow a region of uninitialized memory.
+Adds `InputSpan` and `InputRawSpan`, duals of `OutputSpan` and `OutputRawSpan`. They represent a region of memory where contiguous initialized elements follow a region of uninitialized memory.
 
 ## Motivation
 
-Containers of noncopyable elements currently do not have an efficient method to selectively deinitialize their elements in place. For example, an `InlineArray<MyNonCopyable>` cannot provide a subset of its elements to another container. We propose `InputSpan` to provide this facility.
+Containers of noncopyable elements currently do not have an efficient method to selectively deinitialize their elements in place. For example, an `InlineArray` of noncopyable elements cannot provide a subset of its contents to another container. We propose `InputSpan` to provide this functionality.
 
 ```swift
 struct MyNonCopyable: ~Copyable {}
@@ -34,7 +35,7 @@ let selected = vector.consumeAll {
 
 `InlineArray`'s `consumeAll(consumingWith:)` method (shown above) passes the entire contents of the array to be consumed by a closure receiving an `InputSpan` parameter.
 
-Parsers will lend themselves to using instances of `InputSpan` (or `InputRawSpan`), and data structures such as ring buffers (or `Deque`) will be able to provide their elements through `InputSpan` instances.
+Parsers will lend themselves to using instances of `InputSpan` (or `InputRawSpan`), and data structures such as ring buffers (or [`Deque`](https://github.com/apple/swift-collections/blob/main/Sources/DequeModule/Deque/Deque.swift)) will be able to provide their elements through `InputSpan` instances.
 
 ## Proposed solution
 
@@ -42,7 +43,7 @@ Parsers will lend themselves to using instances of `InputSpan` (or `InputRawSpan
 
 `InputSpan` and `InputRawSpan` are counterparts to `OutputSpan` and `OutputRawSpan`, introduced in [SE-0485][SE-0485]. They represent a single range of mutable memory separated in two parts: a prefix of uninitialized memory, followed by a suffix of initialized elements. This order is the opposite of `OutputSpan`, where the uninitialized memory is at the end of the range. `InputSpan`'s operations manage the initialization state to preserve the invariant that the initialized memory remains contiguous.
 
-`InputSpan` and `InputRawSpan` rely on similar guarantees to `OutputSpan` and `OutputRawSpan` for memory safety. They manage the initialization state of the memory they represent on behalf of the memory's owner.
+`InputSpan` and `InputRawSpan` rely on the same memory-safety guarantees as `OutputSpan` and `OutputRawSpan`. They manage the initialization state of the memory they represent on behalf of the memory's owner.
 
 When an `InputSpan` goes out of scope, all of its remaining elements are deinitialized. This allows some container types to delegate the deinitialization of their contents to an `InputSpan`, without requiring a closure.
 
@@ -56,7 +57,7 @@ Similarly, an algorithm reading in input values will efficiently read them from 
 
 ##### API of `InputSpan` and `InputRawSpan`
 
-We expect `InputSpan` and `InputRawSpan` to have very similar API to their counterparts, `OutputSpan` and `OutputRawSpan`. The main differences will be that the `append` family of functions for `Output[Raw]Span` will correspond to a `prepend` family of functions for `Input[Raw]Span`. Their privileged usage will be for consuming rather than for initializing.
+`InputSpan` and `InputRawSpan` should have very similar API to their counterparts, `OutputSpan` and `OutputRawSpan`. The main difference is that the `append` family of functions for `Output[Raw]Span` corresponds to a `prepend` family of functions for `Input[Raw]Span`. Their privileged usage is for consuming rather than for initializing.
 
 #### Extensions to standard library types
 
@@ -83,7 +84,7 @@ extension OutputSpan where Element: ~Copyable {
 
 ### `InputSpan`
 
-`InputSpan<Element>` represents a partly-initialized region of memory. It is noncopyable, in order to enforce exclusive access to its memory. It is nonescapable to ensure it does not outlive that memory.
+`InputSpan<Element>` represents a partly-initialized region of memory. Its noncopyability enforces exclusive access to its memory. Its nonescapability ensures that it does not outlive its memory.
 
 ```swift
 @frozen
@@ -94,7 +95,7 @@ struct InputSpan<Element: ~Copyable>: ~Copyable, ~Escapable {
   /// The total number of elements that this input span can contain.
   var capacity: Int { get }
 
-  /// The number of additional elements that can be added to this span.
+  /// The number of additional elements that can be prepended to this span.
   var freeCapacity: Int { get } // capacity - count
 
   /// A Boolean value indicating whether the span is empty.
@@ -111,7 +112,7 @@ The memory represented by an `InputSpan` has room for `capacity` instances of `E
 
 ##### Removing elements
 
-The basic operation supported by `InputSpan` is removing the first initialized element and returning it. The memory where the element was stored is deinitialized, and `count` decreases by 1. `removeFirst()` traps when the span is empty. `popFirst()` wraps `removeFirst()` but returns `nil` when the span is empty.
+The basic operation supported by `InputSpan` is removing the first initialized element and returning it. The memory where the element was stored is deinitialized, and `count` decreases by 1. `removeFirst()` traps when the span is empty. `popFirst()` returns `nil` instead when the span is empty.
 
 ```swift
 extension InputSpan where Element: ~Copyable {
@@ -129,6 +130,8 @@ Bulk operations to deinitialize multiple elements:
 extension InputSpan where Element: ~Copyable {
   /// Remove the first n elements of this span,
   /// by deinitializing the memory they occupy.
+  ///
+  /// `n` must not be greater than `count`.
   mutating func removeFirst(_ n: Int)
 
   /// Remove all of this span's elements by deinitializing all its memory.
@@ -151,16 +154,10 @@ The returned `InputSpan` has a `capacity` equal to its `count`, and it exclusive
 
 ```swift
 extension InputSpan where Element: ~Copyable {
-  /// Remove elements from the beginning of this span
+  /// Remove up to maxCount elements from the beginning of this span
   /// and pass them to a closure through an input span.
   mutating func consumePrefix<E: Error, R: ~Copyable>(
     maxCount: Int,
-    consumingWith consumer: (consuming InputSpan<Element>) throws(E) -> R
-  ) throws(E) -> R
-
-  /// Remove all elements from this span
-  /// and pass them to a closure through an input span.
-  mutating func consumeAll<E: Error, R: ~Copyable>(
     consumingWith consumer: (consuming InputSpan<Element>) throws(E) -> R
   ) throws(E) -> R
 }
@@ -168,7 +165,7 @@ extension InputSpan where Element: ~Copyable {
 
 ##### Prepending elements
 
-While the primary operation of `InputSpan` is to remove or consume elements, users will also need to prepend elements into the available uninitialized memory. For each element prepended, the span's `count` is incremented by 1. If the span has no free capacity (`count == capacity`), the operation traps.
+While the primary operation of `InputSpan` is to remove or consume elements, it can also prepend elements into its uninitialized memory. For each element prepended, the span's `count` is incremented by 1. If the span doesn't have enough free capacity, the operation traps.
 
 ```swift
 extension InputSpan where Element: ~Copyable {
@@ -182,11 +179,11 @@ extension InputSpan {
 }
 ```
 
-Since an `InputSpan`'s initialized elements are always a suffix of its memory, the front is the only end at which elements can be added or removed. `InputSpan` does not have `removeLast()` or `append()`, only `removeFirst()` and `prepend()`.
+Since an `InputSpan`'s initialized elements are always a suffix of its memory, the front is the only end at which elements can be added or removed. `InputSpan` has `removeFirst()` and `prepend()`, but has neither `removeLast()` nor `append()`.
 
 ##### Accessing an `InputSpan`'s initialized elements
 
-The initialized elements are accessible for read-only or mutating access via the `span` and `mutableSpan` properties:
+The `span` and `mutableSpan` properties provide read-only or mutating access to the initialized elements:
 
 ```swift
 extension InputSpan where Element: ~Copyable {
@@ -202,10 +199,10 @@ extension InputSpan where Element: ~Copyable {
 
 ```swift
 extension InputSpan where Element: ~Copyable {
-  /// The type that represents an initialized index in an `InputSpan`.
+  /// The type that represents an initialized index in an input span.
   typealias Index = Int
 
-  /// The range of initialized indices for this `InputSpan`.
+  /// The range of initialized indices for this span.
   var indices: Range<Index> { get }
 
   /// Access the element at the specified index.
@@ -234,7 +231,7 @@ extension InputSpan: Iterable where Element: ~Copyable {
 }
 ```
 
-##### Interoperability with unsafe code
+##### Unsafe buffer access
 
 We provide a method to process or consume the contents of an `InputSpan` using unsafe operations, such as dispatching to code written in legacy (memory-unsafe) languages.
 
@@ -295,7 +292,7 @@ extension InputSpan {
 }
 ```
 
-As with `OutputSpan`, we also provide a default (no-parameter) initializer to create an empty, zero-capacity `InputSpan`. Such an initializer is useful to materialize an empty span for the `nil` case of an Optional, for example, or to exchange with another span in a mutable struct.
+As with `OutputSpan`, we also provide a default (no-parameter) initializer to create an empty, zero-capacity `InputSpan`. Such an initializer is useful to materialize an empty span for the `nil` case of an `Optional`, for example, or to exchange with another span in a mutable struct.
 
 ```swift
 extension InputSpan where Element: ~Copyable {
@@ -307,7 +304,7 @@ extension InputSpan where Element: ~Copyable {
 
 ##### Retrieving the remaining elements from an `InputSpan`
 
-Once a function has finished consuming elements from an `InputSpan`, the owner of the memory must consume the `InputSpan` in order to retake ownership of the elements that remain. The owning type must pass the memory used to create the `InputSpan` to the `finalize(for:)` function. Passing the wrong buffer is a programmer error and the function traps; this requirement also ensures that user code does not wrongly replace the `InputSpan` with an unrelated instance. The `finalize(for:)` function consumes the `InputSpan` instance and returns the number of initialized elements still held in the buffer. If `finalize(for:)` is not called, the initialized elements of an `InputSpan` are deinitialized when the binding goes out of scope.
+Once a function has finished consuming elements from an `InputSpan`, the owner of the memory must consume the `InputSpan` to retake ownership of the elements that remain. The owning type must pass the memory used to create the `InputSpan` to the `finalize(for:)` function. Passing the wrong buffer is a programmer error and the function traps; this requirement also ensures that user code does not wrongly replace the `InputSpan` with an unrelated instance. The `finalize(for:)` function consumes the `InputSpan` instance and returns the number of initialized elements still held in the buffer. If `finalize(for:)` is not called, the initialized elements of an `InputSpan` are deinitialized when the binding goes out of scope.
 
 ```swift
 extension InputSpan where Element: ~Copyable {
@@ -331,7 +328,7 @@ extension InputSpan {
 
 ### Extensions to `OutputSpan`
 
-`OutputSpan` can empty all or a suffix of its elements into an `InputSpan`, either by returning it, or by passing it to a closure.
+`OutputSpan` can empty all or a suffix of its elements into an `InputSpan`, either by returning it or by passing it to a closure.
 
 ```swift
 extension OutputSpan where Element: ~Copyable {
@@ -340,7 +337,7 @@ extension OutputSpan where Element: ~Copyable {
   @_lifetime(&self)
   mutating func consumeAll() -> InputSpan<Element>
 
-  /// Remove all elements from this span by passing all of its elements to
+  /// Remove all elements from this span by passing them to
   /// a closure through an input span.
   mutating func consumeAll<E: Error, R: ~Copyable>(
     consumingWith consumer: (consuming InputSpan<Element>) throws(E) -> R
@@ -360,7 +357,7 @@ extension OutputSpan where Element: ~Copyable {
 }
 ```
 
-We want `OutputSpan` and `InputSpan` to have essentially the same API. We therefore propose an equivalent of `InputSpan`'s `popFirst()`:
+We want the API of `OutputSpan` and `InputSpan` to be aligned. Accordingly, we propose an `OutputSpan` equivalent of `InputSpan`'s `popFirst()`:
 
 ```swift
 extension OutputSpan where Element: ~Copyable {
@@ -369,16 +366,16 @@ extension OutputSpan where Element: ~Copyable {
 }
 ```
 
-### Extension to `InlineArray`
+### Extensions to `InlineArray`
 
-An `InlineArray` can be consumed by passing its elements to a closure through an `InputSpan`. The call consumes the array, and the `InputSpan` becomes the owner of the elements.
+An `InlineArray` can be consumed by passing its elements to a closure through an `InputSpan`. `consumeAll(consumingWith:)` consumes the array, and the `InputSpan` becomes the owner of the elements. The closure could be used to transfer some of the array's elements to a `UniqueArray`, for example.
 
 ```swift
 extension InlineArray where Element: ~Copyable {
   /// Consume this array by passing all of its elements to a closure
   /// through an input span.
   ///
-  /// The closure chooses how to dispose of the elements. Any remaining initialized
+  /// The closure chooses how to dispose of the elements. Any remaining
   /// elements are deinitialized when the input span goes out of scope,
   /// whether the closure returns normally or by throwing.
   ///
@@ -393,9 +390,7 @@ extension InlineArray where Element: ~Copyable {
 }
 ```
 
-`consumeAll(consumingWith:)` lets an `InlineArray` to relinquish noncopyable elements it contains, for example to transfer some of its elements to a `UniqueArray`.
-
-### Extension to `UniqueArray`
+### Extensions to `UniqueArray`
 
 `UniqueArray` adds the same consuming functions as `OutputSpan` does:
 
@@ -406,7 +401,7 @@ extension UniqueArray where Element: ~Copyable {
   @_lifetime(&self)
   mutating func consumeAll() -> InputSpan<Element>
 
-  /// Remove all elements from this array by passing all of its elements to
+  /// Remove all elements from this array by passing them to
   /// a closure through an input span.
   mutating func consumeAll<E: Error, R: ~Copyable>(
     consumingWith consumer: (consuming InputSpan<Element>) throws(E) -> R
@@ -442,15 +437,11 @@ extension MutableSpan where Element: ~Copyable {
     _ subrange: Range<Index>, moving source: inout InputSpan<Element>
   )
 
-  /// Overwrites the elements within a range of indices by moving
-  /// the elements from the source.
   mutating func updateSubrange(
     _ subrange: some RangeExpression<Index>,
     moving source: inout InputSpan<Element>
   )
 
-  /// Overwrites the elements within a range of indices by moving
-  /// the elements from the source.
   mutating func updateSubrange(
     _ subrange: UnboundedRange, moving source: inout InputSpan<Element>
   )
@@ -459,7 +450,256 @@ extension MutableSpan where Element: ~Copyable {
 
 ### `InputRawSpan`
 
-TKTK
+`InputRawSpan` is the untyped counterpart of `InputSpan`, as `OutputRawSpan` is to `OutputSpan`. Its memory is a prefix of uninitialized bytes followed by `byteCount` initialized bytes, and bytes are removed or prepended at the front. Its API is similar to `OutputRawSpan`'s, with `prepend` operations in place of `append`. Safe `prepend` overloads follow the precedent of [SE-0525][SE-0525].
+
+```swift
+@frozen
+struct InputRawSpan: ~Copyable, ~Escapable {
+  /// The number of initialized bytes in this span.
+  var byteCount: Int { get }
+
+  /// The total number of bytes that this input span can contain.
+  var capacity: Int { get }
+
+  /// The number of additional bytes that can be prepended to this span.
+  var freeCapacity: Int { get } // capacity - byteCount
+
+  /// A Boolean value indicating whether the span is empty.
+  var isEmpty: Bool { get }
+
+  /// A Boolean value indicating whether the span is full.
+  var isFull: Bool { get }
+
+  /// The indices that are valid for subscripting the span, in ascending order.
+  var byteOffsets: Range<Int> { get }
+}
+
+extension InputRawSpan: @unchecked Sendable {}
+```
+
+##### Prepending and removing bytes from `InputRawSpan`
+
+```swift
+extension InputRawSpan {
+  /// Prepend a single byte to this span.
+  mutating func prepend(_ value: UInt8)
+
+  /// Prepend the given value's bytes to this span.
+  mutating func prepend<T: ConvertibleToBytes & BitwiseCopyable>(
+    _ value: T, as type: T.Type
+  )
+
+  /// Prepend the given integer's bytes to this span, in the given byte order.
+  mutating func prepend<
+    T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
+  >(
+    _ value: T, as type: T.Type, _ byteOrder: ByteOrder
+  )
+
+  /// Prepend the given value's bytes to this span, including any padding.
+  @unsafe
+  mutating func prepend<T: BitwiseCopyable>(
+    paddedBytes value: T, as type: T.Type
+  )
+
+  /// Repeatedly prepend the given value's bytes to this span.
+  mutating func prepend<T: ConvertibleToBytes & BitwiseCopyable>(
+    repeating repeatedValue: T, count: Int, as type: T.Type
+  )
+
+  /// Repeatedly prepend the given integer's bytes to this span,
+  /// in the given byte order.
+  mutating func prepend<
+    T: ConvertibleToBytes & BitwiseCopyable & FixedWidthInteger
+  >(
+    repeating repeatedValue: T, count: Int, as type: T.Type,
+    _ byteOrder: ByteOrder
+  )
+
+  /// Repeatedly prepend the given value's bytes to this span,
+  /// including any padding.
+  @unsafe
+  mutating func prepend<T: BitwiseCopyable>(
+    repeatingPaddedBytes repeatedValue: T, count: Int, as type: T.Type
+  )
+}
+```
+
+Some of the overloads of `prepend()` take a `BitwiseCopyable` value whose representation may include padding bytes. We use the word `padded` to denote that indeterminate byte values may be copied. This label has also been [proposed](https://github.com/swiftlang/swift-evolution/pull/3371) for updated names to `OutputRawSpan`'s matching `append` overloads.
+
+```swift
+extension InputRawSpan {
+  /// Remove the first byte from this span.
+  mutating func removeFirst() -> UInt8
+
+  /// Remove and return the first byte of this span, if it exists.
+  mutating func popFirst() -> UInt8?
+
+  /// Remove the first n bytes from this span.
+  ///
+  /// `n` must not be greater than `byteCount`.
+  mutating func removeFirst(_ n: Int)
+
+  /// Remove all of this span's bytes.
+  mutating func removeAll()
+
+  /// Remove up to maxByteCount bytes from the beginning of this span, and
+  /// return an input span that takes ownership of the removed bytes.
+  @_lifetime(&self)
+  mutating func consumePrefix(maxByteCount: Int) -> InputRawSpan
+
+  /// Remove up to maxByteCount bytes from the beginning of this span
+  /// and pass them to a closure through an input span.
+  mutating func consumePrefix<E: Error, R: ~Copyable>(
+    maxByteCount: Int,
+    consumingWith consumer: (consuming InputRawSpan) throws(E) -> R
+  ) throws(E) -> R
+}
+```
+
+##### Accessing the initialized bytes of `InputRawSpan`
+
+```swift
+extension InputRawSpan {
+  /// Access the byte at the specified offset in the span.
+  subscript(_ byteOffset: Int) -> UInt8 { get set }
+
+  /// Access the byte at the specified offset in the span.
+  @unsafe
+  subscript(unchecked byteOffset: Int) -> UInt8 { get set }
+
+  /// Borrow the underlying initialized memory for read-only access.
+  var bytes: RawSpan { get }
+
+  /// Exclusively borrow the underlying initialized memory for mutation.
+  var mutableBytes: MutableRawSpan { mutating get }
+}
+
+extension InputRawSpan: Iterable {
+  typealias Failure = Never
+  var underestimatedCount: Int { get }
+  func makeBorrowingIterator() -> Span<UInt8>.BorrowingIterator
+}
+```
+
+##### Unsafe byte access
+
+```swift
+extension InputRawSpan {
+  /// Call the given closure with the unsafe buffer pointer addressed by this
+  /// InputRawSpan and a mutable reference to its count of initialized bytes.
+  @unsafe
+  mutating func withUnsafeMutableBytes<E: Error, R: ~Copyable>(
+    _ body: (
+      UnsafeMutableRawBufferPointer,
+      _ initializedCount: inout Int
+    ) throws(E) -> R
+  ) throws(E) -> R
+}
+```
+
+##### Creating an `InputRawSpan` instance
+
+Creating an `InputRawSpan` is an unsafe operation. It requires having knowledge of the initialization state of the range of memory being targeted. The range of memory must be in two regions: the first region is uninitialized, and the second region contains initialized bytes. The number of initialized bytes is passed to the `InputRawSpan` initializer through its `initializedCount` argument.
+
+```swift
+extension InputRawSpan {
+  /// Create an InputRawSpan with zero capacity.
+  @_lifetime(immortal)
+  init()
+
+  /// Unsafely create an InputRawSpan over partly-initialized memory.
+  @unsafe
+  init(buffer: UnsafeMutableRawBufferPointer, initializedCount: Int)
+
+  /// Unsafely create an InputRawSpan over partly-initialized memory.
+  @unsafe
+  init(
+    buffer: borrowing Slice<UnsafeMutableRawBufferPointer>,
+    initializedCount: Int
+  )
+}
+```
+
+##### Retrieving the remaining initialized memory from an `InputRawSpan`
+
+```swift
+extension InputRawSpan {
+  /// Consume the input span and return the number of initialized bytes
+  /// remaining at the end of the underlying memory region.
+  @unsafe
+  consuming func finalize(
+    for buffer: UnsafeMutableRawBufferPointer
+  ) -> Int
+
+  /// Consume the input span and return the number of initialized bytes
+  /// remaining at the end of the underlying memory region.
+  @unsafe
+  consuming func finalize(
+    for buffer: Slice<UnsafeMutableRawBufferPointer>
+  ) -> Int
+}
+```
+
+### Extensions to `OutputRawSpan`
+
+`OutputRawSpan` gains the untyped counterparts of `OutputSpan`'s `consumeAll()` and `consumeSuffix(maxCount:)` functions, as well as `popLast()`.
+
+```swift
+extension OutputRawSpan {
+  /// Remove all bytes from this span, and return an input span that takes
+  /// ownership of the bytes.
+  @_lifetime(&self)
+  mutating func consumeAll() -> InputRawSpan
+
+  /// Remove all bytes from this span by passing them to
+  /// a closure through an input span.
+  mutating func consumeAll<E: Error, R: ~Copyable>(
+    consumingWith consumer: (consuming InputRawSpan) throws(E) -> R
+  ) throws(E) -> R
+
+  /// Remove up to maxByteCount bytes from the end of this span, and return
+  /// an input span that takes ownership of the removed bytes.
+  @_lifetime(&self)
+  mutating func consumeSuffix(maxByteCount: Int) -> InputRawSpan
+
+  /// Remove up to maxByteCount bytes from the end of this span, by
+  /// passing them to a closure through an input span.
+  mutating func consumeSuffix<E: Error, R: ~Copyable>(
+    maxByteCount: Int,
+    consumingWith consumer: (consuming InputRawSpan) throws(E) -> R
+  ) throws(E) -> R
+
+  /// Remove and return the last byte of this span, if it exists.
+  mutating func popLast() -> UInt8?
+}
+```
+
+### Extensions to `MutableRawSpan`
+
+As with `MutableSpan`, [SE-0558][SE-0558] adds `updateAll(moving:)` and `updateSubrange(_:moving:)` to `MutableRawSpan`, taking an `OutputRawSpan` as their source. We propose matching overloads taking an `InputRawSpan`. They overwrite bytes of the destination by moving the source's bytes. The source must have exactly as many bytes as the destination (or the destination's target subrange), or the functions trap. The source `InputRawSpan` is empty afterwards.
+
+```swift
+extension MutableRawSpan {
+  /// Overwrites every byte of this span by moving the bytes
+  /// from the source.
+  mutating func updateAll(moving source: inout InputRawSpan)
+
+  /// Overwrites the bytes within a range of offsets by moving
+  /// the bytes from the source.
+  mutating func updateSubrange(
+    _ subrange: Range<Int>, moving source: inout InputRawSpan
+  )
+
+  mutating func updateSubrange(
+    _ subrange: some RangeExpression<Int>, moving source: inout InputRawSpan
+  )
+
+  mutating func updateSubrange(
+    _ subrange: UnboundedRange, moving source: inout InputRawSpan
+  )
+}
+```
 
 ## Source compatibility
 
@@ -471,13 +711,9 @@ This proposal adds to the ABI of the standard library.
 
 ## Implications on adoption
 
-The additions described in this proposal require a new version of the Swift standard library and runtime. The additions to `OutputSpan`, `InlineArray`, `UniqueArray` and `MutableSpan` have the same availability as `InputSpan`.
+The additions described in this proposal require a new version of the Swift standard library and runtime. The additions to `OutputSpan`, `OutputRawSpan`, `InlineArray`, `UniqueArray`, `MutableSpan` and `MutableRawSpan` have the same availability as `InputSpan` and `InputRawSpan`.
 
 ## Future directions
-
-#### `InputRawSpan`
-
-`OutputRawSpan` and `MutableRawSpan` accompany `OutputSpan` and `MutableSpan` for untyped memory. An untyped variant of `InputSpan` could consume heterogeneously-typed memory from the front, such as bytes being read by a decoder.
 
 #### Continuing API parity between `InputSpan` and `OutputSpan`
 
@@ -487,11 +723,11 @@ The additions described in this proposal require a new version of the Swift stan
 
 The `Iterable` protocol of [SE-0516][SE-0516] provides borrowed access to a container's elements. Its future directions describe other protocols that would support the consuming iteration needed to move noncopyable elements from one container to another. One of these is a `Drain` protocol, for types that can "provide an in-place consumable sequence through a series of `InputSpan` instances, allowing direct consumption of elements from some container's storage, in bulk, without requiring them to be moved into any temporary buffer."
 
-A `Drain` protocol would vend `InputSpan` instances to its clients. It would let generic code consume a container's elements in bulk, as `InlineArray.consumeAll(consumingWith:)` does. Types such as `UniqueArray` ([SE-0527][SE-0527]) could conform to `Drain`. The `DrainableContainer` protocol in the `ContainersPreview` module of [swift-collections](https://github.com/apple/swift-collections) is a prototype of this functionality.
+A `Drain` protocol would provide `InputSpan` instances to its clients. It would let generic code consume a container's elements in bulk through closures. Types such as `UniqueArray` ([SE-0527][SE-0527]) could conform to `Drain`. The `DrainableContainer` protocol in the `ContainersPreview` module of [swift-collections](https://github.com/apple/swift-collections) is a prototype of this functionality.
 
 #### Bulk operations
 
-We defer bulk operations, such as prepending the contents of an existing `Span`, to a future proposal. It will be informed by the experience of [SE-0558][SE-0558].
+We defer bulk operations, such as prepending the contents of an existing `Span`, to a future proposal. That proposal will be informed by the experience of [SE-0558][SE-0558].
 
 #### Insertions and removals at any position
 
@@ -501,8 +737,8 @@ We defer bulk operations, such as prepending the contents of an existing `Span`,
 
 #### Removing from the front of `OutputSpan`
 
-An `OutputSpan`'s initialized elements form a prefix of its memory. Removing its first element would require moving every other element one position toward the front, an O(n) operation, or a different invariant. Giving `InputSpan` the mirrored layout keeps each operation O(1) at the end that borders the uninitialized memory, and makes the direction of consumption part of the type.
+An `OutputSpan`'s initialized elements form a prefix of its memory. Removing its first element would require moving every other element one position toward the front, an O(n) operation. `InputSpan`'s layout makes removing the first element O(1), which suits tasks that consume elements in order, such as taking elements from the head of a `Deque`.
 
 #### Only returning an `InputSpan` from `OutputSpan.consumeAll()`
 
-`consumeAll()` returns an `InputSpan` that exclusively borrows the `OutputSpan`, which is usable again only once the `InputSpan` is destroyed. The closure-taking `consumeAll(consumingWith:)` ends the lifetime of the `InputSpan` when the closure returns, so the scope in which the `OutputSpan` is unavailable is explicit. While the returning form is useful, it is not as generalizable as the closure form. The closure form can be used as a witness for a protocol requirement for non-contiguous containers.
+The returning form of `consumeAll()` is a complete solution for contiguous containers, but would fall short for non-contiguous containers. The closure form can be used as a witness for [protocol requirements](https://github.com/apple/swift-collections/blob/a807eb67ee7421ba6f1871be1ca6ae2c366b4bd1/Sources/ContainersPreview/Protocols/Container/DrainableContainer.swift#L235) that can be satisfied by non-contiguous containers.
