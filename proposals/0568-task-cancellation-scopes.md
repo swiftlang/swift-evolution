@@ -1,11 +1,11 @@
 # Task cancellation scopes
 
-* Proposal: [SE-NNNN](NNNN-task-cancellation-scopes.md)
+* Proposal: [SE-0568](0568-task-cancellation-scopes.md)
 * Authors: [Konrad Malawski](https://github.com/ktoso), [Franz Busch](https://github.com/FranzBusch)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
+* Status: **Active Review (November 19...December 2, 2026)**
 * Implementation: Available as SPI on `main` ([swiftlang/swift#91516](https://github.com/swiftlang/swift/pull/91516))
-* Review: ([pitch](https://forums.swift.org/...))
+* Review: ([pitch](https://forums.swift.org/t/pitch-task-cancellation-scopes/89971))
 
 ## Summary of changes
 
