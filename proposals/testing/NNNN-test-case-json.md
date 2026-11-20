@@ -3,8 +3,8 @@
 * Proposal: [ST-NNNN](NNNN-test-case-json.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-* Implementation: <!-- [swiftlang/swift-testing#NNNNN](https://github.com/swiftlang/swift-testing/pull/NNNNN) --> TBD
+* Status: **Awaiting review**
+* Implementation: [swiftlang/swift-testing#2060](https://github.com/swiftlang/swift-testing/pull/2060)
 * Review: ([pitch](https://forums.swift.org/...))
 
 ## Introduction
