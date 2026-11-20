@@ -7,7 +7,7 @@
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Implementation: [swiftlang/swift#92466](https://github.com/swiftlang/swift/pull/92466)
 * Previous Proposal: [SE-0467](0467-MutableSpan.md)
-* Review: ([pitch](https://forums.swift.org/t/89843)) ([review](https://forums.swift.org/t/90048))
+* Review: ([pitch](https://forums.swift.org/t/89843)) ([review](https://forums.swift.org/t/90048)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0558-bulk-update-operations-for-mutablespan-and-mutablerawspan/90951))
 * Previous Revision: [review](https://github.com/swiftlang/swift-evolution/blob/db7f327ac906348d8a7b0b7af89a6d5bc1d2fe82/proposals/0558-mutablespan-bulk-updates.md)
 
 [SE-0370]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0370-pointer-family-initialization-improvements.md
