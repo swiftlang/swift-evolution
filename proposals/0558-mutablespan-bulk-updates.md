@@ -86,7 +86,7 @@ destination.updateElements(startingAt: &index, copyingAll: checksum)
 precondition(index == destination.count)
 ```
 
-`copyingAll:` copies every element of the source, and traps if the source has more elements than fit between the index and the end of the destination. If the source has fewer elements, the remaining elements of the destination are unchanged. The source is consumed to communicate that all its elements will be copied.
+`copyingAll:` copies every element of the source, and traps if the source has more elements than fit between the index and the end of the destination. If the source has fewer elements, the remaining elements of the destination are unchanged.
 
 An `Iterable`'s `BorrowingIterator` can throw. In order to account for that, the index is taken as an `inout` parameter. This lets the parameter be valid on exit whether the function returned normally or by throwing, allowing callers to always know the furthest element updated by the function.
 
@@ -247,7 +247,7 @@ extension MutableSpan {
   mutating func updateElements<
     I: Iterable & ~Escapable & ~Copyable
   >(
-    startingAt index: inout Index, copyingAll source: consuming I
+    startingAt index: inout Index, copyingAll source: borrowing I
   ) throws(I.Failure) where I.Element == Element
 
   /// Overwrites elements of this span, starting at an index, by copying
@@ -265,7 +265,7 @@ extension MutableSpan {
   mutating func updateElements<
     I: Iterable & ~Escapable & ~Copyable
   >(
-    startingAt index: Index, copyingAll source: consuming I
+    startingAt index: Index, copyingAll source: borrowing I
   ) -> Index where I.Element == Element, I.Failure == Never
 
   /// Overwrites elements of this span, starting at an index, by copying
@@ -404,7 +404,7 @@ extension MutableRawSpan {
   mutating func updateElements<
     I: Iterable & ~Escapable & ~Copyable
   >(
-    startingAt byteOffset: inout Int, copyingAll source: consuming I
+    startingAt byteOffset: inout Int, copyingAll source: borrowing I
   ) throws(I.Failure) where I.Element == UInt8
 
   /// Overwrites bytes of this span, starting at a byte offset, by copying
@@ -422,7 +422,7 @@ extension MutableRawSpan {
   mutating func updateElements<
     I: Iterable & ~Escapable & ~Copyable
   >(
-    startingAt byteOffset: Int, copyingAll source: consuming I
+    startingAt byteOffset: Int, copyingAll source: borrowing I
   ) -> Int where I.Element == UInt8, I.Failure == Never
 
   /// Overwrites bytes of this span, starting at a byte offset, by copying
@@ -524,7 +524,7 @@ An earlier version of this proposal used `from` as the label of the index at whi
 
 * Changes in review:
   * Renamed the `from` label of the `updateElements` functions of `MutableSpan` and `MutableRawSpan` to `startingAt`.
-  * Renamed the `copying:` label of the `updateElements` functions that take an `Iterable` source to `copyingAll:`, and the label of the function that takes a `BorrowingIteratorProtocol` source to `copyingFrom:`. The `Iterable` functions now take their source as a `consuming` parameter.
+  * Renamed the `copying:` label of the `updateElements` functions that take an `Iterable` source to `copyingAll:`, and the label of the function that takes a `BorrowingIteratorProtocol` source to `copyingFrom:`.
 
 ## Acknowledgements
 
