@@ -96,6 +96,12 @@ N/A
   compiler unless `encode()` and `decode()` also have availability annotations,
   which would prevent them from being used on older Apple OSes.
 
+  Since `Codable` does not support typed throws anyway, and since `Codable` is
+  not supported in Embedded Swift, the benefit to adopting typed throws in these
+  protocols is marginal. A future change to the standard library could
+  conceivably adopt typed throws throughout the entire `Codable` stack, but
+  that's beyond the scope of this proposal.
+
 - **Adopting typed throws only on non-Apple platforms.** This would not cause
   ABI breakage as non-Apple platforms do not have a stable Swift API, but it
   would make it more difficult to write cross-platform code that uses these
