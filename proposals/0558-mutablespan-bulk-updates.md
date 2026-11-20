@@ -3,11 +3,12 @@
 * Proposal: [SE-0558](0558-mutablespan-bulk-updates.md)
 * Author: [Guillaume Lessard](https://github.com/glessard)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (October 13...28, 2026)**
+* Status: **Accepted**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
 * Implementation: [swiftlang/swift#92466](https://github.com/swiftlang/swift/pull/92466)
 * Previous Proposal: [SE-0467](0467-MutableSpan.md)
 * Review: ([pitch](https://forums.swift.org/t/89843)) ([review](https://forums.swift.org/t/90048))
+* Previous Revision: [review](https://github.com/swiftlang/swift-evolution/blob/db7f327ac906348d8a7b0b7af89a6d5bc1d2fe82/proposals/0558-mutablespan-bulk-updates.md)
 
 [SE-0370]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0370-pointer-family-initialization-improvements.md
 [SE-0467]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0467-MutableSpan.md
