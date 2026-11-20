@@ -189,7 +189,7 @@ such methods can always be inlined barring the recursion limitation (see later).
 ```swift
 struct S {
   @inline(always)
-  final func method() {}
+  func method() {}
 }
 
 func f() {
@@ -293,7 +293,7 @@ func caller() {
 
 Swift allows for functions as first class objects. They can be assigned to
 variables and passed as arguments. The reference function of a function value
-cannot be reliably be determined at the usage and is therefore not diagnosed as
+cannot be reliably determined at the usage and is therefore not diagnosed as
 an error (case 4).
 
 ```swift

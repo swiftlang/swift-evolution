@@ -547,7 +547,7 @@ func f() { }
 func g() { }
 
 struct S1 {
-  @macro3(x) // uses the name x introduced by #@acro2, introduces the name z
+  @macro3(x) // uses the name x introduced by @macro2, introduces the name z
   func h()
 }
 
