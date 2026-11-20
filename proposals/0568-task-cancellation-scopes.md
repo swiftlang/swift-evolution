@@ -5,7 +5,7 @@
 * Review Manager: [Freddy Kellison-Linn](https://github.com/Jumhyn)
 * Status: **Active Review (November 19...December 2, 2026)**
 * Implementation: Available as SPI on `main` ([swiftlang/swift#91516](https://github.com/swiftlang/swift/pull/91516))
-* Review: ([pitch](https://forums.swift.org/t/pitch-task-cancellation-scopes/89971))
+* Review: ([pitch](https://forums.swift.org/t/pitch-task-cancellation-scopes/89971)) ([review](https://forums.swift.org/t/se-0568-task-cancellation-scopes/90920))
 
 ## Summary of changes
 
