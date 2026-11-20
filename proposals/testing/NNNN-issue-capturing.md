@@ -28,9 +28,9 @@ test utility authors can currently make use of the
 family of functions in order to verify that an issue was reported.
 Unfortunately, the semantics of `withKnownIssue` are that any issue recorded
 inside of `withKnownIssue` is something that needs to to be fixed. That is,
-`withKnownIssue` is for tests that are not working correctly which the test
-author has deprioritized fixing. There is no API for indicating that the issues
-recorded inside are expected issues as part of the test or tool working
+`withKnownIssue` is meant for tests that are not working correctly which the
+test author has deprioritized fixing. There is no API for indicating that the
+issues recorded inside are expected issues as part of the test or tool working
 correctly.
 
 For example, in [Nimble's](https://github.com/quick/Nimble) integration with
@@ -63,9 +63,9 @@ these APIs intended solely for test utility authors.
 
 ## Proposed solution
 
-This proposal introduces an entirely new APIs to observe and capture issues
-before they are reported to the rest of the testing library:
-`withIssueCapturing(_:)` and `withIssueCapturing(_:matching:)`. Additionally,
+This proposal introduces an entirely set of new APIs to observe and capture
+issues before they are reported to the rest of the testing library:
+`withIssueCapturing(_:)` and `withExpectedIssue(_:matching:)`. Additionally,
 this proposal introduces a new instance method on Issue which re-emits any
 captured issues: `Issue.record()`.
 
@@ -79,11 +79,11 @@ verify their libraries.
 ### New TestingUtilities module
 
 We will introduce a new module within the testing library, to provide the new
-`withIssueCapturing`, and `Issue.record` APIs.
+`withIssueCapturing`, `withExpectedIssue`, and `Issue.record` APIs.
 
 ### New functions for capturing issues
 
-We will introduce 4 functions for capturing issues, to be made available in
+We will introduce 2 functions for capturing issues, to be made available in
 the new TestingUtilities module:
 
 ```swift
@@ -118,50 +118,90 @@ func withIssueCapturing(
 func withIssueCapturing(
   _ body: sending @isolated(any) () async throws -> Void
 ) async -> [Issue]
-
-/// Invoke a function, capture and return any issues recorded during its
-/// execution. Issues captured will not be sent to the rest of the testing
-/// library.
-///
-/// - Parameters:
-///   - body: The function to invoke.
-///   - issueMatcher: A function to invoke when an issue occurs that is used to
-///     determine if the issue should be captured. By default, all issues match.
-///
-/// Library authors use this function to capture and analyze any issues for
-/// later analysis. This is particularly useful for verifying that test helpers
-/// correctly record issues.
-/// Test authors should consider using
-/// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
-func withIssueCapturing(
-  _ body: () throws -> Void
-  matching issueMatcher: @escaping @Sendable (Issue) -> Bool
-) -> [Issue]
-
-/// Invoke a function, capture and return any issues recorded during its
-/// execution. Issues captured will not be sent to the rest of the testing
-/// library.
-///
-/// - Parameters:
-///   - body: The function to invoke.
-///   - issueMatcher: A function to invoke when an issue occurs that is used to
-///     determine if the issue should be captured. By default, all issues match.
-///
-/// Library authors use this function to capture and analyze any issues for
-/// later analysis. This is particularly useful for verifying that test helpers
-/// correctly record issues.
-/// Test authors should consider using
-/// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
-func withIssueCapturing(
-  _ body: sending @isolated(any) () async throws -> Void
-  matching issueMatcher: @escaping @Sendable (Issue) -> Bool
-) async -> [Issue]
 ```
 
-`withIssueCapturing` records any matching issues which pass through it, at the
+`withIssueCapturing` records all issues which pass through it, at the
 point in the call stack where `withIssueCapturing` is added. Additionally,
 `withIssueCapturing` does not pass issues along to the rest of the testing
 library.
+
+Captured issues are particularly useful for utilizing the expectation DSL
+(`#expect` and `#require`) in other ways to express behavior. For example,
+`withExpectedIssue` utilizes the expectation DSL to express the issue matchers.
+
+### New functions for expected issues
+
+We will introduce 2 functions for expected issues, to be made available in
+the new TestingUtilities module:
+
+```swift
+/// Invoke a function that is expected to record at least one issue during its
+/// execution. Expected issues will not be sent to the rest of the testing
+/// library.
+///
+/// - Parameters:
+///   - body: The function to invoke.
+///   - issueMatcher: A function to invoke when an issue occurs that is used to
+///     determine if the issue is expected, utilizing `#expect` and `#require`
+///     to indicate that the issue is expected.
+///   - additionalMatchers: Additional matcher functions, which are used to
+///     indicate multiple issues are expected.
+///
+/// Library authors use this function to validate that code correctly records
+/// the expected issues. For every expected issue, there must be an equivalent
+/// matcher closure that captures that issue. Matcher closures may be evaluated
+/// multiple times, and the Testing Library will attempt to match recorded
+/// issues to the most appropriate matcher.
+///
+/// Test authors should consider using
+/// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
+func withExpectedIssue(
+  _ body: () throws -> Void
+  matching issueMatcher: @escaping @Sendable (Issue) throws -> Void,
+  _ additionalMatchers: @Sendable (Issue) throws -> Void...
+)
+
+/// Invoke a function that is expected to record at least one issue during its
+/// execution. Expected issues will not be sent to the rest of the testing
+/// library.
+///
+/// - Parameters:
+///   - body: The function to invoke.
+///   - issueMatcher: A function to invoke when an issue occurs that is used to
+///     determine if the issue is expected, utilizing `#expect` and `#require`
+///     to indicate that the issue is expected.
+///   - additionalMatchers: Additional matcher functions, which are used to
+///     indicate multiple issues are expected.
+///
+/// Library authors use this function to validate that code correctly records
+/// the expected issues. For every expected issue, there must be an equivalent
+/// matcher closure that captures that issue. Matcher closures may be evaluated
+/// multiple times, and the Testing Library will attempt to match recorded
+/// issues to the most appropriate matcher.
+///
+/// Test authors should consider using
+/// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
+func withExpectedIssue(
+  _ body: () async throws -> Void
+  matching issueMatcher: @escaping @Sendable (Issue) throws -> Void,
+  _ additionalMatchers: @Sendable (Issue) throws -> Void...
+) async
+```
+
+`withExpectedIssue` is intended to be used to validate codepaths which
+intentionally emits issues work as expected. It makes use of the Expectation DSL
+for issue matchers, which makes it easier to reason about what exactly a given
+matcher expects:
+
+```swift
+withExpectedIssue {
+    Issue.record("my custom issue")
+} matching: { #expect($0.comments == ["my custom issue"] }
+```
+
+Issues which do not match a given matcher will be sent to the rest of the
+testing library. Additionally, an issue will be recorded if there are
+unmatched issue matchers.
 
 ### Public API for re-emitting recording issues
 
@@ -188,11 +228,8 @@ compatibility of existing test code.
 
 ## Integration with supporting tools
 
-Testing utilities can and should make use of `withIssueCapturing` to both verify
-that test utilities record issues, as well as to enable new tools to make use of
-and expand on the DSL provided by the testing library. Otherwise, this proposal
-will not have any effect on existing tools which make use of the ABI of the
-Testing Library.
+This proposal will not have any effect on existing tools which make use of the 
+ABI of the Testing Library.
 
 ## Future directions
 
@@ -238,6 +275,16 @@ currently a stable API. Additionally, capturing other events would be a large
 expansion of scope, but even with that, capturing issues is useful enough that
 it should have a dedicated API for specifically gathering issues.
 
+### Extend `withKnownIssue` to use the Expectation DSL
+
+A next obvious step is to extend `withKnownIssue` to make use of the Expectation
+DSL similar to `withExpectedIssue`. The question to answer beforehand is whether
+`withKnownIssue` should keep `withExpectedIssue`'s 1-issue-per-matcher
+requirement, or whether it should keep the single matcher approach it currently
+employs. Additionally, extending `withKnownIssue` felt out of place with the
+rest of this proposal, which deals with APIs added to the new `TestingUtilities`
+module.
+
 ## Alternatives considered
 
 ### Not creating a separate module for testing utilities
@@ -262,6 +309,16 @@ without any outside notice. In order to prevent accidental misuse of Issue
 Capturing from resulting in valid and desired issues from being hidden, it
 should require some amount of extra ceremony to be able to access. Which in this
 case, is a separate module.
+
+### Use a custom availability domain instead of a new module
+
+Instead of creating a separate module for these new APIs, the Testing Library
+could define a new custom availability domain specific for Testing Utilities.
+This was not chosen because custom availability are still new enough and, if
+anything, make the experience of using APIs that would go into
+`TestingUtilities` worse: instead of adding `import TestingUtilities`,
+everywhere that uses these APIs would need to do an availability check for the
+custom availability domain.
 
 ### Module Naming
 
@@ -290,14 +347,39 @@ Other names considered while developing this proposal include
 `captureIssues` was initially used in the early drafts of this proposal, but
 was dropped in favor of the more idiomatic `withIssueCapturing`.
 
-`withExpectedIssue` was a suggestion from one of the testing workgroup members,
-and was not used because of potential confusion with XCTest's
-[`XCTExpectFailure(_:enabled:strict:issuematcher:)`](https://developer.apple.com/documentation/xctest/xctexpectfailure(_:enabled:strict:issuematcher:))
-API. Additionally, `withExpectedIssue` implies that a separate issue should be
-recorded if no issue was received, which is not a desired behavior of
-`withIssueCapturing`. `withIssueCapturing` should not record an issue if no
-issue was received during the execution of their respective `body` closures:
-they will instead return an empty array.
+### Use Bool-returning closures for matchers in `withExpectedIssue`
+
+Instead of making use of the expectation DSL, `withExpectedIssue` could instead
+determine whether an issue matches based on whether the matcher closure returns
+true or false. The reason to change this standard practice is to make it easier
+for users to debug why an expected issues matched or did not match. Unmatched
+issues will have all of the expectations they failed in matchers included when
+they are recorded. Which will provide more detail for users, and reduce the
+headache of debugging unmatched issues.
+
+### Allow a single matcher to match against multiple issues
+
+Similar to using bool-returning closuers for matchers, `withExpectedIssue` could
+instead follow the traditional paradigm, and use a single matcher.
+`withExpectedIssue` uses one matcher per issue in part as a mechanism to
+mitigate abuse and misuse, but more importantly to aid with debugging. Instead
+of forcing test authors to debug potentially complex boolean logic to capture
+different issues, they can use multiple expectations within a matcher as a form
+of AND, alongside multiple separate matchers as an OR. This dramatically reduces
+the cognitive overhead for reasoning about why an issue did not match.
+
+As mentioned earlier, mitigating abuse is also a strong reason why
+`withExpectedIssue` requires a matcher for every expected issue. We want to
+avoid the situation where
+`withExpectedIssue { /* problematic code */ } matching: { _ in }` is used
+to paper over problematic tests. Realistically, there is no way to entirely
+prevent people who want to ignore issues from doing so, but we can make it
+glaringly obvious when they are doing so.
+
+One concern brought up with requiring 1 matcher per issue is when validating
+code that is expected to emit an unknown amount of issues. I think that
+`withIssueCapturing` offers an appropriate workaround, by explicitly handing
+off issue handling to the caller.
 
 ### Make the `Issue.record` instance method part of the Testing Library
 
