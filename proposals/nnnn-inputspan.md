@@ -5,8 +5,8 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Roadmap: [BufferView Roadmap](https://forums.swift.org/t/66211)
-* Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN)
-* Review: ([pitch](https://forums.swift.org/t/NNNNN))
+* Implementation: [swiftlang/swift#94535](https://github.com/swiftlang/swift/pull/94535)
+* Review: ([pitch](https://forums.swift.org/t/90942))
 
 [SE-0485]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0485-outputspan.md
 [SE-0516]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0516-borrowing-sequence.md
