@@ -93,6 +93,7 @@ the new TestingUtilities module:
 ///
 /// - Parameters:
 ///   - body: The function to invoke.
+/// - Returns: The list of issues captured during execution of `body`.
 ///
 /// Library authors use this function to capture and analyze any issues for
 /// later analysis. This is particularly useful for verifying that test helpers
@@ -109,6 +110,7 @@ func withIssueCapturing(
 ///
 /// - Parameters:
 ///   - body: The function to invoke.
+/// - Returns: The list of issues captured during execution of `body`.
 ///
 /// Library authors use this function to capture and analyze any issues for
 /// later analysis. This is particularly useful for verifying that test helpers
@@ -406,7 +408,7 @@ headache of debugging unmatched issues.
 
 ### Allow a single matcher to match against multiple issues
 
-Similar to using bool-returning closuers for matchers, `withExpectedIssue` could
+Similar to using bool-returning closures for matchers, `withExpectedIssue` could
 instead follow the traditional paradigm, and use a single matcher.
 `withExpectedIssue` uses one matcher per issue in part as a mechanism to
 mitigate abuse and misuse, but more importantly to aid with debugging. Instead
