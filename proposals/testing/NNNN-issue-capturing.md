@@ -285,6 +285,53 @@ employs. Additionally, extending `withKnownIssue` felt out of place with the
 rest of this proposal, which deals with APIs added to the new `TestingUtilities`
 module.
 
+### Additional functions using the expectation DSL
+
+With the ability to capture and examine reported issues comes the ability to
+improve how common assertions are written. For example, when validating if at
+least one element in a sequence matches a value, it's common to write:
+
+```swift
+#expect(mySequence.contains { $0 == expectedValue })
+```
+
+or, if you only want to check parts of a value, test authors might write:
+
+```swift
+#expect(mySequence.contains { value in
+  value.property1 == expectedProperty1 && value.property2 == expectedProperty2
+})
+```
+
+These are fine, but hard to debug when something doesn't match. Additionally,
+the more boolean logic used, the harder it is to determine which part of the
+boolean logic failed.
+
+A future proposal would specify something like `Sequence.expectContains` method,
+which would use the expectation DSL itself to determine whether a sequence
+contains a value:
+
+```swift
+mySequence.expectContains { value in
+  #expect(value == expectedValue)
+}
+
+mySequence.expectContains { value in
+  #expect(value.property1 == expectedProperty1)
+  #expect(value.property2 == expectedProperty2)
+}
+```
+
+This would significantly improve the readability and reliability of tests. These
+will allow the test to have much finer data about what the test author expects,
+and thus will allow the Testing Library to present much finer data when the
+expectation fails, allowing the test author to more quickly determine why the
+test failed.
+
+These are not included here because while they definitely build upon this
+proposal, they are much more separate from this proposal and should be
+considered on their own merits.
+
 ## Alternatives considered
 
 ### Not creating a separate module for testing utilities
