@@ -3,10 +3,10 @@
 * Proposal: [SE-0562](0562-subscript-ownership-parameters.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active Review (November 3...17, 2026)**
+* Status: **Accepted**
 * Implementation: [swiftlang/swift#91992](https://github.com/swiftlang/swift/pull/91992)
 * Experimental Feature Flag: `SubscriptParametersWithOwnership`
-* Review: ([pitch](https://forums.swift.org/t/pitch-ownership-for-subscript-parameters/89461))([review](https://forums.swift.org/t/se-0562-ownership-for-subscript-parameters/90429))
+* Review: ([pitch](https://forums.swift.org/t/pitch-ownership-for-subscript-parameters/89461))([review](https://forums.swift.org/t/se-0562-ownership-for-subscript-parameters/90429))([acceptance](https://forums.swift.org/t/accepted-se-0562-ownership-for-subscript-parameters/90957))
 
 ## Summary of changes
 
