@@ -4,7 +4,7 @@
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
 * Status: **Active Review (November 20...December 4, 2026)**
-* Review: ([pitch](https://forums.swift.org/t/pitch-move-toplevelencoder-and-topleveldecoder-to-the-standard-library/88318))
+* Review: ([pitch](https://forums.swift.org/t/pitch-move-toplevelencoder-and-topleveldecoder-to-the-standard-library/88318))([review](https://forums.swift.org/t/se-0569-move-toplevelencoder-and-topleveldecoder-to-the-standard-library/90959))
 <!-- * Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN) or [swiftlang/swift-evolution-staging#NNNNN](https://github.com/swiftlang/swift-evolution-staging/pull/NNNNN) -->
 
 ## Summary of changes
