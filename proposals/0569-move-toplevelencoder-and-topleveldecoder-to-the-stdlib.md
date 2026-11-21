@@ -3,9 +3,9 @@
 * Proposal: [SE-0569](0569-move-toplevelencoder-and-topleveldecoder-to-the-stdlib.md)
 * Authors: [Jonathan Grynspan](https://github.com/grynspan)
 * Review Manager: [Steve Canon](https://github.com/stephentyrone)
-* Status: **Active Review (November 20...December 4, 2026)
-<!-- * Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN) or [swiftlang/swift-evolution-staging#NNNNN](https://github.com/swiftlang/swift-evolution-staging/pull/NNNNN) -->
+* Status: **Active Review (November 20...December 4, 2026)**
 * Review: ([pitch](https://forums.swift.org/t/pitch-move-toplevelencoder-and-topleveldecoder-to-the-standard-library/88318))
+<!-- * Implementation: [swiftlang/swift#NNNNN](https://github.com/swiftlang/swift/pull/NNNNN) or [swiftlang/swift-evolution-staging#NNNNN](https://github.com/swiftlang/swift-evolution-staging/pull/NNNNN) -->
 
 ## Summary of changes
 
@@ -105,6 +105,7 @@ N/A
   ABI breakage as non-Apple platforms do not have a stable Swift API, but it
   would make it more difficult to write cross-platform code that uses these
   protocols and wants to take advantage of the typed throws feature.
+  
 [`TopLevelEncoder`]: https://developer.apple.com/documentation/combine/toplevelencoder
 [`TopLevelDecoder`]: https://developer.apple.com/documentation/combine/topleveldecoder
 [`Encodable`]: https://developer.apple.com/documentation/swift/encodable
