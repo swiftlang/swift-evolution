@@ -83,8 +83,6 @@ never called.
 
 ## Detailed design
 
-### Synchronous `withTaskCancellationHandler`
-
 ```swift
 /// Execute a synchronous operation with a cancellation handler that's
 /// immediately invoked if the current task is canceled.
@@ -142,10 +140,8 @@ public func withTaskCancellationHandler<Return, Failure>(
   onCancel handler: sending () -> Void
 ) throws(Failure) -> Return
   where Return: ~Copyable,
-        Failure: Error {
+        Failure: Error
 ```
-
-### Synchronous `withTaskPriorityEscalationHandler`
 
 ```swift
 /// Runs the passed synchronous `operation` while registering a task priority
@@ -182,17 +178,6 @@ public func withTaskPriorityEscalationHandler<T, E>(
   operation: () throws(E) -> T,
   onPriorityEscalated handler: @Sendable (TaskPriority, TaskPriority) -> Void
 ) throws(E) -> T
-  where T: ~Copyable
-```
-
-For consistency with the new overload, the existing asynchronous
-`withTaskPriorityEscalationHandler` also gains support for non-copyable results:
-
-```swift
-public nonisolated(nonsending) func withTaskPriorityEscalationHandler<T, E>(
-  operation: nonisolated(nonsending) () async throws(E) -> T,
-  onPriorityEscalated handler: @Sendable (TaskPriority, TaskPriority) -> Void
-) async throws(E) -> T
   where T: ~Copyable
 ```
 
@@ -239,19 +224,3 @@ Backporting to code running an older stdlib version is not immediately viable,
 since the change requires runtime support for registering handlers when there
 is no task in the current thread of execution.
 
-## Alternatives considered
-
-### Expose RAII-style registration token
-
-```swift
-struct CancellationHandler: ~Copyable, ~Sendable {
-    init(operation: sending () -> Void)
-    consuming func unregister()
-    deinit // implicit removal
-}
-```
-
-Instead of a closure-scoped API, a non-copyable token could keep the handler
-registered for as long as it is alive. This is potentially unsafe, since the
-lifetime of the `CancellationHandler` can outlive the task it was defined in.
-What would be the effect of an escaped registration token is unclear.
