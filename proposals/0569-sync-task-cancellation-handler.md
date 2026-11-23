@@ -9,8 +9,9 @@
 
 ## Summary of changes
 
-Introduces a synchronous overload of the `withTaskCancellationHandler` function
-for use in sync code, where the async suspension boundary might not be desirable.
+Introduces synchronous overloads of the `withTaskCancellationHandler` and
+`withTaskPriorityEscalationHandler` functions for use in sync code, where the
+async suspension boundary might not be desirable.
 
 ## Motivation
 
@@ -51,10 +52,18 @@ try await withTaskCancellationHandler { // <- forces an async caller context
 }
 ```
 
+A similar problem exists for task priority escalation, since the
+`withTaskPriorityEscalationHandler` doesn't offer a synchronous overload either.
+
 ## Proposed solution
 
-A new overload of the existing `withTaskCancellationHandler(operation:onCancel:)`,
-where the operation parameter is not marked `async`:
+We propose to add synchronous overloads to existing `with...` methods
+which operate on the task status, such as `withTaskCancellationHandler`,
+and `withTaskPriorityEscalationHandler`.
+
+This will allow writing a synchronous version of the above piece of code,
+which will work properly when called in a context where there is a current
+task available:
 
 ```swift
 try withTaskCancellationHandler { // <- no longer awaited
@@ -69,10 +78,12 @@ try withTaskCancellationHandler { // <- no longer awaited
 ```
 
 When called on a thread that isn't running a task, there is no task that could
-be canceled, so the `operation` closure runs and the cancellation handler is
+be canceled or escalated, so the `operation` closure runs and the handler is
 never called.
 
 ## Detailed design
+
+### Synchronous `withTaskCancellationHandler`
 
 ```swift
 /// Execute a synchronous operation with a cancellation handler that's
@@ -134,15 +145,56 @@ public func withTaskCancellationHandler<Return, Failure>(
         Failure: Error {
 ```
 
-It uses the same internal mechanism of registering handlers of
-`Builtin.taskAddCancellationHandler(handler:)` / 
-`Builtin.taskRemoveCancellationHandler(record:)` as their async counterparts, 
-with a notable difference that those routines now need to handle the case where
-there is no encompassing task scope to be attached to.
+### Synchronous `withTaskPriorityEscalationHandler`
 
-Previously we could've asserted that `withTaskCancellationHandler` is always
-run in an async context of a Task. With this introduction, that assumption is no
-longer true.
+```swift
+/// Runs the passed synchronous `operation` while registering a task priority
+/// escalation handler. The handler will be triggered concurrently to the
+/// current task if the current task is subject to priority escalation.
+///
+/// This is the synchronous counterpart of the asynchronous
+/// `withTaskPriorityEscalationHandler(operation:onPriorityEscalated:)`.
+///
+/// When called from code that runs in a task, the handler behaves exactly like
+/// the one of the asynchronous version: it is called once when it is
+/// installed, before `operation` runs, with the task's current priority as
+/// both arguments, and is then triggered each time a priority escalation of
+/// the task occurs while the operation is in progress. Calls to the handler are
+/// never concurrent with each other.
+///
+/// When called on a thread that isn't running a task, there is no task whose
+/// priority could be escalated, so the `operation` closure runs and the handler
+/// is never called, not even once when it is installed.
+///
+/// If multiple task escalation handlers are nested they will all be triggered.
+///
+/// - Parameters:
+///   - operation: the operation during which to listen for priority escalation
+///   - handler: handler to invoke, concurrently to `operation`,
+///              when priority escalation happens.
+///              The first argument is the old priority (before escalation),
+///              and the second argument is the new escalated priority.
+/// - Returns: the value returned by `operation`
+/// - Throws: when the `operation` throws an error
+@available(SwiftStdlib 6.5, *)
+@export(implementation)
+public func withTaskPriorityEscalationHandler<T, E>(
+  operation: () throws(E) -> T,
+  onPriorityEscalated handler: @Sendable (TaskPriority, TaskPriority) -> Void
+) throws(E) -> T
+  where T: ~Copyable
+```
+
+For consistency with the new overload, the existing asynchronous
+`withTaskPriorityEscalationHandler` also gains support for non-copyable results:
+
+```swift
+public nonisolated(nonsending) func withTaskPriorityEscalationHandler<T, E>(
+  operation: nonisolated(nonsending) () async throws(E) -> T,
+  onPriorityEscalated handler: @Sendable (TaskPriority, TaskPriority) -> Void
+) async throws(E) -> T
+  where T: ~Copyable
+```
 
 ## Source compatibility
 
@@ -168,7 +220,7 @@ await withTaskCancellationHandler {
 } onCancel: {}
 ```
 
-Under `-warnings-as-errors` this will now be a build error. The solution is to
+The same applies to `withTaskPriorityEscalationHandler`. The solution is to
 remove the now-redundant `await`s.
 
 ## ABI compatibility
@@ -179,37 +231,15 @@ This change is a purely additive change to the Concurrency library.
 
 The additions described in this proposal require a new version of the Swift
 standard library and runtime. Libraries that want to adopt synchronous
-cancellation handlers while supporting older platforms have to either eschew
-this particular cancellation path, or require an async calling context on their
-callers.
+cancellation or priority escalation handlers while supporting older platforms
+have to either eschew this particular path, or require an async calling context
+on their callers.
 
 Backporting to code running an older stdlib version is not immediately viable,
-since the change requires altering the builtin runtime functions to handle the
-possibility of no parent task scope existing in the current thread of execution.
+since the change requires runtime support for registering handlers when there
+is no task in the current thread of execution.
 
 ## Alternatives considered
-
-### Expose the lower-level registration primitives
-Basically standardizing internal `Builtin.taskAddCancellationHandler(handler:)` 
-/ `Builtin.taskRemoveCancellationHandler(record:)`
-for clients to incorporate for themselves. Exposing the two ends is much more
-error-prone and is subject to leakage. They have to be kept in sync. Similar
-symmetry to `malloc` / `free` calls.
-
-```swift
-let record = Task.addCancellationHandler { sqlite3_interrupt(statement) }
-defer { record.unregister() }
-
-let code = sqlite3_step(statement)
-```
-
-This does permit more flexible designs implementable in userland, such as an 
-RAII-style token mentioned below, as an alternative.
-
-Careful consideration must be given when using these primitives. Records have
-to never leave the task scope. Every `addCancellationHandler` **has** to have a
-corresponding `unregister` call. The current scope-based design always preserves
-these constraints safely and covers most of the known use cases.
 
 ### Expose RAII-style registration token
 
@@ -221,14 +251,7 @@ struct CancellationHandler: ~Copyable, ~Sendable {
 }
 ```
 
-A higher-level primitive then the raw operations described above. Preserves the
-symmetry between `taskAddCancellationHandler`/`taskRemoveCancellationHandler`.
-Still potentially unsafe, since the lifetime of the `CancellationHandler` can
-outlive the task it was defined in. What would be the effect of an escaped
-registration token is unclear.
-
----
-
-Providing a singular overload of the existing closure-based API, with which 
-users are already familiar with, is the simplest approach. It provides safer 
-and more Swift-idiomatic API.
+Instead of a closure-scoped API, a non-copyable token could keep the handler
+registered for as long as it is alive. This is potentially unsafe, since the
+lifetime of the `CancellationHandler` can outlive the task it was defined in.
+What would be the effect of an escaped registration token is unclear.
