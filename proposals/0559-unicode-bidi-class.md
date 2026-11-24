@@ -21,7 +21,7 @@ Today this value must come from elsewhere, and the most direct source, the syste
 
 ## Proposed solution
 
-We add a `bidiClass` computed property to `Unicode.Scalar.Properties`, and a `Unicode.BidiClass` type for its values. The property parallels the existing `generalCategory`, and the type follows the design of `Unicode.CanonicalCombiningClass`:
+We add a `bidiClass` computed property to `Unicode.Scalar.Properties`, and a `Unicode.BidiClass` enum for its values, paralleling the existing `generalCategory` property and `Unicode.GeneralCategory` enum:
 
 ```swift
 let scalar: Unicode.Scalar = "\u{05D0}"  // HEBREW LETTER ALEF
@@ -32,7 +32,7 @@ Every scalar has a defined `Bidi_Class`: scalars not explicitly assigned one, in
 
 ## Detailed design
 
-Like `Unicode.CanonicalCombiningClass`, `Unicode.BidiClass` is a `RawRepresentable` struct with a `UInt8` raw value and one static member per `Bidi_Class` value. Unlike `Unicode.CanonicalCombiningClass`, it is `@frozen`, for efficient storage and comparison. The `Bidi_Class` values are defined by [Unicode Standard Annex #44 (UAX #44)](https://unicode.org/reports/tr44/#Bidi_Class_Values). Member names are derived from those long value names, and each member's documentation names the bidirectional class it represents:
+`Unicode.BidiClass` is a non-frozen enum with one case per `Bidi_Class` value. It is annotated `@objc` so that it has a fixed, single-byte layout while still allowing new cases to be added in the future. The `Bidi_Class` values are defined by [Unicode Standard Annex #44 (UAX #44)](https://unicode.org/reports/tr44/#Bidi_Class_Values). Case names are derived from those long value names, and each case's documentation names the bidirectional class it represents:
 
 ```swift
 extension Unicode {
@@ -45,180 +45,168 @@ extension Unicode {
   /// otherwise assigned a value take a default based on their code point, so
   /// this classification is defined for every scalar.
   @available(SwiftStdlib 6.5, *)
-  @frozen
-  public struct BidiClass: Hashable, RawRepresentable, Sendable {
-    /// The raw integer value of the bidirectional class.
-    ///
-    /// The raw values are assigned by the standard library and are stable, but
-    /// are not defined by the Unicode Standard, which assigns no integers to
-    /// `Bidi_Class` values.
-    public let rawValue: UInt8
-
-    /// Creates a new bidirectional class with the given raw integer value.
-    ///
-    /// - Parameter rawValue: The raw integer value of the bidirectional class.
-    @export(implementation) public init(rawValue: UInt8)
-
+  @objc
+  public enum BidiClass: UInt8, Sendable {
     /// A strong left-to-right character.
     ///
     /// This value corresponds to the bidirectional class `Left_To_Right`
     /// (abbreviated `L`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var leftToRight: BidiClass { get }
+    case leftToRight
 
     /// A strong right-to-left (non-Arabic-type) character.
     ///
     /// This value corresponds to the bidirectional class `Right_To_Left`
     /// (abbreviated `R`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var rightToLeft: BidiClass { get }
+    case rightToLeft
 
     /// A strong right-to-left (Arabic-type) character.
     ///
     /// This value corresponds to the bidirectional class `Arabic_Letter`
     /// (abbreviated `AL`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var arabicLetter: BidiClass { get }
+    case arabicLetter
 
     /// A European number.
     ///
     /// This value corresponds to the bidirectional class `European_Number`
     /// (abbreviated `EN`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var europeanNumber: BidiClass { get }
+    case europeanNumber
 
     /// A European number separator.
     ///
     /// This value corresponds to the bidirectional class `European_Separator`
     /// (abbreviated `ES`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var europeanSeparator: BidiClass { get }
+    case europeanSeparator
 
     /// A European number terminator.
     ///
     /// This value corresponds to the bidirectional class `European_Terminator`
     /// (abbreviated `ET`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var europeanTerminator: BidiClass { get }
+    case europeanTerminator
 
     /// An Arabic number.
     ///
     /// This value corresponds to the bidirectional class `Arabic_Number`
     /// (abbreviated `AN`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var arabicNumber: BidiClass { get }
+    case arabicNumber
 
     /// A common number separator.
     ///
     /// This value corresponds to the bidirectional class `Common_Separator`
     /// (abbreviated `CS`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var commonSeparator: BidiClass { get }
+    case commonSeparator
 
     /// A nonspacing mark.
     ///
     /// This value corresponds to the bidirectional class `Nonspacing_Mark`
     /// (abbreviated `NSM`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var nonspacingMark: BidiClass { get }
+    case nonspacingMark
 
     /// A boundary neutral.
     ///
     /// This value corresponds to the bidirectional class `Boundary_Neutral`
     /// (abbreviated `BN`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var boundaryNeutral: BidiClass { get }
+    case boundaryNeutral
 
     /// A paragraph separator.
     ///
     /// This value corresponds to the bidirectional class `Paragraph_Separator`
     /// (abbreviated `B`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var paragraphSeparator: BidiClass { get }
+    case paragraphSeparator
 
     /// A segment separator.
     ///
     /// This value corresponds to the bidirectional class `Segment_Separator`
     /// (abbreviated `S`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var segmentSeparator: BidiClass { get }
+    case segmentSeparator
 
     /// A whitespace character.
     ///
     /// This value corresponds to the bidirectional class `White_Space`
     /// (abbreviated `WS`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var whitespace: BidiClass { get }
+    case whitespace
 
     /// A neutral character of another type.
     ///
     /// This value corresponds to the bidirectional class `Other_Neutral`
     /// (abbreviated `ON`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var otherNeutral: BidiClass { get }
+    case otherNeutral
 
     /// A left-to-right embedding format character.
     ///
     /// This value corresponds to the bidirectional class
     /// `Left_To_Right_Embedding` (abbreviated `LRE`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var leftToRightEmbedding: BidiClass { get }
+    case leftToRightEmbedding
 
     /// A left-to-right override format character.
     ///
     /// This value corresponds to the bidirectional class
     /// `Left_To_Right_Override` (abbreviated `LRO`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var leftToRightOverride: BidiClass { get }
+    case leftToRightOverride
 
     /// A right-to-left embedding format character.
     ///
     /// This value corresponds to the bidirectional class
     /// `Right_To_Left_Embedding` (abbreviated `RLE`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var rightToLeftEmbedding: BidiClass { get }
+    case rightToLeftEmbedding
 
     /// A right-to-left override format character.
     ///
     /// This value corresponds to the bidirectional class
     /// `Right_To_Left_Override` (abbreviated `RLO`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var rightToLeftOverride: BidiClass { get }
+    case rightToLeftOverride
 
     /// A pop directional format character.
     ///
     /// This value corresponds to the bidirectional class
     /// `Pop_Directional_Format` (abbreviated `PDF`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var popDirectionalFormat: BidiClass { get }
+    case popDirectionalFormat
 
     /// A left-to-right isolate format character.
     ///
     /// This value corresponds to the bidirectional class
     /// `Left_To_Right_Isolate` (abbreviated `LRI`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var leftToRightIsolate: BidiClass { get }
+    case leftToRightIsolate
 
     /// A right-to-left isolate format character.
     ///
     /// This value corresponds to the bidirectional class
     /// `Right_To_Left_Isolate` (abbreviated `RLI`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var rightToLeftIsolate: BidiClass { get }
+    case rightToLeftIsolate
 
     /// A first strong isolate format character.
     ///
     /// This value corresponds to the bidirectional class `First_Strong_Isolate`
     /// (abbreviated `FSI`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var firstStrongIsolate: BidiClass { get }
+    case firstStrongIsolate
 
     /// A pop directional isolate format character.
     ///
     /// This value corresponds to the bidirectional class
     /// `Pop_Directional_Isolate` (abbreviated `PDI`) in the
     /// [Unicode Standard](https://unicode.org/reports/tr44/#Bidi_Class_Values).
-    @export(implementation) public static var popDirectionalIsolate: BidiClass { get }
+    case popDirectionalIsolate
   }
 }
 
@@ -235,7 +223,7 @@ extension Unicode.Scalar.Properties {
 
 `White_Space` is spelled `whitespace` rather than `whiteSpace`, matching the existing `isWhitespace` property, which corresponds to the `White_Space` binary property.
 
-`init(rawValue:)` is non-failable, so a value from a future version of the Unicode data that this API does not yet name remains representable and round-trips. `Unicode.BidiClass` does not conform to `Comparable`, because `Bidi_Class` values have no meaningful ordering.
+As an `@objc` enum with a `UInt8` raw type, `Unicode.BidiClass` has a public synthesized `rawValue` property and failable `init?(rawValue:)` initializer. The raw values carry no meaning beyond identifying a case. `Unicode.BidiClass` does not conform to `Comparable`, because `Bidi_Class` values have no meaningful ordering.
 
 The values follow the Unicode Character Database's `DerivedBidiClass.txt`, including its `@missing` default rules.
 
@@ -245,7 +233,9 @@ This proposal is purely additive and has no source compatibility impact.
 
 ## ABI compatibility
 
-This proposal is purely an extension of the ABI of the standard library. `Unicode.BidiClass` is a frozen struct wrapping a single `UInt8`, so its layout is fixed and it can be stored and compared as cheaply as that integer. The static members are annotated `@export(implementation)` ([SE-0497](0497-definition-visibility.md)), so each access is emitted into the client and inlines to a constant, adding no accessor symbols to the standard library's ABI. Because its values are exposed as static members rather than enum cases, future `Bidi_Class` values can be added as new static members without breaking ABI or source compatibility, and any raw value, including one this API does not yet name, remains representable via `init(rawValue:)`. That initializer is also annotated `@export(implementation)`, since otherwise each static member access would still call into the standard library.
+This proposal is purely an extension of the ABI of the standard library. `Unicode.BidiClass` is a fixed-layout enum that only permits new trivial cases to be added. Future `Bidi_Class` values can be added as new cases without breaking ABI or source compatibility.
+
+Because the raw values are part of the ABI, existing cases keep their declaration order, and new cases are added after the existing ones.
 
 ## Implications on adoption
 
@@ -253,8 +243,15 @@ Using `bidiClass` requires a version of the standard library that includes it. O
 
 ## Alternatives considered
 
-### Representing `Bidi_Class` as an enum
+### Using a `RawRepresentable` struct
 
-`Unicode.GeneralCategory` is an enum, and `Unicode.BidiClass` could be one too. A `@frozen` enum would have the same compact layout, but it could never gain cases, so a future `Bidi_Class` value could not be added. That has happened before: Unicode 6.3 added the four isolate classes. A non-`@frozen` enum could gain cases, but its layout would be resilient, so code outside the standard library would handle it indirectly rather than as a single byte.
+An earlier version of this proposal used the `RawRepresentable` struct pattern with static members, as `Unicode.CanonicalCombiningClass` does, to get a fixed-layout but extensible enum-like API. However, unlike canonical combining classes, the specific backing values for `BidiClass` are not ordered or meaningful.
 
-A frozen struct with static members gets both a fixed one-byte layout and room for new values, and values this API does not yet name remain representable via `init(rawValue:)`. The tradeoff is that a `switch` over a `Unicode.BidiClass` always needs a `default` case, and the compiler does not flag that `switch` when new values are added.
+This revision uses an `@objc` enum instead, which provides the same layout with real enum cases.
+
+### Calling it `bidirectionalCharacterClass` or similar
+
+In Unicode, "bidi" is an established term of art and there's strong precedent to use more direct Unicode terminology inside the `Unicode` namespace. For example, the properties `isBidiControl` and `isBidiMirrored` are also inside `Unicode.Scalar.Properties`.
+
+
+
