@@ -4,7 +4,7 @@
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Payas Rajan](https://github.com/PayasR)
 * Review Manager: TODO
 * Status: **Awaiting review**
-* Implementation: https://github.com/swiftlang/swift/pull/91316
+* Implementation: https://github.com/swiftlang/swift/pull/93802
 * Review: [Pitch thread](https://forums.swift.org/t/pitch-distributed-remotecall-semantics/89357)
 
 ## Introduction
