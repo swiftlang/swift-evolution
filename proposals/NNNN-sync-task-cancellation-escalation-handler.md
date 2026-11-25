@@ -1,6 +1,6 @@
-# Synchronous `withTaskCancellationHandler`
+# Synchronous `withTaskCancellationHandler` and `withTaskPriorityEscalationHandler`
 
-* Proposal: [SE-0569](0569-sync-task-cancellation-handler.md)
+* Proposal: [SE-NNNN](NNNN-sync-task-cancellation-escalation-handler.md)
 * Authors: [Yaroslav Petryk](https://github.com/malien), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: TBD
 * Status: **Awaiting review**
@@ -10,8 +10,8 @@
 ## Summary of changes
 
 Introduces synchronous overloads of the `withTaskCancellationHandler` and
-`withTaskPriorityEscalationHandler` functions for use in sync code, where the
-async suspension boundary might not be desirable.
+`withTaskPriorityEscalationHandler` functions for use in sync code, which
+nevertheless may be executing inside of a Swift Concurrency task context.
 
 ## Motivation
 
@@ -84,101 +84,28 @@ never called.
 ## Detailed design
 
 ```swift
-/// Execute a synchronous operation with a cancellation handler that's
-/// immediately invoked if the current task is canceled.
-///
-/// - Parameters:
-///   - operation: The operation to perform.
-///   - handler: A closure to execute on cancellation.
-///     If the task is canceled, this closure is called at most once;
-///     otherwise, it isn't called.
-///
-/// This is the synchronous counterpart of the asynchronous
-/// `withTaskCancellationHandler(operation:onCancel:)`. Use it in synchronous
-/// code, for example in a synchronous function that's called from a task and
-/// blocks until some external work completes:
-///
-/// ```
-/// func readAll(from source: Source) -> [UInt8] {
-///   withTaskCancellationHandler {
-///     source.readUntilClosed()
-///   } onCancel: {
-///     // This onCancel closure might execute concurrently with the operation.
-///     source.close()
-///   }
-/// }
-/// ```
-///
-/// ### Execution order and semantics
-/// The `operation` closure is always invoked, even when the
-/// `withTaskCancellationHandler(operation:onCancel:)` function is called from a
-/// task that was already canceled.
-///
-/// When called from code that runs in a task, the cancellation handler
-/// behaves exactly like the one of the asynchronous
-/// `withTaskCancellationHandler(operation:onCancel:)`: if the task has already
-/// been canceled, the handler is executed immediately before the `operation`
-/// closure gets to execute; if the task is canceled while the operation is
-/// running, the handler executes *concurrently* with the operation.
-///
-/// When called on a thread that isn't running a task, there is no task that
-/// could be canceled, so the `operation` closure runs and the cancellation
-/// handler is never called.
-///
-/// ### Cancellation handlers and locks
-///
-/// Cancellation handlers which acquire locks must take care to avoid deadlock.
-/// The cancellation handler may be invoked while holding internal locks
-/// associated with the task or other tasks. Other operations on the task, such
-/// as resuming a continuation, may acquire these same internal locks.
-/// Therefore, if a cancellation handler must acquire a lock, other code should
-/// not cancel tasks or resume continuations while holding that lock.
-@available(SwiftStdlib 6.5, *)
-@export(implementation)
 public func withTaskCancellationHandler<Return, Failure>(
   operation: () throws(Failure) -> Return,
   onCancel handler: sending () -> Void
 ) throws(Failure) -> Return
   where Return: ~Copyable,
         Failure: Error
+
+public func withTaskCancellationHandler<Return, Failure>(
+  operation: () throws(Failure) -> Return,
+  onCancel handler: sending (CancellationError.Reason) -> Void
+) throws(Failure) -> Return
+  where Return: ~Copyable,
+        Failure: Error
 ```
 
 ```swift
-/// Runs the passed synchronous `operation` while registering a task priority
-/// escalation handler. The handler will be triggered concurrently to the
-/// current task if the current task is subject to priority escalation.
-///
-/// This is the synchronous counterpart of the asynchronous
-/// `withTaskPriorityEscalationHandler(operation:onPriorityEscalated:)`.
-///
-/// When called from code that runs in a task, the handler behaves exactly like
-/// the one of the asynchronous version: it is called once when it is
-/// installed, before `operation` runs, with the task's current priority as
-/// both arguments, and is then triggered each time a priority escalation of
-/// the task occurs while the operation is in progress. Calls to the handler are
-/// never concurrent with each other.
-///
-/// When called on a thread that isn't running a task, there is no task whose
-/// priority could be escalated, so the `operation` closure runs and the handler
-/// is never called, not even once when it is installed.
-///
-/// If multiple task escalation handlers are nested they will all be triggered.
-///
-/// - Parameters:
-///   - operation: the operation during which to listen for priority escalation
-///   - handler: handler to invoke, concurrently to `operation`,
-///              when priority escalation happens.
-///              The first argument is the old priority (before escalation),
-///              and the second argument is the new escalated priority.
-/// - Returns: the value returned by `operation`
-/// - Throws: when the `operation` throws an error
-@available(SwiftStdlib 6.5, *)
-@export(implementation)
 public func withTaskPriorityEscalationHandler<T, E>(
   operation: () throws(E) -> T,
   onPriorityEscalated handler: @Sendable (TaskPriority, TaskPriority) -> Void
 ) throws(E) -> T
   where T: ~Copyable
+        E: Error
 ```
 
 ## Source compatibility
