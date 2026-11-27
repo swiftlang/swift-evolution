@@ -113,11 +113,11 @@ use `@retroactive` outside of the declaration of a retroactive conformance.
 `@retroactive` is a new attribute, but it is purely additive; it can be accepted
 by all language versions. It does mean projects building with an older Swift
 will not have access to this syntax, so as a source compatible fallback,
-a client can silence this warning by fully-qualifying all types in the extension.
+a client can silence this warning by fully-qualifying all protocol types in the extension.
 As an example, the above conformance can also be written as
 
 ```swift
-extension Foundation.Date: Swift.Identifiable {
+extension Date: Swift.Identifiable {
     // ...
 }
 ```
